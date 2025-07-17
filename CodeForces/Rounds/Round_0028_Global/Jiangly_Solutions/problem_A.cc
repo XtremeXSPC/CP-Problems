@@ -1,7 +1,7 @@
 //===---------------------------------------------------------------------===//
 /**
- * @brief Codeforces Round 995 (Div. 3)
- * @author: Costantino Lombardi
+ * @brief Codeforces Global Round 28
+ * @author: Codeforces User "Jiangly"
  * @file: problem_A.cc
  *
  * @status: PASSED
@@ -10,7 +10,6 @@
 /* Included library */
 
 #include <bits/stdc++.h>
-#include <iostream>
 
 using namespace std;
 
@@ -20,37 +19,34 @@ using namespace std;
 #define debug(...) 42
 #endif
 
+using i64  = long long;
+using u64  = unsigned long long;
+using u32  = unsigned;
+using u128 = unsigned __int128;
+
+void solve() {
+  int x;
+  std::cin >> x;
+
+  if (x % 33 == 0) {
+    std::cout << "YES\n";
+  } else {
+    std::cout << "NO\n";
+  }
+}
+
 //===---------------------------------------------------------------------===//
 /* Main function */
 
 int main() {
-  ios::sync_with_stdio(false);
-  cin.tie(nullptr);
+  std::ios::sync_with_stdio(false);
+  std::cin.tie(nullptr);
 
   int t;
-  cin >> t;
+  std::cin >> t;
+
   while (t--) {
-    int n;
-    cin >> n;
-
-    vector<int> a(n), b(n);
-    for (int i = 0; i < n; i++)
-      cin >> a[i];
-
-    for (int i = 0; i < n; i++)
-      cin >> b[i];
-
-    int max_diff = 0;
-
-    for (int i = 0; i < n - 1; i++) {
-      int delta = a[i] - b[i + 1];
-      if (delta > 0) {
-        max_diff += delta;
-      }
-    }
-
-    max_diff += a[n - 1];
-    cout << max_diff << "\n";
+    solve();
   }
 
   return 0;
