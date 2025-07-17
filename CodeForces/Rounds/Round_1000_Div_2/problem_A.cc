@@ -1,7 +1,10 @@
 //===---------------------------------------------------------------------===//
-/* Codeforces Round 1000 Div. 2
- * Author: Costantino Lombardi
- * File: problem_A.cc
+/**
+ * @brief Codeforces Round 1000 (Div. 2)
+ * @author: Costantino Lombardi
+ * @file: problem_A.cc
+ *
+ * @status: PASSED
  */
 //===---------------------------------------------------------------------===//
 /* Included library */
