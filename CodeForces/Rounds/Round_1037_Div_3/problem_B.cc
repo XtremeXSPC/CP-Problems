@@ -3,6 +3,8 @@
  * @brief Codeforces Round 1037 Div. 3
  * @uthor: Costantino Lombardi
  * @file: problem_B.cc
+ *
+ * @status: PASSED
  */
 //===---------------------------------------------------------------------===//
 /* Included library */

@@ -4,6 +4,7 @@
  * @author: Costantino Lombardi
  * @file: C-ver_problem_F
  *
+ * @status: PASSED
  * @details: Solution implemented in C.
  */
 //===---------------------------------------------------------------------===//

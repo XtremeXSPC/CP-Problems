@@ -1,7 +1,10 @@
 //===---------------------------------------------------------------------===//
-/* Codeforces Round 1009 Div. 3
- * Author: Costantino Lombardi
- * File: problem_A.cc
+/**
+ * @brief Codeforces Round 1009 (Div. 3)
+ * @author: Costantino Lombardi
+ * @file: problem_A.cc
+ *
+ * @status: TODO
  */
 //===---------------------------------------------------------------------===//
 /* Included library */
