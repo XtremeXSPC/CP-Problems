@@ -29,7 +29,7 @@ void setup_io() {
   cin.tie(nullptr);
 }
 
-// A reasonable threshold, approx. sqrt(2e5)
+// Threshold based on the total constraint sum(N) + sum(Q) <= 2e5.
 const int BLOCK_SIZE = 450;
 
 // Function to solve a single test case

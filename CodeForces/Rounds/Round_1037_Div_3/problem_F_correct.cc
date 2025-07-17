@@ -42,9 +42,8 @@ void solve() {
     cin >> colors[i];
   }
 
-  vector<int> degree(n + 1, 0);
-
   vector<vector<pair<int, int>>> adj(n + 1);
+  vector<int>                    degree(n + 1, 0);
   vector<tuple<int, int, int>>   edges;
 
   for (int i = 0; i < n - 1; ++i) {
@@ -57,7 +56,6 @@ void solve() {
     edges.emplace_back(u, v, c);
   }
 
-  // S[v][c] = sum of weights of edges from v to neighbors of color c
   vector<bool> is_heavy(n + 1, false);
   for (int i = 1; i <= n; ++i) {
     if (degree[i] > BLOCK_SIZE) {
@@ -65,11 +63,20 @@ void solve() {
     }
   }
 
+  // NEW CRUCIAL DATA STRUCTURE
+  // Adjacency list containing only heavy neighbors
+  vector<vector<pair<int, int>>> heavy_adj(n + 1);
+  for (int i = 1; i <= n; ++i) {
+    for (auto const& [neighbor, cost] : adj[i]) {
+      if (is_heavy[neighbor]) {
+        heavy_adj[i].push_back({neighbor, cost});
+      }
+    }
+  }
+
   vector<unordered_map<int, long long>> S(n + 1);
+  long long                             total_cost = 0;
 
-  long long total_cost = 0;
-
-  // Initial calculation for total_cost and maps S for heavy nodes
   for (const auto& [u, v, c] : edges) {
     if (colors[u] != colors[v]) {
       total_cost += c;
@@ -92,7 +99,7 @@ void solve() {
       continue;
     }
 
-    // Calculate the cost variation and update total_cost
+    // Cost variation calculation
     if (is_heavy[v_q]) {
       long long s_old = S[v_q].count(old_color) ? S[v_q][old_color] : 0;
       long long s_new = S[v_q].count(new_color) ? S[v_q][new_color] : 0;
@@ -108,17 +115,15 @@ void solve() {
       }
     }
 
-    // Propagate the color change to the S maps of all neighbors
-    for (const auto& [neighbor, cost] : adj[v_q]) {
-      if (is_heavy[neighbor]) {
-        S[neighbor][old_color] -= cost;
-        S[neighbor][new_color] += cost;
-      }
+    // State propagation
+    for (const auto& [heavy_neighbor, cost] : heavy_adj[v_q]) {
+      // The S map exists only for heavy nodes.
+      S[heavy_neighbor][old_color] -= cost;
+      S[heavy_neighbor][new_color] += cost;
     }
 
-    // Update the color of the queried vertex
+    // Final update
     colors[v_q] = new_color;
-
     cout << total_cost << "\n";
   }
 }
