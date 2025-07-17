@@ -1,7 +1,6 @@
 //===---------------------------------------------------------------------===//
 /**
  * @file Tester.cpp
- * @author Costantino Lombardi
  * @brief CodeForces Tester
  * @version 0.1
  * @date 2025-05-22
@@ -12,257 +11,133 @@
 //===---------------------------------------------------------------------===//
 /* Included library */
 
+#include <bits/stdc++.h>
+#include <iostream>
+#include <unordered_map>
+
+using namespace std;
+
 #ifdef LOCAL
 #include "algo/debug.h"
 #else
 #define debug(...) 42
 #endif
 
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-
 //===---------------------------------------------------------------------===//
-/* Costants & Structure */
+/* Main function */
 
-const int BLOCK_SIZE      = 450; // Threshold for decomposition
-const int HASH_TABLE_SIZE = 503; // A prime size for the hash table
-
-// ----- Definition of Data Structures ----- //
-
-// Node for adjacency list
-typedef struct AdjNode {
-  int             neighbor;
-  int             cost;
-  struct AdjNode* next;
-} AdjNode;
-
-// Node for the hash table (used for the map 'S')
-typedef struct HashNode {
-  int              key_color;
-  long long        value_sum;
-  struct HashNode* next;
-} HashNode;
-
-// The hash table itself (an array of linked lists)
-typedef struct HashTable {
-  HashNode** buckets;
-} HashTable;
-
-//===---------------------------------------------------------------------===//
-/* Function Definitions */
-
-// ----- Functions for Hash Table Management ----- //
-
-// Creates and initializes a new hash table
-HashTable* create_hash_table() {
-  HashTable* ht = (HashTable*)malloc(sizeof(HashTable));
-  ht->buckets   = (HashNode**)calloc(HASH_TABLE_SIZE, sizeof(HashNode*));
-  return ht;
+// Fast I/O
+void setup_io() {
+  ios_base::sync_with_stdio(false);
+  cin.tie(nullptr);
 }
 
-// Simple hash function
-unsigned int hash_function(int key) {
-  return (unsigned int)key % HASH_TABLE_SIZE;
-}
+// Threshold based on the total constraint sum(N) + sum(Q) <= 2e5.
+const int BLOCK_SIZE = 450;
 
-// Gets the value associated with a key. Returns 0 if the key does not exist.
-long long hash_get(HashTable* ht, int key) {
-  if (!ht)
-    return 0;
-  unsigned int index = hash_function(key);
-  for (HashNode* current = ht->buckets[index]; current; current = current->next) {
-    if (current->key_color == key)
-      return current->value_sum;
-  }
-  return 0;
-}
-
-// Updates the value of a key by adding 'delta'.
-// If the key does not exist, it is created.
-void hash_update_arena(HashTable* ht, int key, long long delta, HashNode* arena, int* arena_idx) {
-  if (!ht)
-    return;
-  unsigned int index = hash_function(key);
-
-  // Checks if the key already exists
-  HashNode* current = ht->buckets[index];
-  while (current) {
-    if (current->key_color == key) {
-      current->value_sum += delta;
-      return;
-    }
-    current = current->next;
-  }
-
-  // If it does not exist, creates a new node and adds it to the head of the list
-  HashNode* newNode  = &arena[(*arena_idx)++];
-  newNode->key_color = key;
-  newNode->value_sum = delta;
-  newNode->next      = ht->buckets[index];
-  ht->buckets[index] = newNode;
-}
-
-/* Frees all memory used by a hash table
-void free_hash_table(HashTable* ht) {
-  if (!ht)
-    return;
-  for (int i = 0; i < HASH_TABLE_SIZE; ++i) {
-    HashNode* current = ht->buckets[i];
-    while (current) {
-      HashNode* to_free = current;
-      current           = current->next;
-      free(to_free);
-    }
-  }
-  free(ht->buckets);
-  free(ht);
-}
-*/
-
-// ----- Utility functions for the graph ----- //
-
-// Adds an edge to the adjacency list
-void add_edge_arena(AdjNode** adj, int u, int v, int c, AdjNode* arena, int* arena_idx) {
-  AdjNode* newNode  = &arena[(*arena_idx)++];
-  newNode->neighbor = v;
-  newNode->cost     = c;
-  newNode->next     = adj[u];
-  adj[u]            = newNode;
-}
-
-// Function to solve a test case
 void solve() {
-  int n, q;
-  scanf("%d %d", &n, &q);
+  int n;
+  int q;
+  cin >> n >> q;
 
-  int* colors = (int*)malloc((n + 1) * sizeof(int));
+  vector<int> colors(n + 1);
   for (int i = 1; i <= n; ++i) {
-    scanf("%d", &colors[i]);
+    cin >> colors[i];
   }
 
-  // Data structures for the graph and nodes
-  AdjNode**   adj      = (AdjNode**)calloc(n + 1, sizeof(AdjNode*));
-  int*        degree   = (int*)calloc(n + 1, sizeof(int));
-  bool*       is_heavy = (bool*)calloc(n + 1, sizeof(bool));
-  HashTable** S        = (HashTable**)calloc(n + 1, sizeof(HashTable*));
-
-  // Structure to store edges for initial calculation
-  typedef struct {
-    int u, v, c;
-  } Edge;
-  Edge* edges = (Edge*)malloc((n - 1) * sizeof(Edge));
-
-  // Memory allocation area
-  AdjNode* adj_arena     = (AdjNode*)malloc(2 * (n - 1) * sizeof(AdjNode));
-  int      adj_arena_idx = 0;
-
-  // Generous estimate for hash nodes. A value between N and 2*N is often sufficient
-  long long hash_nodes_needed = (n > 1) ? 2LL * n : 1;
-  HashNode* hash_arena        = (HashNode*)malloc(hash_nodes_needed * sizeof(HashNode));
-  int       hash_arena_idx    = 0;
+  vector<vector<pair<int, int>>> adj(n + 1);
+  vector<int>                    degree(n + 1, 0);
+  vector<tuple<int, int, int>>   edges;
 
   for (int i = 0; i < n - 1; ++i) {
     int u, v, c;
-    scanf("%d %d %d", &u, &v, &c);
-    add_edge_arena(adj, u, v, c, adj_arena, &adj_arena_idx);
-    add_edge_arena(adj, v, u, c, adj_arena, &adj_arena_idx);
+    cin >> u >> v >> c;
+    adj[u].push_back({v, c});
+    adj[v].push_back({u, c});
     degree[u]++;
     degree[v]++;
-    edges[i].u = u;
-    edges[i].v = v;
-    edges[i].c = c;
+    edges.emplace_back(u, v, c);
   }
 
-  // Identifies heavy nodes
+  vector<bool> is_heavy(n + 1, false);
   for (int i = 1; i <= n; ++i) {
     if (degree[i] > BLOCK_SIZE) {
       is_heavy[i] = true;
     }
   }
 
-  long long total_cost = 0;
+  // NEW CRUCIAL DATA STRUCTURE
+  // Adjacency list containing only heavy neighbors
+  vector<vector<pair<int, int>>> heavy_adj(n + 1);
+  for (int i = 1; i <= n; ++i) {
+    for (auto const& [neighbor, cost] : adj[i]) {
+      if (is_heavy[neighbor]) {
+        heavy_adj[i].push_back({neighbor, cost});
+      }
+    }
+  }
 
-  // Initial calculation of total cost and maps S for heavy nodes
-  for (int i = 0; i < n - 1; ++i) {
-    int u = edges[i].u;
-    int v = edges[i].v;
-    int c = edges[i].c;
+  vector<unordered_map<int, long long>> S(n + 1);
+  long long                             total_cost = 0;
 
+  for (const auto& [u, v, c] : edges) {
     if (colors[u] != colors[v]) {
       total_cost += c;
     }
     if (is_heavy[u]) {
-      if (S[u] == NULL)
-        S[u] = create_hash_table();
-      hash_update_arena(S[u], colors[v], c, hash_arena, &hash_arena_idx);
+      S[u][colors[v]] += c;
     }
     if (is_heavy[v]) {
-      if (S[v] == NULL)
-        S[v] = create_hash_table();
-      hash_update_arena(S[v], colors[u], c, hash_arena, &hash_arena_idx);
+      S[v][colors[u]] += c;
     }
   }
 
-  // Processes the queries
   for (int k = 0; k < q; ++k) {
     int v_q, new_color;
-    scanf("%d %d", &v_q, &new_color);
+    cin >> v_q >> new_color;
 
     int old_color = colors[v_q];
     if (old_color == new_color) {
-      printf("%lld\n", total_cost);
+      cout << total_cost << "\n";
       continue;
     }
 
-    // Calculates the cost variation
+    // Cost variation calculation
     if (is_heavy[v_q]) {
-      total_cost += hash_get(S[v_q], old_color) - hash_get(S[v_q], new_color);
-    } else {
-      for (AdjNode* current = adj[v_q]; current; current = current->next) {
-        if (colors[current->neighbor] == old_color)
-          total_cost += current->cost;
-        if (colors[current->neighbor] == new_color)
-          total_cost -= current->cost;
+      long long s_old = S[v_q].count(old_color) ? S[v_q][old_color] : 0;
+      long long s_new = S[v_q].count(new_color) ? S[v_q][new_color] : 0;
+      total_cost += s_old - s_new;
+    } else { // v_q is light
+      for (const auto& [neighbor, cost] : adj[v_q]) {
+        if (colors[neighbor] == old_color) {
+          total_cost += cost;
+        }
+        if (colors[neighbor] == new_color) {
+          total_cost -= cost;
+        }
       }
     }
 
-    // Propagates the color change to heavy neighbors
-    for (AdjNode* current = adj[v_q]; current; current = current->next) {
-      if (is_heavy[current->neighbor]) {
-        hash_update_arena(S[current->neighbor], old_color, -current->cost, hash_arena, &hash_arena_idx);
-        hash_update_arena(S[current->neighbor], new_color, current->cost, hash_arena, &hash_arena_idx);
-      }
+    // State propagation
+    for (const auto& [heavy_neighbor, cost] : heavy_adj[v_q]) {
+      // The S map exists only for heavy nodes.
+      S[heavy_neighbor][old_color] -= cost;
+      S[heavy_neighbor][new_color] += cost;
     }
 
+    // Final update
     colors[v_q] = new_color;
-    printf("%lld\n", total_cost);
+    cout << total_cost << "\n";
   }
-
-  // Memory cleanup
-  free(colors);
-  free(degree);
-  free(is_heavy);
-  free(edges);
-  for (int i = 1; i <= n; ++i) {
-    if (S[i] != NULL) {
-      free(S[i]->buckets);
-      free(S[i]);
-    }
-  }
-  free(adj);
-  free(S);
-
-  free(adj_arena);
-  free(hash_arena);
 }
 
 //===---------------------------------------------------------------------===//
 /* Main function */
 
 int main() {
+  setup_io();
   int t;
-  scanf("%d", &t);
+  cin >> t;
   while (t--) {
     solve();
   }
