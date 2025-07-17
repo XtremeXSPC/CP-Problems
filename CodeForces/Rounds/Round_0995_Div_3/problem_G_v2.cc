@@ -4,7 +4,7 @@
  * @author: Costantino Lombardi
  * @file: problem_G_v2.cc
  *
- * @status: PASSED
+ * @status: NOT PASSED
  */
 //===---------------------------------------------------------------------===//
 /* Included library */
