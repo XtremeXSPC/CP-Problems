@@ -1,13 +1,10 @@
 //===---------------------------------------------------------------------===//
 /**
- * @file Tester.cpp
- * @author Costantino Lombardi
- * @brief CodeForces Tester
- * @version 0.1
- * @date 2025-05-22
+ * @brief Codeforces Round 1037 Div. 3
+ * @author: Costantino Lombardi
+ * @file: C-ver_problem_F
  *
- * @copyright Copyright (c) 2025
- *
+ * @details: Solution implemented in C.
  */
 //===---------------------------------------------------------------------===//
 /* Included library */
