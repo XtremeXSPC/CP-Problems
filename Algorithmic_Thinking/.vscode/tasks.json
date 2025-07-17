@@ -1,0 +1,113 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build with Make",
+            "type": "shell",
+            "command": "make",
+            "args": [],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "detail": "Compila il progetto utilizzando Makefile."
+        },
+        {
+            "label": "Clean Build",
+            "type": "shell",
+            "command": "make",
+            "args": [
+                "clean"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "build",
+            "detail": "Pulisce il progetto eliminando file oggetto e l'eseguibile."
+        },
+        {
+            "label": "Run Program",
+            "type": "shell",
+            "command": "make",
+            "args": [
+                "run"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "detail": "Esegue il programma compilato."
+        },
+        {
+            "label": "Build and Run",
+            "type": "shell",
+            "command": "make && make run",
+            "args": [],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": "test",
+            "detail": "Compila ed esegue il programma in un unico comando."
+        },
+        {
+            "label": "Debug Info",
+            "type": "shell",
+            "command": "make",
+            "args": [
+                "debug-info"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "none",
+            "detail": "Mostra informazioni di debug sulla configurazione del Makefile."
+        },
+        {
+            "label": "LLDB Debug (macOS)",
+            "type": "shell",
+            "command": "/opt/homebrew/opt/llvm/bin/lldb",
+            "args": ["${workspaceFolder}/bin/GenProg"],
+            "dependsOn": ["Build with Make"],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": true
+            },
+            "group": "test",
+            "detail": "Esegue il debug con LLDB in un terminale integrato."
+        },
+        {
+            "type": "cppbuild",
+            "label": "C/C++: clang build active file",
+            "command": "/usr/bin/clang",
+            "args": [
+                "-fcolor-diagnostics",
+                "-fansi-escape-codes",
+                "-g",
+                "${file}",
+                "-o",
+                "${fileDirname}/${fileBasenameNoExtension}"
+            ],
+            "options": {
+                "cwd": "${fileDirname}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": "build",
+            "detail": "Task generato dal Debugger."
+        }
+    ]
+}
