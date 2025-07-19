@@ -23,7 +23,7 @@ using namespace std;
 #endif
 
 //===---------------------------------------------------------------------===//
-/* Main function */
+/* Function Definitions */
 
 // Fast I/O
 void setup_io() {

@@ -23,7 +23,7 @@ using namespace std;
 #endif
 
 //===---------------------------------------------------------------------===//
-/* Main function */
+/* Function Definitions */
 
 // Fast I/O
 void setup_io() {
@@ -34,6 +34,7 @@ void setup_io() {
 // Threshold based on the total constraint sum(N) + sum(Q) <= 2e5.
 const int BLOCK_SIZE = 450;
 
+// Function to solve a single test case
 void solve() {
   int n;
   int q;
