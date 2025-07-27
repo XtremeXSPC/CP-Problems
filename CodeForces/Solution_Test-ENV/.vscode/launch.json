@@ -33,8 +33,8 @@
       "cwd": "${workspaceFolder}",
       "preLaunchTask": "Build (Debug)"
     },
-    // ----- Windows/Linux Configurations ----- //
     {
+      // ----- Windows/Linux Configurations ----- //
       "name": "Run C/C++ Application (Windows/Linux)",
       "type": "cppdbg",
       "request": "launch",
@@ -84,16 +84,6 @@
         "MIMode": "gdb",
         "miDebuggerPath": "/usr/bin/gdb"
       }
-    },
-    {
-      "name": "macOS Debug (CodeLLDB)",
-      "type": "lldb",
-      "request": "launch",
-      "program": "${workspaceFolder}/bin/Tester",
-      "args": [],
-      "cwd": "${workspaceFolder}",
-      "preLaunchTask": "Build (Debug)",
-      "stdio": "${workspaceFolder}/input.txt"
     }
   ],
   "inputs": [

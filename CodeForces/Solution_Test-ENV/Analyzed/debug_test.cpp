@@ -11,9 +11,13 @@
 //===---------------------------------------------------------------------===//
 /* Included library */
 
-#include <bits/stdc++.h>
 #include <iostream>
+#include <map>
 #include <numbers>
+#include <set>
+#include <string>
+#include <tuple>
+#include <vector>
 
 using namespace std;
 
@@ -29,7 +33,7 @@ using namespace std;
 // Test function for basic data types
 void test_basic_types() {
   debug_line();
-  std::cout << "----- Testing basic data types -------\n";
+  std::cout << "# Testing basic data types\n";
   int         a = 42;
   long long   b = 1234567890123LL;
   double      c = std::numbers::pi;
@@ -44,7 +48,7 @@ void test_basic_types() {
 // Test function for standard STL containers
 void test_stl_containers() {
   debug_line();
-  std::cout << "\n----- Testing STL Containers ---------\n";
+  std::cout << "\n# Testing STL Containers\n";
 
   std::vector<int> v = {1, 2, 3, 4, 5};
   debug(v);
@@ -81,7 +85,7 @@ void test_stl_containers() {
 // Test function for advanced printing features (matrices and pointers)
 void test_advanced_printing() {
   debug_line();
-  std::cout << "\n----- Testing Advanced Printing ------\n";
+  std::cout << "\n# Testing Advanced Printing\n";
 
   // Test matrix (2D vector) pretty printing
   std::vector<std::vector<int>> matrix = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
@@ -107,7 +111,7 @@ auto fibonacci(int n) -> int {
 // Test function for the utility macros
 void test_macros() {
   debug_line();
-  std::cout << "\n----- Testing Utility Macros ---------\n";
+  std::cout << "\n# Testing Utility Macros\n";
 
   // 1. Test debug_if
   std::cout << "Testing debug_if (will print only for even numbers):\n";
@@ -135,7 +139,7 @@ void test_macros() {
 // Test function for the Timer and logging utilities
 void test_utilities() {
   debug_line();
-  std::cout << "\n----- Testing Utilities (Timer) ------\n";
+  std::cout << "\n# Testing Utilities (Timer)\n";
 
   // The Timer object will automatically print the elapsed time
   // when it goes out of scope at the end of this function.
@@ -158,7 +162,7 @@ void test_utilities() {
 auto main() -> int {
   // To test file logging, uncomment the line below.
   // All debug output will be redirected to "debug_output.txt".
-  init_debug_log();
+  // init_debug_log();
 
   std::cout << "Starting debug header test...\n";
 

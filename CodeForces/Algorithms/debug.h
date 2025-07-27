@@ -243,24 +243,25 @@ namespace AlgoDebug {
 
 #if LOCAL_LEVEL >= 1
 #define _debug_print(level_color, ...)                                                                                                     \
-  std::cerr << level_color << "[" << __FILE__ << ":" << __LINE__ << " (" << __func__ << ")] " << RESET << MAGENTA << #__VA_ARGS__ << " = " \
-            << CYAN;                                                                                                                       \
-  std::cerr << "[";                                                                                                                        \
-  AlgoDebug::print_recursive_helper(__VA_ARGS__);                                                                                          \
-  std::cerr << RESET;
+  do {                                                                                                                                     \
+    std::cerr << level_color << "[" << __FILE__ << ":" << __LINE__ << " (" << __func__ << ")] " << RESET << MAGENTA << #__VA_ARGS__        \
+              << " = " << CYAN << "[";                                                                                                     \
+    AlgoDebug::print_recursive_helper(__VA_ARGS__);                                                                                        \
+    std::cerr << RESET << std::flush;                                                                                                      \
+  } while (0)
 #define debug(...) _debug_print(YELLOW, __VA_ARGS__)
 #else
-#define debug(...) 42
+#define debug(...) ((void)0)
 #endif
 
 #if LOCAL_LEVEL >= 2
 #define debug2(...) _debug_print(BLUE, __VA_ARGS__)
 #else
-#define debug2(...) 42
+#define debug2(...) ((void)0)
 #endif
 
 #if LOCAL_LEVEL > 0
-#define debug_line() std::cerr << BLUE << "-------------------------------------------------" << RESET << "\n";
+#define debug_line() std::cerr << BLUE << "/====--------------------------------------------------====/" << RESET << "\n";
 #define debug_if(cond, ...)                                                                                                                \
   if (cond) {                                                                                                                              \
     debug(__VA_ARGS__);                                                                                                                    \
