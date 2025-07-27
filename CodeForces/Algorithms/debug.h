@@ -68,99 +68,99 @@ namespace AlgoDebug {
 
   // Forward declarations for template functions to resolve dependencies
   template <typename T>
-  void print_helper(const T& x);
-  template <typename T, typename... V>
-  void print_helper_recursive(T t, V... v);
+  void print_helper(const T& value);
+  template <typename T, typename... Args>
+  void print_helper_recursive(T first, Args... rest);
 
   // Base cases for printing fundamental types
-  inline void print_helper(int x) {
-    std::cerr << x;
+  inline void print_helper(int number) {
+    std::cerr << number;
   }
-  inline void print_helper(long x) {
-    std::cerr << x;
+  inline void print_helper(long number) {
+    std::cerr << number;
   }
-  inline void print_helper(long long x) {
-    std::cerr << x;
+  inline void print_helper(long long number) {
+    std::cerr << number;
   }
-  inline void print_helper(unsigned x) {
-    std::cerr << x;
+  inline void print_helper(unsigned number) {
+    std::cerr << number;
   }
-  inline void print_helper(unsigned long x) {
-    std::cerr << x;
+  inline void print_helper(unsigned long number) {
+    std::cerr << number;
   }
-  inline void print_helper(unsigned long long x) {
-    std::cerr << x;
+  inline void print_helper(unsigned long long number) {
+    std::cerr << number;
   }
-  inline void print_helper(float x) {
-    std::cerr << x;
+  inline void print_helper(float decimal) {
+    std::cerr << decimal;
   }
-  inline void print_helper(double x) {
-    std::cerr << x;
+  inline void print_helper(double decimal) {
+    std::cerr << decimal;
   }
-  inline void print_helper(long double x) {
-    std::cerr << x;
+  inline void print_helper(long double decimal) {
+    std::cerr << decimal;
   }
-  inline void print_helper(char x) {
-    std::cerr << '\'' << x << '\'';
+  inline void print_helper(char character) {
+    std::cerr << '\'' << character << '\'';
   }
-  inline void print_helper(const char* x) {
-    std::cerr << '"' << x << '"';
+  inline void print_helper(const char* str) {
+    std::cerr << '"' << str << '"';
   }
-  inline void print_helper(const std::string& x) {
-    std::cerr << '"' << x << '"';
+  inline void print_helper(const std::string& str) {
+    std::cerr << '"' << str << '"';
   }
-  inline void print_helper(bool x) {
-    std::cerr << (x ? "true" : "false");
+  inline void print_helper(bool flag) {
+    std::cerr << (flag ? "true" : "false");
   }
-  inline void print_helper(std::bitset<8> b) {
-    std::cerr << b;
+  inline void print_helper(std::bitset<8> bits) {
+    std::cerr << bits;
   }
   template <size_t N>
-  void print_helper(const std::bitset<N>& b) {
-    std::cerr << b;
+  void print_helper(const std::bitset<N>& bits) {
+    std::cerr << bits;
   }
 
   // Pointer printing
   template <typename T>
-  void print_helper(T* p) {
-    if (p == nullptr) {
+  void print_helper(T* ptr) {
+    if (ptr == nullptr) {
       std::cerr << "nullptr";
     } else {
-      std::cerr << p; /* Just print address */
+      std::cerr << ptr; /* Just print address */
     }
   }
 
   // Template for printing a std::pair
   template <typename T, typename U>
-  void print_helper(const std::pair<T, U>& x) {
+  void print_helper(const std::pair<T, U>& pair) {
     std::cerr << '{';
-    print_helper(x.first);
+    print_helper(pair.first);
     std::cerr << ", ";
-    print_helper(x.second);
+    print_helper(pair.second);
     std::cerr << '}';
   }
 
   // Helper for printing a std::tuple
   template <typename T, std::size_t... Is>
-  void print_tuple(const T& t, std::index_sequence<Is...>) {
+  void print_tuple(const T& tuple, std::index_sequence<Is...>) {
     std::cerr << "{";
     int f = 0;
     // C++17 fold expression
-    ((std::cerr << (f++ ? ", " : ""), print_helper(std::get<Is>(t))), ...);
+    ((std::cerr << (f++ ? ", " : ""), print_helper(std::get<Is>(tuple))), ...);
     std::cerr << "}";
   }
 
   // Template for printing a std::tuple
   template <typename... Args>
-  void print_helper(const std::tuple<Args...>& t) {
-    print_tuple(t, std::make_index_sequence<sizeof...(Args)>());
+  void print_helper(const std::tuple<Args...>& tuple) {
+    print_tuple(tuple, std::make_index_sequence<sizeof...(Args)>());
   }
 
   // Pretty print for 2D vectors (matrices)
   template <typename T>
-  void print_helper(const std::vector<std::vector<T>>& mat) {
+  void print_helper(const std::vector<std::vector<T>>& matrix) {
     std::cerr << "{\n";
-    for (const auto& row : mat) {
+    for (const auto& row : matrix) {
       std::cerr << "  "; // Indent rows
       print_helper(row);
       std::cerr << "\n";
@@ -170,10 +170,10 @@ namespace AlgoDebug {
 
   // Template for printing iterable containers (vector, set, map, etc.)
   template <typename T>
-  void print_helper(const T& x) {
+  void print_helper(const T& iterable) {
     int f = 0;
     std::cerr << '{';
-    for (const auto& i : x) {
+    for (const auto& i : iterable) {
       std::cerr << (f++ ? ", " : "");
       print_helper(i);
     }
@@ -182,22 +182,22 @@ namespace AlgoDebug {
 
   // Specializations for non-iterable containers (pass by value to copy)
   template <typename T, typename C>
-  void print_helper(const std::queue<T, C>& q);
+  void print_helper(const std::queue<T, C>& queue);
   template <typename T, typename C>
-  void print_helper(const std::stack<T, C>& s);
+  void print_helper(const std::stack<T, C>& stack);
   template <typename T, typename Container, typename Compare>
   void print_helper(const std::priority_queue<T, Container, Compare>& pq);
 
   template <typename T, typename C>
   void print_helper(const std::queue<T, C>& q_orig) {
-    auto q = q_orig; // Make a copy
+    auto queue = q_orig; // Make a copy
     std::cerr << "{";
     bool first = true;
-    while (!q.empty()) {
+    while (!queue.empty()) {
       if (!first)
         std::cerr << ", ";
-      print_helper(q.front());
-      q.pop();
+      print_helper(queue.front());
+      queue.pop();
       first = false;
     }
     std::cerr << "}";
@@ -205,11 +205,11 @@ namespace AlgoDebug {
 
   template <typename T, typename C>
   void print_helper(const std::stack<T, C>& s_orig) {
-    auto           s = s_orig; // Make a copy
+    auto           stack = s_orig; // Make a copy
     std::vector<T> temp;
-    while (!s.empty()) {
-      temp.push_back(s.top());
-      s.pop();
+    while (!stack.empty()) {
+      temp.push_back(stack.top());
+      stack.pop();
     }
     std::reverse(temp.begin(), temp.end());
     print_helper(temp);
@@ -217,11 +217,11 @@ namespace AlgoDebug {
 
   template <typename T, typename Container, typename Compare>
   void print_helper(const std::priority_queue<T, Container, Compare>& pq_orig) {
-    auto           pq = pq_orig; // Make a copy
+    auto           p_queue = pq_orig; // Make a copy
     std::vector<T> temp;
-    while (!pq.empty()) {
-      temp.push_back(pq.top());
-      pq.pop();
+    while (!p_queue.empty()) {
+      temp.push_back(p_queue.top());
+      p_queue.pop();
     }
     print_helper(temp);
   }
