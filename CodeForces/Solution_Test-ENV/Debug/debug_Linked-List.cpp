@@ -15,7 +15,7 @@
 #include <memory>
 #include <string>
 
-#include "../Algorithms/debug.h"
+#include "../../Algorithms/debug.h"
 
 //===---------------------------------------------------------------------===//
 /* Definitions of Structures and Classes */
@@ -58,7 +58,7 @@ public:
 
 //===---------------------------------------------------------------------===//
 /* Main function */
-auto main() -> int {
+int main() {
   // The type name "LinkedList" should be recognized by our regex
   LinkedList<int> list;
   list.push_front(10);
