@@ -44,8 +44,8 @@ void test_stl_containers() {
   debug_line();
   std::cout << "\n# Testing STL Containers\n";
 
-  std::vector<int> v = {1, 2, 3, 4, 5};
-  debug(v);
+  std::vector<int> vect = {1, 2, 3, 4, 5};
+  debug(vect);
 
   std::map<std::string, int> scores = {{"Alice", 95}, {"Bob", 88}};
   debug(scores);
@@ -53,27 +53,27 @@ void test_stl_containers() {
   std::set<int> unique_numbers = {1, 5, 2, 1, 5, 3};
   debug(unique_numbers);
 
-  std::pair<int, std::string> p = {10, "Points"};
-  debug(p);
+  std::pair<int, std::string> ptr = {10, "Points"};
+  debug(ptr);
 
-  std::tuple<int, char, double> t = {1, 'a', 2.5};
-  debug(t);
+  std::tuple<int, char, double> tuple = {1, 'a', 2.5};
+  debug(tuple);
 
-  std::queue<int> q;
-  q.push(10);
-  q.push(20);
-  debug(q);
+  std::queue<int> queue;
+  queue.push(10);
+  queue.push(20);
+  debug(queue);
 
-  std::stack<int> s;
-  s.push(30);
-  s.push(40);
-  debug(s);
+  std::stack<int> stack;
+  stack.push(30);
+  stack.push(40);
+  debug(stack);
 
-  std::priority_queue<int> pq;
-  pq.push(5);
-  pq.push(15);
-  pq.push(10);
-  debug(pq);
+  std::priority_queue<int> p_queue;
+  p_queue.push(5);
+  p_queue.push(15);
+  p_queue.push(10);
+  debug(p_queue);
 }
 
 // Test function for advanced printing features (matrices and pointers)
