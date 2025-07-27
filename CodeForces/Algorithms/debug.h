@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <queue>
 #include <set>
 #include <stack>
@@ -19,7 +20,6 @@
 
 //===---------------------------------------------------------------------===//
 //============================= CONFIGURATION  ==============================//
-
 // clang-format off
 
 // Define `LOCAL` with a value to control debug level, e.g., g++ -DLOCAL=2
@@ -38,41 +38,45 @@
 
 // To make terminal output more readable.
 #if LOCAL_LEVEL > 0
-  #define RESET "\033[0m"
-  #define RED "\033[31m"     /* Red */
-  #define GREEN "\033[32m"   /* Green */
-  #define YELLOW "\033[33m"  /* Yellow */
-  #define BLUE "\033[34m"    /* Blue */
-  #define MAGENTA "\033[35m" /* Magenta */
-  #define CYAN "\033[36m"    /* Cyan */
+  #define RESET   "\033[0m"
+  #define RED     "\033[31m"
+  #define GREEN   "\033[32m"
+  #define YELLOW  "\033[33m"
+  #define BLUE    "\033[34m"
+  #define MAGENTA "\033[35m"
+  #define CYAN    "\033[36m"
 #else
-  #define RESET ""
-  #define RED ""
-  #define GREEN ""
-  #define YELLOW ""
-  #define BLUE ""
+  #define RESET   ""
+  #define RED     ""
+  #define GREEN   ""
+  #define YELLOW  ""
+  #define BLUE    ""
   #define MAGENTA ""
-  #define CYAN ""
+  #define CYAN    ""
 #endif
 
 // clang-format on
-
 //===---------------------------------------------------------------------===//
 //====================== DEBUGGER CORE IMPLEMENTATION =======================//
 
 #if LOCAL_LEVEL > 0
 namespace AlgoDebug {
 
-  // Forward declaration for the main printing function
-  void print_helper_recursive();
+  // Function to get thread-local visited pointers set
+  // This avoids ODR violations by using a function-local static variable
+  inline std::set<const void*>& get_visited_pointers() {
+    thread_local std::set<const void*> visited_pointers;
+    return visited_pointers;
+  }
 
-  // Forward declarations for template functions to resolve dependencies
+  // Forward declarations to resolve template dependencies
   template <typename T>
-  void print_helper(const T& value);
-  template <typename T, typename... Args>
-  void print_helper_recursive(T first, Args... rest);
+  auto print_helper(const T& value) -> decltype(std::begin(value), void());
 
-  // Base cases for printing fundamental types
+  template <typename T, typename... Args>
+  void print_recursive_helper(T first, Args... rest);
+
+  // Base cases for fundamental types
   inline void print_helper(int number) {
     std::cerr << number;
   }
@@ -112,51 +116,62 @@ namespace AlgoDebug {
   inline void print_helper(bool flag) {
     std::cerr << (flag ? "true" : "false");
   }
-  inline void print_helper(std::bitset<8> bits) {
-    std::cerr << bits;
-  }
   template <size_t N>
   void print_helper(const std::bitset<N>& bits) {
     std::cerr << bits;
   }
 
-  // Pointer printing
+  // Raw pointer printing
   template <typename T>
   void print_helper(T* ptr) {
     if (ptr == nullptr) {
       std::cerr << "nullptr";
-    } else {
-      std::cerr << ptr; /* Just print address */
+      return;
     }
+    // If the pointer has already been visited in this call, print a cycle warning and stop.
+    if (get_visited_pointers().count(ptr)) {
+      std::cerr << RED << "[CYCLE DETECTED AT " << ptr << "]" << CYAN;
+      return;
+    }
+    get_visited_pointers().insert(ptr);
+    std::cerr << "&";   // Indicates it's a pointer
+    print_helper(*ptr); // Dereference and print the value
   }
 
-  // Template for printing a std::pair
+  // Smart pointer printing
+  template <typename T>
+  void print_helper(const std::unique_ptr<T>& ptr) {
+    print_helper(ptr.get());
+  }
+  template <typename T>
+  void print_helper(const std::shared_ptr<T>& ptr) {
+    print_helper(ptr.get());
+  }
+
+  // std::pair printing
   template <typename T, typename U>
-  void print_helper(const std::pair<T, U>& pair) {
+  void print_helper(const std::pair<T, U>& pair_obj) {
     std::cerr << '{';
-    print_helper(pair.first);
+    print_helper(pair_obj.first);
     std::cerr << ", ";
-    print_helper(pair.second);
+    print_helper(pair_obj.second);
     std::cerr << '}';
   }
 
-  // Helper for printing a std::tuple
+  // std::tuple printing
   template <typename T, std::size_t... Is>
-  void print_tuple(const T& tuple, std::index_sequence<Is...>) {
+  void print_tuple(const T& tuple_obj, std::index_sequence<Is...>) {
     std::cerr << "{";
-    int f = 0;
-    // C++17 fold expression
-    ((std::cerr << (f++ ? ", " : ""), print_helper(std::get<Is>(tuple))), ...);
+    int separator_flag = 0;
+    ((std::cerr << (separator_flag++ ? ", " : ""), print_helper(std::get<Is>(tuple_obj))), ...);
     std::cerr << "}";
   }
-
-  // Template for printing a std::tuple
   template <typename... Args>
-  void print_helper(const std::tuple<Args...>& tuple) {
-    print_tuple(tuple, std::make_index_sequence<sizeof...(Args)>());
+  void print_helper(const std::tuple<Args...>& tuple_obj) {
+    print_tuple(tuple_obj, std::make_index_sequence<sizeof...(Args)>());
   }
 
-  // Pretty print for 2D vectors (matrices)
+  // Matrix (vector of vector) printing
   template <typename T>
   void print_helper(const std::vector<std::vector<T>>& matrix) {
     std::cerr << "{\n";
@@ -168,75 +183,130 @@ namespace AlgoDebug {
     std::cerr << "}";
   }
 
-  // Template for printing iterable containers (vector, set, map, etc.)
-  template <typename T>
-  void print_helper(const T& iterable) {
-    int f = 0;
+  // Generic template for iterable containers (vector, set, map, list, etc.)
+  template <typename T, typename = decltype(std::begin(std::declval<T>())), typename = std::enable_if_t<!std::is_same_v<T, std::string>>>
+  void print_iterable(const T& iterable) {
     std::cerr << '{';
-    for (const auto& i : iterable) {
-      std::cerr << (f++ ? ", " : "");
-      print_helper(i);
+    auto it = std::begin(iterable);
+    if (it != std::end(iterable)) {
+      print_helper(*it);
+      ++it;
     }
-    std::cerr << "}";
+    while (it != std::end(iterable)) {
+      std::cerr << ", ";
+      print_helper(*it);
+      ++it;
+    }
+    std::cerr << '}';
+  }
+  // SFINAE to call the printer for iterables
+  template <typename T>
+  auto print_helper(const T& value) -> decltype(std::begin(value), void()) {
+    // Exclude strings to avoid printing them as a char array
+    if constexpr (!std::is_same_v<T, std::string>) {
+      print_iterable(value);
+    }
   }
 
-  // Specializations for non-iterable containers (pass by value to copy)
+  // Specializations for non-iterable containers (copied for printing)
   template <typename T, typename C>
-  void print_helper(const std::queue<T, C>& queue);
-  template <typename T, typename C>
-  void print_helper(const std::stack<T, C>& stack);
-  template <typename T, typename Container, typename Compare>
-  void print_helper(const std::priority_queue<T, Container, Compare>& pq);
-
-  template <typename T, typename C>
-  void print_helper(const std::queue<T, C>& q_orig) {
-    auto queue = q_orig; // Make a copy
+  void print_helper(std::queue<T, C> queue_copy) {
     std::cerr << "{";
     bool first = true;
-    while (!queue.empty()) {
+    while (!queue_copy.empty()) {
       if (!first)
         std::cerr << ", ";
-      print_helper(queue.front());
-      queue.pop();
+      print_helper(queue_copy.front());
+      queue_copy.pop();
       first = false;
     }
     std::cerr << "}";
   }
 
   template <typename T, typename C>
-  void print_helper(const std::stack<T, C>& s_orig) {
-    auto           stack = s_orig; // Make a copy
+  void print_helper(std::stack<T, C> stack_copy) {
     std::vector<T> temp;
-    while (!stack.empty()) {
-      temp.push_back(stack.top());
-      stack.pop();
+    while (!stack_copy.empty()) {
+      temp.push_back(stack_copy.top());
+      stack_copy.pop();
     }
     std::reverse(temp.begin(), temp.end());
     print_helper(temp);
   }
 
   template <typename T, typename Container, typename Compare>
-  void print_helper(const std::priority_queue<T, Container, Compare>& pq_orig) {
-    auto           p_queue = pq_orig; // Make a copy
+  void print_helper(std::priority_queue<T, Container, Compare> pq_copy) {
     std::vector<T> temp;
-    while (!p_queue.empty()) {
-      temp.push_back(p_queue.top());
-      p_queue.pop();
+    while (!pq_copy.empty()) {
+      temp.push_back(pq_copy.top());
+      pq_copy.pop();
     }
     print_helper(temp);
   }
 
-  // Recursive variadic function to handle multiple arguments.
+  // Variadic recursive function to handle multiple arguments
   inline void print_recursive_helper() {
     std::cerr << "]" << std::endl;
   }
 
   template <typename T, typename... V>
-  void print_recursive_helper(T t, V... v) {
-    print_helper(t);
-    if (sizeof...(v))
+  void print_recursive_helper(T first, V... rest) {
+    print_helper(first);
+    if (sizeof...(rest))
       std::cerr << ", ";
-    print_recursive_helper(v...);
+    print_recursive_helper(rest...);
+  }
+
+  // Visual Binary Tree printing
+  // SFINAE to detect if a type T has 'value', 'left', and 'right' members
+  template <typename T, typename = void>
+  struct has_tree_members : std::false_type {};
+  template <typename T>
+  struct has_tree_members<
+      T,
+      std::void_t<decltype(std::declval<T>().value), decltype(std::declval<T>().left), decltype(std::declval<T>().right)>>
+      : std::true_type {};
+
+  template <typename T>
+  void print_node_structure(T* node, const std::string& prefix, bool is_tail) {
+    if (!node)
+      return;
+
+    std::cerr << prefix << (is_tail ? "└── " : "├── ");
+
+    // Print the node's value. Requires the node to have a 'value' member.
+    if constexpr (has_tree_members<T>::value) {
+      print_helper(node->value);
+    } else {
+      // Fallback if the node doesn't have the expected structure
+      std::cerr << "(Custom Node)";
+    }
+    std::cerr << "\n";
+
+    // Prepare prefixes for children
+    std::string child_prefix = prefix + (is_tail ? "    " : "│   ");
+
+    // Print children, if they exist.
+    if constexpr (has_tree_members<T>::value) {
+      // Check if both children exist to decide which one is the "tail"
+      if (node->left && node->right) {
+        print_node_structure(node->right, child_prefix, false);
+        print_node_structure(node->left, child_prefix, true);
+      } else if (node->right) {
+        print_node_structure(node->right, child_prefix, true);
+      } else if (node->left) {
+        print_node_structure(node->left, child_prefix, true);
+      }
+    }
+  }
+
+  template <typename T>
+  void pretty_print_tree(T* node) {
+    if (!node) {
+      std::cerr << "(empty tree)\n";
+      return;
+    }
+    print_node_structure(node, "", true);
   }
 
 } // namespace AlgoDebug
@@ -244,12 +314,12 @@ namespace AlgoDebug {
 
 //===---------------------------------------------------------------------===//
 //============================ MAIN DEBUG MACROS ============================//
-
 // clang-format off
 
 #if LOCAL_LEVEL >= 1
   #define _debug_print(level_color, ...)                                                                                                     \
     do {                                                                                                                                     \
+      AlgoDebug::get_visited_pointers().clear(); /* Clears visited pointers before each print */                                                    \
       std::cerr << level_color << "[" << __FILE__ << ":" << __LINE__ << " (" << __func__ << ")] " << RESET << MAGENTA << #__VA_ARGS__        \
                 << " = " << CYAN << "[";                                                                                                     \
       AlgoDebug::print_recursive_helper(__VA_ARGS__);                                                                                        \
@@ -266,21 +336,31 @@ namespace AlgoDebug {
   #define debug2(...) ((void)0)
 #endif
 
+// Macro for tree printing
+#if LOCAL_LEVEL > 0
+  #define debug_tree(root)                                                                                                                   \
+    do {                                                                                                                                     \
+      std::cerr << YELLOW << "\n[" << __FILE__ << ":" << __LINE__ << " (" << __func__ << ")] " << RESET << MAGENTA << #root << " Tree:\n"     \
+                << CYAN;                                                                                                                     \
+      AlgoDebug::pretty_print_tree(root);                                                                                                    \
+      std::cerr << RESET << std::flush;                                                                                                      \
+    } while (0)
+#else
+  #define debug_tree(...) ((void)0)
+#endif
+
 #if LOCAL_LEVEL > 0
   #define debug_line() std::cerr << BLUE << "/====--------------------------------------------------====/" << RESET << "\n";
-  #define debug_if(cond, ...)                                                                                                                \
-  if (cond) {                                                                                                                              \
-    debug(__VA_ARGS__);                                                                                                                    \
-  }
+  #define debug_if(cond, ...) if (cond) { debug(__VA_ARGS__); }
   #define my_assert(condition)                                                                                                               \
-  if (!(condition)) {                                                                                                                      \
-    std::cerr << RED << "Assertion Failed: (" << #condition << ") at " << __FILE__ << ":" << __LINE__ << " in " << __func__ << RESET       \
-              << "\n";                                                                                                                     \
-    abort();                                                                                                                               \
-  }
+    if (!(condition)) {                                                                                                                      \
+      std::cerr << RED << "Assertion Failed: (" << #condition << ") at " << __FILE__ << ":" << __LINE__ << " in " << __func__ << RESET       \
+                << "\n";                                                                                                                     \
+      abort();                                                                                                                               \
+    }
 #else
-  #define debug_line() 42
-  #define debug_if(cond, ...) 42
+  #define debug_line() ((void)0)
+  #define debug_if(cond, ...) ((void)0)
   #define my_assert(condition) ((void)0)
 #endif
 
@@ -294,12 +374,10 @@ namespace AlgoDebug {
 #endif
 
 // clang-format on
-
 //===---------------------------------------------------------------------===//
 //============================= UTILITY: TIMER ==============================//
 
 #if LOCAL_LEVEL > 0
-// Timer class
 class Timer {
 public:
   Timer() : start_time(std::chrono::high_resolution_clock::now()) {}
@@ -313,14 +391,12 @@ private:
   std::chrono::time_point<std::chrono::high_resolution_clock> start_time;
 };
 
-// Redirects stderr to a file for logging
 inline void init_debug_log() {
   if (!freopen("debug_output.txt", "w", stderr)) {
     std::cerr << "Error redirecting stderr to file" << std::endl;
   }
 }
 #else
-// Define empty Timer and init function for release builds
 class Timer {};
 inline void init_debug_log() {
 }
