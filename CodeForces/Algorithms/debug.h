@@ -199,7 +199,9 @@ namespace AlgoDebug {
     }
     std::cerr << '}';
   }
-  // SFINAE to call the printer for iterables
+
+  // SFINAE to call the printer for iterables.
+  // This is now the primary template for iterable types.
   template <typename T>
   auto print_helper(const T& value) -> decltype(std::begin(value), void()) {
     // Exclude strings to avoid printing them as a char array
@@ -257,7 +259,9 @@ namespace AlgoDebug {
     print_recursive_helper(rest...);
   }
 
-  // Visual Binary Tree printing
+  //===------------------------------ TREES ------------------------------===//
+
+  // Visual Binary Tree printing - OLD
   // SFINAE to detect if a type T has 'value', 'left', and 'right' members
   template <typename T, typename = void>
   struct has_tree_members : std::false_type {};
@@ -267,6 +271,51 @@ namespace AlgoDebug {
       std::void_t<decltype(std::declval<T>().value), decltype(std::declval<T>().left), decltype(std::declval<T>().right)>>
       : std::true_type {};
 
+  // Generic Visual Tree Printing
+  // Helper traits to detect common member names
+  template <typename T, typename = void>
+  struct has_member_value : std::false_type {};
+  template <typename T>
+  struct has_member_value<T, std::void_t<decltype(std::declval<T>().value)>> : std::true_type {};
+  template <typename T, typename = void>
+  struct has_member_val : std::false_type {};
+  template <typename T>
+  struct has_member_val<T, std::void_t<decltype(std::declval<T>().val)>> : std::true_type {};
+  template <typename T, typename = void>
+  struct has_member_key : std::false_type {};
+  template <typename T>
+  struct has_member_key<T, std::void_t<decltype(std::declval<T>().key)>> : std::true_type {};
+  template <typename T, typename = void>
+  struct has_member_data : std::false_type {};
+  template <typename T>
+  struct has_member_data<T, std::void_t<decltype(std::declval<T>().data)>> : std::true_type {};
+  template <typename T, typename = void>
+  struct has_member_left : std::false_type {};
+  template <typename T>
+  struct has_member_left<T, std::void_t<decltype(std::declval<T>().left)>> : std::true_type {};
+  template <typename T, typename = void>
+  struct has_member_right : std::false_type {};
+  template <typename T>
+  struct has_member_right<T, std::void_t<decltype(std::declval<T>().right)>> : std::true_type {};
+  template <typename T, typename = void>
+  struct has_member_children : std::false_type {};
+  template <typename T>
+  struct has_member_children<T, std::void_t<decltype(std::begin(std::declval<T>().children))>> : std::true_type {};
+
+  // Helper to get raw pointer from raw, unique_ptr, or shared_ptr
+  template <typename T>
+  T* get_raw_pointer(T* ptr) {
+    return ptr;
+  }
+  template <typename T>
+  T* get_raw_pointer(const std::unique_ptr<T>& ptr) {
+    return ptr.get();
+  }
+  template <typename T>
+  T* get_raw_pointer(const std::shared_ptr<T>& ptr) {
+    return ptr.get();
+  }
+
   template <typename T>
   void print_node_structure(T* node, const std::string& prefix, bool is_tail) {
     if (!node)
@@ -274,28 +323,40 @@ namespace AlgoDebug {
 
     std::cerr << prefix << (is_tail ? "└── " : "├── ");
 
-    // Print the node's value. Requires the node to have a 'value' member.
-    if constexpr (has_tree_members<T>::value) {
+    // Generic value printing: tries common names
+    if constexpr (has_member_value<T>::value) {
       print_helper(node->value);
+    } else if constexpr (has_member_val<T>::value) {
+      print_helper(node->val);
+    } else if constexpr (has_member_key<T>::value) {
+      print_helper(node->key);
+    } else if constexpr (has_member_data<T>::value) {
+      print_helper(node->data);
     } else {
-      // Fallback if the node doesn't have the expected structure
       std::cerr << "(Custom Node)";
-    }
+    } // Fallback
     std::cerr << "\n";
 
-    // Prepare prefixes for children
     std::string child_prefix = prefix + (is_tail ? "    " : "│   ");
 
-    // Print children, if they exist.
-    if constexpr (has_tree_members<T>::value) {
-      // Check if both children exist to decide which one is the "tail"
-      if (node->left && node->right) {
-        print_node_structure(node->right, child_prefix, false);
-        print_node_structure(node->left, child_prefix, true);
-      } else if (node->right) {
-        print_node_structure(node->right, child_prefix, true);
-      } else if (node->left) {
-        print_node_structure(node->left, child_prefix, true);
+    // Generic children printing: checks for N-ary structure first, then binary
+    if constexpr (has_member_children<T>::value) { // N-ary trees (e.g., vector<Node*>)
+      auto& children = node->children;
+      for (auto it = std::begin(children); it != std::end(children); ++it) {
+        bool is_last_child = (std::next(it) == std::end(children));
+        print_node_structure(get_raw_pointer(*it), child_prefix, is_last_child);
+      }
+    } else if constexpr (has_member_left<T>::value && has_member_right<T>::value) { // Binary trees
+      T* left_child  = get_raw_pointer(node->left);
+      T* right_child = get_raw_pointer(node->right);
+
+      if (left_child && right_child) {
+        print_node_structure(right_child, child_prefix, false);
+        print_node_structure(left_child, child_prefix, true);
+      } else if (right_child) {
+        print_node_structure(right_child, child_prefix, true);
+      } else if (left_child) {
+        print_node_structure(left_child, child_prefix, true);
       }
     }
   }
@@ -307,6 +368,84 @@ namespace AlgoDebug {
       return;
     }
     print_node_structure(node, "", true);
+  }
+
+  // Overload for smart pointers in pretty_print_tree
+  template <typename T>
+  void pretty_print_tree(const std::shared_ptr<T>& node_ptr) {
+    pretty_print_tree(node_ptr.get()); // Extract raw pointer and call the original function
+  }
+  template <typename T>
+  void pretty_print_tree(const std::unique_ptr<T>& node_ptr) {
+    pretty_print_tree(node_ptr.get());
+  }
+
+  // NEW: Generic VERBOSE Visual Tree Printing
+  template <typename T>
+  void print_node_structure_verbose(T* node, const std::string& prefix, bool is_tail) {
+    if (!node)
+      return;
+
+    std::cerr << prefix << (is_tail ? "└── " : "├── ");
+
+    // Print node address
+    std::cerr << "[" << node << "] ";
+
+    // Generic value printing: tries common names
+    if constexpr (has_member_value<T>::value) {
+      print_helper(node->value);
+    } else if constexpr (has_member_val<T>::value) {
+      print_helper(node->val);
+    } else if constexpr (has_member_key<T>::value) {
+      print_helper(node->key);
+    } else if constexpr (has_member_data<T>::value) {
+      print_helper(node->data);
+    } else {
+      std::cerr << "(Custom Node)";
+    } // Fallback
+    std::cerr << "\n";
+
+    std::string child_prefix = prefix + (is_tail ? "    " : "│   ");
+
+    // Generic children printing
+    if constexpr (has_member_children<T>::value) { // N-ary trees
+      auto& children = node->children;
+      for (auto it = std::begin(children); it != std::end(children); ++it) {
+        bool is_last_child = (std::next(it) == std::end(children));
+        print_node_structure_verbose(get_raw_pointer(*it), child_prefix, is_last_child);
+      }
+    } else if constexpr (has_member_left<T>::value && has_member_right<T>::value) { // Binary trees
+      T* left_child  = get_raw_pointer(node->left);
+      T* right_child = get_raw_pointer(node->right);
+
+      if (left_child && right_child) {
+        print_node_structure_verbose(right_child, child_prefix, false);
+        print_node_structure_verbose(left_child, child_prefix, true);
+      } else if (right_child) {
+        print_node_structure_verbose(right_child, child_prefix, true);
+      } else if (left_child) {
+        print_node_structure_verbose(left_child, child_prefix, true);
+      }
+    }
+  }
+
+  template <typename T>
+  void pretty_print_tree_verbose(T* node) {
+    if (!node) {
+      std::cerr << "(empty tree)\n";
+      return;
+    }
+    print_node_structure_verbose(node, "", true);
+  }
+
+  // Overloads for smart pointers
+  template <typename T>
+  void pretty_print_tree_verbose(const std::shared_ptr<T>& node_ptr) {
+    pretty_print_tree_verbose(node_ptr.get());
+  }
+  template <typename T>
+  void pretty_print_tree_verbose(const std::unique_ptr<T>& node_ptr) {
+    pretty_print_tree_verbose(node_ptr.get());
   }
 
 } // namespace AlgoDebug
@@ -347,6 +486,19 @@ namespace AlgoDebug {
     } while (0)
 #else
   #define debug_tree(...) ((void)0)
+#endif
+
+// Macro for tree printing - Level Verbose
+#if LOCAL_LEVEL > 0
+  #define debug_tree_verbose(root)                                                                                                           \
+    do {                                                                                                                                     \
+      std::cerr << YELLOW << "\n[" << __FILE__ << ":" << __LINE__ << " (" << __func__ << ")] " << RESET << MAGENTA << #root << " Verbose Tree:\n" \
+                << CYAN;                                                                                                                     \
+      AlgoDebug::pretty_print_tree_verbose(root);                                                                                            \
+      std::cerr << RESET << std::flush;                                                                                                      \
+    } while (0)
+#else
+  #define debug_tree_verbose(...) ((void)0)
 #endif
 
 #if LOCAL_LEVEL > 0
