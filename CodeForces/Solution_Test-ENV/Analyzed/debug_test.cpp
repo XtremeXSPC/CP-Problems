@@ -18,7 +18,7 @@
 using namespace std;
 
 #ifdef LOCAL
-#include "../Algorithms/debug.h"
+#include "../../Algorithms/debug.h"
 #else
 #define debug(...) 42
 #endif

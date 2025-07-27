@@ -13,6 +13,9 @@ IndentWidth: 2
 # Use spaces instead of tabs
 UseTab: Never
 
+# Namespace indentation
+NamespaceIndentation: All
+
 # Force template declaration on a new line
 AlwaysBreakTemplateDeclarations: Yes
 
@@ -55,3 +58,21 @@ BreakConstructorInitializers: AfterColon
 # Macro names always in uppercase
 MacroBlockBegin: AlwaysBreak
 MacroBlockEnd: AlwaysBreak
+
+# Configure preprocessing directives indentation
+IndentPPDirectives: None
+
+# Keep preprocessor directives at column 1 or indent them
+# AfterHash: indent after the hash
+# BeforeHash: indent before the hash
+# None: don't indent (default)
+
+# Indent width for preprocessing directives
+PPIndentWidth: 2
+
+# Don't reformat macros
+DisableFormat: false
+
+# Keep macro definitions formatting
+KeepEmptyLinesAtTheStartOfBlocks: false
+MaxEmptyLinesToKeep: 1
