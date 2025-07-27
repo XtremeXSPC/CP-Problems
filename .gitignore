@@ -142,7 +142,7 @@ Temporary Items
 *.icloud
 
 ### VisualStudioCode ###
-.vscode/*
+!.vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
@@ -187,3 +187,4 @@ $RECYCLE.BIN/
 *.lnk
 
 # End of https://www.toptal.com/developers/gitignore/api/c,c++,cmake,visualstudiocode,macos,linux,windows
+
