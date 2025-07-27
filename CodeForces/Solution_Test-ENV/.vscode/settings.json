@@ -128,5 +128,9 @@
     "variant": "cpp",
     "queue": "cpp"
   },
-  "sonarlint.pathToCompileCommands": "${workspaceFolder}/compile_commands.json"
+  "sonarlint.pathToCompileCommands": "${workspaceFolder}/compile_commands.json",
+  "ocaml.sandbox": {
+    "kind": "opam",
+    "switch": "ocaml-compiler"
+  }
 }
