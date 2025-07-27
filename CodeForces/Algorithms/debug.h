@@ -20,15 +20,17 @@
 //===---------------------------------------------------------------------===//
 //============================= CONFIGURATION  ==============================//
 
+// clang-format off
+
 // Define `LOCAL` with a value to control debug level, e.g., g++ -DLOCAL=2
 // If only -DLOCAL is used (no value), it defaults to 1.
 #ifdef LOCAL
-#define DEBUG_ENABLED
-// Assign the value of the LOCAL macro (from the -D flag) to LOCAL_LEVEL
-#define LOCAL_LEVEL LOCAL
+  #define DEBUG_ENABLED
+  // Assign the value of the LOCAL macro (from the -D flag) to LOCAL_LEVEL
+  #define LOCAL_LEVEL LOCAL
 #else
-// If the -DLOCAL flag is not provided at all, disable debugging.
-#define LOCAL_LEVEL 0
+  // If the -DLOCAL flag is not provided at all, disable debugging.
+  #define LOCAL_LEVEL 0
 #endif
 
 //===---------------------------------------------------------------------===//
@@ -36,22 +38,24 @@
 
 // To make terminal output more readable.
 #if LOCAL_LEVEL > 0
-#define RESET "\033[0m"
-#define RED "\033[31m"     /* Red */
-#define GREEN "\033[32m"   /* Green */
-#define YELLOW "\033[33m"  /* Yellow */
-#define BLUE "\033[34m"    /* Blue */
-#define MAGENTA "\033[35m" /* Magenta */
-#define CYAN "\033[36m"    /* Cyan */
+  #define RESET "\033[0m"
+  #define RED "\033[31m"     /* Red */
+  #define GREEN "\033[32m"   /* Green */
+  #define YELLOW "\033[33m"  /* Yellow */
+  #define BLUE "\033[34m"    /* Blue */
+  #define MAGENTA "\033[35m" /* Magenta */
+  #define CYAN "\033[36m"    /* Cyan */
 #else
-#define RESET ""
-#define RED ""
-#define GREEN ""
-#define YELLOW ""
-#define BLUE ""
-#define MAGENTA ""
-#define CYAN ""
+  #define RESET ""
+  #define RED ""
+  #define GREEN ""
+  #define YELLOW ""
+  #define BLUE ""
+  #define MAGENTA ""
+  #define CYAN ""
 #endif
+
+// clang-format on
 
 //===---------------------------------------------------------------------===//
 //====================== DEBUGGER CORE IMPLEMENTATION =======================//
@@ -241,51 +245,55 @@ namespace AlgoDebug {
 //===---------------------------------------------------------------------===//
 //============================ MAIN DEBUG MACROS ============================//
 
+// clang-format off
+
 #if LOCAL_LEVEL >= 1
-#define _debug_print(level_color, ...)                                                                                                     \
-  do {                                                                                                                                     \
-    std::cerr << level_color << "[" << __FILE__ << ":" << __LINE__ << " (" << __func__ << ")] " << RESET << MAGENTA << #__VA_ARGS__        \
-              << " = " << CYAN << "[";                                                                                                     \
-    AlgoDebug::print_recursive_helper(__VA_ARGS__);                                                                                        \
-    std::cerr << RESET << std::flush;                                                                                                      \
-  } while (0)
-#define debug(...) _debug_print(YELLOW, __VA_ARGS__)
+  #define _debug_print(level_color, ...)                                                                                                     \
+    do {                                                                                                                                     \
+      std::cerr << level_color << "[" << __FILE__ << ":" << __LINE__ << " (" << __func__ << ")] " << RESET << MAGENTA << #__VA_ARGS__        \
+                << " = " << CYAN << "[";                                                                                                     \
+      AlgoDebug::print_recursive_helper(__VA_ARGS__);                                                                                        \
+      std::cerr << RESET << std::flush;                                                                                                      \
+    } while (0)
+  #define debug(...) _debug_print(YELLOW, __VA_ARGS__)
 #else
-#define debug(...) ((void)0)
+  #define debug(...) ((void)0)
 #endif
 
 #if LOCAL_LEVEL >= 2
-#define debug2(...) _debug_print(BLUE, __VA_ARGS__)
+  #define debug2(...) _debug_print(BLUE, __VA_ARGS__)
 #else
-#define debug2(...) ((void)0)
+  #define debug2(...) ((void)0)
 #endif
 
 #if LOCAL_LEVEL > 0
-#define debug_line() std::cerr << BLUE << "/====--------------------------------------------------====/" << RESET << "\n";
-#define debug_if(cond, ...)                                                                                                                \
+  #define debug_line() std::cerr << BLUE << "/====--------------------------------------------------====/" << RESET << "\n";
+  #define debug_if(cond, ...)                                                                                                                \
   if (cond) {                                                                                                                              \
     debug(__VA_ARGS__);                                                                                                                    \
   }
-#define my_assert(condition)                                                                                                               \
+  #define my_assert(condition)                                                                                                               \
   if (!(condition)) {                                                                                                                      \
     std::cerr << RED << "Assertion Failed: (" << #condition << ") at " << __FILE__ << ":" << __LINE__ << " in " << __func__ << RESET       \
               << "\n";                                                                                                                     \
     abort();                                                                                                                               \
   }
 #else
-#define debug_line() 42
-#define debug_if(cond, ...) 42
-#define my_assert(condition) ((void)0)
+  #define debug_line() 42
+  #define debug_if(cond, ...) 42
+  #define my_assert(condition) ((void)0)
 #endif
 
 #if LOCAL_LEVEL >= 2
-#define COUNT_CALLS(func_name)                                                                                                             \
-  static int func_name##_call_count = 0;                                                                                                   \
-  func_name##_call_count++;                                                                                                                \
-  debug2(#func_name, "call number", func_name##_call_count);
+  #define COUNT_CALLS(func_name)                                                                                                             \
+    static int func_name##_call_count = 0;                                                                                                   \
+    func_name##_call_count++;                                                                                                                \
+    debug2(#func_name, "call number", func_name##_call_count);
 #else
-#define COUNT_CALLS(func_name)
+  #define COUNT_CALLS(func_name)
 #endif
+
+// clang-format on
 
 //===---------------------------------------------------------------------===//
 //============================= UTILITY: TIMER ==============================//
@@ -320,4 +328,4 @@ inline void init_debug_log() {
 
 #endif // ALGO_DEBUG_H
 
-//===---------------------------------------------------------------------===//s
+//===---------------------------------------------------------------------===//
