@@ -1,34 +1,61 @@
 # Generic Makefile for C/C++ projects
 
-# =============================================================================
-# ------------------------ User-configurable variables ------------------------
-# =============================================================================
-TARGET_NAME ?= Tester
-SRCDIR ?= .
-OBJDIR ?= obj
-BINDIR ?= bin
+# =========================================================================== #
+# ----------------------- User-configurable variables ----------------------- #
+# =========================================================================== #
+TARGET_NAME    ?= Tester
+SRCDIR         ?= .
+OBJDIR         ?= obj
+BINDIR         ?= bin
 
-CC ?= clang
-CXX ?= clang++
+# Build profile can be: debug, release, sanitize. 'debug' is the default.
+BUILD_TYPE     ?= debug
 
-CPPFLAGS ?= -I$(SRCDIR)
-CFLAGS ?= -DLOCAL -Wall -Wextra -pedantic -g -O2 -std=c17
-CXXFLAGS ?= -DLOCAL -Wall -Wextra -pedantic -g -O2 -std=c++17
-LDFLAGS ?=
-LIBS ?= -lm
+CC             ?= clang
+CXX            ?= clang++
 
-# =============================================================================
-# --------------- Automatic OS configuration and path settings ----------------
-# =============================================================================
+# =========================================================================== #
+# Build Profile Configuration
+
+# Common flags
+COMMON_FLAGS   := -Wall -Wextra -pedantic
+CPPFLAGS       ?= -I$(SRCDIR) $(foreach dir,$(shell find $(SRCDIR) -type d),-I$(dir))
+
+# Profile-specific flags
+ifeq ($(BUILD_TYPE), release)
+	# Release: High optimization, no debug info, NDEBUG defined.
+	PROFILE_FLAGS := -O3 -DNDEBUG
+else ifeq ($(BUILD_TYPE), sanitize)
+	# Sanitize: Debug info + AddressSanitizer and UndefinedBehaviorSanitizer.
+	PROFILE_FLAGS := -g3 -O1 -fsanitize=address,undefined
+else
+	# Debug: Full debug info, no optimization. Default case.
+	BUILD_TYPE    := debug
+	PROFILE_FLAGS := -g3 -O0
+endif
+
+# Base flags (to be combined with profile flags)
+BASE_CFLAGS    := -DLOCAL -std=c23
+BASE_CXXFLAGS  := -DLOCAL -std=c++23
+
+# Final flags
+CFLAGS         := $(BASE_CFLAGS) $(COMMON_FLAGS) $(PROFILE_FLAGS)
+CXXFLAGS       := $(BASE_CXXFLAGS) $(COMMON_FLAGS) $(PROFILE_FLAGS)
+LDFLAGS        ?=
+LIBS           ?= -lm
+
+# =========================================================================== #
+# -------------- Automatic OS configuration and path settings --------------- #
+# =========================================================================== #
 # Initial default definitions to avoid empty values if OS logic fails
-PathSep := /
-TARGET_EXEC := $(TARGET_NAME)
-RM := rm -f
-RMDIR_CMD := rm -rf
-MKDIR_P := mkdir -p
+PathSep        := /
+TARGET_EXEC    := $(TARGET_NAME)
+RM             := rm -f
+RMDIR_CMD      := rm -rf
+MKDIR_P        := mkdir -p
 
 # Try to determine the operating system
-UNAME_S := $(shell uname -s)
+UNAME_S        := $(shell uname -s)
 
 ifeq ($(UNAME_S),Darwin)
 	detected_os := MACOS
@@ -39,61 +66,61 @@ else ifeq ($(UNAME_S),Linux)
 else ifneq (,$(findstring MINGW,$(UNAME_S))) # MinGW (Git Bash, MSYS2)
 	detected_os := WINDOWS_MINGW
 	TARGET_EXEC := $(TARGET_NAME).exe
-	PathSep := / # MinGW prefers Unix-style slashes
-	RM := rm -f
-	RMDIR_CMD := rm -rf
-	MKDIR_P := mkdir -p
+	PathSep     := / # MinGW prefers Unix-style slashes
+	RM          := rm -f
+	RMDIR_CMD   := rm -rf
+	MKDIR_P     := mkdir -p
 else ifneq (,$(findstring CYGWIN,$(UNAME_S))) # Cygwin
 	detected_os := WINDOWS_CYGWIN
 	TARGET_EXEC := $(TARGET_NAME).exe # Cygwin can handle with or without .exe
-	PathSep := /
-	RM := rm -f
-	RMDIR_CMD := rm -rf
-	MKDIR_P := mkdir -p
+	PathSep     := /
+	RM          := rm -f
+	RMDIR_CMD   := rm -rf
+	MKDIR_P     := mkdir -p
 else ifeq ($(OS),Windows_NT) # Environment variable from cmd.exe or PowerShell
 	detected_os := WINDOWS_NATIVE_OS_VAR
 	TARGET_EXEC := $(TARGET_NAME).exe
-	PathSep := \
-	RM := del /Q /F
-	RMDIR_CMD := rd /S /Q
+	PathSep     := \
+	RM          := del /Q /F
+	RMDIR_CMD   := rd /S /Q
 	# MKDIR_P handled in create_dirs rule
 else # Fallback to `ver` check only if others fail
 	WINDOWS_VER_CHECK := $(shell ver 2>/dev/null) # Suppress error if 'ver' doesn't exist
 	ifneq (,$(findstring Windows,$(WINDOWS_VER_CHECK)))
 		detected_os := WINDOWS_NATIVE_VER_CMD
 		TARGET_EXEC := $(TARGET_NAME).exe
-		PathSep := \
-		RM := del /Q /F
-		RMDIR_CMD := rd /S /Q
+		PathSep     := \
+		RM          := del /Q /F
+		RMDIR_CMD   := rd /S /Q
 		# MKDIR_P handled in create_dirs rule
 	else
 		detected_os ?= UNKNOWN_UNIX # Final default if everything fails
 	endif
 endif
 
-# If SRCDIR, OBJDIR, BINDIR are relative, ensure they are interpreted correctly
+# If SRCDIR, OBJDIR, BINDIR are relative, it is necessary to ensure they are interpreted correctly.
 # For now, we assume they are simple directory names like '.', 'obj', 'bin'
 
 TARGET_DIR_WITH_SEP := $(BINDIR)$(PathSep)
-TARGET_PATH := $(TARGET_DIR_WITH_SEP)$(TARGET_EXEC)
+TARGET_PATH         := $(TARGET_DIR_WITH_SEP)$(TARGET_EXEC)
 
-# =============================================================================
-# ------------------------ Source and Object Detection ------------------------
-# =============================================================================
-C_SRCS := $(wildcard $(SRCDIR)/*.c)
-CPP_SRCS := $(wildcard $(SRCDIR)/*.cpp $(SRCDIR)/*.cc $(SRCDIR)/*.cxx)
+# =========================================================================== #
+# ----------------------- Source and Object Detection ----------------------- # 
+# =========================================================================== #
+C_SRCS         := $(wildcard $(SRCDIR)/*.c)
+CPP_SRCS       := $(wildcard $(SRCDIR)/*.cpp $(SRCDIR)/*.cc $(SRCDIR)/*.cxx)
 
-C_OBJS := $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(C_SRCS))
-CPP_OBJS := $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(filter %.cpp,$(CPP_SRCS))) \
-			$(patsubst $(SRCDIR)/%.cc,$(OBJDIR)/%.o,$(filter %.cc,$(CPP_SRCS))) \
-			$(patsubst $(SRCDIR)/%.cxx,$(OBJDIR)/%.o,$(filter %.cxx,$(CPP_SRCS)))
+C_OBJS         := $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(C_SRCS))
+CPP_OBJS       := $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(filter %.cpp,$(CPP_SRCS))) \
+			      $(patsubst $(SRCDIR)/%.cc,$(OBJDIR)/%.o,$(filter %.cc,$(CPP_SRCS))) \
+			      $(patsubst $(SRCDIR)/%.cxx,$(OBJDIR)/%.o,$(filter %.cxx,$(CPP_SRCS)))
 
-OBJS := $(C_OBJS) $(CPP_OBJS)
-DEPS := $(OBJS:.o=.d)
+OBJS           := $(C_OBJS) $(CPP_OBJS)
+DEPS           := $(OBJS:.o=.d)
 
-# =============================================================================
-# ----------------------- Linker Choice and Final Flags -----------------------
-# =============================================================================
+# =========================================================================== #
+# ---------------------- Linker Choice and Final Flags ---------------------- #
+# =========================================================================== #
 ifeq ($(strip $(CPP_SRCS))$(strip $(C_SRCS)),) # If no C or C++ sources
 	LD = @echo "No C or C++ sources found, linker not set."; false
 else ifeq ($(strip $(CPP_SRCS)),) # Only C sources
@@ -105,9 +132,9 @@ else # There are C++ sources (there might also be C)
 endif
 LDFLAGS_FINAL += $(LIBS)
 
-# =============================================================================
-# ----------------------------------- Rules -----------------------------------
-# =============================================================================
+# =========================================================================== #
+# ------------------------------- Build Rules ------------------------------- #
+# =========================================================================== #
 .PHONY: all clean distclean run debug-info help create_dirs
 
 all: $(TARGET_PATH)
@@ -128,7 +155,7 @@ $(TARGET_PATH): create_dirs $(OBJS)
 	@echo "Output file (-o switch target): $@"
 	$(LD) $(OBJS) $(LDFLAGS_FINAL) -o $@
 
-# Correct compilation rules
+# Compilation rules
 $(OBJDIR)/%.o: $(SRCDIR)/%.c create_dirs
 	@echo "Compiling C: $< to $@"
 	$(CC) $(CPPFLAGS) $(CFLAGS) -MMD -MP -c $< -o $@
@@ -147,9 +174,9 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cxx create_dirs
 
 -include $(DEPS)
 
-# =============================================================================
-# --------------- Utility Targets (check RMDIR_CMD and PathSep) ---------------
-# =============================================================================
+# =========================================================================== #
+# ----------------------- Utility & Analysis Targets ------------------------ #
+# =========================================================================== #
 clean:
 	@echo "Cleaning build artifacts..."
 	-$(RM) $(OBJDIR)$(PathSep)*.o
@@ -178,7 +205,17 @@ else
 	./$(TARGET_PATH) $(ARGS)
 endif
 
+# Static Analysis with clang-tidy
+analyze:
+	@echo "Running static analysis with clang-tidy..."
+	@clang-tidy --quiet $(C_SRCS) $(CPP_SRCS) -- $(CPPFLAGS) $(CXXFLAGS)
 
+# Compilation Database for clangd
+compile_commands:
+	@echo "Generating compile_commands.json..."
+	@bear -- make --always-make BUILD_TYPE=$(BUILD_TYPE) all
+
+# Help and Debug
 debug-info:
 	@echo "#====------ Makefile Debug Information ------====#"
 	@echo "UNAME_S: $(UNAME_S)"
@@ -205,12 +242,19 @@ debug-info:
 	@echo "#====----------------------------------------====#"
 
 help:
-	@echo "Makefile available commands:"
-	@echo "  all        - Compile the project (default)"
-	@echo "  clean      - Remove object files and executable"
-	@echo "  distclean  - Remove everything including directories"
-	@echo "  run        - Run the compiled program"
-	@echo "  debug-info - Show debug information"
-	@echo "  help       - Show this message"
+	@echo "Usage: make [TARGET] [VARIABLE=VALUE]"
+	@echo "Targets:"
+	@echo "  all               - Build with specified BUILD_TYPE (default: debug)"
+	@echo "  run               - Build and run the project"
+	@echo "  analyze           - Run static analysis with clang-tidy"
+	@echo "  compile_commands  - Generate compilation database for clangd"
+	@echo "  clean             - Remove object files and executable"
+	@echo "  distclean         - Remove everything including directories"
+	@echo "  debug-info        - Show debug information"
+	@echo "  help              - Show this message"
+	@echo "Variables:"
+	@echo "  BUILD_TYPE=[debug|release|sanitize]"
 
 .SUFFIXES:
+
+# =========================================================================== #

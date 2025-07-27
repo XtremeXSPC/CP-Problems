@@ -2,44 +2,38 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "CodeForces Tests (Apple LLDB)",
-      "type": "cppdbg",
-      "request": "launch",
-      "program": "${workspaceFolder}/bin/Tester",
-      "args": ["<", "${workspaceFolder}/input.txt"],
-      "stopAtEntry": false,
-      "cwd": "${workspaceFolder}",
-      "environment": [],
-      "externalConsole": false,
-      "MIMode": "lldb",
-      "preLaunchTask": "Build with Make"
-    },
-    {
-      "name": "macOS Debug (Apple LLDB)",
-      "type": "cppdbg",
+      // ----- Competitive Programming Task (macOS) ----- //
+      // Uses CodeLLDB and redirects input.txt to stdin.
+      "name": "Debug (Competitions)",
+      "type": "lldb",
       "request": "launch",
       "program": "${workspaceFolder}/bin/Tester",
       "args": [],
-      "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
-      "environment": [],
-      "externalConsole": false,
-      "MIMode": "lldb",
-      "preLaunchTask": "Build with Make"
+      "preLaunchTask": "Build (Debug)",
+      "stdio": ["${workspaceFolder}/input.txt", null, null]
     },
     {
-      "name": "macOS Debug with arguments (Apple LLDB)",
-      "type": "cppdbg",
+      // ----- Standard Debug Task (macOS) ----- //
+      "name": "Debug (macOS)",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/bin/Tester",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "Build (Debug)"
+    },
+    {
+      // ----- Debug with user-provided arguments (macOS) ----- //
+      "name": "Debug with Arguments (macOS)",
+      "type": "lldb",
       "request": "launch",
       "program": "${workspaceFolder}/bin/Tester",
       "args": ["${input:debugArgs}"],
-      "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
-      "environment": [],
-      "externalConsole": false,
-      "MIMode": "lldb",
-      "preLaunchTask": "Build with Make"
+      "preLaunchTask": "Build (Debug)"
     },
+    // ----- Windows/Linux Configurations ----- //
     {
       "name": "Run C/C++ Application (Windows/Linux)",
       "type": "cppdbg",
@@ -98,7 +92,7 @@
       "program": "${workspaceFolder}/bin/Tester",
       "args": [],
       "cwd": "${workspaceFolder}",
-      "preLaunchTask": "Build with Make",
+      "preLaunchTask": "Build (Debug)",
       "stdio": "${workspaceFolder}/input.txt"
     }
   ],
