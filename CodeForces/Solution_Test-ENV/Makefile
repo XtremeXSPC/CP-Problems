@@ -18,7 +18,7 @@ CXX            ?= clang++
 # Build Profile Configuration
 
 # Common flags
-COMMON_FLAGS    := -Wall -Wextra -pedantic
+COMMON_FLAGS    := -Wall -Wextra -pedantic -DLOCAL=2
 
 # Add common non-standard include paths to CPPFLAGS.
 SYSTEM_INCLUDES := -I/usr/local/include
@@ -38,8 +38,8 @@ else
 endif
 
 # Base flags (to be combined with profile flags)
-BASE_CFLAGS    := -DLOCAL -std=c23
-BASE_CXXFLAGS  := -DLOCAL -std=c++23
+BASE_CFLAGS    := -std=c23
+BASE_CXXFLAGS  := -std=c++23
 
 # Final flags
 CFLAGS         := $(BASE_CFLAGS) $(COMMON_FLAGS) $(PROFILE_FLAGS)
@@ -208,10 +208,10 @@ else
 	./$(TARGET_PATH) $(ARGS)
 endif
 
-# Static Analysis with clang-tidy
+# Static Analysis with clang-tidy (uses compilation database)
 analyze:
-	@echo "Running static analysis with clang-tidy..."
-	@clang-tidy --quiet $(C_SRCS) $(CPP_SRCS) -- $(CPPFLAGS) $(CXXFLAGS)
+	@echo "Running static analysis using compile_commands.json..."
+	@clang-tidy -p . --header-filter='.*' --quiet $(C_SRCS) $(CPP_SRCS)
 
 # Compilation Database for clangd
 compile_commands:
