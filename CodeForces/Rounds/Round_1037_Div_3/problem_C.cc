@@ -68,7 +68,9 @@ void solve() {
   pq.push({0, k});
 
   while (!pq.empty()) {
-    auto [time, u] = pq.top();
+    auto top_pair = pq.top();
+    ll   time     = top_pair.first;
+    int  u        = top_pair.second;
     pq.pop();
 
     if (time > dist[u]) {
