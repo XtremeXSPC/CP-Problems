@@ -135,7 +135,7 @@ void solve() {
 //===---------------------------------------------------------------------===//
 /* Main function */
 
-int main() {
+auto main() -> int {
   setup_io();
   int t;
   cin >> t;

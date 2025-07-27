@@ -18,8 +18,11 @@ CXX            ?= clang++
 # Build Profile Configuration
 
 # Common flags
-COMMON_FLAGS   := -Wall -Wextra -pedantic
-CPPFLAGS       ?= -I$(SRCDIR) $(foreach dir,$(shell find $(SRCDIR) -type d),-I$(dir))
+COMMON_FLAGS    := -Wall -Wextra -pedantic
+
+# Add common non-standard include paths to CPPFLAGS.
+SYSTEM_INCLUDES := -I/usr/local/include
+CPPFLAGS        ?= $(SYSTEM_INCLUDES) -I$(SRCDIR) $(foreach dir,$(shell find $(SRCDIR) -type d),-I$(dir))
 
 # Profile-specific flags
 ifeq ($(BUILD_TYPE), release)

@@ -1,5 +1,4 @@
 {
-  "C_Cpp.default.compilerPath": "/usr/bin/clang++",
   "lldb.displayFormat": "auto",
   "lldb.showDisassembly": "always",
   "lldb.dereferencePointers": true,
@@ -128,9 +127,5 @@
     "variant": "cpp",
     "queue": "cpp"
   },
-  "sonarlint.pathToCompileCommands": "${workspaceFolder}/compile_commands.json",
-  "ocaml.sandbox": {
-    "kind": "opam",
-    "switch": "ocaml-compiler"
-  }
+  "sonarlint.pathToCompileCommands": "${workspaceFolder}/compile_commands.json"
 }
