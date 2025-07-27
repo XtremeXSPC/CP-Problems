@@ -18,7 +18,7 @@
 using namespace std;
 
 #ifdef LOCAL
-#include "algo/debug.h"
+#include "../Algorithms/debug.h"
 #else
 #define debug(...) 42
 #endif
@@ -54,6 +54,7 @@ void solve() {
     cin >> u >> v >> c;
     adj[u].push_back({v, c});
     adj[v].push_back({u, c});
+    debug(adj);
     degree[u]++;
     degree[v]++;
     edges.emplace_back(u, v, c);

@@ -11,9 +11,9 @@ BINDIR ?= bin
 CC ?= clang
 CXX ?= clang++
 
-CPPFLAGS ?= -I$(SRCDIR) # SRCDIR will be defined before its use
-CFLAGS ?= -Wall -Wextra -pedantic -g -O2 -std=c17
-CXXFLAGS ?= -Wall -Wextra -pedantic -g -O2 -std=c++17
+CPPFLAGS ?= -I$(SRCDIR)
+CFLAGS ?= -DLOCAL -Wall -Wextra -pedantic -g -O2 -std=c17
+CXXFLAGS ?= -DLOCAL -Wall -Wextra -pedantic -g -O2 -std=c++17
 LDFLAGS ?=
 LIBS ?= -lm
 
@@ -78,7 +78,7 @@ TARGET_DIR_WITH_SEP := $(BINDIR)$(PathSep)
 TARGET_PATH := $(TARGET_DIR_WITH_SEP)$(TARGET_EXEC)
 
 # =============================================================================
-# ---------------------- Source and Object Detection -----------------------
+# ------------------------ Source and Object Detection ------------------------
 # =============================================================================
 C_SRCS := $(wildcard $(SRCDIR)/*.c)
 CPP_SRCS := $(wildcard $(SRCDIR)/*.cpp $(SRCDIR)/*.cc $(SRCDIR)/*.cxx)
@@ -180,37 +180,37 @@ endif
 
 
 debug-info:
-	@echo "=== Makefile Debug Information ==="
+	@echo "#====------ Makefile Debug Information ------====#"
 	@echo "UNAME_S: $(UNAME_S)"
 	@echo "Detected OS: $(detected_os)"
 	@echo "PathSep: $(PathSep)"
 	@echo "TARGET_EXEC: $(TARGET_EXEC)"
 	@echo "TARGET_PATH: $(TARGET_PATH)"
 	@echo "SRCDIR: $(SRCDIR), OBJDIR: $(OBJDIR), BINDIR: $(BINDIR)"
-	@echo "# ----- Sources & Objects ------ #"
+	@echo "#====---------- Sources & Objects -----------====#"
 	@echo "C_SRCS: $(C_SRCS)"
 	@echo "CPP_SRCS: $(CPP_SRCS)"
 	@echo "OBJS: $(OBJS)"
 	@echo "DEPS: $(DEPS)"
-	@echo "# ----- Compilers & Linker ------ #"
+	@echo "#====---------- Compilers & Linker ----------====#"
 	@echo "CC: $(CC), CXX: $(CXX), LD: $(LD)"
 	@echo "CPPFLAGS: $(CPPFLAGS)"
 	@echo "CFLAGS: $(CFLAGS)"
 	@echo "CXXFLAGS: $(CXXFLAGS)"
 	@echo "LDFLAGS_FINAL: $(LDFLAGS_FINAL)"
-	@echo "# ----- OS Commands ------ #"
+	@echo "#====------------- OS Commands --------------====#"
 	@echo "RM: $(RM)"
 	@echo "RMDIR_CMD: $(RMDIR_CMD)"
 	@echo "MKDIR_P (for Unix-like): $(MKDIR_P)"
-	@echo "=================================="
+	@echo "#====----------------------------------------====#"
 
 help:
-	@echo "Makefile Available Commands:"
-	@echo "  all       - Compile the project (default)"
-	@echo "  clean     - Remove object files and executable"
-	@echo "  distclean - Remove everything including directories"
-	@echo "  run       - Run the compiled program"
-	@echo "  debug-info- Show debug information"
-	@echo "  help      - Show this message"
+	@echo "Makefile available commands:"
+	@echo "  all        - Compile the project (default)"
+	@echo "  clean      - Remove object files and executable"
+	@echo "  distclean  - Remove everything including directories"
+	@echo "  run        - Run the compiled program"
+	@echo "  debug-info - Show debug information"
+	@echo "  help       - Show this message"
 
 .SUFFIXES:
