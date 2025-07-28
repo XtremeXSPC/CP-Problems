@@ -7,10 +7,26 @@
 try:
     import lldb # type: ignore
 except ImportError:
-    # lldb module is only available when running within LLDB debugger
-    # This allows the file to be imported without errors in other contexts
+    # lldb module is only available when running within LLDB debugger.
+    # This allows the file to be imported without errors in other contexts.
     lldb = None
 import re
+
+# ----- ANSI Color Codes ----- #
+# List of colors used in prints.
+class Colors:
+    RESET = "\x1b[0m"
+    BOLD_CYAN = "\x1b[1;36m"
+    YELLOW = "\x1b[33m"
+    GREEN = "\x1b[32m"
+
+# ----- Debug flag to control print statements ----- #
+DEBUG_ENABLED = False
+
+def debug_print(message):
+    """Prints a message only if debugging is enabled."""
+    if DEBUG_ENABLED:
+        print(f"[Formatter Debug] {message}")
 
 # ----- Generic Helpers ----- #
 
@@ -46,6 +62,15 @@ def get_raw_pointer(value):
         
     return value.GetValueAsUnsigned() # Fallback
 
+def type_has_field(type_obj, field_name):
+    """
+    Checks if an SBType has a field with the given name by iterating.
+    """
+    for i in range(type_obj.GetNumberOfFields()):
+        if type_obj.GetFieldAtIndex(i).GetName() == field_name:
+            return True
+    return False
+
 # ----- Formatter for Linear Data Structures (Lists, Stacks, Queues) ----- #
 
 class LinearContainerProvider:
@@ -59,41 +84,43 @@ class LinearContainerProvider:
         self.next_ptr_name = None
         self.value_name = None
         self.size = 0
+        debug_print(f"Provider created for object of type '{valobj.GetTypeName()}'")
 
     def update(self):
         """
         Initializes pointers and member names by searching through common conventions.
         """
         self.head_ptr = get_child_member_by_names(self.valobj, ['head', 'm_head', '_head', 'top'])
+        debug_print(f"Searching for head... Found: {'Yes' if self.head_ptr and self.head_ptr.IsValid() else 'No'}")
         
         # Determine the node's member names from the type of the first node
         if self.head_ptr and get_raw_pointer(self.head_ptr) != 0:
             # Get the actual type pointed to, handling pointers and smart pointers
-            node_type = self.head_ptr.GetType()
-            if node_type.IsPointerType() or node_type.IsReferenceType():
-                node_type = node_type.GetPointeeType()
+            node_obj = self.head_ptr.Dereference()
+            debug_print(f"Head pointer is valid. Dereferencing to get node object.")
+            
+            if node_obj and node_obj.IsValid():
+                node_type = node_obj.GetType()
+                
+                # Now that we have the correct node_type, find the members.
+                for name in ['next', 'm_next', '_next', 'pNext']:
+                    if type_has_field(node_type, name):
+                        self.next_ptr_name = name
+                        break
+                for name in ['value', 'val', 'data', 'm_data', 'key']:
+                    if type_has_field(node_type, name):
+                        self.value_name = name
+                        break
+                debug_print(f"-> Found 'next' member: '{self.next_ptr_name}'")
+                debug_print(f"-> Found 'value' member: '{self.value_name}'")
+            else:
+                debug_print("-> Failed to dereference head pointer.")
 
-            # Dereference smart pointers to get to the actual Node type
-            if not (node_type.IsPointerType() or node_type.IsReferenceType()):
-                 if node_type.GetNumberOfTemplateArguments() > 0:
-                     node_type = node_type.GetTemplateArgumentType(0)
-            
-            # Look for the 'next' pointer
-            for name in ['next', 'm_next', '_next', 'pNext']:
-                if node_type.GetFieldWithName(name):
-                    self.next_ptr_name = name
-                    break
-            
-            # Look for the 'value' member
-            for name in ['value', 'val', 'data', 'm_data', 'key']:
-                if node_type.GetFieldWithName(name):
-                    self.value_name = name
-                    break
-        
         # Look for a size member
         size_member = get_child_member_by_names(self.valobj, ['size', 'm_size', '_size', 'count'])
         if size_member:
             self.size = size_member.GetValueAsUnsigned()
+        debug_print(f"Found size member: {'Yes' if size_member else 'No'}. Size is {self.size}")
 
     def get_summary(self):
         self.update()
@@ -102,46 +129,76 @@ class LinearContainerProvider:
             return "Could not find head pointer"
         
         if get_raw_pointer(self.head_ptr) == 0:
-            return f"size={self.size}, []"
+            return f"{Colors.GREEN}size={self.size}{Colors.RESET}, []"
 
         if not self.next_ptr_name or not self.value_name:
+            debug_print("Bailing out: could not determine node structure (val/next names not found).")
             return "Cannot determine node structure (val/next)"
 
-        summary = ""
+        summary = []
         node = self.head_ptr
         count = 0
-        max_items = 15 # Limit to avoid excessively long output
+        max_items = 30 # Limit to avoid excessively long output
         
         # Set for cycle detection
         visited = set()
 
         while get_raw_pointer(node) != 0 and count < max_items:
+            # More detailed debug prints inside the loop
+            debug_print(f"Loop iter {count+1}: node type='{node.GetTypeName()}', addr='{get_raw_pointer(node):#x}'")
+            
             node_addr = get_raw_pointer(node)
             if node_addr in visited:
-                summary += " ... [CYCLE DETECTED]"
+                summary.append(" ... [CYCLE DETECTED]")
                 break
             visited.add(node_addr)
-
-            value_child = node.GetChildMemberWithName(self.value_name)
-            summary += str(value_child.GetSummary() or value_child.GetValue())
             
-            node = node.GetChildMemberWithName(self.next_ptr_name)
-            if get_raw_pointer(node) != 0:
-                summary += " -> "
+            dereferenced_node = node.Dereference()
+            if not dereferenced_node or not dereferenced_node.IsValid():
+                debug_print("-> Node could not be dereferenced. Breaking loop.")
+                break
+
+            value_child = dereferenced_node.GetChildMemberWithName(self.value_name)
+            
+            # More robust value extraction
+            current_val_str = None
+            if value_child and value_child.IsValid():
+                if value_child.GetSummary():
+                    current_val_str = value_child.GetSummary()
+                else:
+                    current_val_str = value_child.GetValue()
+            
+            debug_print(f"-> Extracted value string: '{current_val_str}'")
+
+            if current_val_str is not None:
+                # Apply color to value
+                summary.append(f"{Colors.YELLOW}{current_val_str}{Colors.RESET}")
+            else:
+                summary.append("[ERRORE]")
+            
+            node = dereferenced_node.GetChildMemberWithName(self.next_ptr_name)
             count += 1
         
-        if count == max_items and get_raw_pointer(node) != 0:
-            summary += " ..."
+        # Join the parts with the colored arrow
+        final_summary_str = f" {Colors.BOLD_CYAN}->{Colors.RESET} ".join(summary)
 
-        return f"size={self.size}, [{summary}]"
+        if get_raw_pointer(node) != 0:
+            final_summary_str += f" {Colors.BOLD_CYAN}->{Colors.RESET} ..."
+
+        return f"{Colors.GREEN}size = {self.size}{Colors.RESET}, [{final_summary_str}]"
 
 def LinearContainerSummary(valobj, internal_dict):
     """
     This function is registered with LLDB. It creates an instance of our
     provider class and calls its get_summary() method.
     """
+    debug_print("-" * 50)
+    debug_print(f"LinearContainerSummary called for '{valobj.GetTypeName()}'")
     provider = LinearContainerProvider(valobj, internal_dict)
-    return provider.get_summary()
+    summary = provider.get_summary()
+    debug_print(f"Final summary generated: '{summary}'")
+    debug_print("-" * 50)
+    return summary
 
 # ----- Formatter for Trees (Binary and N-ary) ----- #
 
@@ -302,4 +359,3 @@ def __lldb_init_module(debugger, internal_dict):
     )
 
     print(f"Formatters registered in category '{category_name}'.")
-
