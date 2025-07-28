@@ -74,7 +74,7 @@ auto main() -> int {
   std::cout << "Set a breakpoint on the next line to inspect the variables." << '\n';
 
   // Set a breakpoint here to test the formatters
-  int breakpoint_line = 0; // <-- SET THE BREAKPOINT HERE
+  int breakpoint_line = 0;
 
   // This line is only to use the variable and avoid compiler warnings
   (void)breakpoint_line;
