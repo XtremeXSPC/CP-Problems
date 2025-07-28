@@ -154,6 +154,14 @@ def formatter_config_command(debugger, command, result, internal_dict):
         )
 
 
+def should_use_colors():
+    """
+    Returns True if the script is likely running in a terminal that
+    supports ANSI color codes (like CodeLLDB's debug console or a real terminal).
+    """
+    return os.environ.get("TERM_PROGRAM") == "vscode"
+
+
 # ----- Formatter for Linear Data Structures (Lists, Stacks, Queues) ----- #
 class LinearContainerProvider:
     """
@@ -341,6 +349,14 @@ def TreeSummary(valobj, internal_dict):
     """
     Provides a one-line summary for a tree root, showing an in-order traversal for binary trees.
     """
+    use_colors = should_use_colors()
+
+    # Conditionally define colors
+    C_GREEN = Colors.GREEN if use_colors else ""
+    C_YELLOW = Colors.YELLOW if use_colors else ""
+    C_CYAN = Colors.BOLD_CYAN if use_colors else ""
+    C_RESET = Colors.RESET if use_colors else ""
+
     root_node = get_child_member_by_names(valobj, ["root", "m_root", "_root"])
     if not root_node or get_raw_pointer(root_node) == 0:
         return "Tree is empty"
@@ -401,16 +417,14 @@ def TreeSummary(valobj, internal_dict):
     return f"{size_str}[{summary_str}]"
 
 
+# ----- Tree Visualizer Provider ----- #
 def tree_visualizer_provider(valobj, internal_dict):
     """
-    Provider function. It checks the TERM_PROGRAM environment
-    variable to detect if it's running inside VS Code.
+    Detects if it's running inside VS Code with CodeLLDB to provide the
+    HTML visualizer. Otherwise, it falls back to the adaptive text summary.
     """
-    is_vscode = os.environ.get("TERM_PROGRAM") == "vscode"
-
-    if is_vscode:
+    if os.environ.get("TERM_PROGRAM") == "vscode":
         try:
-            # La logica Base64 è corretta e rimane invariata
             json_data = get_tree_json(valobj)
             json_string = json.dumps(json_data, separators=(",", ":"))
             b64_string = base64.b64encode(json_string.encode("utf-8")).decode("utf-8")
@@ -418,113 +432,289 @@ def tree_visualizer_provider(valobj, internal_dict):
         except Exception as e:
             return f"Error creating JSON visualizer: {e}"
     else:
-        # Fallback per la console testuale
+        # Fallback for the MS C/C++ extension's GUI and other consoles.
         return TreeSummary(valobj, internal_dict)
 
 
-# ----- Custom LLDB command 'pptree' ----- #
-def pretty_print_tree_command(debugger, command, result, internal_dict):
+# ----- Helper to safely dereference a node pointer ----- #
+def _safe_get_node_from_pointer(node_ptr):
     """
-    Implements the 'pptree' custom command to pretty-print a tree structure.
-    Usage: (lldb) pptree <variable_name>
+    Safely gets the underlying TreeNode struct from an SBValue that can be
+    a raw pointer or a smart pointer, returning the SBValue for the struct.
     """
-    debug_print("=" * 20 + " 'pptree' Command Start " + "=" * 20)
+    if not node_ptr or not node_ptr.IsValid():
+        return None
 
-    # 1. Get the current frame to find the variable
-    target = debugger.GetSelectedTarget()
-    process = target.GetProcess()
-    thread = process.GetSelectedThread()
-    frame = thread.GetSelectedFrame()
+    # Try to handle it as a smart pointer first.
+    internal_ptr = get_child_member_by_names(node_ptr, ["_M_ptr", "__ptr_", "pointer"])
+    if internal_ptr and internal_ptr.IsValid():
+        debug_print("   - Smart pointer detected, dereferencing internal ptr.")
+        return internal_ptr.Dereference()
 
-    if not frame.IsValid():
-        result.SetError(
-            "Cannot execute 'pptree': invalid execution context (no frame)."
-        )
-        debug_print("Command failed: Invalid frame.")
-        return
-
-    # 2. Parse the variable name from the command arguments
-    args = command.split()
-    if not args:
-        result.SetError("Usage: pptree <variable_name>")
-        debug_print("Command failed: No variable name provided.")
-        return
-
-    var_name = args[0]
-    tree_val = frame.FindVariable(var_name)
-
-    if not tree_val or not tree_val.IsValid():
-        result.SetError(
-            f"Could not find a variable named '{var_name}' in the current scope."
-        )
-        debug_print(f"Command failed: Variable '{var_name}' not found.")
-        return
-
-    # 3. Find the root node of the tree
-    root_node_ptr = get_child_member_by_names(tree_val, ["root", "m_root", "_root"])
-    if not root_node_ptr or get_raw_pointer(root_node_ptr) == 0:
-        result.AppendMessage("Tree is empty or root pointer not found.")
-        debug_print("Tree appears empty.")
-        return
-
-    result.AppendMessage(f"{tree_val.GetTypeName()} at {tree_val.GetAddress()}")
-    debug_print(
-        f"Found tree '{var_name}' of type '{tree_val.GetTypeName()}'. Starting traversal."
-    )
-
-    # 4. Start the recursive printing process
-    _recursive_pretty_print(root_node_ptr, "", True, result)
-    debug_print("=" * 20 + " 'pptree' Command End " + "=" * 20)
+    # Fallback for raw pointers.
+    debug_print("   - Assuming raw pointer, dereferencing directly.")
+    return node_ptr.Dereference()
 
 
-def _recursive_pretty_print(node_ptr, prefix, is_last, result):
-    """
-    Helper function to recursively traverse and print the tree.
-    """
+# ----- Helper functions to collect nodes in different orders ----- #
+def _collect_nodes_inorder(node_ptr, nodes_list):
+    """Collect nodes in in-order traversal."""
     if not node_ptr or get_raw_pointer(node_ptr) == 0:
-        debug_print(f"-> Traversal stopped: Null node found at prefix '{prefix}'.")
         return
 
-    node = node_ptr.Dereference()
+    node = _safe_get_node_from_pointer(node_ptr)
     if not node or not node.IsValid():
-        debug_print(
-            f"-> Traversal stopped: Could not dereference node at prefix '{prefix}'."
-        )
         return
 
-    # Find members dynamically
-    value = get_child_member_by_names(node, ["value", "val", "data", "key"])
     left = get_child_member_by_names(node, ["left", "m_left", "_left"])
     right = get_child_member_by_names(node, ["right", "m_right", "_right"])
 
+    # In-order: left, root, right
+    if left:
+        _collect_nodes_inorder(left, nodes_list)
+    nodes_list.append(node_ptr)
+    if right:
+        _collect_nodes_inorder(right, nodes_list)
+
+
+def _collect_nodes_postorder(node_ptr, nodes_list):
+    """Collect nodes in post-order traversal."""
+    if not node_ptr or get_raw_pointer(node_ptr) == 0:
+        return
+
+    node = _safe_get_node_from_pointer(node_ptr)
+    if not node or not node.IsValid():
+        return
+
+    left = get_child_member_by_names(node, ["left", "m_left", "_left"])
+    right = get_child_member_by_names(node, ["right", "m_right", "_right"])
+
+    # Post-order: left, right, root
+    if left:
+        _collect_nodes_postorder(left, nodes_list)
+    if right:
+        _collect_nodes_postorder(right, nodes_list)
+    nodes_list.append(node_ptr)
+
+
+# ----- Helper for the Pre-Order "drawing" view ----- #
+def _recursive_preorder_print(node_ptr, prefix, is_last, result):
+    """Helper function to recursively "draw" the tree in Pre-Order."""
+    if not node_ptr or get_raw_pointer(node_ptr) == 0:
+        return
+
+    node = _safe_get_node_from_pointer(node_ptr)
+    if not node or not node.IsValid():
+        return
+
+    value = get_child_member_by_names(node, ["value", "val", "data", "key"])
     value_summary = get_value_summary(value)
-    debug_print(f"-> Traversing node with value: '{value_summary}'")
 
-    # Print the current node's value with the correct prefix
-    line = f"{prefix}{'└── ' if is_last else '├── '}{Colors.YELLOW}{value_summary}{Colors.RESET}"
-    result.AppendMessage(line)
+    # Process the node first
+    result.AppendMessage(
+        f"{prefix}{'└── ' if is_last else '├── '}{Colors.YELLOW}{value_summary}{Colors.RESET}"
+    )
 
-    # Prepare for the next level of recursion
+    # Then recurse on children
+    left = get_child_member_by_names(node, ["left", "m_left", "_left"])
+    right = get_child_member_by_names(node, ["right", "m_right", "_right"])
+
     children = []
     if left and get_raw_pointer(left) != 0:
-        debug_print(f"   - Found valid LEFT child for node '{value_summary}'")
         children.append(left)
-    else:
-        debug_print(f"   - Left child for node '{value_summary}' is null or invalid.")
-
     if right and get_raw_pointer(right) != 0:
-        debug_print(f"   - Found valid RIGHT child for node '{value_summary}'")
         children.append(right)
-    else:
-        debug_print(f"   - Right child for node '{value_summary}' is null or invalid.")
 
-    # Recursively call for children
     for i, child in enumerate(children):
         new_prefix = f"{prefix}{'    ' if is_last else '│   '}"
-        is_child_last = i == len(children) - 1
-        _recursive_pretty_print(child, new_prefix, is_child_last, result)
+        _recursive_preorder_print(child, new_prefix, i == len(children) - 1, result)
 
 
+# ----- Helper to print nodes in traversal order as tree structure ----- #
+def _print_traversal_as_tree(nodes_list, result, max_children=2):
+    """Print nodes in a tree-like structure based on their order in the list."""
+    if not nodes_list:
+        return
+
+    def print_tree_recursive(start_idx, prefix, is_last, level):
+        if start_idx >= len(nodes_list):
+            return start_idx
+
+        # Get current node
+        node_ptr = nodes_list[start_idx]
+        node = _safe_get_node_from_pointer(node_ptr)
+        if not node or not node.IsValid():
+            return start_idx + 1
+
+        value = get_child_member_by_names(node, ["value", "val", "data", "key"])
+        value_summary = get_value_summary(value)
+
+        # Print current node
+        result.AppendMessage(
+            f"{prefix}{'└── ' if is_last else '├── '}{Colors.YELLOW}{value_summary}{Colors.RESET}"
+        )
+
+        # Calculate children
+        next_idx = start_idx + 1
+        children_count = 0
+
+        # For binary tree, try to have at most 2 children
+        # Left child would be next node, right child would be the one after
+        children_indices = []
+
+        # Simple strategy: next nodes in sequence become children
+        # We'll limit to 2 children for binary tree appearance
+        remaining_nodes = len(nodes_list) - next_idx
+        if remaining_nodes > 0:
+            # Calculate how many children this node should have
+            if remaining_nodes >= 2 and start_idx < len(nodes_list) // 2:
+                children_count = 2
+            elif remaining_nodes >= 1:
+                children_count = 1
+
+            for i in range(children_count):
+                if next_idx + i < len(nodes_list):
+                    children_indices.append(next_idx + i)
+
+        # Print children
+        current_idx = next_idx
+        for i, child_idx in enumerate(children_indices):
+            new_prefix = f"{prefix}{'    ' if is_last else '│   '}"
+            is_last_child = i == len(children_indices) - 1
+
+            # For the first child, use the calculated index
+            if i == 0:
+                current_idx = print_tree_recursive(
+                    child_idx,
+                    new_prefix,
+                    is_last_child and len(children_indices) == 1,
+                    level + 1,
+                )
+            else:
+                # For subsequent children, continue from where the previous child left off
+                current_idx = print_tree_recursive(
+                    current_idx, new_prefix, is_last_child, level + 1
+                )
+
+        # If we had children, return where we left off, otherwise just next node
+        return current_idx if children_indices else next_idx
+
+    # Start the recursive printing
+    print_tree_recursive(0, "", True, 0)
+
+
+# ----- Sequential tree structure with proper binary tree layout ----- #
+def _print_sequential_tree(nodes_list, result):
+    """Print nodes in a binary tree structure based on their traversal order."""
+    if not nodes_list:
+        return
+
+    def print_node_recursive(index, prefix, is_last):
+        if index >= len(nodes_list):
+            return
+
+        node_ptr = nodes_list[index]
+        node = _safe_get_node_from_pointer(node_ptr)
+        if not node or not node.IsValid():
+            return
+
+        value = get_child_member_by_names(node, ["value", "val", "data", "key"])
+        value_summary = get_value_summary(value)
+
+        # Print current node
+        result.AppendMessage(
+            f"{prefix}{'└── ' if is_last else '├── '}{Colors.YELLOW}{value_summary}{Colors.RESET}"
+        )
+
+        # Calculate children indices (standard binary tree: left = 2*i+1, right = 2*i+2)
+        left_child_idx = 2 * index + 1
+        right_child_idx = 2 * index + 2
+
+        children = []
+        if left_child_idx < len(nodes_list):
+            children.append(left_child_idx)
+        if right_child_idx < len(nodes_list):
+            children.append(right_child_idx)
+
+        # Print children
+        for i, child_idx in enumerate(children):
+            new_prefix = f"{prefix}{'    ' if is_last else '│   '}"
+            is_last_child = i == len(children) - 1
+            print_node_recursive(child_idx, new_prefix, is_last_child)
+
+    # Start with root (index 0)
+    print_node_recursive(0, "", True)
+
+
+# ----- Central dispatcher to handle all 'pptree' commands ----- #
+def _pptree_command_dispatcher(debugger, command, result, internal_dict, order):
+    """
+    A single function to handle the logic for all traversal commands.
+    'order' can be 'preorder', 'inorder', or 'postorder'.
+    """
+    args = command.split()
+    if not args:
+        result.SetError(f"Usage: pptree_{order} <variable_name>")
+        return
+
+    frame = (
+        debugger.GetSelectedTarget().GetProcess().GetSelectedThread().GetSelectedFrame()
+    )
+    if not frame.IsValid():
+        result.SetError("Cannot execute command: invalid execution context.")
+        return
+
+    tree_val = frame.FindVariable(args[0])
+    if not tree_val or not tree_val.IsValid():
+        result.SetError(f"Could not find variable '{args[0]}'.")
+        return
+
+    root_node_ptr = get_child_member_by_names(tree_val, ["root", "m_root", "_root"])
+    if not root_node_ptr or get_raw_pointer(root_node_ptr) == 0:
+        result.AppendMessage("Tree is empty.")
+        return
+
+    # Select the correct approach based on the order
+    if order == "preorder":
+        result.AppendMessage(
+            f"{tree_val.GetTypeName()} at {tree_val.GetAddress()} (Pre-Order):"
+        )
+        _recursive_preorder_print(root_node_ptr, "", True, result)
+    elif order == "inorder":
+        result.AppendMessage(
+            f"{tree_val.GetTypeName()} at {tree_val.GetAddress()} (In-Order):"
+        )
+        # Collect nodes in in-order, then display as tree structure
+        nodes_list = []
+        _collect_nodes_inorder(root_node_ptr, nodes_list)
+        _print_sequential_tree(nodes_list, result)
+    elif order == "postorder":
+        result.AppendMessage(
+            f"{tree_val.GetTypeName()} at {tree_val.GetAddress()} (Post-Order):"
+        )
+        # Collect nodes in post-order, then display as tree structure
+        nodes_list = []
+        _collect_nodes_postorder(root_node_ptr, nodes_list)
+        _print_sequential_tree(nodes_list, result)
+
+
+# --- The user-facing command functions are now simple one-liners ---
+def pptree_preorder_command(debugger, command, result, internal_dict):
+    """Implements the 'pptree_preorder' command."""
+    _pptree_command_dispatcher(debugger, command, result, internal_dict, "preorder")
+
+
+def pptree_inorder_command(debugger, command, result, internal_dict):
+    """Implements the 'pptree_inorder' command."""
+    _pptree_command_dispatcher(debugger, command, result, internal_dict, "inorder")
+
+
+def pptree_postorder_command(debugger, command, result, internal_dict):
+    """Implements the 'pptree_postorder' command."""
+    _pptree_command_dispatcher(debugger, command, result, internal_dict, "postorder")
+
+
+# ----- JSON Tree Visualizer ----- #
 def _build_json_tree_node(node_ptr):
     """
     Recursive helper to build a Python dictionary representing the tree node
@@ -563,6 +753,7 @@ def _build_json_tree_node(node_ptr):
     return json_node
 
 
+# ----- Main JSON Provider Function ----- #
 def get_tree_json(valobj):
     """
     This is the main JSON provider function that LLDB's front-end will call.
@@ -576,6 +767,106 @@ def get_tree_json(valobj):
 
     # The final JSON payload expected by CodeLLDB's tree visualizer
     return {"kind": {"tree": True}, "root": json_root}
+
+
+def _build_dot_for_tree(smart_ptr_sbvalue, dot_lines, visited_nodes):
+    """
+    Recursive helper to traverse a tree and generate Graphviz .dot content.
+    """
+    node_addr = get_raw_pointer(smart_ptr_sbvalue)
+
+    if node_addr == 0 or node_addr in visited_nodes:
+        return
+    visited_nodes.add(node_addr)
+
+    # Find the internal pointer member of the smart pointer.
+    internal_ptr = get_child_member_by_names(
+        smart_ptr_sbvalue, ["_M_ptr", "__ptr_", "pointer"]
+    )
+    if not internal_ptr or not internal_ptr.IsValid():
+        return  # If we can't find the internal pointer, we can't proceed.
+
+    # Dereference the internal pointer to get the actual TreeNode structure.
+    node_struct = internal_ptr.Dereference()
+    if not node_struct or not node_struct.IsValid():
+        return
+
+    # Get node members
+    value = get_child_member_by_names(node_struct, ["value", "val", "data", "key"])
+    left = get_child_member_by_names(node_struct, ["left", "m_left", "_left"])
+    right = get_child_member_by_names(node_struct, ["right", "m_right", "_right"])
+
+    val_summary = get_value_summary(value).replace('"', '\\"')
+
+    # Define the current node
+    dot_lines.append(f'  Node_{node_addr} [label="{val_summary}"];')
+
+    # Define edge to the left child and recurse
+    if left and get_raw_pointer(left) != 0:
+        left_child_addr = get_raw_pointer(left)
+        dot_lines.append(f"  Node_{node_addr} -> Node_{left_child_addr};")
+        _build_dot_for_tree(left, dot_lines, visited_nodes)
+
+    # Define edge to the right child and recurse
+    if right and get_raw_pointer(right) != 0:
+        right_child_addr = get_raw_pointer(right)
+        dot_lines.append(f"  Node_{node_addr} -> Node_{right_child_addr};")
+        _build_dot_for_tree(right, dot_lines, visited_nodes)
+
+
+# ----- LLDB Command to Export Tree as Graphviz .dot File ----- #
+def export_tree_command(debugger, command, result, internal_dict):
+    """
+    Implements the 'export_tree' command. It traverses a tree structure
+    and writes a Graphviz .dot file to disk.
+    Usage: (lldb) export_tree <variable_name> [output_file.dot]
+    """
+    args = command.split()
+    if not args:
+        result.SetError("Usage: export_tree <variable_name> [output_file.dot]")
+        return
+
+    var_name = args[0]
+    output_filename = args[1] if len(args) > 1 else "tree.dot"
+
+    frame = (
+        debugger.GetSelectedTarget().GetProcess().GetSelectedThread().GetSelectedFrame()
+    )
+    if not frame.IsValid():
+        result.SetError("Cannot execute 'export_tree': invalid execution context.")
+        return
+
+    tree_val = frame.FindVariable(var_name)
+    if not tree_val or not tree_val.IsValid():
+        result.SetError(f"Could not find a variable named '{var_name}'.")
+        return
+
+    # Find the root node, not a 'nodes' container
+    root_node_ptr = get_child_member_by_names(tree_val, ["root", "m_root", "_root"])
+    if not root_node_ptr or get_raw_pointer(root_node_ptr) == 0:
+        result.AppendMessage("Tree is empty or root pointer not found.")
+        return
+
+    # Build the .dot file content recursively
+    dot_lines = [
+        "digraph Tree {",
+        "  node [shape=circle, style=filled, fillcolor=lightgoldenrodyellow];",
+    ]
+    visited_nodes = set()
+    _build_dot_for_tree(root_node_ptr, dot_lines, visited_nodes)
+    dot_lines.append("}")
+    dot_content = "\n".join(dot_lines)
+
+    # Write the content to the output file
+    try:
+        with open(output_filename, "w") as f:
+            f.write(dot_content)
+        result.AppendMessage(f"Successfully exported tree to '{output_filename}'.")
+        result.AppendMessage(
+            f"Run this command to generate the image: {Colors.BOLD_CYAN}dot -Tpng {output_filename} -o tree.png{Colors.RESET}"
+        )
+    except IOError as e:
+        result.SetError(f"Failed to write to file '{output_filename}': {e}")
 
 
 # ----- Formatter for Graphs ----- #
@@ -857,25 +1148,34 @@ def __lldb_init_module(debugger, internal_dict):
         lldb.SBTypeSummary.CreateWithFunctionName("lldb_formatters.GraphNodeSummary"),
     )
 
-    # ----- Define custom user-configurable settings ----- #
-    # Define custom settings and commands using the top-level debugger API
-
-    # Register Custom Commands
+    # ----- Custom Command Registration ----- #
+    # Register the specific traversal commands
     debugger.HandleCommand(
-        "command script add -f lldb_formatters.pretty_print_tree_command pptree"
+        "command script add -f lldb_formatters.pptree_preorder_command pptree_preorder"
     )
+    debugger.HandleCommand(
+        "command script add -f lldb_formatters.pptree_inorder_command pptree_inorder"
+    )
+    debugger.HandleCommand(
+        "command script add -f lldb_formatters.pptree_postorder_command pptree_postorder"
+    )
+
+    # Register a convenient alias: 'pptree' will run the default Pre-Order view
+    debugger.HandleCommand("command alias pptree pptree_preorder")
+
+    # Register other commands
     debugger.HandleCommand(
         "command script add -f lldb_formatters.export_graph_command export_graph"
     )
-
-    # Register the configuration command
+    debugger.HandleCommand(
+        "command script add -f lldb_formatters.export_tree_command export_tree"
+    )
     debugger.HandleCommand(
         "command script add -f lldb_formatters.formatter_config_command formatter_config"
     )
 
-    # Print the result of the command registration
+    # ----- Final Output Message -----
     print(f"Formatters registered in category '{category_name}'.")
     print(
-        "Custom settings loaded under 'target.vars.CustomFormatters'. Use 'settings list target.vars.CustomFormatters' to view."
+        "Custom commands 'pptree' (pre-order), 'pptree_inorder', 'pptree_postorder', 'export_tree', and 'formatter_config' are now available."
     )
-    print("Custom commands 'pptree' and 'export_graph' are now available.")
