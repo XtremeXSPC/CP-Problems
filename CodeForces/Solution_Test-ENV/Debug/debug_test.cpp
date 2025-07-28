@@ -1,11 +1,17 @@
 //===---------------------------------------------------------------------===//
 /**
- * @file Tester.cpp
- * @brief Tester for solutions to the problems analyzed.
- * @version 0.1
- * @date 2025-05-22
+ * @file debug_test.cpp
+ * @brief Test file for the debug header.
  *
- * @copyright Copyright (c) 2025
+ * This file demonstrates the usage of the debug header by testing various
+ * data types, STL containers, and utility macros. It includes functions to
+ * test basic data types, STL containers, advanced printing features, and
+ * utility macros like `debug_if`, `COUNT_CALLS`, and `my_assert`.
+ *
+ * @version 0.1
+ * @date 2025-07-27
+ *
+ * @copyright Copyright MIT 2025
  *
  */
 //===---------------------------------------------------------------------===//
