@@ -4,7 +4,7 @@
     {
       // ----- Competitive Programming Task (macOS) ----- //
       // Uses CodeLLDB and redirects input.txt to stdin.
-      "name": "Debug (Competitions)",
+      "name": "Debug (Competitions) - CodeLLDB",
       "type": "lldb",
       "request": "launch",
       "program": "${workspaceFolder}/bin/Tester",
@@ -15,13 +15,35 @@
     },
     {
       // ----- Standard Debug Task (macOS) ----- //
-      "name": "Debug (macOS)",
+      "name": "Debug (macOS) - CodeLLDB",
       "type": "lldb",
       "request": "launch",
       "program": "${workspaceFolder}/bin/Tester",
       "args": [],
       "cwd": "${workspaceFolder}",
-      "preLaunchTask": "Build (Debug)"
+      "preLaunchTask": "Build (Debug)",
+      "initCommands": [
+        "command script import /Users/lcs-dev/.lldb/lldb_formatters.py"
+      ]
+    },
+    {
+      "name": "Debug (macOS) - MS C/C++",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/bin/Tester",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "lldb",
+      "setupCommands": [
+        {
+          "description": "Load Custom LLDB Formatters",
+          "text": "command script import /Users/lcs-dev/.lldb/lldb_formatters.py",
+          "ignoreFailures": false
+        }
+      ]
     },
     {
       // ----- Debug with user-provided arguments (macOS) ----- //
