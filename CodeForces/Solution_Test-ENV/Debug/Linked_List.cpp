@@ -1,6 +1,6 @@
 //===---------------------------------------------------------------------===//
 /**
- * @file debug_Linked-List.cpp
+ * @file Linked_List.cpp
  * @brief Tester for LLDB Data Formatters.
  * @version 0.1
  * @date 2025-07-27
