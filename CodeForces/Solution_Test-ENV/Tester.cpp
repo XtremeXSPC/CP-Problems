@@ -11,11 +11,11 @@
 //===---------------------------------------------------------------------===//
 /* Included library */
 
-#include <iostream>
-#include <memory>
-#include <string>
+#include "include/graph.hpp"
+#include "include/linked_list.hpp"
+#include "include/tree.hpp"
 
-#include "include/tree.h"
+#include <iostream>
 
 //===---------------------------------------------------------------------===//
 /* Definitions of Structures and Classes */
@@ -24,6 +24,34 @@
 /* Main function */
 
 auto main() -> int {
+  // The type name "LinkedList" should be recognized by our regex
+  LinkedList<int> list;
+  list.push_front(10);
+  list.push_front(20);
+  list.push_front(30);
+  list.push_front(40);
+  list.push_front(50);
+  list.push_front(60);
+  list.push_front(70);
+  list.push_front(80);
+  list.push_front(90);
+
+  LinkedList<std::string> string_list;
+  string_list.push_front("C++");
+  string_list.push_front("Python");
+  string_list.push_front("LLDB");
+  string_list.push_front("Rust");
+  string_list.push_front("Go");
+  string_list.push_front("JavaScript");
+  string_list.push_front("TypeScript");
+  string_list.push_front("Kotlin");
+  string_list.push_front("Swift");
+  string_list.push_front("Scala");
+
+  // Print the linked list to console
+  std::cout << "Program ready for debugging." << '\n';
+
+  // Create a sample binary tree to test the Tree formatter
   std::cout << "Creating a sample binary tree..." << '\n';
 
   // The variable we will inspect in LLDB
@@ -52,7 +80,44 @@ auto main() -> int {
   my_binary_tree.insert(17);
   my_binary_tree.insert(18);
 
-  std::cout << "Tree created and populated." << '\n';
+  std::cout << "Tree created and populated.\n" << '\n';
+
+  // Create a graph of integers.
+  // The name "my_std_graph" can be used directly in LLDB commands.
+  StandardGraph<int> my_std_graph;
+
+  // Add nodes using the helper function
+  TestGraphNode<int>* node10  = create_node(my_std_graph, 10);
+  TestGraphNode<int>* node20  = create_node(my_std_graph, 20);
+  TestGraphNode<int>* node30  = create_node(my_std_graph, 30);
+  TestGraphNode<int>* node40  = create_node(my_std_graph, 40);
+  TestGraphNode<int>* node50  = create_node(my_std_graph, 50);
+  TestGraphNode<int>* node60  = create_node(my_std_graph, 60);
+  TestGraphNode<int>* node70  = create_node(my_std_graph, 70);
+  TestGraphNode<int>* node80  = create_node(my_std_graph, 80);
+  TestGraphNode<int>* node90  = create_node(my_std_graph, 90);
+  TestGraphNode<int>* node100 = create_node(my_std_graph, 100);
+
+  (void)node100; // Use node100 to avoid unused variable warning
+
+  // Add edges
+  add_edge(my_std_graph, node10, node20);
+  add_edge(my_std_graph, node10, node30);
+  add_edge(my_std_graph, node20, node40);
+  add_edge(my_std_graph, node30, node40);
+  add_edge(my_std_graph, node40, node50);
+  add_edge(my_std_graph, node30, node10); // Edge for cycle
+  add_edge(my_std_graph, node50, node60);
+  add_edge(my_std_graph, node60, node70);
+  add_edge(my_std_graph, node70, node80);
+  add_edge(my_std_graph, node80, node90);
+  add_edge(my_std_graph, node90, node10); // Another cycle
+  add_edge(my_std_graph, node20, node60);
+  add_edge(my_std_graph, node30, node70);
+  add_edge(my_std_graph, node40, node80);
+
+  std::cout << "StandardGraph created." << '\n';
+  std::cout << "Set a breakpoint on the next line to inspect 'my_std_graph'." << '\n';
 
   return 0; // Breakpoint here!
 }

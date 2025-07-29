@@ -1,7 +1,9 @@
 //===--------------------------------------------------------------------------===//
+#ifndef TREE_HPP
+#define TREE_HPP
+
 #pragma once
 
-#include <iostream>
 #include <memory>
 
 // The Node structure for our Tree.
@@ -43,4 +45,5 @@ private:
   size_t                       m_size;
 };
 
+#endif // TREE_HPP
 //===--------------------------------------------------------------------------===//
