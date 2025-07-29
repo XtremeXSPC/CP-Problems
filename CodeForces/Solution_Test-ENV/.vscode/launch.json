@@ -23,7 +23,7 @@
       "cwd": "${workspaceFolder}",
       "preLaunchTask": "Build (Debug)",
       "initCommands": [
-        "command script import /Users/lcs-dev/.lldb/lldb_formatters.py"
+        "command script import /Users/lcs-dev/.lldb/LLDB_Formatters"
       ]
     },
     {
