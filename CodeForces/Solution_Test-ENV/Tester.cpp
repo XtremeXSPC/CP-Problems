@@ -29,7 +29,7 @@ auto main() -> int {
   // The variable we will inspect in LLDB
   Tree<int> my_binary_tree;
 
-  // Insert some values to create a non-trivial tree
+  // Insert some values to create a more complex, non-trivial tree
   my_binary_tree.insert(8); // root
   my_binary_tree.insert(3);
   my_binary_tree.insert(10);
@@ -39,6 +39,18 @@ auto main() -> int {
   my_binary_tree.insert(7);
   my_binary_tree.insert(14);
   my_binary_tree.insert(13);
+
+  // Additional nodes for complexity
+  my_binary_tree.insert(9);
+  my_binary_tree.insert(2);
+  my_binary_tree.insert(5);
+  my_binary_tree.insert(12);
+  my_binary_tree.insert(15);
+  my_binary_tree.insert(11);
+  my_binary_tree.insert(0);
+  my_binary_tree.insert(16);
+  my_binary_tree.insert(17);
+  my_binary_tree.insert(18);
 
   std::cout << "Tree created and populated." << '\n';
 
