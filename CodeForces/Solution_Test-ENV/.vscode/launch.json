@@ -2,6 +2,15 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Launch Mandelbrot",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/bin/Tester",
+      "initCommands": [
+        "command script import ${workspaceRoot}/Debug/debug_lldb.py"
+      ]
+    },
+    {
       // ----- Competitive Programming Task (macOS) ----- //
       // Uses CodeLLDB and redirects input.txt to stdin.
       "name": "Debug (Competitions) - CodeLLDB",
@@ -22,6 +31,7 @@
       "args": [],
       "cwd": "${workspaceFolder}",
       "preLaunchTask": "Build (Debug)",
+      "sourceLanguages": ["cpp"],
       "initCommands": [
         "command script import /Users/lcs-dev/.lldb/LLDB_Formatters"
       ]

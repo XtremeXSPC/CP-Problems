@@ -1,9 +1,9 @@
 //===---------------------------------------------------------------------===//
 /**
- * @file debug_Linked-List.cpp
- * @brief Tester for LLDB Data Formatters.
+ * @file Tester.cpp
+ * @brief Tester for coding data structures and algorithms.
  * @version 0.1
- * @date 2025-07-27
+ * @date 2025-05-20
  *
  * @copyright Copyright MIT 2025
  *
@@ -117,7 +117,6 @@ auto main() -> int {
   add_edge(my_std_graph, node40, node80);
 
   std::cout << "StandardGraph created." << '\n';
-  std::cout << "Set a breakpoint on the next line to inspect 'my_std_graph'." << '\n';
 
   return 0; // Breakpoint here!
 }
