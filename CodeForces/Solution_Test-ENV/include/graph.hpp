@@ -2,8 +2,9 @@
 #ifndef GRAPH_HPP
 #define GRAPH_HPP
 
+#include <sstream>
+#include <string>
 #include <vector>
-
 /**
  * @brief A graph node with public members for easy introspection.
  * @tparam T Type of the value.
@@ -48,6 +49,53 @@ struct StandardGraph {
     }
   }
 };
+
+// ==================================================================== //
+// NEW: Function to generate the JSON for vscode-debug-visualizer
+// ==================================================================== //
+
+// Helper function to get a unique ID from a pointer's address
+template <typename T>
+static std::string ptr_to_id(T* ptr) {
+  std::stringstream ss;
+  ss << ptr;
+  return ss.str();
+}
+
+/**
+ * @brief Generates a JSON string representing the graph for visualization.
+ * @param graph The graph to visualize.
+ * @return A string in the format expected by vscode-debug-visualizer.
+ */
+template <typename T>
+std::string generateGraphJson(const StandardGraph<T>& graph) {
+  std::stringstream nodes_ss, edges_ss;
+  bool              first_node = true;
+  bool              first_edge = true;
+
+  for (TestGraphNode<T>* node : graph.nodes) {
+    if (!first_node) {
+      nodes_ss << ",";
+    }
+    // Add the node to the JSON nodes array
+    nodes_ss << "{\"id\":\"" << ptr_to_id(node) << "\",\"label\":\"" << node->value << "\"}";
+    first_node = false;
+
+    // Add all outgoing edges from this node
+    for (TestGraphNode<T>* neighbor : node->neighbors) {
+      if (!first_edge) {
+        edges_ss << ",";
+      }
+      edges_ss << "{\"from\":\"" << ptr_to_id(node) << "\",\"to\":\"" << ptr_to_id(neighbor) << "\"}";
+      first_edge = false;
+    }
+  }
+
+  // Assemble the final JSON object
+  std::stringstream final_json;
+  final_json << "{\"kind\":{\"graph\":true},\"nodes\":[" << nodes_ss.str() << "],\"edges\":[" << edges_ss.str() << "]}";
+  return final_json.str();
+}
 
 // ----- Helper functions to build the graph in main() ----- //
 
