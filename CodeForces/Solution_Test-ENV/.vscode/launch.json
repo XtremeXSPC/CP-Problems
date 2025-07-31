@@ -2,15 +2,6 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Launch Mandelbrot",
-      "type": "lldb",
-      "request": "launch",
-      "program": "${workspaceFolder}/bin/Tester",
-      "initCommands": [
-        "command script import ${workspaceRoot}/Debug/debug_lldb.py"
-      ]
-    },
-    {
       // ----- Competitive Programming Task (macOS) ----- //
       // Uses CodeLLDB and redirects input.txt to stdin.
       "name": "Debug (Competitions) - CodeLLDB",
@@ -37,6 +28,7 @@
       ]
     },
     {
+      // ----- Debug with MS C/C++ Extension (macOS) ----- //
       "name": "Debug (macOS) - MS C/C++",
       "type": "cppdbg",
       "request": "launch",
@@ -66,63 +58,13 @@
       "preLaunchTask": "Build (Debug)"
     },
     {
-      // ----- Windows/Linux Configurations ----- //
-      "name": "Run C/C++ Application (Windows/Linux)",
-      "type": "cppdbg",
-      "request": "launch",
-      "program": "${workspaceFolder}/bin/Tester",
-      "args": [],
-      "cwd": "${workspaceFolder}",
-      "stopAtEntry": false,
-      "preLaunchTask": "Build with Make",
-      "windows": {
-        "program": "${workspaceFolder}/bin/Tester.exe",
-        "MIMode": "gdb",
-        "miDebuggerPath": "C:/msys64/mingw64/bin/gdb.exe"
-      },
-      "linux": {
-        "program": "${workspaceFolder}/Tester",
-        "MIMode": "gdb",
-        "miDebuggerPath": "/usr/bin/gdb"
-      }
-    },
-    {
-      "name": "Debug C/C++ (Windows/Linux)",
-      "type": "cppdbg",
-      "request": "launch",
-      "program": "${workspaceFolder}/bin/Tester",
-      "args": [],
-      "stopAtEntry": true,
-      "cwd": "${workspaceFolder}",
-      "environment": [],
-      "externalConsole": false,
-      "MIMode": "gdb",
-      "preLaunchTask": "Build with Make",
-      "visualizerFile": "${workspaceFolder}/doubly_list.natvis",
-      "setupCommands": [
-        {
-          "description": "Abilita la stampa con Pretty Printing",
-          "text": "-enable-pretty-printing",
-          "ignoreFailures": true
-        }
-      ],
-      "windows": {
-        "program": "${workspaceFolder}/bin/Tester.exe",
-        "MIMode": "gdb",
-        "miDebuggerPath": "C:/msys64/mingw64/bin/gdb.exe"
-      },
-      "linux": {
-        "program": "${workspaceFolder}/bin/Tester",
-        "MIMode": "gdb",
-        "miDebuggerPath": "/usr/bin/gdb"
-      }
-    },
-    {
+      // ----- macOS/Windows/Linux Configurations ----- //
       // This configuration uses the Microsoft C/C++ extension on all platforms.
       "name": "Debug C/C++ (Cross-Platform)",
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/bin/Tester",
+      "args": [],
       "stopAtEntry": true,
       "cwd": "${workspaceFolder}",
       "environment": [],
@@ -161,6 +103,16 @@
           "text": "-enable-pretty-printing",
           "ignoreFailures": true
         }
+      ]
+    },
+    {
+      // ----- Launch Mandelbrot (macOS) ----- //
+      "name": "Launch Mandelbrot",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/bin/Tester",
+      "initCommands": [
+        "command script import ${workspaceRoot}/Debug/debug_lldb.py"
       ]
     }
   ],
