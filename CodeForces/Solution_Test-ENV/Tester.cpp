@@ -39,10 +39,10 @@ auto main() -> int {
   LinkedList<std::string> string_list;
   string_list.push_front("C++");
   string_list.push_front("Python");
-  string_list.push_front("LLDB");
+  string_list.push_front("Haskell");
   string_list.push_front("Rust");
-  string_list.push_front("Go");
-  string_list.push_front("JavaScript");
+  string_list.push_front("OCaml");
+  string_list.push_front("Erlang");
   string_list.push_front("TypeScript");
   string_list.push_front("Kotlin");
   string_list.push_front("Swift");
@@ -118,7 +118,29 @@ auto main() -> int {
 
   std::cout << "StandardGraph created." << '\n';
 
-  return 0; // Breakpoint here!
+  // ================================================================== //
+  // 2. GENERATE AND PRINT THE JSON FOR ONE STRUCTURE
+  // ================================================================== //
+
+  // Declare a string to hold the JSON output.
+  std::string json_to_visualize;
+
+  // ----- CHOOSE WHICH STRUCTURE TO VISUALIZE -----
+  // Uncomment ONLY ONE of the following lines at a time.
+
+  // json_to_visualize = list.generateJson();
+  // json_to_visualize = string_list.generateJson();
+  json_to_visualize = my_binary_tree.generateJson();
+  // json_to_visualize = generateGraphJson(my_std_graph);
+
+  // Print the chosen JSON string to standard output.
+  // The 'vscode-debug-visualizer' extension will capture this.
+  std::cout << json_to_visualize << '\n';
+  ;
+
+  std::cout << "Program finished. Set a breakpoint on this line to see the visualization." << '\n';
+
+  return 0;
 }
 
 //===---------------------------------------------------------------------===//

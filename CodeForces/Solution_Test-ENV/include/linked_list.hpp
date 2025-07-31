@@ -6,6 +6,8 @@
 
 #include <iostream>
 #include <memory>
+#include <sstream>
+#include <string>
 
 // A custom implementation of LinkedList for testing LLDB formatters.
 template <typename T>
@@ -20,6 +22,14 @@ private:
 
   std::unique_ptr<Node> head;    // The formatter should find 'head'
   size_t                count{}; // The formatter should find 'count' (not 'size')
+
+  // Helper function to get a unique ID from a pointer's address
+  template <typename PtrType>
+  static std::string ptr_to_id(PtrType* ptr) {
+    std::stringstream ss;
+    ss << ptr;
+    return ss.str();
+  }
 
 public:
   LinkedList() : head(nullptr), count(0) {}
@@ -40,6 +50,40 @@ public:
       current = current->next.get();
     }
     std::cout << "nullptr" << '\n';
+  }
+
+  // ================================================================== //
+  // NEW: Function to generate the JSON for vscode-debug-visualizer
+  // ================================================================== //
+  /**
+   * @brief Generates a JSON string representing the list for visualization.
+   * @return A string in the format expected by vscode-debug-visualizer.
+   */
+  std::string generateJson() const {
+    std::stringstream nodes_ss, edges_ss;
+    bool              first_node = true;
+
+    for (Node* current = head.get(); current != nullptr; current = current->next.get()) {
+      if (!first_node) {
+        nodes_ss << ",";
+      }
+      // Add the current node to the JSON nodes array
+      nodes_ss << "{\"id\":\"" << ptr_to_id(current) << "\",\"label\":\"" << current->val << "\"}";
+
+      if (current->next) {
+        if (!first_node) {
+          edges_ss << ",";
+        }
+        // Add the edge connecting the current node to the next one
+        edges_ss << "{\"from\":\"" << ptr_to_id(current) << "\",\"to\":\"" << ptr_to_id(current->next.get()) << "\"}";
+      }
+      first_node = false;
+    }
+
+    // Assemble the final JSON object
+    std::stringstream final_json;
+    final_json << "{\"kind\":{\"graph\":true},\"nodes\":[" << nodes_ss.str() << "],\"edges\":[" << edges_ss.str() << "]}";
+    return final_json.str();
   }
 };
 
