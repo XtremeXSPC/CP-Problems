@@ -62,22 +62,24 @@ public:
   std::string generateJson() const {
     std::stringstream nodes_ss, edges_ss;
     bool              first_node = true;
+    bool              first_edge = true;
 
+    // Iterate through the linked list and build the JSON strings
     for (Node* current = head.get(); current != nullptr; current = current->next.get()) {
+      // "Comma-before" logic: add a comma before every element except the first.
       if (!first_node) {
         nodes_ss << ",";
       }
-      // Add the current node to the JSON nodes array
       nodes_ss << "{\"id\":\"" << ptr_to_id(current) << "\",\"label\":\"" << current->val << "\"}";
+      first_node = false;
 
       if (current->next) {
-        if (!first_node) {
+        if (!first_edge) {
           edges_ss << ",";
         }
-        // Add the edge connecting the current node to the next one
         edges_ss << "{\"from\":\"" << ptr_to_id(current) << "\",\"to\":\"" << ptr_to_id(current->next.get()) << "\"}";
+        first_edge = false;
       }
-      first_node = false;
     }
 
     // Assemble the final JSON object

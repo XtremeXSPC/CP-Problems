@@ -118,6 +118,11 @@ auto main() -> int {
 
   std::cout << "StandardGraph created." << '\n';
 
+  std::string myGraphJson = "{\"kind\":{\"graph\":true},"
+                            "\"nodes\":[{\"id\":\"1\"},{\"id\":\"2\"}],"
+                            "\"edges\":[{\"from\":\"1\",\"to\":\"2\"}]}";
+  std::cout << "Graph JSON: " << myGraphJson << '\n';
+
   // ================================================================== //
   // 2. GENERATE AND PRINT THE JSON FOR ONE STRUCTURE
   // ================================================================== //
@@ -128,15 +133,14 @@ auto main() -> int {
   // ----- CHOOSE WHICH STRUCTURE TO VISUALIZE -----
   // Uncomment ONLY ONE of the following lines at a time.
 
-  // json_to_visualize = list.generateJson();
+  json_to_visualize = list.generateJson();
   // json_to_visualize = string_list.generateJson();
-  json_to_visualize = my_binary_tree.generateJson();
+  // json_to_visualize = my_binary_tree.generateJson();
   // json_to_visualize = generateGraphJson(my_std_graph);
 
   // Print the chosen JSON string to standard output.
   // The 'vscode-debug-visualizer' extension will capture this.
   std::cout << json_to_visualize << '\n';
-  ;
 
   std::cout << "Program finished. Set a breakpoint on this line to see the visualization." << '\n';
 
