@@ -75,15 +75,14 @@ private:
     if (!node || visited.count(node)) {
       return;
     }
-    visited.insert(node);
 
     // Add the current node to the JSON nodes array
-    if (visited.size() > 1) {
+    if (!visited.empty()) {
       nodes_ss << ",";
     }
+    visited.insert(node);
     nodes_ss << "{\"id\":\"" << ptr_to_id(node) << "\",\"label\":\"" << node->value << "\"}";
 
-    // Add edges for left and right children
     if (node->left) {
       if (edges_ss.tellp() > 0) {
         edges_ss << ",";

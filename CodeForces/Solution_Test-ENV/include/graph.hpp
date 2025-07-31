@@ -74,14 +74,14 @@ std::string generateGraphJson(const StandardGraph<T>& graph) {
   bool              first_edge = true;
 
   for (TestGraphNode<T>* node : graph.nodes) {
+    // "Comma-before" logic
     if (!first_node) {
       nodes_ss << ",";
     }
-    // Add the node to the JSON nodes array
     nodes_ss << "{\"id\":\"" << ptr_to_id(node) << "\",\"label\":\"" << node->value << "\"}";
     first_node = false;
 
-    // Add all outgoing edges from this node
+    // Add edges for neighbors
     for (TestGraphNode<T>* neighbor : node->neighbors) {
       if (!first_edge) {
         edges_ss << ",";
