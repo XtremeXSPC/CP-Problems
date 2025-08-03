@@ -37,7 +37,7 @@ public:
    * @brief Generates a JSON string representing the tree for visualization.
    * @return A string in the format expected by vscode-debug-visualizer.
    */
-  std::string generateJson() const {
+  [[nodiscard]] auto generateJson() const -> std::string {
     std::stringstream      nodes_ss, edges_ss;
     std::set<TreeNode<T>*> visited;
 
@@ -64,11 +64,7 @@ private:
   }
 
   // Helper function to get a unique ID from a pointer's address
-  static std::string ptr_to_id(TreeNode<T>* ptr) {
-    std::stringstream ss;
-    ss << ptr;
-    return ss.str();
-  }
+  static auto ptr_to_id(TreeNode<T>* ptr) -> std::string;
 
   // Private recursive helper for JSON generation
   void _generateJson(TreeNode<T>* node, std::stringstream& nodes_ss, std::stringstream& edges_ss, std::set<TreeNode<T>*>& visited) const {
@@ -104,6 +100,14 @@ private:
   std::unique_ptr<TreeNode<T>> root;
   size_t                       m_size;
 };
+
+// Helper function to get a unique ID from a pointer's address
+template <typename T>
+inline auto Tree<T>::ptr_to_id(TreeNode<T>* ptr) -> std::string {
+  std::stringstream ss;
+  ss << ptr;
+  return ss.str();
+}
 
 #endif // TREE_HPP
 //===--------------------------------------------------------------------------===//

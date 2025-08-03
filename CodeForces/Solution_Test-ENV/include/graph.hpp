@@ -68,7 +68,7 @@ static std::string ptr_to_id(T* ptr) {
  * @return A string in the format expected by vscode-debug-visualizer.
  */
 template <typename T>
-std::string generateGraphJson(const StandardGraph<T>& graph) {
+auto generateGraphJson(const StandardGraph<T>& graph) -> std::string {
   std::stringstream nodes_ss, edges_ss;
   bool              first_node = true;
   bool              first_edge = true;
@@ -103,8 +103,8 @@ std::string generateGraphJson(const StandardGraph<T>& graph) {
  * @brief Helper to create a new node and add it to the graph.
  */
 template <typename T>
-TestGraphNode<T>* create_node(StandardGraph<T>& graph, T value) {
-  TestGraphNode<T>* new_node = new TestGraphNode<T>(value);
+auto create_node(StandardGraph<T>& graph, T value) -> TestGraphNode<T>* {
+  auto* new_node = new TestGraphNode<T>(value);
   graph.nodes.push_back(new_node);
   graph.num_nodes++;
   return new_node;
