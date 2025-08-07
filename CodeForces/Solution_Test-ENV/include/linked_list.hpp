@@ -25,7 +25,7 @@ private:
 
   // Helper function to get a unique ID from a pointer's address
   template <typename PtrType>
-  static std::string ptr_to_id(PtrType* ptr) {
+  static auto ptr_to_id(PtrType* ptr) -> std::string {
     std::stringstream ss;
     ss << ptr;
     return ss.str();
