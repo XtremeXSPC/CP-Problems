@@ -1,9 +1,9 @@
 //===---------------------------------------------------------------------===//
 /**
- * @file Tester.cpp
- * @brief Tester for coding data structures and algorithms.
+ * @file problem_E_R1041-Div-1_V2.cpp
+ * @brief Problem E solution for Round 1041, Division 1 (Version 2).
  * @version 0.1
- * @date 2025-05-20
+ * @date 2025-08-08
  *
  * @copyright Copyright MIT 2025
  *
@@ -16,6 +16,7 @@
 //===---------------------------------------------------------------------===//
 /* Types and Function Definitions */
 using namespace std;
+
 struct Graph {
   int                 n;
   vector<vector<int>> adj;
@@ -67,7 +68,7 @@ struct MergeSortTree {
     tree[node].resize(tree[node * 2].size() + tree[node * 2 + 1].size());
     merge(tree[node * 2].begin(), tree[node * 2].end(), tree[node * 2 + 1].begin(), tree[node * 2 + 1].end(), tree[node].begin());
   }
-  int count_leq(int node, int l, int r, int ql, int qr, int val) {
+  auto count_leq(int node, int l, int r, int ql, int qr, int val) -> int {
     if (qr < l || ql > r)
       return 0;
     if (ql <= l && r <= qr) {
@@ -105,7 +106,8 @@ void solve() {
 
     vector<int> results(q);
     for (auto& qr : queries) {
-      // calcolo i f(u) per l..r
+      // For each query, we need to find the k-th
+      // smallest XOR value in the range [l, r]
       vector<int> vals;
       vals.reserve(qr.r - qr.l + 1);
       for (int u = qr.l; u <= qr.r; u++) {
