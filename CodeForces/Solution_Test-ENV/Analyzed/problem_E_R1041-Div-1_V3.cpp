@@ -1,9 +1,9 @@
 //===---------------------------------------------------------------------===//
 /**
- * @file Tester.cpp
- * @brief Tester for coding data structures and algorithms.
+ * @file problem_E_R1041-Div-1_V3.cpp
+ * @brief Problem E solution for Round 1041, Division 1 (Version 3).
  * @version 0.1
- * @date 2025-05-20
+ * @date 2025-08-08
  *
  * @copyright Copyright MIT 2025
  *
@@ -16,40 +16,20 @@
 //===---------------------------------------------------------------------===//
 /* Types and Function Definitions */
 using namespace std;
+
 struct Graph {
   int                 n;
   vector<vector<int>> adj;
-  Graph(int n);
-  void add_edge(int u, int v);
-  void prepare();
-  auto xor_up_to(int u, int x) -> int;
-};
-
-Graph::Graph(int n) : n(n), adj(n + 1) {
-}
-
-void Graph::add_edge(int u, int v) {
-  adj[u].push_back(v);
-  adj[v].push_back(u);
-}
-
-void Graph::prepare() {
-  for (int i = 1; i <= n; i++) {
-    sort(adj[i].begin(), adj[i].end());
+  Graph(int n) : n(n), adj(n + 1) {}
+  void add_edge(int u, int v) {
+    adj[u].push_back(v);
+    adj[v].push_back(u);
   }
-}
-
-auto Graph::xor_up_to(int u, int x) -> int {
-  auto& vec = adj[u];
-  int   idx = upper_bound(vec.begin(), vec.end(), x) - vec.begin();
-  int   res = 0;
-  for (int i = 0; i < idx; i++)
-    res ^= vec[i];
-  return res;
-}
-
-struct Query {
-  int l, r, k, idx;
+  void prepare() {
+    for (int i = 1; i <= n; i++) {
+      sort(adj[i].begin(), adj[i].end());
+    }
+  }
 };
 
 struct MergeSortTree {
@@ -95,29 +75,39 @@ void solve() {
     }
     g.prepare();
 
+    // Precompute f(u, G[1..n]) directly
+    vector<int> fval(n + 1, 0);
+    vector<int> arr(n + 1);
+    for (int u = 1; u <= n; u++) {
+      int val = 0;
+      for (int v : g.adj[u])
+        val ^= v;
+      arr[u] = val;
+    }
+
+    // Build Merge Sort Tree
+    MergeSortTree mst(n);
+    mst.build(arr, 1, 1, n);
+
     int q;
     cin >> q;
-    vector<Query> queries(q);
-    for (int i = 0; i < q; i++) {
-      cin >> queries[i].l >> queries[i].r >> queries[i].k;
-      queries[i].idx = i;
-    }
+    while (q--) {
+      int l, r, k;
+      cin >> l >> r >> k;
 
-    vector<int> results(q);
-    for (auto& qr : queries) {
-      // calcolo i f(u) per l..r
-      vector<int> vals;
-      vals.reserve(qr.r - qr.l + 1);
-      for (int u = qr.l; u <= qr.r; u++) {
-        int val = g.xor_up_to(u, qr.r) ^ g.xor_up_to(u, qr.l - 1);
-        vals.push_back(val);
+      // Binary search to find k-th smallest
+      int low = 0, high = n, ans = -1;
+      while (low <= high) {
+        int mid = (low + high) / 2;
+        int cnt = mst.count_leq(1, 1, n, l, r, mid);
+        if (cnt >= k) {
+          ans  = mid;
+          high = mid - 1;
+        } else {
+          low = mid + 1;
+        }
       }
-      sort(vals.begin(), vals.end());
-      results[qr.idx] = vals[qr.k - 1];
-    }
-
-    for (int i = 0; i < q; i++) {
-      cout << results[i] << "\n";
+      cout << ans << "\n";
     }
   }
 }

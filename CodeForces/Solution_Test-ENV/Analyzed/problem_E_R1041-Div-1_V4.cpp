@@ -1,7 +1,7 @@
 //===---------------------------------------------------------------------===//
 /**
- * @file problem_E_Round-1041_Div-1.cpp
- * @brief Problem E solution for Round 1041, Division 1.
+ * @file problem_E_R1041-Div-1_V3.cpp
+ * @brief Problem E solution for Round 1041, Division 1 (Version 4).
  * @version 0.1
  * @date 2025-08-08
  *
@@ -14,12 +14,11 @@
 #include <ext/pb_ds/assoc_container.hpp>
 #include <ext/pb_ds/tree_policy.hpp>
 #include <iostream>
-
-//===---------------------------------------------------------------------===//
-/* Types and Function Definitions */
 using namespace std;
 using namespace __gnu_pbds;
 
+//===---------------------------------------------------------------------===//
+/* Types and Function Definitions */
 template <typename T>
 using ordered_multiset = tree<pair<T, int>, null_type, less<pair<T, int>>, rb_tree_tag, tree_order_statistics_node_update>;
 
@@ -36,6 +35,7 @@ ordered_multiset<int> os;
 
 void add_node(int u) {
   present[u] = true;
+  os.insert({fval[u], u});
   for (int v : adj[u]) {
     if (present[v]) {
       os.erase({fval[v], v});
@@ -47,8 +47,6 @@ void add_node(int u) {
       os.insert({fval[u], u});
     }
   }
-  if (os.find({fval[u], u}) == os.end())
-    os.insert({fval[u], u});
 }
 
 void remove_node(int u) {
@@ -65,54 +63,50 @@ void remove_node(int u) {
 }
 
 void solve() {
-  int t;
-  cin >> t;
-  while (t--) {
-    cin >> n >> m;
-    for (int i = 1; i <= n; i++) {
-      adj[i].clear();
-      fval[i]    = 0;
-      present[i] = false;
-    }
-    for (int i = 0; i < m; i++) {
-      int u, v;
-      cin >> u >> v;
-      adj[u].push_back(v);
-      adj[v].push_back(u);
-    }
-    cin >> q;
-    vector<Query> queries(q);
-    for (int i = 0; i < q; i++) {
-      cin >> queries[i].l >> queries[i].r >> queries[i].k;
-      queries[i].idx = i;
-    }
+  cin >> n >> m;
+  for (int i = 1; i <= n; i++) {
+    adj[i].clear();
+    fval[i]    = 0;
+    present[i] = false;
+  }
+  for (int i = 0; i < m; i++) {
+    int u, v;
+    cin >> u >> v;
+    adj[u].push_back(v);
+    adj[v].push_back(u);
+  }
+  cin >> q;
+  vector<Query> queries(q);
+  for (int i = 0; i < q; i++) {
+    cin >> queries[i].l >> queries[i].r >> queries[i].k;
+    queries[i].idx = i;
+  }
 
-    int block = max(1, (int)(sqrt(n)));
-    sort(queries.begin(), queries.end(), [&](auto& a, auto& b) {
-      int ba = a.l / block, bb = b.l / block;
-      if (ba != bb)
-        return ba < bb;
-      return (ba & 1) ? a.r > b.r : a.r < b.r;
-    });
+  int block = max(1, (int)(sqrt(n)));
+  sort(queries.begin(), queries.end(), [&](auto& a, auto& b) {
+    int ba = a.l / block, bb = b.l / block;
+    if (ba != bb)
+      return ba < bb;
+    return (ba & 1) ? a.r > b.r : a.r < b.r;
+  });
 
-    vector<int> ans(q);
-    int         L = 1, R = 0;
-    os.clear();
-    for (auto& qr : queries) {
-      while (L > qr.l)
-        add_node(--L);
-      while (R < qr.r)
-        add_node(++R);
-      while (L < qr.l)
-        remove_node(L++);
-      while (R > qr.r)
-        remove_node(R--);
-      ans[qr.idx] = os.find_by_order(qr.k - 1)->first;
-    }
+  vector<int> ans(q);
+  int         L = 1, R = 0;
+  os.clear();
+  for (auto& qr : queries) {
+    while (L > qr.l)
+      add_node(--L);
+    while (R < qr.r)
+      add_node(++R);
+    while (L < qr.l)
+      remove_node(L++);
+    while (R > qr.r)
+      remove_node(R--);
+    ans[qr.idx] = os.find_by_order(qr.k - 1)->first;
+  }
 
-    for (int i = 0; i < q; i++) {
-      cout << ans[i] << "\n";
-    }
+  for (int i = 0; i < q; i++) {
+    cout << ans[i] << "\n";
   }
 }
 
@@ -122,7 +116,10 @@ void solve() {
 auto main() -> int {
   ios::sync_with_stdio(false);
   cin.tie(nullptr);
-  solve();
+  int T;
+  cin >> T;
+  while (T--)
+    solve();
   return 0;
 }
 
