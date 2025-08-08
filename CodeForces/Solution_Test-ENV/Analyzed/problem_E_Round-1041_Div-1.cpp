@@ -1,9 +1,9 @@
 //===---------------------------------------------------------------------===//
 /**
- * @file Tester.cpp
- * @brief Tester for coding data structures and algorithms.
+ * @file problem_E_Round-1041_Div-1.cpp
+ * @brief Problem E solution for Round 1041, Division 1.
  * @version 0.1
- * @date 2025-05-20
+ * @date 2025-07-30
  *
  * @copyright Copyright MIT 2025
  *
