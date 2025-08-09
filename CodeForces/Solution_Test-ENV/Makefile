@@ -1,4 +1,5 @@
 # Generic Makefile for C/C++ projects
+# Add common non-standard include paths to CPPFLAGS.
 
 # =========================================================================== #
 # ----------------------- User-configurable variables ----------------------- #
@@ -11,6 +12,7 @@ BINDIR         ?= bin
 # Build profile can be: debug, release, sanitize. 'debug' is the default.
 BUILD_TYPE     ?= debug
 
+# Default compilers (can be overridden by GCC detection logic below)
 CC             ?= clang
 CXX            ?= clang++
 
@@ -20,21 +22,67 @@ CXX            ?= clang++
 # Common flags
 COMMON_FLAGS    := -Wall -Wextra -pedantic -DLOCAL=2
 
-# Add common non-standard include paths to CPPFLAGS.
-SYSTEM_INCLUDES := -I/usr/local/include
-CPPFLAGS        ?= $(SYSTEM_INCLUDES) -I$(SRCDIR) $(foreach dir,$(shell find $(SRCDIR) -type d),-I$(dir))
+# Dynamically find the include path of the latest installed GCC version
+GCC_PREFIX      := $(shell brew --prefix gcc 2>/dev/null)
+GCC_INCLUDE_DIR := $(shell \
+	if [ -n "$(GCC_PREFIX)" ] && [ -d "$(GCC_PREFIX)/include/c++" ]; then \
+		find $(GCC_PREFIX)/include/c++/ -maxdepth 1 -type d | \
+		sort -V | tail -n 1; \
+	fi \
+)
+
+# Find GCC binary - prioritize Homebrew installation over system GCC
+GCC_BINARY := $(shell \
+	if [ -n "$(GCC_PREFIX)" ]; then \
+		find $(GCC_PREFIX)/bin -name "g++-*" -type f | sort -V | tail -n 1; \
+	fi \
+)
+
+# Only use system GCC as last resort and warn about potential issues
+ifeq ($(GCC_BINARY),)
+    SYSTEM_GCC := $(shell which g++ 2>/dev/null)
+    ifneq ($(SYSTEM_GCC),)
+        ifeq ($(SYSTEM_GCC),/usr/bin/g++)
+            # This is likely Xcode's g++ symlink to clang, skip it
+            GCC_BINARY :=
+        else
+            GCC_BINARY := $(SYSTEM_GCC)
+        endif
+    endif
+endif
+
+# Check if pb_ds headers are needed by scanning source files
+NEEDS_PBDS := $(shell grep -l "ext/pb_ds" $(wildcard $(SRCDIR)/*.cpp $(SRCDIR)/*.cc $(SRCDIR)/*.cxx $(SRCDIR)/*.c) 2>/dev/null)
+
+# Compiler configuration: use GCC if available and needed for pb_ds
+ifneq ($(NEEDS_PBDS),)
+    ifneq ($(GCC_BINARY),)
+        CC  := $(subst g++,gcc,$(GCC_BINARY))
+        CXX := $(GCC_BINARY)
+        # Override system includes to use GCC's includes when using GCC
+        GCC_BASE_DIR := $(dir $(dir $(GCC_BINARY)))
+        SYSTEM_INCLUDES := -I$(GCC_BASE_DIR)include/c++/* -I/usr/local/include $(if $(GCC_INCLUDE_DIR),-I$(GCC_INCLUDE_DIR))
+        $(info Using GCC for pb_ds compatibility: $(CXX))
+    else
+        $(error pb_ds headers detected but compatible GCC not found. Install GCC via: brew install gcc)
+    endif
+else
+    # Default system includes when not using pb_ds
+    SYSTEM_INCLUDES := -I/usr/local/include $(if $(GCC_INCLUDE_DIR),-I$(GCC_INCLUDE_DIR))
+endif
+CPPFLAGS        ?= $(SYSTEM_INCLUDES) -I$(SRCDIR) $(foreach dir,$(shell find $(SRCDIR) -type d ! -name '.*'),-I$(dir))
 
 # Profile-specific flags
 ifeq ($(BUILD_TYPE), release)
-	# Release: High optimization, no debug info, NDEBUG defined.
-	PROFILE_FLAGS := -O3 -DNDEBUG
+    # Release: High optimization, no debug info, NDEBUG defined.
+    PROFILE_FLAGS := -O3 -DNDEBUG
 else ifeq ($(BUILD_TYPE), sanitize)
-	# Sanitize: Debug info + AddressSanitizer and UndefinedBehaviorSanitizer.
-	PROFILE_FLAGS := -g3 -O1 -fsanitize=address,undefined
+    # Sanitize: Debug info + AddressSanitizer and UndefinedBehaviorSanitizer.
+    PROFILE_FLAGS := -g2 -O1 -fsanitize=address,undefined
 else
-	# Debug: Full debug info, no optimization. Default case.
-	BUILD_TYPE    := debug
-	PROFILE_FLAGS := -g3 -O0
+    # Debug: Full debug info, no optimization. Default case.
+    BUILD_TYPE    := debug
+    PROFILE_FLAGS := -g2 -O0
 endif
 
 # Base flags (to be combined with profile flags)
@@ -217,6 +265,7 @@ analyze:
 compile_commands:
 	@echo "Generating compile_commands.json..."
 	@bear -- make --always-make BUILD_TYPE=$(BUILD_TYPE) all
+	@bear -- $(MAKE) clean all BUILD_TYPE=$(BUILD_TYPE)
 
 # Help and Debug
 debug-info:
@@ -232,6 +281,11 @@ debug-info:
 	@echo "CPP_SRCS: $(CPP_SRCS)"
 	@echo "OBJS: $(OBJS)"
 	@echo "DEPS: $(DEPS)"
+	@echo "#====-------- pb_ds Detection & GCC --------====#"
+	@echo "GCC_PREFIX: $(GCC_PREFIX)"
+	@echo "GCC_BINARY: $(GCC_BINARY)"
+	@echo "GCC_INCLUDE_DIR: $(GCC_INCLUDE_DIR)"
+	@echo "NEEDS_PBDS: $(NEEDS_PBDS)"
 	@echo "#====---------- Compilers & Linker ----------====#"
 	@echo "CC: $(CC), CXX: $(CXX), LD: $(LD)"
 	@echo "CPPFLAGS: $(CPPFLAGS)"
