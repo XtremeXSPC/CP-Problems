@@ -4,7 +4,10 @@
     {
       "name": "macOS",
       "intelliSenseMode": "macos-clang-arm64",
-      "includePath": ["${workspaceFolder}/**"],
+      "includePath": [
+        "${workspaceFolder}/**",
+        "/opt/homebrew/Cellar/gcc/15.1.0/include/c++/15"
+      ],
       "defines": ["_DEBUG", "__APPLE__", "__MACH__"],
       "compilerPath": "/usr/bin/clang++",
       "compilerArgs": ["-Wall", "-Wextra", "-pedantic"],
