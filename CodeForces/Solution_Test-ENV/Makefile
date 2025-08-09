@@ -3,7 +3,19 @@
 # =========================================================================== #
 # ------------------------ System Pre-configuration  ------------------------ #
 # =========================================================================== #
-SHELL := /bin/bash
+# Use Homebrew's bash if available to avoid macOS SIP issues with tools like 'bear',
+# which rely on DYLD_INSERT_LIBRARIES. SIP strips this variable from system shells.
+HOMEBREW_BASH := $(shell which bash | grep 'homebrew')
+
+ifeq ($(strip $(HOMEBREW_BASH)),)
+    SHELL := /bin/bash
+else
+    # Use the first bash found in a homebrew path
+    SHELL := $(firstword $(HOMEBREW_BASH))
+    $(info Using Homebrew's bash to ensure compatibility with ohter tools: $(SHELL))
+endif
+
+# Continue with the rest of the Makefile...
 .ONESHELL:
 .SHELLFLAGS := -eu -o pipefail -c
 
@@ -59,21 +71,27 @@ endif
 # Check if pb_ds headers are needed by scanning source files
 NEEDS_PBDS := $(shell grep -l "ext/pb_ds" $(wildcard $(SRCDIR)/*.cpp $(SRCDIR)/*.cc $(SRCDIR)/*.cxx $(SRCDIR)/*.c) 2>/dev/null)
 
-# Compiler configuration: use GCC if available and needed for pb_ds
-ifneq ($(NEEDS_PBDS),)
-    ifneq ($(GCC_BINARY),)
+# Compiler configuration based on pb_ds detection
+ifeq ($(strip $(NEEDS_PBDS)),)
+    # Clang Configuration (No pb_ds)
+    CC             := clang
+    CXX            := clang++
+    SYSTEM_INCLUDES:= -I/usr/local/include
+else
+    # GCC Configuration (pb_ds detected)
+	ifneq ($(GCC_BINARY),)
         CC  := $(subst g++,gcc,$(GCC_BINARY))
         CXX := $(GCC_BINARY)
-        # Override system includes to use GCC's includes when using GCC
         SYSTEM_INCLUDES := -I/usr/local/include -I$(GCC_INCLUDE_DIR)
-        $(info Using GCC for pb_ds compatibility: $(CXX))
-    else
-        $(error pb_ds headers detected but compatible GCC not found. Install GCC via: brew install gcc)
-    endif
-else
-    # Default system includes when not using pb_ds
-    SYSTEM_INCLUDES := -I/usr/local/include $(if $(GCC_INCLUDE_DIR),-I$(GCC_INCLUDE_DIR))
+$(info Using GCC for pb_ds compatibility: $(CXX))
+	else
+		$(error pb_ds headers detected but compatible GCC not found. Install GCC via: brew install gcc)
+	endif
 endif
+
+# Define project-specific include directories EXPLICITLY.
+# Add more paths here if your project uses them (e.g., -I$(SRCDIR)/lib/include).
+PROJECT_INCLUDES := -I$(SRCDIR) -I$(SRCDIR)/include
 
 # ----------------------- Compiler Flag Configuration ----------------------- #
 # Common flags for all profiles:
@@ -84,7 +102,8 @@ BASE_CFLAGS    := -std=c23
 BASE_CXXFLAGS  := -std=c++23
 
 # Include paths:
-CPPFLAGS        ?= $(SYSTEM_INCLUDES) -I$(SRCDIR) $(foreach dir,$(shell find $(SRCDIR) -type d ! -name '.*'),-I$(dir))
+# Combine environment CPPFLAGS with our defined paths and then de-duplicate and sort them.
+CPPFLAGS := $(sort $(CPPFLAGS) $(SYSTEM_INCLUDES) $(PROJECT_INCLUDES))
 
 # Profile-specific flags:
 ifeq ($(BUILD_TYPE), release)
@@ -291,11 +310,13 @@ analyze:
 	@echo "Running static analysis using clang-tidy..."
 	@clang-tidy -p . --header-filter='.*' --quiet $(C_SRCS) $(CPP_SRCS)
 
-# Compilation Database for clangd
+# Compilation Database using 'compiledb', which parses make's output
+# and avoids the dylib injection issues (arm64/arm64e) on macOS.
+.PHONY: compile_commands
 compile_commands:
-	@echo "Generating compile_commands.json..."
-	@$(RM) compile_commands.json
-	@bear -- $(MAKE) clean all BUILD_TYPE=$(BUILD_TYPE)
+	@echo "Generating compile_commands.json using compiledb..."
+    # The '-n' flag makes the make process a "dry run", which is extremely fast.
+	@compiledb -n make clean all BUILD_TYPE=$(BUILD_TYPE)
 
 # Help and Debug
 debug-info:

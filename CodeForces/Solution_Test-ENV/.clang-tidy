@@ -1,23 +1,20 @@
-# A modern and clean .clang-tidy configuration file.
+# .clang-tidy for competitive programming - minimal checks only on your code
 
-# Defines which checks to enable. The '-' at the beginning disables all checks,
-# then specific groups are re-enabled. This is a common and effective pattern.
-Checks: "-*,clang-analyzer-*,performance-*,bugprone-*,portability-*,modernize-*"
+# Only enable very basic checks that are useful for competitive programming
+Checks: "-*,bugprone-infinite-loop,bugprone-use-after-move"
 
-# Specify a list of warnings to treat as errors. Empty means none.
-# Example: "bugprone-use-after-move"
+# No warnings as errors in competitive programming
 WarningsAsErrors: ""
 
-# A regular expression that tells clang-tidy to only report issues
-# in files from source directories (e.g., 'include' and 'src').
-# This prevents warnings from system headers or third-party libraries.
-HeaderFilterRegex: "^(include|src)/.*"
+# CRITICAL: Only analyze your own source files, never system headers
+# This regex excludes all system paths and standard library headers
+HeaderFilterRegex: "^(?!/opt/homebrew|/usr/include|/System|.*bits/|.*ext/|.*c\\+\\+/).*\\.(cpp|cc|cxx|hpp|h)$"
 
-# Allows fine-tuning specific checks.
+# Minimal configuration
 CheckOptions:
+  # Only basic style checks if needed
   - key: readability-identifier-naming.VariableCase
-    value: CamelCase
+    value: lower_case
 
-# Tells clang-tidy to not apply any formatting fixes.
-# Formatting is better handled by a dedicated tool like clang-format.
+# No formatting - let your editor handle it
 FormatStyle: none
