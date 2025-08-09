@@ -1,5 +1,11 @@
-# Generic Makefile for C/C++ projects
-# Add common non-standard include paths to CPPFLAGS.
+# Generic Makefile for C/C++ projects.
+
+# =========================================================================== #
+# ------------------------ System Pre-configuration  ------------------------ #
+# =========================================================================== #
+SHELL := /bin/bash
+.ONESHELL:
+.SHELLFLAGS := -eu -o pipefail -c
 
 # =========================================================================== #
 # ----------------------- User-configurable variables ----------------------- #
@@ -12,17 +18,16 @@ BINDIR         ?= bin
 # Build profile can be: debug, release, sanitize. 'debug' is the default.
 BUILD_TYPE     ?= debug
 
-# Default compilers (can be overridden by GCC detection logic below)
+# Default compilers (can be overridden by GCC detection logic)
 CC             ?= clang
 CXX            ?= clang++
 
 # =========================================================================== #
-# Build Profile Configuration
+# ------------------ Build Profile & Compiler Configuration ----------------- #
+# =========================================================================== #
 
-# Common flags
-COMMON_FLAGS    := -Wall -Wextra -pedantic -DLOCAL=2
-
-# Dynamically find the include path of the latest installed GCC version
+# --------------------------- GCC/pb_ds Detection --------------------------- #
+# Find the include path and prefix of the latest installed GCC version via Homebrew
 GCC_PREFIX      := $(shell brew --prefix gcc 2>/dev/null)
 GCC_INCLUDE_DIR := $(shell \
 	if [ -n "$(GCC_PREFIX)" ] && [ -d "$(GCC_PREFIX)/include/c++" ]; then \
@@ -31,7 +36,7 @@ GCC_INCLUDE_DIR := $(shell \
 	fi \
 )
 
-# Find GCC binary - prioritize Homebrew installation over system GCC
+# Find GCC binary - Prioritize Homebrew installation over system GCC
 GCC_BINARY := $(shell \
 	if [ -n "$(GCC_PREFIX)" ]; then \
 		find $(GCC_PREFIX)/bin -name "g++-*" -type f | sort -V | tail -n 1; \
@@ -60,8 +65,7 @@ ifneq ($(NEEDS_PBDS),)
         CC  := $(subst g++,gcc,$(GCC_BINARY))
         CXX := $(GCC_BINARY)
         # Override system includes to use GCC's includes when using GCC
-        GCC_BASE_DIR := $(dir $(dir $(GCC_BINARY)))
-        SYSTEM_INCLUDES := -I$(GCC_BASE_DIR)include/c++/* -I/usr/local/include $(if $(GCC_INCLUDE_DIR),-I$(GCC_INCLUDE_DIR))
+        SYSTEM_INCLUDES := -I/usr/local/include -I$(GCC_INCLUDE_DIR)
         $(info Using GCC for pb_ds compatibility: $(CXX))
     else
         $(error pb_ds headers detected but compatible GCC not found. Install GCC via: brew install gcc)
@@ -70,9 +74,19 @@ else
     # Default system includes when not using pb_ds
     SYSTEM_INCLUDES := -I/usr/local/include $(if $(GCC_INCLUDE_DIR),-I$(GCC_INCLUDE_DIR))
 endif
+
+# ----------------------- Compiler Flag Configuration ----------------------- #
+# Common flags for all profiles:
+COMMON_FLAGS    := -Wall -Wextra -pedantic -DLOCAL=2
+
+# Base language standard flags:
+BASE_CFLAGS    := -std=c23
+BASE_CXXFLAGS  := -std=c++23
+
+# Include paths:
 CPPFLAGS        ?= $(SYSTEM_INCLUDES) -I$(SRCDIR) $(foreach dir,$(shell find $(SRCDIR) -type d ! -name '.*'),-I$(dir))
 
-# Profile-specific flags
+# Profile-specific flags:
 ifeq ($(BUILD_TYPE), release)
     # Release: High optimization, no debug info, NDEBUG defined.
     PROFILE_FLAGS := -O3 -DNDEBUG
@@ -85,14 +99,19 @@ else
     PROFILE_FLAGS := -g2 -O0
 endif
 
-# Base flags (to be combined with profile flags)
-BASE_CFLAGS    := -std=c23
-BASE_CXXFLAGS  := -std=c++23
-
-# Final flags
+# Final compiler flags:
+# CFLAGS/CXXFLAGS are passed to the compiler driver during the linking stage,
+# which correctly handles flags like -g, -O, -fsanitize.
 CFLAGS         := $(BASE_CFLAGS) $(COMMON_FLAGS) $(PROFILE_FLAGS)
 CXXFLAGS       := $(BASE_CXXFLAGS) $(COMMON_FLAGS) $(PROFILE_FLAGS)
-LDFLAGS        ?=
+
+# Final linker flags:
+# Note: LDFLAGS are for linker-specific options (e.g., -L, -Wl,...).
+LDFLAGS ?=
+ifeq ($(NEEDS_PBDS)$(GCC_BINARY),)
+else
+    LDFLAGS += -L$(dir $(GCC_BINARY))../lib
+endif
 LIBS           ?= -lm
 
 # =========================================================================== #
@@ -107,6 +126,7 @@ MKDIR_P        := mkdir -p
 
 # Try to determine the operating system
 UNAME_S        := $(shell uname -s)
+detected_os    := UNKNOWN_UNIX
 
 ifeq ($(UNAME_S),Darwin)
 	detected_os := MACOS
@@ -117,13 +137,15 @@ else ifeq ($(UNAME_S),Linux)
 else ifneq (,$(findstring MINGW,$(UNAME_S))) # MinGW (Git Bash, MSYS2)
 	detected_os := WINDOWS_MINGW
 	TARGET_EXEC := $(TARGET_NAME).exe
-	PathSep     := / # MinGW prefers Unix-style slashes
+    # MinGW prefers Unix-style slashes
+	PathSep     := /
 	RM          := rm -f
 	RMDIR_CMD   := rm -rf
 	MKDIR_P     := mkdir -p
 else ifneq (,$(findstring CYGWIN,$(UNAME_S))) # Cygwin
 	detected_os := WINDOWS_CYGWIN
-	TARGET_EXEC := $(TARGET_NAME).exe # Cygwin can handle with or without .exe
+    # Cygwin can handle with or without .exe
+	TARGET_EXEC := $(TARGET_NAME).exe
 	PathSep     := /
 	RM          := rm -f
 	RMDIR_CMD   := rm -rf
@@ -134,18 +156,19 @@ else ifeq ($(OS),Windows_NT) # Environment variable from cmd.exe or PowerShell
 	PathSep     := \
 	RM          := del /Q /F
 	RMDIR_CMD   := rd /S /Q
-	# MKDIR_P handled in create_dirs rule
+    # MKDIR_P handled in create_dirs rule
 else # Fallback to `ver` check only if others fail
-	WINDOWS_VER_CHECK := $(shell ver 2>/dev/null) # Suppress error if 'ver' doesn't exist
+	WINDOWS_VER_CHECK := $(shell ver 2>/dev/null) 
 	ifneq (,$(findstring Windows,$(WINDOWS_VER_CHECK)))
+        # MKDIR_P handled in create_dirs rule
 		detected_os := WINDOWS_NATIVE_VER_CMD
 		TARGET_EXEC := $(TARGET_NAME).exe
 		PathSep     := \
 		RM          := del /Q /F
 		RMDIR_CMD   := rd /S /Q
-		# MKDIR_P handled in create_dirs rule
 	else
-		detected_os ?= UNKNOWN_UNIX # Final default if everything fails
+        # Final default if everything fails
+		detected_os ?= UNKNOWN_UNIX
 	endif
 endif
 
@@ -169,6 +192,9 @@ CPP_OBJS       := $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(filter %.cpp,$(CPP_
 OBJS           := $(C_OBJS) $(CPP_OBJS)
 DEPS           := $(OBJS:.o=.d)
 
+# Sentinel file to track directory creation. This rule runs only once.
+DIR_SENTINEL := $(OBJDIR)/.dirs_created
+
 # =========================================================================== #
 # ---------------------- Linker Choice and Final Flags ---------------------- #
 # =========================================================================== #
@@ -186,40 +212,42 @@ LDFLAGS_FINAL += $(LIBS)
 # =========================================================================== #
 # ------------------------------- Build Rules ------------------------------- #
 # =========================================================================== #
-.PHONY: all clean distclean run debug-info help create_dirs
+.PHONY: all clean distclean run analyze compile_commands debug-info help
 
 all: $(TARGET_PATH)
 
-create_dirs:
-	@echo "Creating directories $(OBJDIR) and $(BINDIR) if they do not exist..."
-ifeq ($(findstring WINDOWS,$(detected_os)),WINDOWS)
-	cmd /C "if not exist $(subst /,\,$(OBJDIR)) mkdir $(subst /,\,$(OBJDIR))"
-	cmd /C "if not exist $(subst /,\,$(BINDIR)) mkdir $(subst /,\,$(BINDIR))"
+# This rule creates directories and a sentinel file to ensure it only runs once.
+$(DIR_SENTINEL):
+	@echo "Creating directories $(OBJDIR) and $(BINDIR)..."
+ifeq ($(detected_os),WINDOWS_NATIVE)
+	@if not exist $(subst /,\,$(OBJDIR)) mkdir $(subst /,\,$(OBJDIR))
+	@if not exist $(subst /,\,$(BINDIR)) mkdir $(subst /,\,$(BINDIR))
 else
-# Non Windows (MACOS, LINUX, MINGW, CYGWIN, UNKNOWN_UNIX)
-	$(MKDIR_P) $(OBJDIR)
-	$(MKDIR_P) $(BINDIR)
+    # For MACOS, LINUX, MINGW, CYGWIN, and other Unix-like systems
+	@$(MKDIR_P) $(OBJDIR)
+	@$(MKDIR_P) $(BINDIR)
 endif
+	@touch $@
 
-$(TARGET_PATH): create_dirs $(OBJS)
+$(TARGET_PATH): $(OBJS)
 	@echo "# ------ Linking ------ #"
 	@echo "Output file (-o switch target): $@"
 	$(LD) $(OBJS) $(LDFLAGS_FINAL) -o $@
 
-# Compilation rules
-$(OBJDIR)/%.o: $(SRCDIR)/%.c create_dirs
+# Compilation rules now depend on the directory sentinel.
+$(OBJDIR)/%.o: $(SRCDIR)/%.c $(DIR_SENTINEL)
 	@echo "Compiling C: $< to $@"
 	$(CC) $(CPPFLAGS) $(CFLAGS) -MMD -MP -c $< -o $@
 
-$(OBJDIR)/%.o: $(SRCDIR)/%.cpp create_dirs
+$(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(DIR_SENTINEL)
 	@echo "Compiling C++: $< to $@"
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@
 
-$(OBJDIR)/%.o: $(SRCDIR)/%.cc create_dirs
+$(OBJDIR)/%.o: $(SRCDIR)/%.cc $(DIR_SENTINEL)
 	@echo "Compiling C++: $< to $@"
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@
 
-$(OBJDIR)/%.o: $(SRCDIR)/%.cxx create_dirs
+$(OBJDIR)/%.o: $(SRCDIR)/%.cxx $(DIR_SENTINEL)
 	@echo "Compiling C++: $< to $@"
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@
 
@@ -233,22 +261,24 @@ clean:
 	-$(RM) $(OBJDIR)$(PathSep)*.o
 	-$(RM) $(OBJDIR)$(PathSep)*.d
 	-$(RM) $(TARGET_PATH)
+	-$(RM) $(DIR_SENTINEL)
 	@echo "Clean complete."
 
 distclean: clean
 	@echo "Cleaning all directories..."
 ifeq ($(findstring WINDOWS,$(detected_os)),WINDOWS)
-	if exist $(subst /,\,$(OBJDIR)) $(RMDIR_CMD) $(subst /,\,$(OBJDIR))
-	if exist $(subst /,\,$(BINDIR)) $(RMDIR_CMD) $(subst /,\,$(BINDIR))
+	@if exist $(subst /,\,$(OBJDIR)) $(RMDIR_CMD) $(subst /,\,$(OBJDIR))
+	@if exist $(subst /,\,$(BINDIR)) $(RMDIR_CMD) $(subst /,\,$(BINDIR))
 else
 	-$(RMDIR_CMD) $(OBJDIR)
 	-$(RMDIR_CMD) $(BINDIR)
 endif
-	-$(RM) *~ *.bak # Remove common backup files
+    # Remove common backup files
+	-$(RM) *~ *.bak
 	@echo "Distclean complete."
 
 ARGS ?=
-run: $(TARGET_PATH)
+run: all
 	@echo "Running $(TARGET_PATH) $(ARGS)..."
 ifeq ($(findstring WINDOWS,$(detected_os)),WINDOWS)
 	$(subst /,\,$(TARGET_PATH)) $(ARGS)
@@ -258,13 +288,13 @@ endif
 
 # Static Analysis with clang-tidy (uses compilation database)
 analyze:
-	@echo "Running static analysis using compile_commands.json..."
+	@echo "Running static analysis using clang-tidy..."
 	@clang-tidy -p . --header-filter='.*' --quiet $(C_SRCS) $(CPP_SRCS)
 
 # Compilation Database for clangd
 compile_commands:
 	@echo "Generating compile_commands.json..."
-	@bear -- make --always-make BUILD_TYPE=$(BUILD_TYPE) all
+	@$(RM) compile_commands.json
 	@bear -- $(MAKE) clean all BUILD_TYPE=$(BUILD_TYPE)
 
 # Help and Debug
@@ -281,7 +311,7 @@ debug-info:
 	@echo "CPP_SRCS: $(CPP_SRCS)"
 	@echo "OBJS: $(OBJS)"
 	@echo "DEPS: $(DEPS)"
-	@echo "#====-------- pb_ds Detection & GCC --------====#"
+	@echo "#====-------- pb_ds Detection & GCC ---------====#"
 	@echo "GCC_PREFIX: $(GCC_PREFIX)"
 	@echo "GCC_BINARY: $(GCC_BINARY)"
 	@echo "GCC_INCLUDE_DIR: $(GCC_INCLUDE_DIR)"
@@ -311,6 +341,9 @@ help:
 	@echo "  help              - Show this message"
 	@echo "Variables:"
 	@echo "  BUILD_TYPE=[debug|release|sanitize]"
+	@echo "  TARGET_NAME=<name>"
+	@echo "  SRCDIR=<path> OBJDIR=<path> BINDIR=<path>"
+	@echo "  ARGS=\"...\"      - Arguments for 'run' target"
 
 .SUFFIXES:
 
