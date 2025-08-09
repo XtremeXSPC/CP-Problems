@@ -1,8 +1,29 @@
 {
+  // ----- C/C++ Compiler Settings ----- //
+  "clangd.arguments": [
+    "--compile-commands-dir=${workspaceFolder}",
+    "--header-insertion=never",
+    "--clang-tidy",
+    "--log=error",
+    "--limit-results=0"
+  ],
+  "clangd.fallbackFlags": [
+    "-I/opt/homebrew/include/c++/15",
+    "-I/opt/homebrew/opt/include/c++/15/bits/",
+    "-I/opt/homebrew/include/c++/15/aarch64-apple-darwin24",
+    "-std=c++23"
+  ],
+
+  // ----- C/C++ Language Server Settings ----- //
   "lldb.displayFormat": "auto",
   "lldb.showDisassembly": "always",
   "lldb.dereferencePointers": true,
   "lldb.consoleMode": "commands",
+
+  // ----- SonarLint Settings ----- //
+  "sonarlint.pathToCompileCommands": "${workspaceFolder}/compile_commands.json",
+
+  // ----- File associations for various file types ----- //
   "files.associations": {
     ".als.json": "jsonc",
     "*.c": "c",
@@ -126,6 +147,5 @@
     "valarray": "cpp",
     "variant": "cpp",
     "queue": "cpp"
-  },
-  "sonarlint.pathToCompileCommands": "${workspaceFolder}/compile_commands.json"
+  }
 }

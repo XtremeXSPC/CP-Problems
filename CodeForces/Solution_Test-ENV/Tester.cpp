@@ -10,14 +10,15 @@
  */
 //===---------------------------------------------------------------------===//
 /* Included library */
+
 #include <bits/stdc++.h>
 #include <ext/pb_ds/assoc_container.hpp>
 #include <ext/pb_ds/tree_policy.hpp>
-#include <iostream>
 
 //===---------------------------------------------------------------------===//
-/* Types and Function Definitions */
+/* Types and Function Definitons */
 using namespace std;
+
 struct Graph {
   int                 n;
   vector<vector<int>> adj;
