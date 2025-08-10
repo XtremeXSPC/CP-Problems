@@ -26,7 +26,7 @@ endif
 TARGET_NAME    ?= Tester
 SRCDIR         ?= .
 OBJDIR         ?= obj
-BINDIR         ?= .
+BINDIR         ?= bin
 
 # Build profile for competitive programming: debug (default) or release.
 # 'sanitize' profile is also available for debugging memory issues.
@@ -428,7 +428,7 @@ help:
 	@echo "  OUTPUT_FILE=<file>                   - Output file for 'test'"
 	@echo "  ENABLE_FAST_IO=[0|1]                 - Enable fast I/O optimizations"
 	@echo "  ENABLE_DEBUG=[0|1]                   - Enable debug output macros"
-	@echo "  ARGS=\"...\"                         - Arguments for run/test"
+	@echo "  ARGS=\"...\"                           - Arguments for run/test"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make contest                         - Quick optimized build"
