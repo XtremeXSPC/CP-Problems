@@ -5,12 +5,11 @@ CompileFlags:
     # Standard C++23 flags for competitive programming
     - -std=c++23
     - -O2
-    - -DLOCAL
+    - -DLOCAL=1
 
     # Force GCC compatibility mode
     - -D__GNUC__=15
-    - -D__GNUC_MINOR__=0
-    - -D__GNUC_PATCHLEVEL__=0
+    - --gcc-toolchain=/opt/homebrew
 
     # Use -isystem to treat these as system headers (suppresses diagnostics)
     - -isystem
@@ -19,21 +18,21 @@ CompileFlags:
     - /opt/homebrew/include/c++/15/aarch64-apple-darwin24
     - -isystem
     - /opt/homebrew/include/c++/15/backward
-    - -isystem
-    - /opt/homebrew/lib/gcc/15/gcc/aarch64-apple-darwin24/15/include
 
     # Aggressively suppress all warnings and errors from system code
-    - -Wno-everything
     - -w
+    - -Wno-everything
     - -ferror-limit=1
+    - -fmax-errors=1
     - -ftemplate-backtrace-limit=1
-    - -fno-caret-diagnostics
-    - -fno-diagnostics-show-option
-    - -Qunused-arguments
+    - -fbracket-depth=512
+    - -fconstexpr-depth=512
+    - -fdelayed-template-parsing
 
     # Disable clang's builtin includes that might conflict
     - -nostdinc++
     - -nobuiltininc
+    - /opt/homebrew/include/c++/15
 
     # Competitive programming optimizations
     - -DDEBUG

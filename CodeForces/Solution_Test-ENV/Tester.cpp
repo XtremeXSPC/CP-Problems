@@ -11,9 +11,7 @@
 //===---------------------------------------------------------------------===//
 /* Included library */
 
-#include <bits/stdc++.h>
-#include <ext/pb_ds/assoc_container.hpp>
-#include <ext/pb_ds/tree_policy.hpp>
+#include "include/competitive.hpp"
 
 //===---------------------------------------------------------------------===//
 /* Types and Function Definitons */
@@ -28,7 +26,7 @@ struct Graph {
   auto xor_up_to(int u, int x) -> int;
 };
 
-Graph::Graph(int n) : n(n), adj(n + 1) {
+Graph::Graph(int n) : n(n), adj(n + 1, vector<int>()) {
 }
 
 void Graph::add_edge(int u, int v) {
