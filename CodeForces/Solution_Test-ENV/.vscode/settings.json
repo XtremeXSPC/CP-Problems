@@ -1,18 +1,32 @@
 {
   // ----- C/C++ Compiler Settings ----- //
   "clangd.arguments": [
-    "--compile-commands-dir=${workspaceFolder}",
-    "--header-insertion=never",
-    "--clang-tidy",
     "--log=error",
-    "--limit-results=0"
+    "--pretty",
+    "--limit-results=20",
+    "--header-insertion=never",
+    "--completion-style=bundled",
+    "--clang-tidy",
+    "--recovery-ast=false",
+    "--suggest-missing-includes=false",
+    "--compile-commands-dir=${workspaceFolder}"
   ],
   "clangd.fallbackFlags": [
     "-I/opt/homebrew/include/c++/15",
-    "-I/opt/homebrew/opt/include/c++/15/bits/",
     "-I/opt/homebrew/include/c++/15/aarch64-apple-darwin24",
     "-std=c++23"
   ],
+
+  // ----- C/C++ Error Settings ----- //
+  // Hide error squiggles and disable IntelliSense
+  "problems.decorations.enabled": false,
+  "editor.renderValidationDecorations": "off",
+  "C_Cpp.errorSquiggles": "disabled",
+  "C_Cpp.intelliSenseEngine": "disabled",
+
+  // Filter problems to show only errors and warnings
+  "problems.showCurrentInStatus": false,
+  "problems.sortOrder": "severity",
 
   // ----- C/C++ Language Server Settings ----- //
   "lldb.displayFormat": "auto",
