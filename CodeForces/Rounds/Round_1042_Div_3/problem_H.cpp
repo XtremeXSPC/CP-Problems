@@ -9,8 +9,11 @@
 //===----------------------------------------------------------------------===//
 /* Included library */
 
+#include <arm/types.h>
 #include <bits/stdc++.h>
+#include <cstddef>
 #include <numeric>
+
 using namespace std;
 
 //===----------------------------------------------------------------------===//
@@ -97,8 +100,8 @@ inline vi getpf(int x) {
 inline vi getsqd(const vi& pf) {
   vi d = {1};
   for (int p : pf) {
-    int sz = (int)d.size();
-    for (int i = 0; i < sz; ++i)
+    size_t sz = d.size();
+    for (size_t i = 0; i < sz; ++i)
       d.push_back(d[i] * p);
   }
   return d;
@@ -108,61 +111,61 @@ inline vi getsqd(const vi& pf) {
 void solve() {
   int n, m;
   cin >> n >> m;
-  vi a(n + 1);
+  vi a((size_t)n + 1);
   for (int i = 1; i <= n; ++i)
-    cin >> a[i];
+    cin >> a[(size_t)i];
 
-  vi cnt(m + 1, 0);
+  vi cnt((size_t)m + 1, 0);
   for (int i = 1; i <= n; ++i)
-    ++cnt[a[i]];
+    ++cnt[(size_t)a[(size_t)i]];
 
-  vi g(m + 1, 0);
+  vi g((size_t)m + 1, 0);
   for (int d = 1; d <= m; ++d) {
     for (int k = d; k <= m; k += d)
-      g[d] += cnt[k];
+      g[(size_t)d] += cnt[(size_t)k];
   }
 
   unordered_map<int, int> id;
-  id.reserve(n * 2);
+  id.reserve((size_t)n * 2);
   vi         vals;
   vector<vi> pos;
   for (int i = 1; i <= n; ++i) {
-    int  x  = a[i];
+    int  x  = a[(size_t)i];
     auto it = id.find(x);
     if (it == id.end()) {
       int idx = (int)vals.size();
       id[x]   = idx;
       vals.push_back(x);
       pos.push_back(vi());
-      pos[idx].push_back(i);
+      pos[(size_t)idx].push_back(i);
     } else {
-      pos[it->second].push_back(i);
+      pos[(size_t)it->second].push_back(i);
     }
   }
 
   int        U = (int)vals.size();
-  vector<vi> pfv(U), sqdv(U);
+  vector<vi> pfv((size_t)U), sqdv((size_t)U);
   for (int z = 0; z < U; ++z) {
-    if (vals[z] == 1) {
-      pfv[z]  = {};
-      sqdv[z] = {1};
+    if (vals[(size_t)z] == 1) {
+      pfv[(size_t)z]  = {};
+      sqdv[(size_t)z] = {1};
     } else {
-      pfv[z]  = getpf(vals[z]);
-      sqdv[z] = getsqd(pfv[z]);
+      pfv[(size_t)z]  = getpf(vals[(size_t)z]);
+      sqdv[(size_t)z] = getsqd(pfv[(size_t)z]);
     }
   }
 
   auto F = [&](int z, vi& gg) -> int {
     int s = 0;
-    for (int d : sqdv[z])
-      s += mu[d] * gg[d];
+    for (int d : sqdv[(size_t)z])
+      s += mu[(size_t)d] * gg[(size_t)d];
     return s;
   };
 
   vi ones;
   if (id.count(1)) {
     int z = id[1];
-    for (int idx : pos[z])
+    for (int idx : pos[(size_t)z])
       ones.push_back(idx);
   }
 
@@ -207,15 +210,15 @@ void solve() {
 
   bool done = false;
   for (int z = 0; z < U && !done; ++z) {
-    if (vals[z] == 1)
+    if (vals[(size_t)z] == 1)
       continue;
-    if ((int)pos[z].size() >= 2) {
+    if ((int)pos[(size_t)z].size() >= 2) {
       int cop = F(z, g);
       if (cop >= 2) {
-        int v = vals[z];
+        int v = vals[(size_t)z];
         int j = -1, k = -1;
         for (int i = 1; i <= n && (k == -1); ++i) {
-          if (std::gcd(v, a[i]) == 1) {
+          if (std::gcd(v, a[(size_t)i]) == 1) {
             if (j == -1)
               j = i;
             else
@@ -223,7 +226,7 @@ void solve() {
           }
         }
         if (j != -1 && k != -1) {
-          cout << pos[z][0] << " " << j << " " << pos[z][1] << " " << k << "\n";
+          cout << pos[(size_t)z][0] << " " << j << " " << pos[(size_t)z][1] << " " << k << "\n";
           done = true;
         }
       }
@@ -236,16 +239,16 @@ void solve() {
     int  o  = ones[0];
     bool ok = false;
     for (int z = 0; z < U && !ok; ++z) {
-      if (vals[z] == 1)
+      if (vals[(size_t)z] == 1)
         continue;
       int cop_no1 = F(z, g) - 1;
       if (cop_no1 >= 1) {
-        int i_idx = pos[z][0];
+        int i_idx = pos[(size_t)z][0];
         int j_idx = -1;
         for (int t = 1; t <= n; ++t) {
           if (t == o || t == i_idx)
             continue;
-          if (std::gcd(vals[z], a[t]) == 1) {
+          if (std::gcd(vals[(size_t)z], a[(size_t)t]) == 1) {
             j_idx = t;
             break;
           }
@@ -273,36 +276,36 @@ void solve() {
     return;
   }
 
-  vi deg_val(U, 0);
+  vi deg_val((size_t)U, 0);
   for (int z = 0; z < U; ++z) {
     int fz = F(z, g);
-    if (vals[z] == 1)
+    if (vals[(size_t)z] == 1)
       fz -= 1;
-    deg_val[z] = fz;
+    deg_val[(size_t)z] = fz;
   }
 
   auto remove_idx = [&](int idx, int dlt) {
-    int z = id[a[idx]];
-    for (int d : sqdv[z])
-      g[d] += dlt;
+    int z = id[a[(size_t)idx]];
+    for (int d : sqdv[(size_t)z])
+      g[(size_t)d] += dlt;
   };
 
   auto find_second = [&](int ban1, int ban2) -> pii {
     for (int r = 1; r <= n; ++r) {
       if (r == ban1 || r == ban2)
         continue;
-      int zr  = id[a[r]];
+      int zr  = id[a[(size_t)r]];
       int can = 0;
       int s   = 0;
-      for (int d : sqdv[zr])
-        s += mu[d] * g[d];
-      if (a[r] == 1)
+      for (int d : sqdv[(size_t)zr])
+        s += mu[(size_t)d] * g[(size_t)d];
+      if (a[(size_t)r] == 1)
         s -= 1;
       if (s >= 1) {
         for (int t = 1; t <= n; ++t) {
           if (t == ban1 || t == ban2 || t == r)
             continue;
-          if (std::gcd(a[r], a[t]) == 1) {
+          if (std::gcd(a[(size_t)r], a[(size_t)t]) == 1) {
             can = t;
             break;
           }
@@ -317,13 +320,13 @@ void solve() {
 
   int leaf_i = -1, leaf_j = -1;
   for (int z = 0; z < U; ++z) {
-    if (deg_val[z] == 1) {
-      int ii = pos[z][0];
+    if (deg_val[(size_t)z] == 1) {
+      int ii = pos[(size_t)z][0];
       int jj = -1;
       for (int t = 1; t <= n; ++t) {
         if (t == ii)
           continue;
-        if (std::gcd(a[ii], a[t]) == 1) {
+        if (std::gcd(a[(size_t)ii], a[(size_t)t]) == 1) {
           jj = t;
           break;
         }
@@ -353,17 +356,17 @@ void solve() {
     return;
 
   vi order_idx;
-  order_idx.reserve(n);
+  order_idx.reserve((size_t)n);
   for (int z = 0; z < U; ++z) {
-    if (deg_val[z] >= 1) {
-      for (int idx : pos[z])
+    if (deg_val[(size_t)z] >= 1) {
+      for (int idx : pos[(size_t)z])
         order_idx.push_back(idx);
     }
   }
   sort(order_idx.begin(), order_idx.end(), [&](int i, int j) {
-    int zi = id[a[i]], zj = id[a[j]];
-    if (deg_val[zi] != deg_val[zj])
-      return deg_val[zi] < deg_val[zj];
+    int zi = id[a[(size_t)i]], zj = id[a[(size_t)j]];
+    if (deg_val[(size_t)zi] != deg_val[(size_t)zj])
+      return deg_val[(size_t)zi] < deg_val[(size_t)zj];
     return i < j;
   });
 
@@ -373,11 +376,11 @@ void solve() {
       break;
     int take = min(30, n - 1);
     vi  cand;
-    cand.reserve(take);
+    cand.reserve((size_t)take);
     for (int t = 1; t <= n && (int)cand.size() < take; ++t) {
       if (t == ii)
         continue;
-      if (std::gcd(a[ii], a[t]) == 1)
+      if (std::gcd(a[(size_t)ii], a[(size_t)t]) == 1)
         cand.push_back(t);
     }
     for (int jj : cand) {
