@@ -4,12 +4,13 @@
  * @brief: Codeforces Round 1042 (Div. 3) - Problem H
  * @author: Costantino Lombardi
  *
- * @status: Solved
+ * @status: PASSED
  */
 //===----------------------------------------------------------------------===//
 /* Included library */
 
 #include <bits/stdc++.h>
+#include <numeric>
 using namespace std;
 
 //===----------------------------------------------------------------------===//

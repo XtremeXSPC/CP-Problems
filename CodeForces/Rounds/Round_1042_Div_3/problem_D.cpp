@@ -4,7 +4,7 @@
  * @brief: Codeforces Round 1042 (Div. 3) - Problem D
  * @author: Costantino Lombardi
  *
- * @status: Accepted
+ * @status: PASSED
  */
 //===----------------------------------------------------------------------===//
 /* Included library */
