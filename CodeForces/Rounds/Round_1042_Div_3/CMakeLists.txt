@@ -111,6 +111,7 @@ function(cp_add_problem TARGET_NAME SOURCE_FILE)
     target_compile_options(${TARGET_NAME} PRIVATE
         # Common warning flags for catching potential errors.
         -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion
+        -Wno-unused-const-variable -Wno-sign-conversion
         
         # Debug flags: full debug info, no optimization.
         $<$<CONFIG:Debug>:-g2 -O0>

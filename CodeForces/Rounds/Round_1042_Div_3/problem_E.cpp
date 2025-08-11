@@ -31,7 +31,7 @@ using vpii = vector<pii>;
 using vui  = vector<unsigned int>;
 
 // Constants
-constexpr int MOD  = 1e9 + 7;
+constexpr int MOD  = 1000000007;
 constexpr int INF  = 1e9;
 constexpr ll  LINF = 1e18;
 

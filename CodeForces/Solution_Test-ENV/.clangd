@@ -11,14 +11,6 @@ CompileFlags:
     - -D__GNUC__=15
     - --gcc-toolchain=/opt/homebrew
 
-    # Use -isystem to treat these as system headers (suppresses diagnostics)
-    - -isystem
-    - /opt/homebrew/include/c++/15
-    - -isystem
-    - /opt/homebrew/include/c++/15/aarch64-apple-darwin24
-    - -isystem
-    - /opt/homebrew/include/c++/15/backward
-
     # Aggressively suppress all warnings and errors from system code
     - -w
     - -Wno-everything
@@ -36,7 +28,11 @@ CompileFlags:
 
     # Competitive programming optimizations
     - -DDEBUG
-    - -g0 # No debug info for faster compilation
+    # No debug info for faster compilation
+    - -g0
+
+    # Unused includes and missing includes
+    - unused-includes
 
   Remove:
     # Remove problematic clang flags

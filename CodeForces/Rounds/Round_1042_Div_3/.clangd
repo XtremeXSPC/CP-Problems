@@ -13,7 +13,8 @@ CompileFlags:
 
     # Competitive programming optimizations
     - -DDEBUG
-    - -g0 # No debug info for faster compilation
+    # No debug info for faster compilation
+    - -g0
 
   Remove:
     # Remove problematic clang flags
@@ -45,8 +46,12 @@ Diagnostics:
     - ".*stdc\\+\\+.*"
     - ".*c\\+\\+/.*"
 
-    # Unused includes and missing includes
+    # Unused includes and const variables
     - unused-includes
+    - unused-const-variable
+
+    # Suppress sign conversion warnings
+    - sign-conversion
 
   # Disable clang-tidy completely for competitive programming
   ClangTidy:
