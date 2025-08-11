@@ -28,7 +28,7 @@ using vpii   = vector<pii>;
 using map_ll = map<ll, ll>;
 
 // Constants
-constexpr ll  MOD  = 1e9 + 7;
+constexpr ll  MOD  = 1000000007;
 constexpr int INF  = 1e9;
 constexpr ll  LINF = 1e18;
 

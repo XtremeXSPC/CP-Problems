@@ -11,7 +11,7 @@
 //===---------------------------------------------------------------------===//
 /* Included library */
 
-#include "include/competitive.hpp"
+#include <bits/stdc++.h>
 
 //===---------------------------------------------------------------------===//
 /* Types and Function Definitons */
