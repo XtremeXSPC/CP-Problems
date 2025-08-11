@@ -9,10 +9,7 @@
 //===----------------------------------------------------------------------===//
 /* Included library */
 
-#include <arm/types.h>
 #include <bits/stdc++.h>
-#include <cstddef>
-#include <numeric>
 
 using namespace std;
 
