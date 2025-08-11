@@ -39,12 +39,12 @@ constexpr ll  LINF = 1e18;
 
 // Function to solve a single test case
 void solve() {
-  int n;
-  ll  k;
+  size_t n;
+  ll     k;
   cin >> n >> k;
 
   vll s_canon_rem(n);
-  for (int i = 0; i < n; ++i) {
+  for (size_t i = 0; i < n; ++i) {
     ll val;
     cin >> val;
     ll rem         = val % k;
@@ -52,7 +52,7 @@ void solve() {
   }
 
   vll t_canon_rem(n);
-  for (int i = 0; i < n; ++i) {
+  for (size_t i = 0; i < n; ++i) {
     ll val;
     cin >> val;
     ll rem         = val % k;

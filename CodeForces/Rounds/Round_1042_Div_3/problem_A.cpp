@@ -39,20 +39,20 @@ constexpr ll  LINF = 1e18;
 
 // Function to solve a single test case
 void solve() {
-  int n;
+  size_t n;
   cin >> n;
   vi a(n), b(n);
   ll total_excess = 0;
 
-  for (int i = 0; i < n; i++) {
+  for (size_t i = 0; i < n; i++) {
     cin >> a[i];
   }
 
-  for (int i = 0; i < n; i++) {
+  for (size_t i = 0; i < n; i++) {
     cin >> b[i];
   }
 
-  for (int i = 0; i < n; i++) {
+  for (size_t i = 0; i < n; i++) {
     if (a[i] > b[i]) {
       total_excess += a[i] - b[i];
     }
