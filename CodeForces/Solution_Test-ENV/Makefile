@@ -13,12 +13,29 @@ ifeq ($(strip $(HOMEBREW_BASH)),)
 else
     # Use the first bash found in a homebrew path
     SHELL := $(firstword $(HOMEBREW_BASH))
-    $(info Using Homebrew's bash to ensure compatibility with other tools: $(SHELL))
 endif
 
 # Continue with the rest of the Makefile...
 .ONESHELL:
 .SHELLFLAGS := -eu -o pipefail -c
+
+# =========================================================================== #
+# -------------------------- ANSI Color Codes ------------------------------- #
+# =========================================================================== #
+# Check if terminal supports colors and define color variables.
+# These will be empty if colors are not supported, allowing for graceful degradation.
+ifeq ($(shell test -t 1 -o -t 2 && echo true), true)
+    N_COLORS := $(shell tput colors 2>/dev/null || echo 0)
+    ifeq ($(shell test $(N_COLORS) -ge 8 && echo true), true)
+        C_RESET   := $(shell tput sgr0 2>/dev/null)
+        C_BOLD    := $(shell tput bold 2>/dev/null)
+        C_RED     := $(shell tput setaf 1 2>/dev/null)
+        C_GREEN   := $(shell tput setaf 2 2>/dev/null)
+        C_YELLOW  := $(shell tput setaf 3 2>/dev/null)
+        C_BLUE    := $(shell tput setaf 4 2>/dev/null)
+        C_CYAN    := $(shell tput setaf 6 2>/dev/null)
+    endif
+endif
 
 # =========================================================================== #
 # ----------------------- User-configurable variables ----------------------- #
@@ -43,12 +60,6 @@ ENABLE_DEBUG   ?= 1
 # ------------------------ GCC Detection for bits/stdc++.h ------------------ #
 # Find the include path and prefix of the latest installed GCC version via Homebrew
 GCC_PREFIX      := $(shell brew --prefix gcc 2>/dev/null)
-GCC_INCLUDE_DIR := $(shell \
-	if [ -n "$(GCC_PREFIX)" ] && [ -d "$(GCC_PREFIX)/include/c++" ]; then \
-		find $(GCC_PREFIX)/include/c++/ -maxdepth 1 -type d | \
-		sort -V | tail -n 1; \
-	fi \
-)
 
 # Find GCC binary - Prioritize Homebrew installation over system GCC
 GCC_BINARY := $(shell \
@@ -81,22 +92,36 @@ ifeq ($(NEEDS_GCC),no)
     CC             := clang
     CXX            := clang++
     SYSTEM_INCLUDES:= -I/usr/local/include
-    $(info Using Clang - No competitive programming headers detected)
+    $(info $(C_CYAN)Using Clang - No competitive programming headers detected$(C_RESET))
 else
     # Competitive programming configuration - requires GCC
-	ifneq ($(GCC_BINARY),)
+    ifneq ($(GCC_BINARY),)
         CC  := $(subst g++,gcc,$(GCC_BINARY))
         CXX := $(GCC_BINARY)
-        SYSTEM_INCLUDES := -I/usr/local/include \
-                           -I/opt/homebrew/include/c++/15 \
-                           -I$(GCC_INCLUDE_DIR) \
-                           -I$(GCC_INCLUDE_DIR)/aarch64-apple-darwin23 \
-                           -I$(GCC_INCLUDE_DIR)/backward
-        $(info Using GCC for competitive programming: $(CXX))
-        $(info Detected headers: $(if $(NEEDS_BITS_STDC),bits/stdc++.h) $(if $(NEEDS_PBDS),pb_ds))
+        $(info $(C_CYAN)Using GCC for competitive programming:$(C_RESET) $(CXX))
+        $(info $(C_CYAN)Detected headers:$(C_RESET) $(if $(NEEDS_BITS_STDC),bits/stdc++.h) $(if $(NEEDS_PBDS),pb_ds))
+        
+        # This flag is required for both compiling and linking with libstdc++
+        STDLIB_FLAG := -stdlib=libstdc++
+
+        # ----- START: Toolchain Replication Logic ------ #
+        # These flags are needed for a successful COMMAND LINE build, but they
+        # conflict with clangd's --query-driver. We add them only when NOT
+        # configuring for the IDE.
+        ifneq ($(IDE_CONFIG),yes)
+            $(info $(C_CYAN)Applying command-line toolchain flags...$(C_RESET))
+            # Call the external helper script to get the include flags.
+            GCC_ISYSTEM_FLAGS := $(shell ./get_gcc_includes.sh $(CXX))
+
+            # Use -nostdinc++ to prevent the compiler from using its default search paths.
+            CXXFLAGS_TOOLCHAIN := -nostdinc++
+            SYSTEM_INCLUDES := $(GCC_ISYSTEM_FLAGS)
+		endif
+        # ----- END: Toolchain Replication Logic -------- #
+
 	else
-		$(error Competitive programming headers detected but compatible GCC not found!)
-		$(error Install GCC via: brew install gcc)
+		$(error $(C_RED)Competitive programming headers detected but compatible GCC not found!$(C_RESET))
+		$(error $(C_YELLOW)Install GCC via: brew install gcc$(C_RESET))
 	endif
 endif
 
@@ -119,7 +144,7 @@ ifeq ($(ENABLE_DEBUG),1)
 endif
 
 # Include paths - combine and deduplicate
-CPPFLAGS := $(sort $(CPPFLAGS) $(SYSTEM_INCLUDES) $(PROJECT_INCLUDES))
+CPPFLAGS := $(sort $(PROJECT_INCLUDES)) $(SYSTEM_INCLUDES)
 
 # -------------- Build Profile Configuration for Competitive Programming ---- #
 ifeq ($(BUILD_TYPE), release)
@@ -128,26 +153,27 @@ ifeq ($(BUILD_TYPE), release)
     PROFILE_FLAGS := -O2 -DNDEBUG -march=native -mtune=native
     # Disable warnings in release mode to reduce noise
     WARNING_FLAGS := -w
-    $(info Build mode: Release (optimized for submission))
+    $(info $(C_GREEN)Build mode: Release (optimized for submission)$(C_RESET))
 else ifeq ($(BUILD_TYPE), sanitize)
     # Sanitize: Debug with memory sanitizers for finding bugs
     PROFILE_FLAGS := -g -O1 -fsanitize=address,undefined -fno-omit-frame-pointer
     WARNING_FLAGS := -Wall -Wextra
-    $(info Build mode: Sanitize (debug with memory checks))
+    $(info $(C_YELLOW)Build mode: Sanitize (debug with memory checks)$(C_RESET))
 else
     # Debug: Full debug info, no optimization - best for development
     BUILD_TYPE    := debug
     PROFILE_FLAGS := -g -O0
     # More permissive warnings for competitive programming
     WARNING_FLAGS := -Wall -Wno-unused-variable -Wno-unused-parameter -Wno-sign-compare
-    $(info Build mode: Debug (development and testing))
+    $(info $(C_BLUE)Build mode: Debug (development and testing)$(C_RESET))
 endif
 
 # Final compiler flags for competitive programming
-CXXFLAGS := $(COMMON_FLAGS) $(WARNING_FLAGS) $(PROFILE_FLAGS) $(COMPETITIVE_DEFINES)
+# Add CXXFLAGS_TOOLCHAIN and STDLIB_FLAG which contains toolchain-specific flags
+CXXFLAGS := $(COMMON_FLAGS) $(WARNING_FLAGS) $(PROFILE_FLAGS) $(COMPETITIVE_DEFINES) $(CXXFLAGS_TOOLCHAIN) $(STDLIB_FLAG)
 
 # Linker flags - minimal for competitive programming
-LDFLAGS ?=
+LDFLAGS ?= $(STDLIB_FLAG)
 ifeq ($(strip $(NEEDS_GCC)$(GCC_BINARY)),yesyes)
     # Add GCC library path if using GCC
     LDFLAGS += -L$(dir $(GCC_BINARY))../lib
@@ -241,7 +267,7 @@ DIR_SENTINEL := $(OBJDIR)/.dirs_created
 # -------------------- Linker Configuration for C++ Only -------------------- #
 # =========================================================================== #
 ifeq ($(strip $(CPP_SRCS)),)
-	LD = @echo "No C++ sources found for competitive programming!"; false
+	LD = @echo "$(C_RED)No C++ sources found for competitive programming!$(C_RESET)"; false
 else
 	LD := $(CXX)
 	LDFLAGS_FINAL := $(LDFLAGS) $(CXXFLAGS)
@@ -258,7 +284,7 @@ all: $(TARGET_PATH)
 
 # Directory creation with sentinel
 $(DIR_SENTINEL):
-	@echo "Creating directories $(OBJDIR) and $(BINDIR)..."
+	@echo "$(C_CYAN)Creating directories $(OBJDIR) and $(BINDIR)...$(C_RESET)"
 ifeq ($(detected_os),WINDOWS_NATIVE)
 	@if not exist $(subst /,\,$(OBJDIR)) mkdir $(subst /,\,$(OBJDIR))
 	@if not exist $(subst /,\,$(BINDIR)) mkdir $(subst /,\,$(BINDIR))
@@ -270,21 +296,33 @@ endif
 
 # Linking rule
 $(TARGET_PATH): $(OBJS)
-	@echo "# ------ Linking Competitive Programming Executable ------ #"
-	@echo "Output: $@"
+	@echo "$(C_BLUE)# ------ Linking Competitive Programming Executable ------ #$(C_RESET)"
+	@echo "$(C_BLUE)Output:$(C_RESET) $@"
 	$(LD) $(OBJS) $(LDFLAGS_FINAL) -o $@
 
-# Compilation rules
+# Compilation rules with improved logging
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(DIR_SENTINEL)
-	@echo "Compiling C++: $< to $@"
+	@echo "$(C_CYAN)Compiling C++:$(C_RESET) $< -> $@"
+	@echo "$(C_CYAN)  Includes:$(C_RESET)"
+	@echo "$(CPPFLAGS)" | tr ' ' '\n' | sed 's/^-/    -/'
+	@echo "$(C_CYAN)  Defines & Options:$(C_RESET)"
+	@echo "$(CXXFLAGS)" | tr ' ' '\n' | sed 's/^-/    -/'
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cc $(DIR_SENTINEL)
-	@echo "Compiling C++: $< to $@"
+	@echo "$(C_CYAN)Compiling C++:$(C_RESET) $< -> $@"
+	@echo "$(C_CYAN)  Includes:$(C_RESET)"
+	@echo "$(CPPFLAGS)" | tr ' ' '\n' | sed 's/^-/    -/'
+	@echo "$(C_CYAN)  Defines & Options:$(C_RESET)"
+	@echo "$(CXXFLAGS)" | tr ' ' '\n' | sed 's/^-/    -/'
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cxx $(DIR_SENTINEL)
-	@echo "Compiling C++: $< to $@"
+	@echo "$(C_CYAN)Compiling C++:$(C_RESET) $< -> $@"
+	@echo "$(C_CYAN)  Includes:$(C_RESET)"
+	@echo "$(CPPFLAGS)" | tr ' ' '\n' | sed 's/^-/    -/'
+	@echo "$(C_CYAN)  Defines & Options:$(C_RESET)"
+	@echo "$(CXXFLAGS)" | tr ' ' '\n' | sed 's/^-/    -/'
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@
 
 # Include dependency files
@@ -304,7 +342,7 @@ OUTPUT_FILE ?= output.txt
 ARGS ?=
 
 run: all
-	@echo "Running $(TARGET_PATH)..."
+	@echo "$(C_BLUE)Running $(TARGET_PATH)...$(C_RESET)"
 ifeq ($(findstring WINDOWS,$(detected_os)),WINDOWS)
 	$(if $(wildcard $(INPUT_FILE)), \
 		$(subst /,\,$(TARGET_PATH)) $(ARGS) < $(INPUT_FILE), \
@@ -317,7 +355,7 @@ endif
 
 # Run with both input and output redirection
 test: all
-	@echo "Running $(TARGET_PATH) with I/O redirection..."
+	@echo "$(C_BLUE)Running $(TARGET_PATH) with I/O redirection...$(C_RESET)"
 ifeq ($(findstring WINDOWS,$(detected_os)),WINDOWS)
 	$(if $(wildcard $(INPUT_FILE)), \
 		$(subst /,\,$(TARGET_PATH)) $(ARGS) < $(INPUT_FILE) > $(OUTPUT_FILE), \
@@ -327,22 +365,37 @@ else
 		./$(TARGET_PATH) $(ARGS) < $(INPUT_FILE) > $(OUTPUT_FILE), \
 		./$(TARGET_PATH) $(ARGS) > $(OUTPUT_FILE))
 endif
-	@echo "Output written to $(OUTPUT_FILE)"
+	@echo "$(C_BLUE)Output written to $(OUTPUT_FILE)$(C_RESET)"
 
 # =========================================================================== #
 # ----------------------- Utility & Development Targets -------------------- #
 # =========================================================================== #
 
+.PHONY: test-colors
+test-colors:
+	@echo "Testing color configuration..."
+	@echo "TTY test: $(shell test -t 1 && echo 'true' || echo 'false')"
+	@echo "N_COLORS: '$(N_COLORS)'"
+	@echo "TERM: '$(TERM)'"
+	@echo "Shell: '$(SHELL)'"
+	@echo "Colors test:"
+	@echo "$(C_RED)Red text$(C_RESET)"
+	@echo "$(C_GREEN)Green text$(C_RESET)"
+	@echo "$(C_YELLOW)Yellow text$(C_RESET)"
+	@echo "$(C_BLUE)Blue text$(C_RESET)"
+	@echo "$(C_CYAN)Cyan text$(C_RESET)"
+	@echo "$(C_BOLD)Bold text$(C_RESET)"
+
 clean:
-	@echo "Cleaning build artifacts..."
+	@echo "$(C_YELLOW)Cleaning build artifacts...$(C_RESET)"
 	-$(RM) $(OBJDIR)$(PathSep)*.o
 	-$(RM) $(OBJDIR)$(PathSep)*.d
 	-$(RM) $(TARGET_PATH)
 	-$(RM) $(DIR_SENTINEL)
-	@echo "Clean complete."
+	@echo "$(C_GREEN)Clean complete.$(C_RESET)"
 
 distclean: clean
-	@echo "Cleaning all directories and temporary files..."
+	@echo "$(C_YELLOW)Cleaning all directories and temporary files...$(C_RESET)"
 ifeq ($(findstring WINDOWS,$(detected_os)),WINDOWS)
 	@if exist $(subst /,\,$(OBJDIR)) $(RMDIR_CMD) $(subst /,\,$(OBJDIR))
 	@if exist $(subst /,\,$(BINDIR)) $(RMDIR_CMD) $(subst /,\,$(BINDIR))
@@ -352,18 +405,18 @@ else
 endif
 	# Remove competitive programming artifacts
 	-$(RM) $(OUTPUT_FILE) *~ *.bak
-	@echo "Distclean complete."
+	@echo "$(C_GREEN)Distclean complete.$(C_RESET)"
 
 # Compilation Database for clangd (essential for competitive programming IDEs)
 .PHONY: compile_commands
 compile_commands:
-	@echo "Generating compile_commands.json for IDE support..."
+	@echo "$(C_CYAN)Generating compile_commands.json for IDE support...$(C_RESET)"
 	@compiledb -n make clean all BUILD_TYPE=$(BUILD_TYPE)
 
 # Debug information - enhanced for competitive programming
 debug-info:
-	@echo "#====------------ Competitive Programming Debug Info ------------====#"
-	@echo "Build Configuration:"
+	@echo "$(C_BOLD)/====------------ Competitive Programming Debug Info ------------====/$(C_RESET)"
+	@echo "$(C_CYAN)Build Configuration:$(C_RESET)"
 	@echo "  UNAME_S: $(UNAME_S)"
 	@echo "  Detected OS: $(detected_os)"
 	@echo "  PathSep: $(PathSep)"
@@ -373,64 +426,67 @@ debug-info:
 	@echo "  TARGET_PATH: $(TARGET_PATH)"
 	@echo "  SRCDIR: $(SRCDIR), OBJDIR: $(OBJDIR), BINDIR: $(BINDIR)"
 	@echo ""
-	@echo "Sources & Objects:"
+	@echo "$(C_CYAN)Sources & Objects:$(C_RESET)"
 	@echo "  C_SRCS: $(C_SRCS)"
 	@echo "  CPP_SRCS: $(CPP_SRCS)"
 	@echo "  OBJS: $(OBJS)"
 	@echo "  DEPS: $(DEPS)"
 	@echo ""
-	@echo "Competitive Programming Detection:"
+	@echo "$(C_CYAN)Competitive Programming Detection:$(C_RESET)"
 	@echo "  NEEDS_GCC: $(NEEDS_GCC)"
 	@echo "  NEEDS_BITS_STDC: $(if $(NEEDS_BITS_STDC),YES ($(NEEDS_BITS_STDC)),NO)"
 	@echo "  NEEDS_PBDS: $(if $(NEEDS_PBDS),YES ($(NEEDS_PBDS)),NO)"
 	@echo ""
-	@echo "Compiler & Linker Configuration:"
+	@echo "$(C_CYAN)Compiler & Linker Configuration:$(C_RESET)"
 	@echo "CC: $(CC), CXX: $(CXX), LD: $(LD)"
 	@echo "  GCC_PREFIX: $(GCC_PREFIX)"
 	@echo "  GCC_BINARY: $(GCC_BINARY)"
 	@echo "  GCC_INCLUDE_DIR: $(GCC_INCLUDE_DIR)"
 	@echo ""
-	@echo "Build Flags:"
+	@echo "$(C_CYAN)Build Flags:$(C_RESET)"
 	@echo "  CFLAGS: $(CFLAGS)"
-	@echo "  CPPFLAGS: $(CPPFLAGS)"
-	@echo "  CXXFLAGS: $(CXXFLAGS)"
-	@echo "  LDFLAGS_FINAL: $(LDFLAGS_FINAL)"
+	@echo "  CPPFLAGS:"
+	@echo "$(CPPFLAGS)" | tr ' ' '\n' | sed 's/^-/    -/'
+	@echo "  CXXFLAGS:"
+	@echo "$(CXXFLAGS)" | tr ' ' '\n' | sed 's/^-/    -/'
+	@echo "  LDFLAGS_FINAL:"
+	@echo "$(LDFLAGS_FINAL)" | tr ' ' '\n' | sed 's/^-/    -/'
 	@echo ""
-	@echo "Sources:"
+	@echo "$(C_CYAN)Sources:$(C_RESET)"
 	@echo "  CPP_SRCS: $(CPP_SRCS)"
 	@echo "  OBJS: $(OBJS)"
 	@echo ""
-	@echo "OS Commands"
+	@echo "$(C_CYAN)OS Commands$(C_RESET)"
 	@echo "  RM: $(RM)"
 	@echo "  RMDIR_CMD: $(RMDIR_CMD)"
 	@echo "  MKDIR_P (for Unix-like): $(MKDIR_P)"
-	@echo "#====------------------------------------------------------------====#"
+	@echo "$(C_BOLD)/====------------------------------------------------------------====/$(C_RESET)"
 
 help:
-	@echo "Competitive Programming Makefile"
-	@echo "Usage: make [TARGET] [VARIABLE=VALUE]"
+	@echo "$(C_BOLD}Competitive Programming Makefile$(C_RESET)"
+	@echo "Usage: make $(C_YELLOW)[TARGET] [VARIABLE=VALUE]$(C_RESET)"
 	@echo ""
-	@echo "Build Targets:"
-	@echo "  all               - Build with specified BUILD_TYPE (default: debug)"
-	@echo "  contest           - Quick release build for contests"
-	@echo "  run               - Build and run (uses input.txt if available)"
-	@echo "  test              - Run with I/O redirection (input.txt -> output.txt)"
-	@echo "  compile_commands  - Generate compilation database for IDE"
-	@echo "  clean             - Remove build artifacts"
-	@echo "  distclean         - Remove everything including output files"
-	@echo "  debug-info        - Show detailed build configuration"
-	@echo "  help              - Show this message"
+	@echo "$(C_CYAN}Build Targets:$(C_RESET)"
+	@echo "  $(C_GREEN)all$(C_RESET)               - Build with specified BUILD_TYPE (default: debug)"
+	@echo "  $(C_GREEN)contest$(C_RESET)           - Quick release build for contests"
+	@echo "  $(C_GREEN)run$(C_RESET)               - Build and run (uses input.txt if available)"
+	@echo "  $(C_GREEN)test$(C_RESET)              - Run with I/O redirection (input.txt -> output.txt)"
+	@echo "  $(C_GREEN)compile_commands$(C_RESET)  - Generate compilation database for IDE"
+	@echo "  $(C_GREEN)clean$(C_RESET)             - Remove build artifacts"
+	@echo "  $(C_GREEN)distclean$(C_RESET)         - Remove everything including output files"
+	@echo "  $(C_GREEN)debug-info$(C_RESET)        - Show detailed build configuration"
+	@echo "  $(C_GREEN)help$(C_RESET)              - Show this message"
 	@echo ""
-	@echo "Configuration Variables:"
-	@echo "  BUILD_TYPE=[debug|release|sanitize]  - Build optimization level"
-	@echo "  TARGET_NAME=<name>                   - Executable name (default: main)"
-	@echo "  INPUT_FILE=<file>                    - Input file for 'run'/'test'"
-	@echo "  OUTPUT_FILE=<file>                   - Output file for 'test'"
-	@echo "  ENABLE_FAST_IO=[0|1]                 - Enable fast I/O optimizations"
-	@echo "  ENABLE_DEBUG=[0|1]                   - Enable debug output macros"
-	@echo "  ARGS=\"...\"                           - Arguments for run/test"
+	@echo "$(C_CYAN}Configuration Variables:$(C_RESET)"
+	@echo "  $(C_YELLOW)BUILD_TYPE=[debug|release|sanitize]$(C_RESET)  - Build optimization level"
+	@echo "  $(C_YELLOW)TARGET_NAME=<name>$(C_RESET)                   - Executable name (default: main)"
+	@echo "  $(C_YELLOW)INPUT_FILE=<file>$(C_RESET)                    - Input file for 'run'/'test'"
+	@echo "  $(C_YELLOW)OUTPUT_FILE=<file>$(C_RESET)                   - Output file for 'test'"
+	@echo "  $(C_YELLOW)ENABLE_FAST_IO=[0|1]$(C_RESET)                 - Enable fast I/O optimizations"
+	@echo "  $(C_YELLOW)ENABLE_DEBUG=[0|1]$(C_RESET)                   - Enable debug output macros"
+	@echo "  $(C_YELLOW)ARGS=\"...\"$(C_RESET)                           - Arguments for run/test"
 	@echo ""
-	@echo "Examples:"
+	@echo "$(C_CYAN}Examples:$(C_RESET)"
 	@echo "  make contest                         - Quick optimized build"
 	@echo "  make run INPUT_FILE=sample.in        - Run with custom input"
 	@echo "  make test INPUT_FILE=in.txt OUTPUT_FILE=out.txt"
