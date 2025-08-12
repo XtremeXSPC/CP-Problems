@@ -11,28 +11,10 @@ CompileFlags:
     - -D__GNUC__=15
     - --gcc-toolchain=/opt/homebrew
 
-    # Aggressively suppress all warnings and errors from system code
-    - -w
-    - -Wno-everything
-    - -ferror-limit=1
-    - -fmax-errors=1
-    - -ftemplate-backtrace-limit=1
-    - -fbracket-depth=512
-    - -fconstexpr-depth=512
-    - -fdelayed-template-parsing
-
-    # Disable clang's builtin includes that might conflict
-    - -nostdinc++
-    - -nobuiltininc
-    - /opt/homebrew/include/c++/15
-
     # Competitive programming optimizations
     - -DDEBUG
     # No debug info for faster compilation
     - -g0
-
-    # Unused includes and missing includes
-    - unused-includes
 
   Remove:
     # Remove problematic clang flags
@@ -63,6 +45,13 @@ Diagnostics:
     # Specific problematic files
     - ".*stdc\\+\\+.*"
     - ".*c\\+\\+/.*"
+
+    # Unused includes and const variables
+    - unused-includes
+    - unused-const-variable
+
+    # Suppress sign conversion warnings
+    - sign-conversion
 
   # Disable clang-tidy completely for competitive programming
   ClangTidy:
