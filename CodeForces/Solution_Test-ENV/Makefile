@@ -111,7 +111,7 @@ else
         ifneq ($(IDE_CONFIG),yes)
             $(info $(C_CYAN)Applying command-line toolchain flags...$(C_RESET))
             # Call the external helper script to get the include flags.
-            GCC_ISYSTEM_FLAGS := $(shell ./get_gcc_includes.sh $(CXX))
+            GCC_ISYSTEM_FLAGS := $(shell ./assets/get_gcc_includes.sh $(CXX))
 
             # Use -nostdinc++ to prevent the compiler from using its default search paths.
             CXXFLAGS_TOOLCHAIN := -nostdinc++
