@@ -73,7 +73,7 @@ ifeq ($(GCC_BINARY),)
     SYSTEM_GCC := $(shell which g++ 2>/dev/null)
     ifneq ($(SYSTEM_GCC),)
         # ----- START: Platform-Aware Heuristic ----- #
-        # This check is now platform-specific. On macOS, /usr/bin/g++ is a
+        # This check is platform-specific. On macOS, /usr/bin/g++ is a
         # symlink to clang that must be skipped. On Linux, it is the real GCC.
         ifeq ($(detected_os),MACOS)
             ifeq ($(SYSTEM_GCC),/usr/bin/g++)
