@@ -72,12 +72,21 @@ GCC_BINARY := $(shell \
 ifeq ($(GCC_BINARY),)
     SYSTEM_GCC := $(shell which g++ 2>/dev/null)
     ifneq ($(SYSTEM_GCC),)
-        ifeq ($(SYSTEM_GCC),/usr/bin/g++)
-            # This is likely Xcode's g++ symlink to clang, skip it
-            GCC_BINARY :=
+        # ----- START: Platform-Aware Heuristic ----- #
+        # This check is now platform-specific. On macOS, /usr/bin/g++ is a
+        # symlink to clang that must be skipped. On Linux, it is the real GCC.
+        ifeq ($(detected_os),MACOS)
+            ifeq ($(SYSTEM_GCC),/usr/bin/g++)
+                # This is Xcode's g++ symlink to clang, skip it
+                GCC_BINARY :=
+            else
+                GCC_BINARY := $(SYSTEM_GCC)
+            endif
         else
+            # On non-macOS systems (like Linux), trust the system g++
             GCC_BINARY := $(SYSTEM_GCC)
         endif
+        # ------ END: Platform-Aware Heuristic ------ #
     endif
 endif
 
