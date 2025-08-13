@@ -106,6 +106,10 @@ inline vi getsqd(const vi& pf) {
 
 // Function to solve a single test case
 void solve() {
+  // Start timer
+  Timer timer;
+
+  // Read input values
   int n, m;
   cin >> n >> m;
   vi a((size_t)n + 1);

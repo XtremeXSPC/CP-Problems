@@ -10,6 +10,7 @@
 /* Included library */
 
 #include <bits/stdc++.h>
+#include <ctime>
 using namespace std;
 
 //===----------------------------------------------------------------------===//
@@ -39,6 +40,8 @@ constexpr ll  LINF = 1e18;
 
 // Function to solve a single test case
 void solve() {
+  Timer timer;
+
   size_t n;
   cin >> n;
   vi a(n), b(n);
