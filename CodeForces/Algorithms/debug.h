@@ -535,8 +535,12 @@ public:
   Timer() : start_time(std::chrono::high_resolution_clock::now()) {}
   ~Timer() {
     auto end_time = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
-    std::cerr << GREEN << "\n[Timer] Execution Time: " << duration.count() << " ms" << RESET << std::endl;
+    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
+    if (duration.count() >= 1000000) {
+      std::cerr << GREEN << "\n[Timer] Execution Time: " << duration.count() / 1000000.0 << " ms" << RESET << std::endl;
+    } else {
+      std::cerr << GREEN << "\n[Timer] Execution Time: " << duration.count() / 1000.0 << " μs" << RESET << std::endl;
+    }
   }
 
 private:
