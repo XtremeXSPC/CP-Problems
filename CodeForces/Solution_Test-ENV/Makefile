@@ -104,29 +104,29 @@ ifeq ($(NEEDS_GCC),no)
     $(info $(C_CYAN)Using Clang - No competitive programming headers detected$(C_RESET))
 else
     # Competitive programming configuration - requires GCC
-    ifneq ($(GCC_BINARY),)
+	ifneq ($(GCC_BINARY),)
         CC  := $(subst g++,gcc,$(GCC_BINARY))
         CXX := $(GCC_BINARY)
         $(info $(C_CYAN)Using GCC for competitive programming:$(C_RESET) $(CXX))
         $(info $(C_CYAN)Detected headers:$(C_RESET) $(if $(NEEDS_BITS_STDC),bits/stdc++.h) $(if $(NEEDS_PBDS),pb_ds))
         
-        # This flag is required for both compiling and linking with libstdc++
-        STDLIB_FLAG := -stdlib=libstdc++
+        # ----- START: Toolchain Replication Logic ---------- #
+        # Call the external helper script to get the include flags.r
+        # The script takes the compiler path and returns a space-separated list of flags.
+        GCC_ISYSTEM_FLAGS := $(shell ./assets/get_gcc_includes.sh $(CXX))
 
-        # ----- START: Toolchain Replication Logic ------ #
-        # These flags are needed for a successful COMMAND LINE build, but they
-        # conflict with clangd's --query-driver. We add them only when NOT
-        # configuring for the IDE.
-        ifneq ($(IDE_CONFIG),yes)
-            $(info $(C_CYAN)Applying command-line toolchain flags...$(C_RESET))
-            # Call the external helper script to get the include flags.
-            GCC_ISYSTEM_FLAGS := $(shell ./assets/get_gcc_includes.sh $(CXX))
+        # Use -nostdinc++ to prevent the compiler from using its default search paths.
+        # This forces it to use only the '-isystem' paths we provide.
+        CXXFLAGS_TOOLCHAIN := -nostdinc++
+        SYSTEM_INCLUDES := $(GCC_ISYSTEM_FLAGS)
 
-            # Use -nostdinc++ to prevent the compiler from using its default search paths.
-            CXXFLAGS_TOOLCHAIN := -nostdinc++
-            SYSTEM_INCLUDES := $(GCC_ISYSTEM_FLAGS)
-		endif
-        # ----- END: Toolchain Replication Logic -------- #
+        # ----- Platform-Specific Standard Library Flag ------ #
+        # The -stdlib=libstdc++ flag is needed on macOS to steer the toolchain,
+        # but it's an unrecognized (and unnecessary) option for native GCC on Linux.
+        ifeq ($(detected_os),MACOS)
+            STDLIB_FLAG := -stdlib=libstdc++
+        endif
+        # ----- END: Toolchain Replication Logic ------------- #
 
 	else
 		$(error $(C_RED)Competitive programming headers detected but compatible GCC not found!$(C_RESET))
@@ -377,7 +377,7 @@ endif
 	@echo "$(C_BLUE)Output written to $(OUTPUT_FILE)$(C_RESET)"
 
 # =========================================================================== #
-# ----------------------- Utility & Development Targets -------------------- #
+# ----------------------- Utility & Development Targets --------------------- #
 # =========================================================================== #
 
 .PHONY: test-colors
