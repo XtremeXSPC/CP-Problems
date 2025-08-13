@@ -13,6 +13,13 @@
 
 #include <bits/stdc++.h>
 
+// Debug macro:
+#ifdef LOCAL
+#include "../Algorithms/debug.h"
+#else
+#define debug(...) 42
+#endif
+
 //===---------------------------------------------------------------------===//
 /* Types and Function Definitons */
 using namespace std;
@@ -80,6 +87,10 @@ struct MergeSortTree {
 };
 
 void solve() {
+  // Start timer
+  Timer timer;
+
+  // Fast I/O
   ios::sync_with_stdio(false);
   cin.tie(nullptr);
 
@@ -127,6 +138,7 @@ void solve() {
 /* Main function */
 
 auto main() -> int {
+  // Fast I/O
   ios::sync_with_stdio(false);
   cin.tie(nullptr);
   solve();
