@@ -69,7 +69,7 @@ static std::string ptr_to_id(T* ptr) {
  */
 template <typename T>
 auto generateGraphJson(const StandardGraph<T>& graph) -> std::string {
-  std::stringstream nodes_ss, edges_ss;
+  std::ostringstream nodes_ss, edges_ss;
   bool              first_node = true;
   bool              first_edge = true;
 
@@ -92,7 +92,7 @@ auto generateGraphJson(const StandardGraph<T>& graph) -> std::string {
   }
 
   // Assemble the final JSON object
-  std::stringstream final_json;
+  std::ostringstream final_json;
   final_json << "{\"kind\":{\"graph\":true},\"nodes\":[" << nodes_ss.str() << "],\"edges\":[" << edges_ss.str() << "]}";
   return final_json.str();
 }

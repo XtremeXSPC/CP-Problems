@@ -11,137 +11,139 @@
 //===---------------------------------------------------------------------===//
 /* Included library */
 
-#include <bits/stdc++.h>
+#include "include/graph.hpp"
+#include "include/linked_list.hpp"
+#include "include/tree.hpp"
 
-// Debug macro:
-#ifdef LOCAL
-#include "../Algorithms/debug.h"
-#else
-#define debug(...) 42
-#endif
+#include <iostream>
 
 //===---------------------------------------------------------------------===//
-/* Types and Function Definitons */
-using namespace std;
-
-struct Graph {
-  int                 n;
-  vector<vector<int>> adj;
-  Graph(int n);
-  void add_edge(int u, int v);
-  void prepare();
-  auto xor_up_to(int u, int x) -> int;
-};
-
-Graph::Graph(int n) : n(n), adj(n + 1, vector<int>()) {
-}
-
-void Graph::add_edge(int u, int v) {
-  adj[u].push_back(v);
-  adj[v].push_back(u);
-}
-
-void Graph::prepare() {
-  for (int i = 1; i <= n; i++) {
-    sort(adj[i].begin(), adj[i].end());
-  }
-}
-
-auto Graph::xor_up_to(int u, int x) -> int {
-  auto& vec = adj[u];
-  int   idx = upper_bound(vec.begin(), vec.end(), x) - vec.begin();
-  int   res = 0;
-  for (int i = 0; i < idx; i++)
-    res ^= vec[i];
-  return res;
-}
-
-struct Query {
-  int l, r, k, idx;
-};
-
-struct MergeSortTree {
-  int                 n;
-  vector<vector<int>> tree;
-  MergeSortTree(int n) : n(n) { tree.resize(4 * n); }
-  void build(const vector<int>& arr, int node, int l, int r) {
-    if (l == r) {
-      tree[node] = {arr[l]};
-      return;
-    }
-    int mid = (l + r) / 2;
-    build(arr, node * 2, l, mid);
-    build(arr, node * 2 + 1, mid + 1, r);
-    tree[node].resize(tree[node * 2].size() + tree[node * 2 + 1].size());
-    merge(tree[node * 2].begin(), tree[node * 2].end(), tree[node * 2 + 1].begin(), tree[node * 2 + 1].end(), tree[node].begin());
-  }
-  int count_leq(int node, int l, int r, int ql, int qr, int val) {
-    if (qr < l || ql > r)
-      return 0;
-    if (ql <= l && r <= qr) {
-      return upper_bound(tree[node].begin(), tree[node].end(), val) - tree[node].begin();
-    }
-    int mid = (l + r) / 2;
-    return count_leq(node * 2, l, mid, ql, qr, val) + count_leq(node * 2 + 1, mid + 1, r, ql, qr, val);
-  }
-};
-
-void solve() {
-  // Start timer
-  Timer timer;
-
-  // Fast I/O
-  ios::sync_with_stdio(false);
-  cin.tie(nullptr);
-
-  int t;
-  cin >> t;
-  while (t--) {
-    int n, m;
-    cin >> n >> m;
-    Graph g(n);
-    for (int i = 0; i < m; i++) {
-      int u, v;
-      cin >> u >> v;
-      g.add_edge(u, v);
-    }
-    g.prepare();
-
-    int q;
-    cin >> q;
-    vector<Query> queries(q);
-    for (int i = 0; i < q; i++) {
-      cin >> queries[i].l >> queries[i].r >> queries[i].k;
-      queries[i].idx = i;
-    }
-
-    vector<int> results(q);
-    for (auto& qr : queries) {
-      // calcolo i f(u) per l..r
-      vector<int> vals;
-      vals.reserve(qr.r - qr.l + 1);
-      for (int u = qr.l; u <= qr.r; u++) {
-        int val = g.xor_up_to(u, qr.r) ^ g.xor_up_to(u, qr.l - 1);
-        vals.push_back(val);
-      }
-      sort(vals.begin(), vals.end());
-      results[qr.idx] = vals[qr.k - 1];
-    }
-
-    for (int i = 0; i < q; i++) {
-      cout << results[i] << "\n";
-    }
-  }
-}
+/* Definitions of Structures and Classes */
 
 //===---------------------------------------------------------------------===//
 /* Main function */
 
 auto main() -> int {
-  // Fast I/O
-  ios::sync_with_stdio(false);
-  cin.tie(nullptr);
-  solve();
+  // The type name "LinkedList" should be recognized by our regex
+  LinkedList<int> list;
+  list.push_front(10);
+  list.push_front(20);
+  list.push_front(30);
+  list.push_front(40);
+  list.push_front(50);
+  list.push_front(60);
+  list.push_front(70);
+  list.push_front(80);
+  list.push_front(90);
+
+  LinkedList<std::string> string_list;
+  string_list.push_front("C++");
+  string_list.push_front("Python");
+  string_list.push_front("Haskell");
+  string_list.push_front("Rust");
+  string_list.push_front("OCaml");
+  string_list.push_front("Erlang");
+  string_list.push_front("TypeScript");
+  string_list.push_front("Kotlin");
+  string_list.push_front("Swift");
+  string_list.push_front("Scala");
+
+  // Print the linked list to console
+  std::cout << "Program ready for debugging." << '\n';
+
+  // Create a sample binary tree to test the Tree formatter
+  std::cout << "Creating a sample binary tree..." << '\n';
+
+  // The variable we will inspect in LLDB
+  Tree<int> my_binary_tree;
+
+  // Insert some values to create a more complex, non-trivial tree
+  my_binary_tree.insert(8); // root
+  my_binary_tree.insert(3);
+  my_binary_tree.insert(10);
+  my_binary_tree.insert(1);
+  my_binary_tree.insert(6);
+  my_binary_tree.insert(4);
+  my_binary_tree.insert(7);
+  my_binary_tree.insert(14);
+  my_binary_tree.insert(13);
+
+  // Additional nodes for complexity
+  my_binary_tree.insert(9);
+  my_binary_tree.insert(2);
+  my_binary_tree.insert(5);
+  my_binary_tree.insert(12);
+  my_binary_tree.insert(15);
+  my_binary_tree.insert(11);
+  my_binary_tree.insert(0);
+  my_binary_tree.insert(16);
+  my_binary_tree.insert(17);
+  my_binary_tree.insert(18);
+
+  std::cout << "Tree created and populated.\n" << '\n';
+
+  // Create a graph of integers.
+  // The name "my_std_graph" can be used directly in LLDB commands.
+  StandardGraph<int> my_std_graph;
+
+  // Add nodes using the helper function
+  TestGraphNode<int>* node10  = create_node(my_std_graph, 10);
+  TestGraphNode<int>* node20  = create_node(my_std_graph, 20);
+  TestGraphNode<int>* node30  = create_node(my_std_graph, 30);
+  TestGraphNode<int>* node40  = create_node(my_std_graph, 40);
+  TestGraphNode<int>* node50  = create_node(my_std_graph, 50);
+  TestGraphNode<int>* node60  = create_node(my_std_graph, 60);
+  TestGraphNode<int>* node70  = create_node(my_std_graph, 70);
+  TestGraphNode<int>* node80  = create_node(my_std_graph, 80);
+  TestGraphNode<int>* node90  = create_node(my_std_graph, 90);
+  TestGraphNode<int>* node100 = create_node(my_std_graph, 100);
+
+  (void)node100; // Use node100 to avoid unused variable warning
+
+  // Add edges
+  add_edge(my_std_graph, node10, node20);
+  add_edge(my_std_graph, node10, node30);
+  add_edge(my_std_graph, node20, node40);
+  add_edge(my_std_graph, node30, node40);
+  add_edge(my_std_graph, node40, node50);
+  add_edge(my_std_graph, node30, node10); // Edge for cycle
+  add_edge(my_std_graph, node50, node60);
+  add_edge(my_std_graph, node60, node70);
+  add_edge(my_std_graph, node70, node80);
+  add_edge(my_std_graph, node80, node90);
+  add_edge(my_std_graph, node90, node10); // Another cycle
+  add_edge(my_std_graph, node20, node60);
+  add_edge(my_std_graph, node30, node70);
+  add_edge(my_std_graph, node40, node80);
+
+  std::cout << "StandardGraph created." << '\n';
+
+  std::string myGraphJson = "{\"kind\":{\"graph\":true},"
+                            "\"nodes\":[{\"id\":\"1\"},{\"id\":\"2\"}],"
+                            "\"edges\":[{\"from\":\"1\",\"to\":\"2\"}]}";
+  std::cout << "Graph JSON: " << myGraphJson << '\n';
+
+  // ================================================================== //
+  // 2. GENERATE AND PRINT THE JSON FOR ONE STRUCTURE
+  // ================================================================== //
+
+  // Declare a string to hold the JSON output.
+  std::string json_to_visualize;
+
+  // ----- CHOOSE WHICH STRUCTURE TO VISUALIZE -----
+  // Uncomment ONLY ONE of the following lines at a time.
+
+  json_to_visualize = list.generateJson();
+  // json_to_visualize = string_list.generateJson();
+  // json_to_visualize = my_binary_tree.generateJson();
+  // json_to_visualize = generateGraphJson(my_std_graph);
+
+  // Print the chosen JSON string to standard output.
+  // The 'vscode-debug-visualizer' extension will capture this.
+  std::cout << json_to_visualize << '\n';
+
+  std::cout << "Program finished. Set a breakpoint on this line to see the visualization." << '\n';
+
   return 0;
 }
 
