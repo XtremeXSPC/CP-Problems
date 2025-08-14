@@ -9,7 +9,6 @@ CompileFlags:
 
     # Force GCC compatibility mode
     - -D__GNUC__=15
-    - --gcc-toolchain=/opt/homebrew
 
     # Competitive programming optimizations
     - -DDEBUG
