@@ -1,1 +1,1 @@
-/home/lcs-dev/LCS.Data/CP-Problems/CodeForces/Algorithms/debug.h
+/Volumes/LCS.Data/CP-Problems/CodeForces/Algorithms/debug.h
