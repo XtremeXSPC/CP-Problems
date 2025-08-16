@@ -6,12 +6,37 @@
       "type": "shell",
       "command": "make",
       "args": ["BUILD_TYPE=debug"],
-      "problemMatcher": ["$gcc"],
       "group": {
         "kind": "build",
         "isDefault": true
       },
-      "detail": "Build the project for debugging."
+      "presentation": {
+        "echo": true,
+        "reveal": "silent",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "problemMatcher": ["$gcc"],
+      "detail": "Build with debug information using Makefile"
+    },
+    {
+      "label": "Build (Contest)",
+      "type": "shell",
+      "command": "make",
+      "args": ["contest"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "silent",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "problemMatcher": ["$gcc"],
+      "detail": "Build optimized version for contest submission"
     },
     {
       "label": "Build (Release)",
@@ -21,6 +46,56 @@
       "problemMatcher": ["$gcc"],
       "group": "build",
       "detail": "Build the project for release."
+    },
+    {
+      "label": "Run with Input",
+      "type": "shell",
+      "command": "make",
+      "args": ["run"],
+      "group": "test",
+      "dependsOn": "Build (Debug)",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": true
+      },
+      "detail": "Build and run with input.txt (if exists)"
+    },
+    {
+      "label": "Test (Input → Output)",
+      "type": "shell",
+      "command": "make",
+      "args": ["test"],
+      "group": "test",
+      "dependsOn": "Build (Debug)",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": true
+      },
+      "detail": "Run with input.txt and save to output.txt"
+    },
+    {
+      "label": "Debug Info",
+      "type": "shell",
+      "command": "make",
+      "args": ["debug-info"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": true
+      },
+      "detail": "Show detailed build configuration information"
     },
     {
       "label": "LLDB Debug (macOS)",
@@ -58,37 +133,69 @@
       "type": "shell",
       "command": "make",
       "args": ["clean"],
-      "problemMatcher": [],
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
       "group": "build",
-      "detail": "Remove all build artifacts."
+      "presentation": {
+        "echo": true,
+        "reveal": "silent",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "detail": "Clean build artifacts"
     },
     {
-      "label": "Debug Info",
+      "label": "Configure IDE",
       "type": "shell",
       "command": "make",
-      "args": ["debug-info"],
-      "options": {
-        "cwd": "${workspaceFolder}"
+      "args": ["config-ide"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": true
       },
-      "group": "none",
-      "detail": "Show debug information about the Makefile configuration."
+      "detail": "Configure IDE integration for current platform"
     },
     {
-      "label": "Run Program",
+      "label": "Memory Check (Sanitize)",
       "type": "shell",
       "command": "make",
-      "args": ["run"],
-      "options": {
-        "cwd": "${workspaceFolder}"
+      "args": ["BUILD_TYPE=sanitize", "run"],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": true
       },
-      "group": {
-        "kind": "test",
-        "isDefault": true
+      "problemMatcher": ["$gcc"],
+      "detail": "Build with AddressSanitizer and run for memory debugging"
+    },
+    {
+      "label": "Quick Contest Build & Run",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-c",
+        "make contest && echo '=== Running optimized version ===' && make run BUILD_TYPE=release"
+      ],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": true
       },
-      "detail": "Esegue il programma compilato."
+      "problemMatcher": ["$gcc"],
+      "detail": "Quick optimized build and test for contests"
     }
   ]
 }

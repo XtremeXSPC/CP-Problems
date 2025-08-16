@@ -45,9 +45,21 @@ SRCDIR         ?= .
 OBJDIR         ?= obj
 BINDIR         ?= bin
 
+# NEW: Standardized I/O and config directories
+INPUT_DIR      ?= input
+OUTPUT_DIR     ?= output
+IDE_CONFIG_DIR ?= .ide-config
+
 # Build profile for competitive programming: debug (default) or release.
 # 'sanitize' profile is also available for debugging memory issues.
 BUILD_TYPE     ?= debug
+
+# IDE configuration mode - when set to 'yes', produces clean compile commands
+# without toolchain-specific flags that can confuse clangd
+IDE_CONFIG     ?= no
+
+# Define the location for helper scripts
+SCRIPTS_DIR    ?= scripts
 
 # Competitive programming specific settings
 ENABLE_FAST_IO ?= 1
@@ -111,20 +123,29 @@ else
         $(info $(C_CYAN)Detected headers:$(C_RESET) $(if $(NEEDS_BITS_STDC),bits/stdc++.h) $(if $(NEEDS_PBDS),pb_ds))
         
         # ----- START: Toolchain Replication Logic ---------- #
-        # Call the external helper script to get the include flags.r
+        # Call the external helper script to get the include flags.
         # The script takes the compiler path and returns a space-separated list of flags.
         GCC_ISYSTEM_FLAGS := $(shell ./assets/get_gcc_includes.sh $(CXX))
 
-        # Use -nostdinc++ to prevent the compiler from using its default search paths.
-        # This forces it to use only the '-isystem' paths we provide.
-        CXXFLAGS_TOOLCHAIN := -nostdinc++
-        SYSTEM_INCLUDES := $(GCC_ISYSTEM_FLAGS)
+        # For IDE configuration, we skip the toolchain-specific flags to avoid
+        # confusing clangd. The .clangd file will handle toolchain integration.
+        ifeq ($(IDE_CONFIG),yes)
+            # Clean configuration for IDE - let clangd handle toolchain discovery
+            CXXFLAGS_TOOLCHAIN :=
+            SYSTEM_INCLUDES := -I/usr/local/include
+            STDLIB_FLAG :=
+        else
+            # Use -nostdinc++ to prevent the compiler from using its default search paths.
+            # This forces it to use only the '-isystem' paths we provide.
+            CXXFLAGS_TOOLCHAIN := -nostdinc++
+            SYSTEM_INCLUDES := $(GCC_ISYSTEM_FLAGS)
 
-        # ----- Platform-Specific Standard Library Flag ------ #
-        # The -stdlib=libstdc++ flag is needed on macOS to steer the toolchain,
-        # but it's an unrecognized (and unnecessary) option for native GCC on Linux.
-        ifeq ($(detected_os),MACOS)
-            STDLIB_FLAG := -stdlib=libstdc++
+            # ----- Platform-Specific Standard Library Flag ------ #
+            # The -stdlib=libstdc++ flag is needed on macOS to steer the toolchain,
+            # but it's an unrecognized (and unnecessary) option for native GCC on Linux.
+            ifeq ($(detected_os),MACOS)
+                STDLIB_FLAG := -stdlib=libstdc++
+            endif
         endif
         # ----- END: Toolchain Replication Logic ------------- #
 
@@ -207,50 +228,30 @@ detected_os    := UNKNOWN_UNIX
 
 ifeq ($(UNAME_S),Darwin)
 	detected_os := MACOS
-	# Default Unix settings are already correct for macOS
 else ifeq ($(UNAME_S),Linux)
 	detected_os := LINUX
-	# Default Unix settings are already correct for Linux
-else ifneq (,$(findstring MINGW,$(UNAME_S))) # MinGW (Git Bash, MSYS2)
+else ifneq (,$(findstring MINGW,$(UNAME_S)))
 	detected_os := WINDOWS_MINGW
 	TARGET_EXEC := $(TARGET_NAME).exe
-    # MinGW prefers Unix-style slashes
-	PathSep     := /
-	RM          := rm -f
-	RMDIR_CMD   := rm -rf
-	MKDIR_P     := mkdir -p
-else ifneq (,$(findstring CYGWIN,$(UNAME_S))) # Cygwin
+else ifneq (,$(findstring CYGWIN,$(UNAME_S)))
 	detected_os := WINDOWS_CYGWIN
-    # Cygwin can handle with or without .exe
 	TARGET_EXEC := $(TARGET_NAME).exe
-	PathSep     := /
-	RM          := rm -f
-	RMDIR_CMD   := rm -rf
-	MKDIR_P     := mkdir -p
-else ifeq ($(OS),Windows_NT) # Environment variable from cmd.exe or PowerShell
+else ifeq ($(OS),Windows_NT)
 	detected_os := WINDOWS_NATIVE_OS_VAR
 	TARGET_EXEC := $(TARGET_NAME).exe
 	PathSep     := \
 	RM          := del /Q /F
 	RMDIR_CMD   := rd /S /Q
-    # MKDIR_P handled in create_dirs rule
-else # Fallback to `ver` check only if others fail
+else
 	WINDOWS_VER_CHECK := $(shell ver 2>/dev/null) 
 	ifneq (,$(findstring Windows,$(WINDOWS_VER_CHECK)))
-        # MKDIR_P handled in create_dirs rule
 		detected_os := WINDOWS_NATIVE_VER_CMD
 		TARGET_EXEC := $(TARGET_NAME).exe
 		PathSep     := \
 		RM          := del /Q /F
 		RMDIR_CMD   := rd /S /Q
-	else
-        # Final default if everything fails
-		detected_os ?= UNKNOWN_UNIX
 	endif
 endif
-
-# If SRCDIR, OBJDIR, BINDIR are relative, it is necessary to ensure they are interpreted correctly.
-# For now, we assume they are simple directory names like '.', 'obj', 'bin'
 
 TARGET_DIR_WITH_SEP := $(BINDIR)$(PathSep)
 TARGET_PATH         := $(TARGET_DIR_WITH_SEP)$(TARGET_EXEC)
@@ -258,14 +259,10 @@ TARGET_PATH         := $(TARGET_DIR_WITH_SEP)$(TARGET_EXEC)
 # =========================================================================== #
 # ------------------ Source Detection for Competitive Programming ----------- # 
 # =========================================================================== #
-# Competitive programming typically uses only C++ files
 CPP_SRCS       := $(wildcard $(SRCDIR)/*.cpp $(SRCDIR)/*.cc $(SRCDIR)/*.cxx)
-
-# Usually competitive programming has single source files, but support multiple
 CPP_OBJS       := $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(filter %.cpp,$(CPP_SRCS))) \
                   $(patsubst $(SRCDIR)/%.cc,$(OBJDIR)/%.o,$(filter %.cc,$(CPP_SRCS))) \
                   $(patsubst $(SRCDIR)/%.cxx,$(OBJDIR)/%.o,$(filter %.cxx,$(CPP_SRCS)))
-
 OBJS           := $(CPP_OBJS)
 DEPS           := $(OBJS:.o=.d)
 
@@ -286,7 +283,7 @@ LDFLAGS_FINAL += $(LIBS)
 # =========================================================================== #
 # ------------------------- Competitive Programming Rules ------------------- #
 # =========================================================================== #
-.PHONY: all clean distclean run test compile_commands debug-info help contest
+.PHONY: all clean distclean run test compile_commands debug-info help contest config-ide
 
 # Default target
 all: $(TARGET_PATH)
@@ -294,13 +291,7 @@ all: $(TARGET_PATH)
 # Directory creation with sentinel
 $(DIR_SENTINEL):
 	@echo "$(C_CYAN)Creating directories $(OBJDIR) and $(BINDIR)...$(C_RESET)"
-ifeq ($(detected_os),WINDOWS_NATIVE)
-	@if not exist $(subst /,\,$(OBJDIR)) mkdir $(subst /,\,$(OBJDIR))
-	@if not exist $(subst /,\,$(BINDIR)) mkdir $(subst /,\,$(BINDIR))
-else
-	@$(MKDIR_P) $(OBJDIR)
-	@$(MKDIR_P) $(BINDIR)
-endif
+	@$(MKDIR_P) $(OBJDIR) $(BINDIR)
 	@touch $@
 
 # Linking rule
@@ -312,26 +303,14 @@ $(TARGET_PATH): $(OBJS)
 # Compilation rules with improved logging
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(DIR_SENTINEL)
 	@echo "$(C_CYAN)Compiling C++:$(C_RESET) $< -> $@"
-	@echo "$(C_CYAN)  Includes:$(C_RESET)"
-	@echo "$(CPPFLAGS)" | tr ' ' '\n' | sed 's/^-/    -/'
-	@echo "$(C_CYAN)  Defines & Options:$(C_RESET)"
-	@echo "$(CXXFLAGS)" | tr ' ' '\n' | sed 's/^-/    -/'
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cc $(DIR_SENTINEL)
 	@echo "$(C_CYAN)Compiling C++:$(C_RESET) $< -> $@"
-	@echo "$(C_CYAN)  Includes:$(C_RESET)"
-	@echo "$(CPPFLAGS)" | tr ' ' '\n' | sed 's/^-/    -/'
-	@echo "$(C_CYAN)  Defines & Options:$(C_RESET)"
-	@echo "$(CXXFLAGS)" | tr ' ' '\n' | sed 's/^-/    -/'
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cxx $(DIR_SENTINEL)
 	@echo "$(C_CYAN)Compiling C++:$(C_RESET) $< -> $@"
-	@echo "$(C_CYAN)  Includes:$(C_RESET)"
-	@echo "$(CPPFLAGS)" | tr ' ' '\n' | sed 's/^-/    -/'
-	@echo "$(C_CYAN)  Defines & Options:$(C_RESET)"
-	@echo "$(CXXFLAGS)" | tr ' ' '\n' | sed 's/^-/    -/'
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@
 
 # Include dependency files
@@ -345,84 +324,145 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cxx $(DIR_SENTINEL)
 contest: clean
 	@$(MAKE) BUILD_TYPE=release all
 
-# Run with input redirection (common in competitive programming)
-INPUT_FILE ?= input.txt
-OUTPUT_FILE ?= output.txt
+# MODIFIED: Run with standardized input file location
+INPUT_FILE ?= $(INPUT_DIR)/$(TARGET_NAME).in
+OUTPUT_FILE ?= $(OUTPUT_DIR)/$(TARGET_NAME).out
 ARGS ?=
 
 run: all
 	@echo "$(C_BLUE)Running $(TARGET_PATH)...$(C_RESET)"
-ifeq ($(findstring WINDOWS,$(detected_os)),WINDOWS)
-	$(if $(wildcard $(INPUT_FILE)), \
-		$(subst /,\,$(TARGET_PATH)) $(ARGS) < $(INPUT_FILE), \
-		$(subst /,\,$(TARGET_PATH)) $(ARGS))
-else
-	$(if $(wildcard $(INPUT_FILE)), \
-		./$(TARGET_PATH) $(ARGS) < $(INPUT_FILE), \
-		./$(TARGET_PATH) $(ARGS))
-endif
+	@if [ ! -f "$(INPUT_FILE)" ]; then \
+		echo "$(C_YELLOW)Input file '$(INPUT_FILE)' not found, running without redirection.$(C_RESET)"; \
+		./$(TARGET_PATH) $(ARGS); \
+	else \
+		echo "$(C_CYAN)Input from: $(INPUT_FILE)$(C_RESET)"; \
+		./$(TARGET_PATH) $(ARGS) < $(INPUT_FILE); \
+	fi
 
-# Run with both input and output redirection
+# MODIFIED: Test with standardized input/output file locations
 test: all
 	@echo "$(C_BLUE)Running $(TARGET_PATH) with I/O redirection...$(C_RESET)"
-ifeq ($(findstring WINDOWS,$(detected_os)),WINDOWS)
-	$(if $(wildcard $(INPUT_FILE)), \
-		$(subst /,\,$(TARGET_PATH)) $(ARGS) < $(INPUT_FILE) > $(OUTPUT_FILE), \
-		$(subst /,\,$(TARGET_PATH)) $(ARGS) > $(OUTPUT_FILE))
-else
-	$(if $(wildcard $(INPUT_FILE)), \
-		./$(TARGET_PATH) $(ARGS) < $(INPUT_FILE) > $(OUTPUT_FILE), \
-		./$(TARGET_PATH) $(ARGS) > $(OUTPUT_FILE))
-endif
-	@echo "$(C_BLUE)Output written to $(OUTPUT_FILE)$(C_RESET)"
+	@if [ ! -f "$(INPUT_FILE)" ]; then \
+		echo "$(C_RED)Error: Input file '$(INPUT_FILE)' not found for testing.$(C_RESET)"; \
+		exit 1; \
+	fi
+	@$(MKDIR_P) $(OUTPUT_DIR)
+	./$(TARGET_PATH) $(ARGS) < $(INPUT_FILE) > $(OUTPUT_FILE)
+	@echo "$(C_GREEN)Output written to $(OUTPUT_FILE)$(C_RESET)"
+
+# =========================================================================== #
+# ----------------- Platform-Aware IDE Configuration System ----------------- #
+# =========================================================================== #
+
+# CORRECTED: init-ide-config is now more explicit about its purpose.
+.PHONY: init-ide-config
+init-ide-config:
+	@echo "$(C_CYAN)Initializing IDE configuration directory...$(C_RESET)"
+	@$(MKDIR_P) $(IDE_CONFIG_DIR)
+	@echo "$(C_GREEN)󰄭 IDE config directory ensured: $(IDE_CONFIG_DIR)/$(C_RESET)"
+	@echo "$(C_YELLOW)Place your IDE templates (e.g., 'clangd-macos.yml') in this directory.$(C_RESET)"
+	@if [ ! -f "$(IDE_CONFIG_DIR)/clangd-macos.yml" ]; then \
+		echo "$(C_YELLOW)Warning: Template 'clangd-macos.yml' not found. 'config-ide' may fail on macOS.$(C_RESET)"; \
+	fi
+
+# CORRECTED: config-ide now uses pure shell logic within the recipe to avoid errors.
+.PHONY: config-ide
+config-ide:
+	@echo "$(C_BOLD)----- Configuring IDE Integration (Clangd) -----$(C_RESET)"
+	@echo "$(C_CYAN)Detected OS: $(detected_os)$(C_RESET)"
+	
+	@echo "$(C_CYAN)Step 1: Managing platform-specific .clangd configuration...$(C_RESET)"
+	@if [ "$(NEEDS_GCC)" = "yes" ]; then \
+		if [ "$(detected_os)" = "MACOS" ]; then \
+			if [ -z "$(GCC_BINARY)" ]; then \
+				echo "$(C_RED)Error: Cannot configure IDE because compatible GCC was not found.$(C_RESET)"; \
+				exit 1; \
+			fi; \
+			echo "$(C_YELLOW)macOS + Competitive Headers detected. Deploying .clangd config...$(C_RESET)"; \
+			CLANGD_TEMPLATE="$(IDE_CONFIG_DIR)/clangd-macos.yml"; \
+			if [ -f "$$CLANGD_TEMPLATE" ]; then \
+				cp "$$CLANGD_TEMPLATE" .clangd; \
+				echo "$(C_GREEN)󰄭 .clangd configured for GCC toolchain using template: $$CLANGD_TEMPLATE$(C_RESET)"; \
+			else \
+				echo "$(C_RED)Error: .clangd template not found at '$$CLANGD_TEMPLATE'$(C_RESET)"; \
+				echo "$(C_YELLOW)Please run 'make init-ide-config' and ensure the template exists.$(C_RESET)"; \
+				exit 1; \
+			fi; \
+		else \
+			echo "$(C_CYAN)Linux/Unix detected. Native GCC support, removing .clangd...$(C_RESET)"; \
+			$(RM) .clangd 2>/dev/null || true; \
+			echo "$(C_GREEN)󰄭 Clean environment configured for Linux$(C_RESET)"; \
+		fi; \
+	else \
+		echo "$(C_CYAN)Standard C++ (Clang) setup detected. Ensuring clean environment...$(C_RESET)"; \
+		$(RM) .clangd 2>/dev/null || true; \
+		echo "$(C_GREEN)󰄭 Clean Clang environment configured$(C_RESET)"; \
+	fi
+
+	@echo "$(C_CYAN)Step 2: Generating compile_commands.json...$(C_RESET)"
+	@if ! command -v compiledb > /dev/null; then \
+		echo "$(C_RED)Error: 'compiledb' is not installed. Cannot generate compile_commands.json.$(C_RESET)"; \
+		echo "$(C_YELLOW)Please install it with: pip install compiledb$(C_RESET)"; \
+		exit 1; \
+	fi
+	@echo "$(C_YELLOW)Note: Using clean configuration without toolchain-specific flags for clangd.$(C_RESET)"
+	@compiledb -n make clean all IDE_CONFIG=yes BUILD_TYPE=$(BUILD_TYPE)
+	
+	@echo "$(C_BOLD)$(C_GREEN)󰄭 IDE Configuration Complete!$(C_RESET)"
+	@echo "$(C_YELLOW)Please reload your editor to apply the changes.$(C_RESET)"
+
+# =========================================================================== #
+# ---------------------- Benchmark Integration Targets ---------------------- #
+# =========================================================================== #
+.PHONY: benchmark create-bench-tests compare
+
+# Variables for benchmark targets
+BENCH_TARGET ?= $(TARGET_NAME)
+BENCH_TESTS  ?= small medium large
+SOLUTIONS    ?=
+
+# Create standard benchmark test cases (small, medium, large, stress)
+create-bench-tests:
+	@if [ ! -f "$(SCRIPTS_DIR)/benchmark.sh" ]; then echo "$(C_RED)benchmark.sh not found in '$(SCRIPTS_DIR)/'!$(C_RESET)"; exit 1; fi
+	@./$(SCRIPTS_DIR)/benchmark.sh create-tests
+	
+# Run benchmark for a specific target
+benchmark:
+	@if [ ! -f "$(SCRIPTS_DIR)/benchmark.sh" ]; then echo "$(C_RED)benchmark.sh not found in '$(SCRIPTS_DIR)/'!$(C_RESET)"; exit 1; fi
+	@echo "$(C_CYAN)Running benchmark for target $(BENCH_TARGET) with tests: $(BENCH_TESTS)...$(C_RESET)"
+	@./$(SCRIPTS_DIR)/benchmark.sh bench $(BENCH_TARGET).cpp $(BENCH_TESTS)
+
+# Compare multiple solutions
+compare:
+	@if [ ! -f "$(SCRIPTS_DIR)/benchmark.sh" ]; then echo "$(C_RED)benchmark.sh not found in '$(SCRIPTS_DIR)/'!$(C_RESET)"; exit 1; fi
+	@if [ -z "$(SOLUTIONS)" ]; then echo "$(C_RED)Please specify solutions to compare, e.g., make compare SOLUTIONS=\"A.cpp B.cpp\"$(C_RESET)"; exit 1; fi
+	@echo "$(C_CYAN)Comparing solutions: $(SOLUTIONS)...$(C_RESET)"
+	@./$(SCRIPTS_DIR)/benchmark.sh compare $(SOLUTIONS)
 
 # =========================================================================== #
 # ----------------------- Utility & Development Targets --------------------- #
 # =========================================================================== #
 
-.PHONY: test-colors
-test-colors:
-	@echo "Testing color configuration..."
-	@echo "TTY test: $(shell test -t 1 && echo 'true' || echo 'false')"
-	@echo "N_COLORS: '$(N_COLORS)'"
-	@echo "TERM: '$(TERM)'"
-	@echo "Shell: '$(SHELL)'"
-	@echo "Colors test:"
-	@echo "$(C_RED)Red text$(C_RESET)"
-	@echo "$(C_GREEN)Green text$(C_RESET)"
-	@echo "$(C_YELLOW)Yellow text$(C_RESET)"
-	@echo "$(C_BLUE)Blue text$(C_RESET)"
-	@echo "$(C_CYAN)Cyan text$(C_RESET)"
-	@echo "$(C_BOLD)Bold text$(C_RESET)"
-
 clean:
 	@echo "$(C_YELLOW)Cleaning build artifacts...$(C_RESET)"
 	-$(RM) $(OBJDIR)$(PathSep)*.o
 	-$(RM) $(OBJDIR)$(PathSep)*.d
-	-$(RM) $(TARGET_PATH)
+	-$(RM) $(BINDIR)$(PathSep)*
 	-$(RM) $(DIR_SENTINEL)
 	@echo "$(C_GREEN)Clean complete.$(C_RESET)"
 
 distclean: clean
 	@echo "$(C_YELLOW)Cleaning all directories and temporary files...$(C_RESET)"
-ifeq ($(findstring WINDOWS,$(detected_os)),WINDOWS)
-	@if exist $(subst /,\,$(OBJDIR)) $(RMDIR_CMD) $(subst /,\,$(OBJDIR))
-	@if exist $(subst /,\,$(BINDIR)) $(RMDIR_CMD) $(subst /,\,$(BINDIR))
-else
-	-$(RMDIR_CMD) $(OBJDIR)
-	-$(RMDIR_CMD) $(BINDIR)
-endif
-	# Remove competitive programming artifacts
-	-$(RM) $(OUTPUT_FILE) *~ *.bak
+	-$(RMDIR_CMD) $(OBJDIR) $(BINDIR) $(OUTPUT_DIR)
+	# Remove competitive programming artifacts and IDE configuration
+	-$(RM) *~ *.bak .clangd compile_commands.json
 	@echo "$(C_GREEN)Distclean complete.$(C_RESET)"
 
 # Compilation Database for clangd (essential for competitive programming IDEs)
-.PHONY: compile_commands
 compile_commands:
 	@echo "$(C_CYAN)Generating compile_commands.json for IDE support...$(C_RESET)"
 	@compiledb -n make clean all BUILD_TYPE=$(BUILD_TYPE)
 
-# Debug information - enhanced for competitive programming
 debug-info:
 	@echo "$(C_BOLD)/====------------ Competitive Programming Debug Info ------------====/$(C_RESET)"
 	@echo "$(C_CYAN)Build Configuration:$(C_RESET)"
@@ -430,13 +470,13 @@ debug-info:
 	@echo "  Detected OS: $(detected_os)"
 	@echo "  PathSep: $(PathSep)"
 	@echo "  BUILD_TYPE: $(BUILD_TYPE)"
+	@echo "  IDE_CONFIG: $(IDE_CONFIG)"
 	@echo "  TARGET_EXEC: $(TARGET_EXEC)"
 	@echo "  TARGET_NAME: $(TARGET_NAME)"
 	@echo "  TARGET_PATH: $(TARGET_PATH)"
 	@echo "  SRCDIR: $(SRCDIR), OBJDIR: $(OBJDIR), BINDIR: $(BINDIR)"
 	@echo ""
 	@echo "$(C_CYAN)Sources & Objects:$(C_RESET)"
-	@echo "  C_SRCS: $(C_SRCS)"
 	@echo "  CPP_SRCS: $(CPP_SRCS)"
 	@echo "  OBJS: $(OBJS)"
 	@echo "  DEPS: $(DEPS)"
@@ -447,58 +487,56 @@ debug-info:
 	@echo "  NEEDS_PBDS: $(if $(NEEDS_PBDS),YES ($(NEEDS_PBDS)),NO)"
 	@echo ""
 	@echo "$(C_CYAN)Compiler & Linker Configuration:$(C_RESET)"
-	@echo "CC: $(CC), CXX: $(CXX), LD: $(LD)"
+	@echo "  CC: $(CC), CXX: $(CXX), LD: $(LD)"
 	@echo "  GCC_PREFIX: $(GCC_PREFIX)"
 	@echo "  GCC_BINARY: $(GCC_BINARY)"
-	@echo "  GCC_INCLUDE_DIR: $(GCC_INCLUDE_DIR)"
+	@echo ""
+	@echo "$(C_CYAN)IDE Integration:$(C_RESET)"
+	@echo "  IDE_CONFIG_DIR: $(IDE_CONFIG_DIR)"
+	@echo "  .clangd needed: $(if $(filter $(NEEDS_GCC)-$(detected_os),yes-MACOS),YES,NO)"
+	@echo "  compile_commands.json: $(if $(wildcard compile_commands.json),EXISTS,MISSING)"
 	@echo ""
 	@echo "$(C_CYAN)Build Flags:$(C_RESET)"
-	@echo "  CFLAGS: $(CFLAGS)"
 	@echo "  CPPFLAGS:"
-	@echo "$(CPPFLAGS)" | tr ' ' '\n' | sed 's/^-/    -/'
+	@echo "$(CPPFLAGS)" | tr ' ' '\n' | sed 's/^-/    -/' | head -20
 	@echo "  CXXFLAGS:"
-	@echo "$(CXXFLAGS)" | tr ' ' '\n' | sed 's/^-/    -/'
+	@echo "$(CXXFLAGS)" | tr ' ' '\n' | sed 's/^-/    -/' | head -20
 	@echo "  LDFLAGS_FINAL:"
-	@echo "$(LDFLAGS_FINAL)" | tr ' ' '\n' | sed 's/^-/    -/'
+	@echo "$(LDFLAGS_FINAL)" | tr ' ' '\n' | sed 's/^-/    -/' | head -20
 	@echo ""
-	@echo "$(C_CYAN)Sources:$(C_RESET)"
-	@echo "  CPP_SRCS: $(CPP_SRCS)"
-	@echo "  OBJS: $(OBJS)"
-	@echo ""
-	@echo "$(C_CYAN)OS Commands$(C_RESET)"
+	@echo "$(C_CYAN)OS Commands:$(C_RESET)"
 	@echo "  RM: $(RM)"
 	@echo "  RMDIR_CMD: $(RMDIR_CMD)"
-	@echo "  MKDIR_P (for Unix-like): $(MKDIR_P)"
+	@echo "  MKDIR_P: $(MKDIR_P)"
 	@echo "$(C_BOLD)/====------------------------------------------------------------====/$(C_RESET)"
 
 help:
-	@echo "$(C_BOLD}Competitive Programming Makefile$(C_RESET)"
+	@echo "$(C_BOLD)Competitive Programming Makefile$(C_RESET)"
+	@echo "This Makefile is best used with the 'contest-helper.sh' script."
 	@echo "Usage: make $(C_YELLOW)[TARGET] [VARIABLE=VALUE]$(C_RESET)"
 	@echo ""
-	@echo "$(C_CYAN}Build Targets:$(C_RESET)"
-	@echo "  $(C_GREEN)all$(C_RESET)               - Build with specified BUILD_TYPE (default: debug)"
-	@echo "  $(C_GREEN)contest$(C_RESET)           - Quick release build for contests"
-	@echo "  $(C_GREEN)run$(C_RESET)               - Build and run (uses input.txt if available)"
-	@echo "  $(C_GREEN)test$(C_RESET)              - Run with I/O redirection (input.txt -> output.txt)"
-	@echo "  $(C_GREEN)compile_commands$(C_RESET)  - Generate compilation database for IDE"
-	@echo "  $(C_GREEN)clean$(C_RESET)             - Remove build artifacts"
-	@echo "  $(C_GREEN)distclean$(C_RESET)         - Remove everything including output files"
-	@echo "  $(C_GREEN)debug-info$(C_RESET)        - Show detailed build configuration"
-	@echo "  $(C_GREEN)help$(C_RESET)              - Show this message"
+	@echo "$(C_CYAN)Core Build Targets:$(C_RESET)"
+	@echo "  $(C_GREEN)all$(C_RESET)         - Build with specified BUILD_TYPE (default: debug)"
+	@echo "  $(C_GREEN)contest$(C_RESET)     - Quick release build for contests"
+	@echo "  $(C_GREEN)run$(C_RESET)         - Build and run (uses 'input/\$$(TARGET_NAME).in' by default)"
+	@echo "  $(C_GREEN)test$(C_RESET)        - Run with I/O redirection ('input/' -> 'output/')"
 	@echo ""
-	@echo "$(C_CYAN}Configuration Variables:$(C_RESET)"
-	@echo "  $(C_YELLOW)BUILD_TYPE=[debug|release|sanitize]$(C_RESET)  - Build optimization level"
-	@echo "  $(C_YELLOW)TARGET_NAME=<name>$(C_RESET)                   - Executable name (default: main)"
-	@echo "  $(C_YELLOW)INPUT_FILE=<file>$(C_RESET)                    - Input file for 'run'/'test'"
-	@echo "  $(C_YELLOW)OUTPUT_FILE=<file>$(C_RESET)                   - Output file for 'test'"
-	@echo "  $(C_YELLOW)ENABLE_FAST_IO=[0|1]$(C_RESET)                 - Enable fast I/O optimizations"
-	@echo "  $(C_YELLOW)ENABLE_DEBUG=[0|1]$(C_RESET)                   - Enable debug output macros"
-	@echo "  $(C_YELLOW)ARGS=\"...\"$(C_RESET)                           - Arguments for run/test"
+	@echo "$(C_CYAN)IDE & Tooling:$(C_RESET)"
+	@echo "  $(C_GREEN)config-ide$(C_RESET)  - Configure IDE (clangd) for the current platform"
+	@echo "  $(C_GREEN)init-ide-config$(C_RESET) - Create/verify the IDE config directory and templates"
 	@echo ""
-	@echo "$(C_CYAN}Examples:$(C_RESET)"
-	@echo "  make contest                         - Quick optimized build"
-	@echo "  make run INPUT_FILE=sample.in        - Run with custom input"
-	@echo "  make test INPUT_FILE=in.txt OUTPUT_FILE=out.txt"
+	@echo "$(C_CYAN)Benchmarking Targets:$(C_RESET)"
+	@echo "  $(C_GREEN)create-bench-tests$(C_RESET) - Create standard benchmark input files"
+	@echo "  $(C_GREEN)benchmark$(C_RESET)          - Benchmark a target (e.g., 'make benchmark BENCH_TARGET=A')"
+	@echo "  $(C_GREEN)compare$(C_RESET)            - Compare solutions (e.g., 'make compare SOLUTIONS=\"A.cpp B.cpp\"')"
+	@echo ""
+	@echo "$(C_CYAN)Cleaning Targets:$(C_RESET)"
+	@echo "  $(C_GREEN)clean$(C_RESET)       - Remove build artifacts"
+	@echo "  $(C_GREEN)distclean$(C_RESET)   - Remove everything including output and IDE config"
+	@echo ""
+	@echo "$(C_CYAN)Debug & Info:$(C_RESET)"
+	@echo "  $(C_GREEN)debug-info$(C_RESET)  - Show detailed build configuration"
+	@echo "  $(C_GREEN)help$(C_RESET)         - Show this message"
 
 .SUFFIXES:
 
