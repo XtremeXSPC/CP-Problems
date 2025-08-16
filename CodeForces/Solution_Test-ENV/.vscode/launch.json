@@ -72,14 +72,13 @@
       "preLaunchTask": "Build (Debug)"
     },
     {
-      // ----- macOS/Windows/Linux Configurations ----- //
-      // This configuration uses the Microsoft C/C++ extension on all platforms.
-      "name": "Debug C/C++ (Cross-Platform)",
+      // ----- Cross-Platform Debug Configuration with Input Support ----- //
+      "name": "Debug C/C++ (Cross-Platform with Input)",
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/bin/Tester",
       "args": [],
-      "stopAtEntry": true,
+      "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],
       "externalConsole": false,
@@ -89,53 +88,40 @@
       "windows": {
         "program": "${workspaceFolder}/bin/Tester.exe",
         "MIMode": "gdb",
-        "miDebuggerPath": "C:/msys64/mingw64/bin/gdb.exe"
+        "miDebuggerPath": "C:/msys64/mingw64/bin/gdb.exe",
+        "args": ["<", "${workspaceFolder}/input.txt"]
       },
       "linux": {
         "program": "${workspaceFolder}/bin/Tester",
         "MIMode": "gdb",
-        "miDebuggerPath": "/usr/bin/gdb"
+        "miDebuggerPath": "/usr/bin/gdb",
+        "args": ["<", "${workspaceFolder}/input.txt"]
       },
       "osx": {
         "program": "${workspaceFolder}/bin/Tester",
-        // On macOS, is necessary to use LLDB for debugging.
-        // This is essential for Apple Silicon and to use our formatters.
-        "MIMode": "lldb"
+        "MIMode": "lldb",
+        "stdio": ["${workspaceFolder}/input.txt", null, null]
       },
 
-      // ----- Debugger Setup Commands ----- //
-      // These commands are executed when the debugger starts.
-      // 'ignoreFailures: true' ensures GDB ignores LLDB commands and vice versa.
+      // ----- Input Redirection from input.txt ----- //
+      "console": "integratedTerminal",
       "setupCommands": [
         {
-          "description": "Load Custom LLDB Formatters (on macOS)",
+          "description": "Load Custom LLDB Formatters (macOS)",
           "text": "command script import /Users/lcs-dev/.lldb/LLDB_Formatters",
           "ignoreFailures": true
         },
         {
-          "description": "Enable Pretty-Printing for GDB (on Linux/Windows)",
+          "description": "Enable Pretty-Printing for GDB (Linux/Windows)",
           "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Set inline breakpoint strategy (LLDB)",
+          "text": "settings set target.inline-breakpoint-strategy always",
           "ignoreFailures": true
         }
       ]
-    },
-    {
-      // ----- Launch Mandelbrot (macOS) ----- //
-      "name": "Launch Mandelbrot",
-      "type": "lldb",
-      "request": "launch",
-      "program": "${workspaceFolder}/bin/Tester",
-      "initCommands": [
-        "command script import ${workspaceRoot}/Debug/debug_lldb.py"
-      ]
-    }
-  ],
-  "inputs": [
-    {
-      "id": "debugArgs",
-      "type": "promptString",
-      "description": "Arguments to pass to the program",
-      "default": ""
     }
   ]
 }

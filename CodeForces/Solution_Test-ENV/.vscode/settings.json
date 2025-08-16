@@ -1,43 +1,95 @@
 {
-  // ----- C/C++ Compiler Settings ----- //
-  "clangd.arguments": [
-    "--log=error",
-    "--pretty",
-    "--limit-results=20",
-    "--header-insertion=never",
-    "--completion-style=bundled",
-    "--clang-tidy",
-    "--recovery-ast=false",
-    "--suggest-missing-includes=false",
-    "--compile-commands-dir=${workspaceFolder}"
-  ],
-  "clangd.fallbackFlags": [
-    "-I/opt/homebrew/include/c++/15",
-    "-I/opt/homebrew/include/c++/15/aarch64-apple-darwin24",
-    "-std=c++23"
-  ],
+  //===----- VS Code settings for Competitive Programming Environment -----===//
 
-  // ----- C/C++ Error Settings ----- //
-  // Hide error squiggles and disable IntelliSense
-  "problems.decorations.enabled": false,
-  "editor.renderValidationDecorations": "off",
-  "C_Cpp.errorSquiggles": "disabled",
+  //===----- Editor Configuration -----===//
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
+  "editor.wordWrap": "off",
+  "editor.minimap.enabled": false,
+  "editor.lineNumbers": "on",
+  "editor.rulers": [80, 120],
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.bracketPairs": true,
+
+  // Fast typing for contests
+  "editor.quickSuggestions": {
+    "other": true,
+    "comments": false,
+    "strings": false
+  },
+  "editor.acceptSuggestionOnCommitCharacter": true,
+  "editor.acceptSuggestionOnEnter": "on",
+  "editor.suggestOnTriggerCharacters": true,
+
+  //===----- C/C++ Configuration -----===//
   "C_Cpp.intelliSenseEngine": "disabled",
+  "C_Cpp.autocomplete": "disabled",
+  "C_Cpp.errorSquiggles": "disabled",
+  "C_Cpp.configurationWarnings": "disabled",
 
-  // Filter problems to show only errors and warnings
-  "problems.showCurrentInStatus": false,
-  "problems.sortOrder": "severity",
+  //===----- Clangd Configuration -----===//
+  "clangd.onConfigChanged": "restart",
+  "clangd.arguments": [
+    "--background-index",
+    "--clang-tidy",
+    "--completion-style=detailed",
+    "--header-insertion=never",
+    "--log=error"
+  ],
+  "clangd.detectExtensionConflicts": true,
+  "clangd.checkUpdates": false,
 
-  // ----- C/C++ Language Server Settings ----- //
-  "lldb.displayFormat": "auto",
-  "lldb.showDisassembly": "always",
-  "lldb.dereferencePointers": true,
-  "lldb.consoleMode": "commands",
+  //===----- Build and Run Configuration -----===//
+  "code-runner.executorMap": {
+    "cpp": "cd $dir && make run"
+  },
+  "code-runner.runInTerminal": true,
+  "code-runner.saveFileBeforeRun": true,
+  "code-runner.clearPreviousOutput": true,
 
-  // ----- SonarLint Settings ----- //
-  "sonarlint.pathToCompileCommands": "${workspaceFolder}/compile_commands.json",
+  //===----- Terminal Configuration -----===//
+  "terminal.integrated.cwd": "${workspaceFolder}",
 
-  // ----- File associations for various file types ----- //
+  //===----- Competitive Programming Specific -----===//
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 1000,
+  "editor.formatOnSave": true,
+  "editor.trimAutoWhitespace": false,
+
+  //===----- Language Server Priorities -----===//
+  "[cpp]": {
+    // "editor.defaultFormatter": "xaver.clang-format",
+    "editor.semanticHighlighting.enabled": true
+  },
+
+  //===----- Problem Solving Workflow -----===//
+  "workbench.editor.enablePreview": false, // Always open new tabs
+  "workbench.editor.showTabs": "multiple",
+  "explorer.confirmDelete": false,
+  "explorer.confirmDragAndDrop": false,
+
+  //===----- Debug Configuration -----===//
+  "debug.console.fontSize": 13,
+  "debug.internalConsoleOptions": "openOnSessionStart",
+
+  //===----- Files and Search -----===//
+  "files.exclude": {
+    "**/.git": true,
+    "**/.DS_Store": true,
+    "**/bin": true,
+    "**/obj": true,
+    "**/*.o": true,
+    "**/*.exe": true,
+    "**/compile_commands.json": false // Keep visible for debugging
+  },
+  "search.exclude": {
+    "**/bin": true,
+    "**/obj": true,
+    "**/*.o": true
+  },
+
+  //===----- File Associations -----===//
   "files.associations": {
     ".als.json": "jsonc",
     "*.c": "c",
