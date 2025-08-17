@@ -15,6 +15,7 @@ else
     SHELL := $(firstword $(HOMEBREW_BASH))
 endif
 
+# Continue with the rest of the Makefile...
 .ONESHELL:
 .SHELLFLAGS := -eu -o pipefail -c
 
@@ -131,14 +132,13 @@ TARGET_PATH         := $(TARGET_DIR_WITH_SEP)$(TARGET_EXEC)
 
 # ------------------------ GCC Detection for bits/stdc++.h ------------------ #
 # Find the include path and prefix of the latest installed GCC version via Homebrew
-GCC_PREFIX      := $(shell brew --prefix gcc 2>/dev/null)
+GCC_PREFIX      := $(shell brew --prefix gcc 2>/dev/null || echo "")
 
 # Find GCC binary - Prioritize Homebrew installation over system GCC
-GCC_BINARY := $(shell \
-	if [ -n "$(GCC_PREFIX)" ]; then \
-		find $(GCC_PREFIX)/bin -name "g++-*" -type f | sort -V | tail -n 1; \
-	fi \
-)
+GCC_BINARY :=
+ifneq ($(GCC_PREFIX),)
+	GCC_BINARY := $(shell find $(GCC_PREFIX)/bin -name "g++-*" -type f 2>/dev/null | sort -V | tail -n 1)
+endif
 
 # Only use system GCC as last resort and warn about potential issues
 ifeq ($(GCC_BINARY),)
@@ -185,7 +185,11 @@ else
         # ----- START: Toolchain Replication Logic ---------- #
         # Call the external helper script to get the include flags.
         # The script takes the compiler path and returns a space-separated list of flags.
-        GCC_ISYSTEM_FLAGS := $(shell ./assets/get_gcc_includes.sh $(CXX))
+        ifneq ($(GCC_BINARY),)
+            GCC_ISYSTEM_FLAGS := $(shell ./assets/get_gcc_includes.sh $(CXX))
+        else
+            GCC_ISYSTEM_FLAGS :=
+        endif
 
         # For IDE configuration, we skip the toolchain-specific flags to avoid
         # confusing clangd. The .clangd file will handle toolchain integration.
@@ -197,14 +201,22 @@ else
         else
             # Use -nostdinc++ to prevent the compiler from using its default search paths.
             # This forces it to use only the '-isystem' paths we provide.
-            CXXFLAGS_TOOLCHAIN := -nostdinc++
-            SYSTEM_INCLUDES := $(GCC_ISYSTEM_FLAGS)
+            ifneq ($(GCC_ISYSTEM_FLAGS),)
+                CXXFLAGS_TOOLCHAIN := -nostdinc++
+                SYSTEM_INCLUDES := $(GCC_ISYSTEM_FLAGS)
+            else
+                # If we can't get GCC includes, fall back to standard includes
+                CXXFLAGS_TOOLCHAIN :=
+                SYSTEM_INCLUDES := -I/usr/local/include
+            endif
 
             # ----- Platform-Specific Standard Library Flag ------ #
             # The -stdlib=libstdc++ flag is needed on macOS to steer the toolchain,
             # but it's an unrecognized (and unnecessary) option for native GCC on Linux.
             ifeq ($(detected_os),MACOS)
-                STDLIB_FLAG := -stdlib=libstdc++
+                ifneq ($(GCC_BINARY),)
+                    STDLIB_FLAG := -stdlib=libstdc++
+                endif
             endif
         endif
         # ----- END: Toolchain Replication Logic ------------- #
@@ -405,15 +417,33 @@ $(TARGET_PATH): $(OBJS)
 # Compilation rules with improved logging
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(DIR_SENTINEL)
 	@echo "$(C_CYAN)Compiling C++:$(C_RESET) $< -> $@"
-	$(if $(SANITIZE_MODE_COMPILER),$(SANITIZER_COMPILER),$(CXX)) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@
+	@# Use appropriate compiler and flags based on mode
+	@if [ "$(SANITIZE_MODE_COMPILER)" = "yes" ]; then \
+		echo "$(C_YELLOW)  Using Clang for sanitize mode compilation$(C_RESET)"; \
+		$(SANITIZER_COMPILER) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@; \
+	else \
+		$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@; \
+	fi
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cc $(DIR_SENTINEL)
 	@echo "$(C_CYAN)Compiling C++:$(C_RESET) $< -> $@"
-	$(if $(SANITIZE_MODE_COMPILER),$(SANITIZER_COMPILER),$(CXX)) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@
+	@# Use appropriate compiler and flags based on mode
+	@if [ "$(SANITIZE_MODE_COMPILER)" = "yes" ]; then \
+		echo "$(C_YELLOW)  Using Clang for sanitize mode compilation$(C_RESET)"; \
+		$(SANITIZER_COMPILER) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@; \
+	else \
+		$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@; \
+	fi
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cxx $(DIR_SENTINEL)
 	@echo "$(C_CYAN)Compiling C++:$(C_RESET) $< -> $@"
-	$(if $(SANITIZE_MODE_COMPILER),$(SANITIZER_COMPILER),$(CXX)) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@
+	@# Use appropriate compiler and flags based on mode
+	@if [ "$(SANITIZE_MODE_COMPILER)" = "yes" ]; then \
+		echo "$(C_YELLOW)  Using Clang for sanitize mode compilation$(C_RESET)"; \
+		$(SANITIZER_COMPILER) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@; \
+	else \
+		$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@; \
+	fi
 
 # Include dependency files
 -include $(DEPS)
