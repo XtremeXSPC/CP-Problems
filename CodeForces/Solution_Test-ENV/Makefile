@@ -53,8 +53,7 @@ IDE_CONFIG_DIR ?= .ide-config
 # Define the location for helper scripts
 SCRIPTS_DIR    ?= scripts
 
-# Build profile for competitive programming: debug (default) or release.
-# 'sanitize' profile is also available for debugging memory issues.
+# Build profile for competitive programming: debug (default), release, or sanitize.
 BUILD_TYPE     ?= debug
 
 # IDE configuration mode - when set to 'yes', produces clean compile commands
@@ -167,67 +166,137 @@ NEEDS_PBDS      := $(shell grep -l "ext/pb_ds" $(wildcard $(SRCDIR)/*.cpp $(SRCD
 NEEDS_BITS_STDC := $(shell grep -l "bits/stdc++" $(wildcard $(SRCDIR)/*.cpp $(SRCDIR)/*.cc $(SRCDIR)/*.cxx) 2>/dev/null)
 NEEDS_GCC       := $(if $(strip $(NEEDS_BITS_STDC)$(NEEDS_PBDS)),yes,no)
 
-# ----------- Compiler Configuration for Competitive Programming ------------- #
-ifeq ($(NEEDS_GCC),no)
-    # Standard configuration - use Clang for better error messages and tooling
-    CC             := clang
-    CXX            := clang++
-    SYSTEM_INCLUDES:= -I/usr/local/include
-    $(info $(C_CYAN)Using Clang - No competitive programming headers detected$(C_RESET))
+# ----------- Enhanced Compiler Selection with Sanitizer Support ------------ #
+# Variables to track effective compiler configuration
+EFFECTIVE_COMPILER := 
+EFFECTIVE_CC := 
+USE_PCH_FALLBACK := no
+SANITIZER_AVAILABLE := no
+
+# Determine sanitizer availability and compiler selection
+ifeq ($(BUILD_TYPE),sanitize)
+    # For sanitize mode, we need to check compiler capabilities
+    ifeq ($(NEEDS_GCC),yes)
+        # Competitive headers detected - check if GCC has sanitizers
+        ifneq ($(GCC_BINARY),)
+            # Test if GCC sanitizers are available
+            GCC_SANITIZER_TEST := $(shell echo 'int main(){}' | $(GCC_BINARY) -x c++ -fsanitize=address,undefined - -o /tmp/sanitizer_test 2>/dev/null && echo "yes" || echo "no")
+            ifeq ($(GCC_SANITIZER_TEST),yes)
+                SANITIZER_AVAILABLE := yes
+                EFFECTIVE_COMPILER := gcc
+                EFFECTIVE_CC := $(subst g++,gcc,$(GCC_BINARY))
+                $(info $(C_CYAN)Using GCC with sanitizers for competitive programming$(C_RESET))
+            else
+                # GCC sanitizers not working, fall back to Clang with PCH
+                SANITIZER_AVAILABLE := yes
+                EFFECTIVE_COMPILER := clang
+                EFFECTIVE_CC := clang
+                USE_PCH_FALLBACK := yes
+                $(info $(C_YELLOW)GCC sanitizers unavailable, using Clang with PCH fallback$(C_RESET))
+            endif
+        else
+            # No GCC available, must use Clang with PCH fallback
+            SANITIZER_AVAILABLE := yes
+            EFFECTIVE_COMPILER := clang
+            EFFECTIVE_CC := clang
+            USE_PCH_FALLBACK := yes
+            $(info $(C_YELLOW)No GCC found, using Clang with PCH fallback for sanitizers$(C_RESET))
+        endif
+    else
+        # Standard C++ - use Clang for sanitizers
+        SANITIZER_AVAILABLE := yes
+        EFFECTIVE_COMPILER := clang
+        EFFECTIVE_CC := clang
+        $(info $(C_CYAN)Using Clang with sanitizers for standard C++$(C_RESET))
+    endif
 else
-    # Competitive programming configuration - requires GCC
-	ifneq ($(GCC_BINARY),)
-        CC  := $(subst g++,gcc,$(GCC_BINARY))
-        CXX := $(GCC_BINARY)
-        $(info $(C_CYAN)Using GCC for competitive programming:$(C_RESET) $(CXX))
-        $(info $(C_CYAN)Detected headers:$(C_RESET) $(if $(NEEDS_BITS_STDC),bits/stdc++.h) $(if $(NEEDS_PBDS),pb_ds))
-        
-        # ----- START: Toolchain Replication Logic ---------- #
-        # Call the external helper script to get the include flags.
-        # The script takes the compiler path and returns a space-separated list of flags.
+    # Non-sanitize modes - use original logic
+    ifeq ($(NEEDS_GCC),yes)
+        ifneq ($(GCC_BINARY),)
+            EFFECTIVE_COMPILER := gcc
+            EFFECTIVE_CC := $(subst g++,gcc,$(GCC_BINARY))
+            $(info $(C_CYAN)Using GCC for competitive programming$(C_RESET))
+        else
+            $(error $(C_RED)Competitive programming headers detected but compatible GCC not found!$(C_RESET))
+        endif
+    else
+        EFFECTIVE_COMPILER := clang
+        EFFECTIVE_CC := clang
+        $(info $(C_CYAN)Using Clang for standard C++$(C_RESET))
+    endif
+endif
+
+# Set final compiler variables based on effective compiler
+ifeq ($(EFFECTIVE_COMPILER),gcc)
+    CC := $(EFFECTIVE_CC)
+    CXX := $(GCC_BINARY)
+else
+    CC := clang
+    CXX := clang++
+endif
+
+# =========================================================================== #
+# --------------- Enhanced Toolchain Configuration System ------------------ #
+# =========================================================================== #
+
+# Initialize toolchain-specific variables
+SYSTEM_INCLUDES := -I/usr/local/include
+CXXFLAGS_TOOLCHAIN := 
+STDLIB_FLAG := 
+PCH_INCLUDE := 
+
+# Configure toolchain based on effective compiler and mode
+ifeq ($(EFFECTIVE_COMPILER),gcc)
+    ifeq ($(USE_PCH_FALLBACK),no)
+        # Standard GCC configuration for competitive programming
         ifneq ($(GCC_BINARY),)
             GCC_ISYSTEM_FLAGS := $(shell ./assets/get_gcc_includes.sh $(CXX))
         else
             GCC_ISYSTEM_FLAGS :=
         endif
 
-        # For IDE configuration, we skip the toolchain-specific flags to avoid
-        # confusing clangd. The .clangd file will handle toolchain integration.
+        # For IDE configuration, we skip the toolchain-specific flags
         ifeq ($(IDE_CONFIG),yes)
-            # Clean configuration for IDE - let clangd handle toolchain discovery
             CXXFLAGS_TOOLCHAIN :=
             SYSTEM_INCLUDES := -I/usr/local/include
             STDLIB_FLAG :=
         else
-            # Use -nostdinc++ to prevent the compiler from using its default search paths.
-            # This forces it to use only the '-isystem' paths we provide.
+            # Use -nostdinc++ to prevent default search paths
             ifneq ($(GCC_ISYSTEM_FLAGS),)
                 CXXFLAGS_TOOLCHAIN := -nostdinc++
                 SYSTEM_INCLUDES := $(GCC_ISYSTEM_FLAGS)
             else
-                # If we can't get GCC includes, fall back to standard includes
                 CXXFLAGS_TOOLCHAIN :=
                 SYSTEM_INCLUDES := -I/usr/local/include
             endif
 
-            # ----- Platform-Specific Standard Library Flag ------ #
-            # The -stdlib=libstdc++ flag is needed on macOS to steer the toolchain,
-            # but it's an unrecognized (and unnecessary) option for native GCC on Linux.
+            # Platform-specific standard library flag for macOS
             ifeq ($(detected_os),MACOS)
-                ifneq ($(GCC_BINARY),)
-                    STDLIB_FLAG := -stdlib=libstdc++
-                endif
+                STDLIB_FLAG := -stdlib=libstdc++
             endif
         endif
-        # ----- END: Toolchain Replication Logic ------------- #
-
-	else
-		$(error $(C_RED)Competitive programming headers detected but compatible GCC not found!$(C_RESET))
-		$(error $(C_YELLOW)Install GCC via: brew install gcc$(C_RESET))
-	endif
+    else
+        # PCH fallback mode: use Clang with custom PCH.h instead of bits/stdc++.h
+        CXXFLAGS_TOOLCHAIN := -DUSE_PCH_FALLBACK=1
+        PCH_INCLUDE := -include $(SRCDIR)/PCH.h
+        SYSTEM_INCLUDES := -I/usr/local/include
+        STDLIB_FLAG := 
+        $(info $(C_YELLOW)Using PCH.h fallback instead of bits/stdc++.h$(C_RESET))
+    endif
+else
+    # Clang configuration
+    CXXFLAGS_TOOLCHAIN := 
+    SYSTEM_INCLUDES := -I/usr/local/include
+    STDLIB_FLAG := 
+    
+    # Add PCH include if using fallback mode
+    ifeq ($(USE_PCH_FALLBACK),yes)
+        CXXFLAGS_TOOLCHAIN := -DUSE_PCH_FALLBACK=1
+        PCH_INCLUDE := -include $(SRCDIR)/PCH.h
+    endif
 endif
 
-# Define project-specific include directories EXPLICITLY.
+# Define project-specific include directories
 PROJECT_INCLUDES := -I$(SRCDIR) -I$(SRCDIR)/include
 
 # ----------------- Competitive Programming Compiler Flags ------------------ #
@@ -246,87 +315,75 @@ ifeq ($(ENABLE_DEBUG),1)
 endif
 
 # Include paths - combine and deduplicate
-CPPFLAGS := $(sort $(PROJECT_INCLUDES)) $(SYSTEM_INCLUDES)
+CPPFLAGS := $(sort $(PROJECT_INCLUDES)) $(SYSTEM_INCLUDES) $(PCH_INCLUDE)
 
-# -------------- Build Profile Configuration for Competitive Programming ---- #
+# -------------- Enhanced Build Profile Configuration -------------------- #
 # Initialize LDFLAGS with standard library flag if needed
 LDFLAGS := $(STDLIB_FLAG)
 
 ifeq ($(BUILD_TYPE), release)
     # Release: Maximum optimization for contest submission
-    # -O2 is often preferred over -O3 for competitive programming (more predictable)
-    
     # Platform-specific optimization flags
     ifeq ($(detected_os),MACOS)
-        # On macOS ARM, use mcpu instead of march for better GCC compatibility
         ARCH_FLAGS := -mcpu=native
     else
-        # On Linux, march=native usually works fine
         ARCH_FLAGS := -march=native -mtune=native
     endif
     
     PROFILE_FLAGS := -O2 -DNDEBUG $(ARCH_FLAGS)
-    # Disable warnings in release mode to reduce noise
     WARNING_FLAGS := -w
     $(info $(C_GREEN)Build mode: Release (optimized for submission)$(C_RESET))
 else ifeq ($(BUILD_TYPE), sanitize)
-    # Sanitize: Debug with memory sanitizers for finding bugs
-    PROFILE_FLAGS := -g -O1 -fsanitize=address,undefined -fno-omit-frame-pointer
+    # Enhanced sanitize mode with better error handling
+    ifeq ($(SANITIZER_AVAILABLE),no)
+        $(error $(C_RED)Sanitizers not available with current configuration$(C_RESET))
+    endif
+    
+    # Base sanitizer flags
+    SANITIZER_FLAGS := -fsanitize=address,undefined -fno-omit-frame-pointer
+    PROFILE_FLAGS := -g -O1 $(SANITIZER_FLAGS)
     WARNING_FLAGS := -Wall -Wextra
     $(info $(C_YELLOW)Build mode: Sanitize (debug with memory checks)$(C_RESET))
     
-    # Configure sanitizer library path based on compiler and platform
-    ifeq ($(NEEDS_GCC),yes)
+    # Enhanced sanitizer library configuration
+    ifeq ($(EFFECTIVE_COMPILER),gcc)
+        # GCC sanitizer library setup
         ifeq ($(detected_os),MACOS)
-            # On macOS with Homebrew GCC, try multiple strategies to find libasan
-            
-            # Strategy 1: Use GCC's own library search
+            # macOS GCC sanitizer library detection
             LIBASAN_PATH := $(shell $(CXX) -print-file-name=libasan.dylib 2>/dev/null)
             ifneq ($(LIBASAN_PATH),libasan.dylib)
-                # Found it! Use the directory
                 SANITIZER_LIB_DIR := $(dir $(LIBASAN_PATH))
-                SANITIZER_LDFLAGS := -L$(SANITIZER_LIB_DIR) -Wl,-rpath,$(SANITIZER_LIB_DIR)
-                $(info $(C_CYAN)Found libasan at: $(LIBASAN_PATH)$(C_RESET))
+                LDFLAGS += -L$(SANITIZER_LIB_DIR) -Wl,-rpath,$(SANITIZER_LIB_DIR)
+                $(info $(C_CYAN)Found GCC libasan at: $(LIBASAN_PATH)$(C_RESET))
             else
-                # Strategy 2: Search in common Homebrew GCC locations
+                # Fallback search in GCC installation
                 GCC_BASE := $(shell dirname $(GCC_BINARY))/..
-                POSSIBLE_PATHS := $(GCC_BASE)/lib $(GCC_BASE)/lib/gcc/*/15 $(GCC_BASE)/lib/gcc/current/gcc/*/15
-                
-                LIBASAN_FOUND := $(shell for path in $(POSSIBLE_PATHS); do \
-                    if [ -f "$path/libasan.dylib" ]; then \
-                        echo "$path"; \
-                        break; \
-                    fi; \
-                done)
-                
-                ifneq ($(LIBASAN_FOUND),)
-                    SANITIZER_LDFLAGS := -L$(LIBASAN_FOUND) -Wl,-rpath,$(LIBASAN_FOUND)
-                    $(info $(C_CYAN)Found libasan in: $(LIBASAN_FOUND)$(C_RESET))
+                LIBASAN_SEARCH := $(shell find $(GCC_BASE) -name "libasan.*" -type f 2>/dev/null | head -1)
+                ifneq ($(LIBASAN_SEARCH),)
+                    SANITIZER_LIB_DIR := $(dir $(LIBASAN_SEARCH))
+                    LDFLAGS += -L$(SANITIZER_LIB_DIR) -Wl,-rpath,$(SANITIZER_LIB_DIR)
+                    $(info $(C_CYAN)Found GCC libasan at: $(LIBASAN_SEARCH)$(C_RESET))
                 else
-                    # Strategy 3: Fallback - use static linking or disable specific sanitizers
-                    $(info $(C_YELLOW)Warning: libasan not found, trying alternative sanitizer config$(C_RESET))
-                    # Try without address sanitizer, keep undefined behavior sanitizer
-                    PROFILE_FLAGS := -g -O1 -fsanitize=undefined -fno-omit-frame-pointer
-                    SANITIZER_LDFLAGS :=
+                    $(info $(C_YELLOW)Warning: GCC libasan not found, linking may fail$(C_RESET))
                 endif
             endif
         else
-            # Linux: Standard approach
+            # Linux GCC - standard library paths should work
             LIBASAN_PATH := $(shell $(CXX) -print-file-name=libasan.so 2>/dev/null)
             ifneq ($(LIBASAN_PATH),libasan.so)
                 SANITIZER_LIB_DIR := $(dir $(LIBASAN_PATH))
-                SANITIZER_LDFLAGS := -L$(SANITIZER_LIB_DIR)
+                LDFLAGS += -L$(SANITIZER_LIB_DIR)
+                $(info $(C_CYAN)Found GCC libasan at: $(LIBASAN_PATH)$(C_RESET))
             endif
         endif
     else
-        # For Clang: Use system paths, sanitizers should be available by default
-        SANITIZER_LDFLAGS :=
+        # Clang sanitizer setup - should work out of the box
+        $(info $(C_CYAN)Using Clang sanitizers with system libraries$(C_RESET))
     endif
 else
-    # Debug: Full debug info, no optimization - best for development
+    # Debug: Full debug info, no optimization
     BUILD_TYPE    := debug
     PROFILE_FLAGS := -g -O0
-    # More permissive warnings for competitive programming
     WARNING_FLAGS := -Wall -Wno-unused-variable -Wno-unused-parameter -Wno-sign-compare
     $(info $(C_BLUE)Build mode: Debug (development and testing)$(C_RESET))
 endif
@@ -335,30 +392,26 @@ endif
 OBJDIR := $(OBJDIR_BASE)/$(BUILD_TYPE)
 
 # Final compiler flags for competitive programming
-# Add CXXFLAGS_TOOLCHAIN and STDLIB_FLAG which contains toolchain-specific flags
-CXXFLAGS := $(COMMON_FLAGS) $(WARNING_FLAGS) $(PROFILE_FLAGS) $(COMPETITIVE_DEFINES) $(CXXFLAGS_TOOLCHAIN) $(STDLIB_FLAG)
+CXXFLAGS := $(COMMON_FLAGS) $(WARNING_FLAGS) $(PROFILE_FLAGS) $(COMPETITIVE_DEFINES) $(CXXFLAGS_TOOLCHAIN)
 
-# -------------- Linker Configuration for Competitive Programming ------------ #
+# -------------- Enhanced Linker Configuration --------------------------- #
 # Add GCC library path if using GCC and not in IDE config mode
-ifeq ($(strip $(NEEDS_GCC)$(GCC_BINARY)),yesyes)
+ifeq ($(EFFECTIVE_COMPILER),gcc)
     ifneq ($(IDE_CONFIG),yes)
-        # Get the lib directory relative to the GCC binary
-        GCC_LIB_BASE := $(shell dirname $(GCC_BINARY))/../lib
-        LDFLAGS += -L$(GCC_LIB_BASE)
-        
-        # On macOS, also add rpath for runtime library discovery
-        ifeq ($(detected_os),MACOS)
-            LDFLAGS += -Wl,-rpath,$(GCC_LIB_BASE)
+        ifneq ($(USE_PCH_FALLBACK),yes)
+            # Standard GCC linking
+            GCC_LIB_BASE := $(shell dirname $(GCC_BINARY))/../lib
+            LDFLAGS += -L$(GCC_LIB_BASE)
+            
+            # On macOS, add rpath for runtime library discovery
+            ifeq ($(detected_os),MACOS)
+                LDFLAGS += -Wl,-rpath,$(GCC_LIB_BASE)
+            endif
         endif
     endif
 endif
 
-# Add sanitizer-specific linker flags if in sanitize mode
-ifeq ($(BUILD_TYPE), sanitize)
-    LDFLAGS += $(SANITIZER_LDFLAGS)
-endif
-
-# Standard math library (commonly needed in competitive programming)
+# Standard math library
 LIBS := -lm
 
 # =========================================================================== #
@@ -366,7 +419,7 @@ LIBS := -lm
 # =========================================================================== #
 CPP_SRCS       := $(wildcard $(SRCDIR)/$(TARGET_NAME).cpp \
                              $(SRCDIR)/$(TARGET_NAME).cc \
-														 $(SRCDIR)/$(TARGET_NAME).cxx)
+                             $(SRCDIR)/$(TARGET_NAME).cxx)
 CPP_OBJS       := $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(filter %.cpp,$(CPP_SRCS))) \
                   $(patsubst $(SRCDIR)/%.cc,$(OBJDIR)/%.o,$(filter %.cc,$(CPP_SRCS))) \
                   $(patsubst $(SRCDIR)/%.cxx,$(OBJDIR)/%.o,$(filter %.cxx,$(CPP_SRCS)))
@@ -377,22 +430,14 @@ DEPS           := $(OBJS:.o=.d)
 DIR_SENTINEL := $(OBJDIR)/.dirs_created
 
 # =========================================================================== #
-# -------------------- Linker Configuration for C++ Only -------------------- #
+# -------------------- Enhanced Linker Configuration ----------------------- #
 # =========================================================================== #
 ifeq ($(strip $(CPP_SRCS)),)
 	LD = @echo "$(C_RED)No C++ sources found for competitive programming!$(C_RESET)"; false
 else
-	# Use appropriate compiler for linking in sanitize mode
-	ifeq ($(SANITIZE_MODE_COMPILER),yes)
-		LD := $(SANITIZER_COMPILER)
-		# For Clang in sanitize mode, use simpler flags
-		LDFLAGS_FINAL := $(PROFILE_FLAGS) $(LIBS)
-	else
-		LD := $(CXX)
-		LDFLAGS_FINAL := $(LDFLAGS) $(CXXFLAGS)
-	endif
+	LD := $(CXX)
+	LDFLAGS_FINAL := $(LDFLAGS) $(PROFILE_FLAGS) $(LIBS)
 endif
-LDFLAGS_FINAL += $(LIBS)
 
 # =========================================================================== #
 # ------------------------- Competitive Programming Rules ------------------- #
@@ -408,42 +453,57 @@ $(DIR_SENTINEL):
 	@$(MKDIR_P) $(OBJDIR) $(BINDIR)
 	@touch $@
 
-# Linking rule
+# Enhanced linking rule with better error messages
 $(TARGET_PATH): $(OBJS)
 	@echo "$(C_BLUE)# ------ Linking Competitive Programming Executable ------ #$(C_RESET)"
+	@echo "$(C_BLUE)Compiler:$(C_RESET) $(CXX)"
+	@echo "$(C_BLUE)Mode:$(C_RESET) $(BUILD_TYPE)"
 	@echo "$(C_BLUE)Output:$(C_RESET) $@"
+	@if [ "$(BUILD_TYPE)" = "sanitize" ]; then \
+		echo "$(C_YELLOW)Sanitizer linking - this may take extra time$(C_RESET)"; \
+	fi
 	$(LD) $(OBJS) $(LDFLAGS_FINAL) -o $@
+	@echo "$(C_GREEN)✓ Build successful$(C_RESET)"
 
-# Compilation rules with improved logging
+# Enhanced compilation rules with PCH fallback support
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(DIR_SENTINEL)
 	@echo "$(C_CYAN)Compiling C++:$(C_RESET) $< -> $@"
-	@# Use appropriate compiler and flags based on mode
-	@if [ "$(SANITIZE_MODE_COMPILER)" = "yes" ]; then \
-		echo "$(C_YELLOW)  Using Clang for sanitize mode compilation$(C_RESET)"; \
-		$(SANITIZER_COMPILER) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@; \
-	else \
-		$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@; \
+	@if [ "$(USE_PCH_FALLBACK)" = "yes" ]; then \
+		echo "$(C_YELLOW)  Using PCH.h fallback for competitive programming headers$(C_RESET)"; \
 	fi
+	@if [ "$(BUILD_TYPE)" = "sanitize" ]; then \
+		echo "$(C_YELLOW)  Compiling with sanitizers enabled$(C_RESET)"; \
+	fi
+	@echo "$(C_CYAN)  Compiler:$(C_RESET) $(CXX)"
+	@echo "$(C_CYAN)  Includes:$(C_RESET)"
+	@echo "$(CPPFLAGS)" | tr ' ' '\n' | sed 's/^/    /'
+	@echo "$(C_CYAN)  Options:$(C_RESET)"
+	@echo "$(CXXFLAGS)" | tr ' ' '\n' | sed 's/^/    /'
+	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cc $(DIR_SENTINEL)
 	@echo "$(C_CYAN)Compiling C++:$(C_RESET) $< -> $@"
-	@# Use appropriate compiler and flags based on mode
-	@if [ "$(SANITIZE_MODE_COMPILER)" = "yes" ]; then \
-		echo "$(C_YELLOW)  Using Clang for sanitize mode compilation$(C_RESET)"; \
-		$(SANITIZER_COMPILER) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@; \
-	else \
-		$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@; \
+	@if [ "$(USE_PCH_FALLBACK)" = "yes" ]; then \
+		echo "$(C_YELLOW)  Using PCH.h fallback for competitive programming headers$(C_RESET)"; \
 	fi
-
+	@echo "$(C_CYAN)  Compiler:$(C_RESET) $(CXX)"
+	@echo "$(C_CYAN)  Includes:$(C_RESET)"
+	@echo "$(CPPFLAGS)" | tr ' ' '\n' | sed 's/^/    /'
+	@echo "$(C_CYAN)  Options:$(C_RESET)"
+	@echo "$(CXXFLAGS)" | tr ' ' '\n' | sed 's/^/    /'
+	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@
+	
 $(OBJDIR)/%.o: $(SRCDIR)/%.cxx $(DIR_SENTINEL)
 	@echo "$(C_CYAN)Compiling C++:$(C_RESET) $< -> $@"
-	@# Use appropriate compiler and flags based on mode
-	@if [ "$(SANITIZE_MODE_COMPILER)" = "yes" ]; then \
-		echo "$(C_YELLOW)  Using Clang for sanitize mode compilation$(C_RESET)"; \
-		$(SANITIZER_COMPILER) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@; \
-	else \
-		$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@; \
+	@if [ "$(USE_PCH_FALLBACK)" = "yes" ]; then \
+		echo "$(C_YELLOW)  Using PCH.h fallback for competitive programming headers$(C_RESET)"; \
 	fi
+	@echo "$(C_CYAN)  Compiler:$(C_RESET) $(CXX)"
+	@echo "$(C_CYAN)  Includes:$(C_RESET)"
+	@echo "$(CPPFLAGS)" | tr ' ' '\n' | sed 's/^/    /'
+	@echo "$(C_CYAN)  Options:$(C_RESET)"
+	@echo "$(CXXFLAGS)" | tr ' ' '\n' | sed 's/^/    /'
+	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@
 
 # Include dependency files
 -include $(DEPS)
@@ -456,13 +516,16 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cxx $(DIR_SENTINEL)
 contest: clean
 	@$(MAKE) BUILD_TYPE=release all
 
-# Run with standardized input file location
+# Enhanced run target with better error handling
 INPUT_FILE ?= $(INPUT_DIR)/$(TARGET_NAME).in
 OUTPUT_FILE ?= $(OUTPUT_DIR)/$(TARGET_NAME).out
 ARGS ?=
 
 run: all
 	@echo "$(C_BLUE)Running $(TARGET_PATH)...$(C_RESET)"
+	@if [ "$(BUILD_TYPE)" = "sanitize" ]; then \
+		echo "$(C_YELLOW)Running with sanitizers - expect slower performance$(C_RESET)"; \
+	fi
 	@if [ ! -f "$(INPUT_FILE)" ]; then \
 		echo "$(C_YELLOW)Input file '$(INPUT_FILE)' not found, running without redirection.$(C_RESET)"; \
 		./$(TARGET_PATH) $(ARGS); \
@@ -593,6 +656,7 @@ compile_commands:
 	@echo "$(C_CYAN)Generating compile_commands.json for IDE support...$(C_RESET)"
 	@compiledb -n make clean all BUILD_TYPE=$(BUILD_TYPE)
 
+# Enhanced debug-info target with sanitizer information
 debug-info:
 	@echo "$(C_BOLD)/====------------ Competitive Programming Debug Info ------------====/$(C_RESET)"
 	@echo "$(C_CYAN)Build Configuration:$(C_RESET)"
@@ -616,10 +680,13 @@ debug-info:
 	@echo "  NEEDS_BITS_STDC: $(if $(NEEDS_BITS_STDC),YES ($(NEEDS_BITS_STDC)),NO)"
 	@echo "  NEEDS_PBDS: $(if $(NEEDS_PBDS),YES ($(NEEDS_PBDS)),NO)"
 	@echo ""
-	@echo "$(C_CYAN)Compiler & Linker Configuration:$(C_RESET)"
+	@echo "$(C_CYAN)Enhanced Compiler Configuration:$(C_RESET)"
+	@echo "  EFFECTIVE_COMPILER: $(EFFECTIVE_COMPILER)"
 	@echo "  CC: $(CC), CXX: $(CXX), LD: $(LD)"
 	@echo "  GCC_PREFIX: $(GCC_PREFIX)"
 	@echo "  GCC_BINARY: $(GCC_BINARY)"
+	@echo "  USE_PCH_FALLBACK: $(USE_PCH_FALLBACK)"
+	@echo "  SANITIZER_AVAILABLE: $(SANITIZER_AVAILABLE)"
 	@echo ""
 	@echo "$(C_CYAN)IDE Integration:$(C_RESET)"
 	@echo "  IDE_CONFIG_DIR: $(IDE_CONFIG_DIR)"
@@ -634,22 +701,64 @@ debug-info:
 	@echo "  LDFLAGS_FINAL:"
 	@echo "$(LDFLAGS_FINAL)" | tr ' ' '\n' | sed 's/^-/    -/' | head -20
 	@echo ""
-	@echo "$(C_CYAN)Sanitizer Configuration (if sanitize mode):$(C_RESET)"
+	@echo "$(C_CYAN)Enhanced Sanitizer Configuration:$(C_RESET)"
 	@if [ "$(BUILD_TYPE)" = "sanitize" ]; then \
-		echo "  SANITIZER_LDFLAGS: $(SANITIZER_LDFLAGS)"; \
-		if [ "$(NEEDS_GCC)" = "yes" ]; then \
-			echo "  Libasan detection results:"; \
-			LIBASAN_CHECK=$($(CXX) -print-file-name=libasan.dylib 2>/dev/null); \
-			if [ "$LIBASAN_CHECK" != "libasan.dylib" ]; then \
-				echo "    ✓ Found: $LIBASAN_CHECK"; \
+		echo "  Status: ENABLED"; \
+		echo "  Effective Compiler: $(EFFECTIVE_COMPILER)"; \
+		echo "  PCH Fallback Mode: $(USE_PCH_FALLBACK)"; \
+		if [ "$(EFFECTIVE_COMPILER)" = "gcc" ]; then \
+			echo "  GCC Sanitizer Test Results:"; \
+			GCC_SANITIZER_TEST=$$(echo 'int main(){}' | $(CXX) -x c++ -fsanitize=address,undefined - -o /tmp/sanitizer_test 2>/dev/null && echo "PASS" || echo "FAIL"); \
+			echo "    Test Result: $$GCC_SANITIZER_TEST"; \
+			if [ "$$GCC_SANITIZER_TEST" = "PASS" ]; then \
+				echo "    ✓ GCC sanitizers are functional"; \
 			else \
-				echo "    ✗ Not found via print-file-name"; \
-				echo "    Searching manually in GCC directories..."; \
-				find $(shell dirname $(GCC_BINARY))/.. -name "*asan*" -type f 2>/dev/null | head -5 || echo "    No libasan found anywhere"; \
+				echo "    ✗ GCC sanitizers failed, using fallback"; \
 			fi; \
+			echo "  Library Detection:"; \
+			if [ "$(detected_os)" = "MACOS" ]; then \
+				LIBASAN_CHECK=$$($(CXX) -print-file-name=libasan.dylib 2>/dev/null); \
+				if [ "$$LIBASAN_CHECK" != "libasan.dylib" ]; then \
+					echo "    ✓ Found libasan: $$LIBASAN_CHECK"; \
+				else \
+					echo "    ✗ libasan not found via print-file-name"; \
+					MANUAL_SEARCH=$$(find $$(dirname $(GCC_BINARY))/.. -name "*asan*" -type f 2>/dev/null | head -3); \
+					if [ -n "$$MANUAL_SEARCH" ]; then \
+						echo "    Manual search results:"; \
+						echo "$$MANUAL_SEARCH" | sed 's/^/      /'; \
+					else \
+						echo "    ✗ No sanitizer libraries found"; \
+					fi; \
+				fi; \
+			else \
+				LIBASAN_CHECK=$$($(CXX) -print-file-name=libasan.so 2>/dev/null); \
+				if [ "$$LIBASAN_CHECK" != "libasan.so" ]; then \
+					echo "    ✓ Found libasan: $$LIBASAN_CHECK"; \
+				else \
+					echo "    ✗ libasan not found"; \
+				fi; \
+			fi; \
+		else \
+			echo "  Using Clang sanitizers (should work out of the box)"; \
+			CLANG_SANITIZER_TEST=$$(echo 'int main(){}' | clang++ -x c++ -fsanitize=address,undefined - -o /tmp/clang_sanitizer_test 2>/dev/null && echo "PASS" || echo "FAIL"); \
+			echo "  Clang Sanitizer Test: $$CLANG_SANITIZER_TEST"; \
 		fi; \
 	else \
-		echo "  (Not in sanitize mode)"; \
+		echo "  Status: DISABLED (Build type: $(BUILD_TYPE))"; \
+	fi
+	@echo ""
+	@echo "$(C_CYAN)PCH Fallback Information:$(C_RESET)"
+	@if [ "$(USE_PCH_FALLBACK)" = "yes" ]; then \
+		echo "  Status: ACTIVE"; \
+		echo "  PCH File: $(SRCDIR)/PCH.h"; \
+		if [ -f "$(SRCDIR)/PCH.h" ]; then \
+			echo "  ✓ PCH.h file exists"; \
+		else \
+			echo "  ✗ PCH.h file missing!"; \
+		fi; \
+		echo "  Reason: $(if $(filter $(BUILD_TYPE),sanitize),Sanitizer fallback for competitive headers,Unknown)"; \
+	else \
+		echo "  Status: INACTIVE"; \
 	fi
 	@echo ""
 	@echo "$(C_CYAN)OS Commands:$(C_RESET)"
@@ -659,8 +768,8 @@ debug-info:
 	@echo "$(C_BOLD)/====------------------------------------------------------------====/$(C_RESET)"
 
 help:
-	@echo "$(C_BOLD)Competitive Programming Makefile$(C_RESET)"
-	@echo "This Makefile is best used with the 'contest-helper.sh' script."
+	@echo "$(C_BOLD)Enhanced Competitive Programming Makefile$(C_RESET)"
+	@echo "This Makefile automatically handles GCC/Clang selection and sanitizer fallbacks."
 	@echo "Usage: make $(C_YELLOW)[TARGET] [VARIABLE=VALUE]$(C_RESET)"
 	@echo ""
 	@echo "$(C_CYAN)Core Build Targets:$(C_RESET)"
@@ -669,9 +778,21 @@ help:
 	@echo "  $(C_GREEN)run$(C_RESET)         - Build and run (uses 'input/\$(TARGET_NAME).in' by default)"
 	@echo "  $(C_GREEN)test$(C_RESET)        - Run with I/O redirection ('input/' -> 'output/')"
 	@echo ""
+	@echo "$(C_CYAN)Build Types:$(C_RESET)"
+	@echo "  $(C_YELLOW)BUILD_TYPE=debug$(C_RESET)     - Debug build (default, -g -O0)"
+	@echo "  $(C_YELLOW)BUILD_TYPE=release$(C_RESET)   - Optimized for contest submission (-O2)"
+	@echo "  $(C_YELLOW)BUILD_TYPE=sanitize$(C_RESET)  - Debug with memory sanitizers (enhanced)"
+	@echo ""
+	@echo "$(C_CYAN)Enhanced Sanitizer Features:$(C_RESET)"
+	@echo "  • Automatic compiler selection (GCC → Clang fallback)"
+	@echo "  • PCH.h fallback for competitive headers when needed"
+	@echo "  • Improved library detection on macOS"
+	@echo "  • Better error reporting and diagnostics"
+	@echo ""
 	@echo "$(C_CYAN)IDE & Tooling:$(C_RESET)"
 	@echo "  $(C_GREEN)config-ide$(C_RESET)         - Configure IDE (clangd) for the current platform"
 	@echo "  $(C_GREEN)init-ide-config$(C_RESET)    - Create/verify the IDE config directory and templates"
+	@echo "  $(C_GREEN)compile_commands$(C_RESET)   - Generate compile_commands.json for IDEs"
 	@echo ""
 	@echo "$(C_CYAN)Benchmarking Targets:$(C_RESET)"
 	@echo "  $(C_GREEN)create-bench-tests$(C_RESET) - Create standard benchmark input files"
@@ -683,8 +804,13 @@ help:
 	@echo "  $(C_GREEN)distclean$(C_RESET)   - Remove everything including output and IDE config"
 	@echo ""
 	@echo "$(C_CYAN)Debug & Info:$(C_RESET)"
-	@echo "  $(C_GREEN)debug-info$(C_RESET)  - Show detailed build configuration"
+	@echo "  $(C_GREEN)debug-info$(C_RESET)  - Show detailed build configuration (enhanced)"
 	@echo "  $(C_GREEN)help$(C_RESET)        - Show this message"
+	@echo ""
+	@echo "$(C_CYAN)Examples:$(C_RESET)"
+	@echo "  make BUILD_TYPE=sanitize all  # Build with enhanced sanitizers"
+	@echo "  make debug-info               # Check sanitizer availability"
+	@echo "  make config-ide              # Setup IDE with current configuration"
 
 .SUFFIXES:
 

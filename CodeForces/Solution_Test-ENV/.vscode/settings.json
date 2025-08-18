@@ -35,7 +35,8 @@
     "--clang-tidy",
     "--completion-style=detailed",
     "--header-insertion=never",
-    "--log=error"
+    "--log=error",
+    "--query-driver=/usr/bin/clang++"
   ],
   "clangd.detectExtensionConflicts": true,
   "clangd.checkUpdates": false,

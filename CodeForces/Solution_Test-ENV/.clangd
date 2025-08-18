@@ -3,7 +3,7 @@
 CompileFlags:
   Add:
     # Target architecture for Apple Silicon
-    - --target=arm64-apple-darwin
+    - --target=arm64-apple-darwins
 
     # Standard C++23 flags for competitive programming
     - -std=c++23
