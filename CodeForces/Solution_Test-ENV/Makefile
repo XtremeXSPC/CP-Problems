@@ -161,10 +161,17 @@ ifeq ($(GCC_BINARY),)
     endif
 endif
 
-# Check if competitive programming headers are needed by scanning source files
-NEEDS_PBDS      := $(shell grep -l "ext/pb_ds" $(wildcard $(SRCDIR)/*.cpp $(SRCDIR)/*.cc $(SRCDIR)/*.cxx) 2>/dev/null)
-NEEDS_BITS_STDC := $(shell grep -l "bits/stdc++" $(wildcard $(SRCDIR)/*.cpp $(SRCDIR)/*.cc $(SRCDIR)/*.cxx) 2>/dev/null)
-NEEDS_GCC       := $(if $(strip $(NEEDS_BITS_STDC)$(NEEDS_PBDS)),yes,no)
+# ------------- Enhanced CP header detection (ignores comments) ------------- #
+# Use the enhanced script to detect competitive programming headers
+NEEDS_GCC_RESULT := $(shell ./scripts/get_gcc_includes.sh --check-competitive $(SRCDIR) 2>/dev/null || echo "no")
+NEEDS_GCC := $(NEEDS_GCC_RESULT)
+
+# Debug output for competitive header detection
+ifeq ($(NEEDS_GCC),yes)
+    $(info $(C_CYAN)Competitive programming headers detected - GCC required$(C_RESET))
+else
+    $(info $(C_GREEN)No competitive programming headers found - Clang can be used$(C_RESET))
+endif
 
 # ----------- Enhanced Compiler Selection with Sanitizer Support ------------ #
 # Variables to track effective compiler configuration
@@ -250,7 +257,7 @@ ifeq ($(EFFECTIVE_COMPILER),gcc)
     ifeq ($(USE_PCH_FALLBACK),no)
         # Standard GCC configuration for competitive programming
         ifneq ($(GCC_BINARY),)
-            GCC_ISYSTEM_FLAGS := $(shell ./assets/get_gcc_includes.sh $(CXX))
+            GCC_ISYSTEM_FLAGS := $(shell ./scripts/get_gcc_includes.sh $(CXX))
         else
             GCC_ISYSTEM_FLAGS :=
         endif
