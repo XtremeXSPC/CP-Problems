@@ -4,7 +4,6 @@
 // Compatible with GCC, Clang, MSVC, and other modern C++ compilers
 
 // clang-format off
-
 #ifndef PCH_H
 #define PCH_H
 
@@ -41,6 +40,7 @@
 //===---------------------------------------------------------------------===//
 // C++ STANDARD LIBRARY HEADERS
 //===---------------------------------------------------------------------===//
+// clang-format off
 
 // Input/Output Stream Library
 #include <fstream>
@@ -129,12 +129,10 @@
 // Time Library
 #include <chrono>
 
-// clang-format off
 // Filesystem Library (C++17 and later)
 #if __cplusplus >= 201703L
     #include <filesystem>
 #endif
-// clang-format om
 
 // Thread Support Library
 #include <thread>
@@ -162,7 +160,6 @@
     #include <bit>
 #endif
 
-// clang-format off
 // C++23 features
 #if __cplusplus >= 202302L
     #ifdef __has_include
@@ -195,7 +192,6 @@
         #endif
     #endif
 #endif
-// clang-format on
 
 // C Standard Library Headers
 #include <cassert>
@@ -223,7 +219,7 @@
 //===---------------------------------------------------------------------===//
 // COMPETITIVE PROGRAMMING OPTIMIZATIONS
 //===---------------------------------------------------------------------===//
-// clang-format off
+
 // Fast I/O optimization (only define if not already defined)
 #ifndef FAST_IO
     #ifdef ONLINE_JUDGE
