@@ -1,3 +1,10 @@
+//===---------------------------------------------------------------------===//
+//=============================== DESCRIPTION ===============================//
+/* Debugging utility for competitive programming and algorithm development.
+ * Provides comprehensive printing for data structures, cycle detection,
+ * tree visualization, and configurable debug levels via -DLOCAL flag.
+ */
+
 #ifndef ALGO_DEBUG_H
 #define ALGO_DEBUG_H
 

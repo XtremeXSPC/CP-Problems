@@ -11,19 +11,21 @@
 //===---------------------------------------------------------------------===//
 /* Included library */
 
+// clang-format off
 // Debug macro:
 #ifdef LOCAL
-#include "../Algorithms/debug.h"
+  #include "../Algorithms/debug.h"
 #else
-#define debug(...) 42
+  #define debug(...) 42
 #endif
 
 // Sanitaze macro:
 #ifdef USE_CLANG_SANITIZE
-#include "PCH.h"
+  #include "PCH.h"
 #else
-#include <bits/stdc++.h>
+  #include <bits/stdc++.h>
 #endif
+// clang-format on
 
 //===---------------------------------------------------------------------===//
 /* Types and Function Definitons */

@@ -236,7 +236,7 @@ else
 endif
 
 # =========================================================================== #
-# --------------- Enhanced Toolchain Configuration System ------------------ #
+# ----------------- Enhanced Toolchain Configuration System ----------------- #
 # =========================================================================== #
 
 # Initialize toolchain-specific variables
@@ -277,11 +277,13 @@ ifeq ($(EFFECTIVE_COMPILER),gcc)
         endif
     else
         # PCH fallback mode: use Clang with custom PCH.h instead of bits/stdc++.h
-        CXXFLAGS_TOOLCHAIN := -DUSE_PCH_FALLBACK=1
-        PCH_INCLUDE := -include $(SRCDIR)/PCH.h
+        # Define macro to let source code know it should use PCH.h
+        CXXFLAGS_TOOLCHAIN := -DUSE_PCH_FALLBACK=1 -DUSE_CLANG_SANITIZE=1
+        # DO NOT force include PCH.h - let source code decide
+        PCH_INCLUDE := 
         SYSTEM_INCLUDES := -I/usr/local/include
         STDLIB_FLAG := 
-        $(info $(C_YELLOW)Using PCH.h fallback instead of bits/stdc++.h$(C_RESET))
+        $(info $(C_YELLOW)Using PCH.h fallback for competitive programming headers$(C_RESET))
     endif
 else
     # Clang configuration
@@ -289,10 +291,13 @@ else
     SYSTEM_INCLUDES := -I/usr/local/include
     STDLIB_FLAG := 
     
-    # Add PCH include if using fallback mode
+    # Add PCH fallback configuration if needed
     ifeq ($(USE_PCH_FALLBACK),yes)
-        CXXFLAGS_TOOLCHAIN := -DUSE_PCH_FALLBACK=1
-        PCH_INCLUDE := -include $(SRCDIR)/PCH.h
+        # Define macro to let source code know it should use PCH.h
+        CXXFLAGS_TOOLCHAIN := -DUSE_PCH_FALLBACK=1 -DUSE_CLANG_SANITIZE=1
+        # DO NOT force include PCH.h - let source code decide
+        PCH_INCLUDE := 
+        $(info $(C_YELLOW)PCH fallback mode enabled for Clang$(C_RESET))
     endif
 endif
 
@@ -314,8 +319,8 @@ ifeq ($(ENABLE_DEBUG),1)
     COMPETITIVE_DEFINES += -DDEBUG=1
 endif
 
-# Include paths - combine and deduplicate
-CPPFLAGS := $(sort $(PROJECT_INCLUDES)) $(SYSTEM_INCLUDES) $(PCH_INCLUDE)
+# Include paths - combine and deduplicate (PCH_INCLUDE removed from here)
+CPPFLAGS := $(sort $(PROJECT_INCLUDES)) $(SYSTEM_INCLUDES)
 
 # -------------- Enhanced Build Profile Configuration -------------------- #
 # Initialize LDFLAGS with standard library flag if needed
