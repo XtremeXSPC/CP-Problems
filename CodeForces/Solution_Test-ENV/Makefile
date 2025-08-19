@@ -454,7 +454,7 @@ endif
 # =========================================================================== #
 # ------------------------- Competitive Programming Rules ------------------- #
 # =========================================================================== #
-.PHONY: all clean distclean run test compile_commands debug-info help contest config-ide
+.PHONY: all
 
 # Default target
 all: $(TARGET_PATH)
@@ -523,6 +523,7 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cxx $(DIR_SENTINEL)
 # =========================================================================== #
 # ----------------- Competitive Programming Specific Targets ---------------- #
 # =========================================================================== #
+.PHONY: contest run test
 
 # Quick build for contest environment (release mode)
 contest: clean
@@ -560,8 +561,8 @@ test: all
 # =========================================================================== #
 # ----------------- Platform-Aware IDE Configuration System ----------------- #
 # =========================================================================== #
+.PHONY: init-ide-config config-ide
 
-.PHONY: init-ide-config
 init-ide-config:
 	@echo "$(C_CYAN)Initializing IDE configuration directory...$(C_RESET)"
 	@$(MKDIR_P) $(IDE_CONFIG_DIR)
@@ -647,6 +648,21 @@ compare:
 # =========================================================================== #
 # ----------------------- Utility & Development Targets --------------------- #
 # =========================================================================== #
+.PHONY: test-colors clean distclean compile_commands debug-info help
+
+test-colors:
+	@echo "Testing color configuration..."
+	@echo "TTY test: $(shell test -t 1 && echo 'true' || echo 'false')"
+	@echo "N_COLORS: '$(N_COLORS)'"
+	@echo "TERM: '$(TERM)'"
+	@echo "Shell: '$(SHELL)'"
+	@echo "Colors test:"
+	@echo "$(C_RED)Red text$(C_RESET)"
+	@echo "$(C_GREEN)Green text$(C_RESET)"
+	@echo "$(C_YELLOW)Yellow text$(C_RESET)"
+	@echo "$(C_BLUE)Blue text$(C_RESET)"
+	@echo "$(C_CYAN)Cyan text$(C_RESET)"
+	@echo "$(C_BOLD)Bold text$(C_RESET)"
 
 clean:
 	@echo "$(C_YELLOW)Cleaning build artifacts...$(C_RESET)"
