@@ -138,7 +138,6 @@ else
     $(info $(C_GREEN)No competitive programming headers found - Clang can be used$(C_RESET))
 endif
 
-
 # ------------------------ Compiler Detection Logic ------------------------- #
 # Find the include path and prefix of the latest installed GCC version via Homebrew
 GCC_PREFIX      := $(shell brew --prefix gcc 2>/dev/null || echo "")
@@ -674,6 +673,8 @@ debug-info:
 	@echo ""
 	@echo "$(C_CYAN)Competitive Programming Detection:$(C_RESET)"
 	@echo "  NEEDS_GCC: $(NEEDS_GCC)"
+	@echo "  NEEDS_BITS_STDC: $(if $(NEEDS_BITS_STDC),YES ($(NEEDS_BITS_STDC)),NO)"
+	@echo "  NEEDS_PBDS: $(if $(NEEDS_PBDS),YES ($(NEEDS_PBDS)),NO)"
 	@echo ""
 	@echo "$(C_CYAN)Enhanced Compiler Configuration:$(C_RESET)"
 	@echo "  EFFECTIVE_COMPILER: $(EFFECTIVE_COMPILER)"
@@ -717,6 +718,11 @@ help:
 	@echo "  $(C_GREEN)config-ide$(C_RESET)           - Configure IDE (clangd) for the current platform"
 	@echo "  $(C_GREEN)init-ide-config$(C_RESET)      - Create/verify the IDE config directory and templates"
 	@echo "  $(C_GREEN)compile_commands$(C_RESET)     - Generate compile_commands.json for IDEs"
+	@echo ""
+	@echo "$(C_CYAN)Benchmarking Targets:$(C_RESET)"
+	@echo "  $(C_GREEN)create-bench-tests$(C_RESET) - Create standard benchmark input files"
+	@echo "  $(C_GREEN)benchmark$(C_RESET)          - Benchmark a target (e.g., 'make benchmark BENCH_TARGET=A')"
+	@echo "  $(C_GREEN)compare$(C_RESET)            - Compare solutions  (e.g., 'make compare SOLUTIONS=\"A.cpp B.cpp\"')"
 	@echo ""
 	@echo "$(C_CYAN)Cleaning Targets:$(C_RESET)"
 	@echo "  $(C_GREEN)clean$(C_RESET)         - Remove build artifacts"
