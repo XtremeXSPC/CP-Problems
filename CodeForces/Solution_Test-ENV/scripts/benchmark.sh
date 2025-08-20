@@ -1,18 +1,32 @@
 #!/usr/bin/env bash
+
+# =========================================================================== #
 # benchmark.sh
 # Performance benchmarking utility for competitive programming solutions
 
 set -euo pipefail
 
-# ANSI colors
-readonly C_RESET='\033[0m'
-readonly C_BOLD='\033[1m'
-readonly C_RED='\033[0;31m'
-readonly C_GREEN='\033[0;32m'
-readonly C_YELLOW='\033[0;33m'
-readonly C_BLUE='\033[0;34m'
-readonly C_CYAN='\033[0;36m'
-readonly C_MAGENTA='\033[0;35m'
+# =========================================================================== #
+# ------------------------------ Configuration ------------------------------ #
+
+# ANSI colors with graceful degradation
+if [[ -t 1 ]] && command -v tput >/dev/null 2>&1 && (($(tput colors 2>/dev/null || echo 0) >= 8)); then
+  readonly C_RESET=$'\033[0m'
+  readonly C_BOLD=$'\033[1m'
+  readonly C_RED=$'\033[0;31m'
+  readonly C_GREEN=$'\033[0;32m'
+  readonly C_YELLOW=$'\033[0;33m'
+  readonly C_BLUE=$'\033[0;34m'
+  readonly C_CYAN=$'\033[0;36m'
+else
+  readonly C_RESET=''
+  readonly C_BOLD=''
+  readonly C_RED=''
+  readonly C_GREEN=''
+  readonly C_YELLOW=''
+  readonly C_BLUE=''
+  readonly C_CYAN=''
+fi
 
 # Configuration
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -23,6 +37,9 @@ readonly RESULTS_DIR="benchmark-results"
 DEFAULT_ITERATIONS=10
 DEFAULT_TIMEOUT=5
 DEFAULT_MEMORY_LIMIT=512 # MB
+
+# =========================================================================== #
+# --------------------------------- Funtions -------------------------------- #
 
 # Logging functions
 log_info() { echo -e "${C_CYAN}[INFO]${C_RESET} $1"; }
@@ -137,40 +154,31 @@ create_test_case() {
   log_success "Generated test case: $name ($(format_memory $((file_size / 1024))) file size)"
 }
 
+# Optimized test generation using awk for better performance
 generate_small_test() {
   echo "100"
-  for ((i = 1; i <= 100; i++)); do
-    echo "$((RANDOM % 1000 + 1))"
-  done
+  awk 'BEGIN{srand(); for(i=1;i<=100;i++) print int(rand()*1000)+1}'
 }
 
 generate_medium_test() {
   echo "10000"
-  for ((i = 1; i <= 10000; i++)); do
-    echo "$((RANDOM % 100000 + 1))"
-  done
+  awk 'BEGIN{srand(); for(i=1;i<=10000;i++) print int(rand()*100000)+1}'
 }
 
 generate_large_test() {
   echo "100000"
-  for ((i = 1; i <= 100000; i++)); do
-    echo "$((RANDOM % 1000000 + 1))"
-  done
+  awk 'BEGIN{srand(); for(i=1;i<=100000;i++) print int(rand()*1000000)+1}'
 }
 
 generate_stress_test() {
   echo "1000000"
-  for ((i = 1; i <= 1000000; i++)); do
-    echo "$((RANDOM % 1000000000 + 1))"
-  done
+  awk 'BEGIN{srand(); for(i=1;i<=1000000;i++) print int(rand()*1000000000)+1}'
 }
 
 generate_custom_test() {
   local n="$1"
   echo "$n"
-  for ((i = 1; i <= n; i++)); do
-    echo "$((RANDOM % 1000000 + 1))"
-  done
+  awk -v n="$n" 'BEGIN{srand(); for(i=1;i<=n;i++) print int(rand()*1000000)+1}'
 }
 
 # Benchmark single run
@@ -298,7 +306,7 @@ EOF
     local successful_runs=0
     local timeout_runs=0
     local error_runs=0
-    local build_failed=false
+    local build_errors=0
 
     # Progress indicator
     echo -n "  Progress: "
@@ -326,9 +334,14 @@ EOF
         ((timeout_runs++))
         echo -n "T"
         ;;
-      "error")
+      "runtime_error")
         ((error_runs++))
         echo -n "E"
+        ;;
+      "build_error")
+        ((build_errors++))
+        echo -n "B"
+        break # Stop if build fails
         ;;
       esac
     done
@@ -345,7 +358,11 @@ EOF
       local min_wall_time=$(printf '%s\n' "${wall_times[@]}" | sort -n | head -1)
       local max_wall_time=$(printf '%s\n' "${wall_times[@]}" | sort -n | tail -1)
 
-      echo "    Results: $(format_time "$avg_wall_time") avg, $(format_time "$min_wall_time")-$(format_time "$max_wall_time") range, $(format_memory "$max_memory") peak memory"
+      # Calculate standard deviation
+      local stddev_wall_time=$(printf '%s\n' "${wall_times[@]}" |
+        awk -v avg="$avg_wall_time" '{sum+=($1-avg)^2} END {print sqrt(sum/NR)}')
+
+      echo "    Results: $(format_time "$avg_wall_time") avg (±$(format_time "$stddev_wall_time")), $(format_time "$min_wall_time")-$(format_time "$max_wall_time") range, $(format_memory "$max_memory") peak memory"
 
       # Add to JSON results
       cat >>"$results_file" <<EOF
@@ -355,8 +372,10 @@ EOF
             "successful_runs": $successful_runs,
             "timeout_runs": $timeout_runs,
             "error_runs": $error_runs,
+            "build_errors": $build_errors,
             "wall_time_ms": {
                 "average": $avg_wall_time,
+                "std_dev": $stddev_wall_time,
                 "minimum": $min_wall_time,
                 "maximum": $max_wall_time,
                 "values": [$(
@@ -392,6 +411,7 @@ EOF
             "successful_runs": 0,
             "timeout_runs": $timeout_runs,
             "error_runs": $error_runs,
+            "build_errors": $build_errors,
             "status": "failed"
         }
 EOF
@@ -437,7 +457,7 @@ generate_summary_with_jq() {
 
   cat <<EOF
 COMPETITIVE PROGRAMMING SOLUTION BENCHMARK REPORT
-================================================
+=================================================
 
 Solution: $(jq -r '.solution' "$results_file")
 Date: $(jq -r '.timestamp' "$results_file")
@@ -454,7 +474,7 @@ Test Case: \(.test_case)
 Success Rate: \(.successful_runs)/\(.iterations) (\((.successful_runs * 100 / .iterations) | floor)%)
 " + 
         (if .successful_runs > 0 then
-            "Average Time: \(.wall_time_ms.average)ms
+            "Average Time: \(.wall_time_ms.average)ms (±\(.wall_time_ms.std_dev)ms)
 Best Time: \(.wall_time_ms.minimum)ms
 Worst Time: \(.wall_time_ms.maximum)ms
 Peak Memory: \(.memory_kb.maximum)KB
@@ -467,7 +487,7 @@ generate_summary_basic() {
   local results_file="$1"
 
   echo "COMPETITIVE PROGRAMMING SOLUTION BENCHMARK REPORT"
-  echo "================================================"
+  echo "================================================="
   echo
   echo "Solution: $(grep '"solution"' "$results_file" | cut -d'"' -f4)"
   echo "Date: $(grep '"timestamp"' "$results_file" | cut -d'"' -f4)"
@@ -504,31 +524,90 @@ compare_solutions() {
   local comparison_file="$RESULTS_DIR/comparison-$(date +%Y%m%d-%H%M%S).txt"
 
   echo "SOLUTION COMPARISON REPORT" >"$comparison_file"
-  echo "=========================" >>"$comparison_file"
+  echo "==========================" >>"$comparison_file"
   echo "Date: $(date)" >>"$comparison_file"
   echo "Solutions: ${solutions[*]}" >>"$comparison_file"
   echo >>"$comparison_file"
 
-  # Simple comparison (would need jq for detailed comparison)
-  for test_case in "${test_cases[@]}"; do
-    echo "Test Case: $test_case" >>"$comparison_file"
-    echo "$(printf '%-20s %-15s %-15s %-15s\n' "Solution" "Avg Time" "Peak Memory" "Success Rate")" >>"$comparison_file"
-    echo "$(printf '%-20s %-15s %-15s %-15s\n' "--------" "--------" "-----------" "------------")" >>"$comparison_file"
+  # Detailed comparison if jq is available
+  if command_exists jq; then
+    for test_case in "${test_cases[@]}"; do
+      echo "Test Case: $test_case" >>"$comparison_file"
+      echo "$(printf '%-20s %-15s %-15s %-15s\n' "Solution" "Avg Time" "Peak Memory" "Success Rate")" >>"$comparison_file"
+      echo "$(printf '%-20s %-15s %-15s %-15s\n' "--------" "--------" "-----------" "------------")" >>"$comparison_file"
 
-    for solution in "${solutions[@]}"; do
-      local solution_name="$(basename "$solution" .cpp)"
-      local latest_result=$(ls -t "$RESULTS_DIR"/benchmark-"$solution_name"-*.json 2>/dev/null | head -1)
+      for solution in "${solutions[@]}"; do
+        local solution_name="$(basename "$solution" .cpp)"
+        local latest_result=$(ls -t "$RESULTS_DIR"/benchmark-"$solution_name"-*.json 2>/dev/null | head -1)
 
-      if [[ -n "$latest_result" ]]; then
-        echo "$(printf '%-20s %-15s %-15s %-15s\n' "$solution_name" "..." "..." "...")" >>"$comparison_file"
-      else
-        echo "$(printf '%-20s %-15s %-15s %-15s\n' "$solution_name" "N/A" "N/A" "N/A")" >>"$comparison_file"
-      fi
+        if [[ -n "$latest_result" ]] && command_exists jq; then
+          local avg_time=$(jq -r --arg tc "$test_case" '.test_cases[] | select(.test_case == $tc) | .wall_time_ms.average // "N/A"' "$latest_result")
+          local peak_mem=$(jq -r --arg tc "$test_case" '.test_cases[] | select(.test_case == $tc) | .memory_kb.maximum // "N/A"' "$latest_result")
+          local success_rate=$(jq -r --arg tc "$test_case" '.test_cases[] | select(.test_case == $tc) | "\(.successful_runs)/\(.iterations)"' "$latest_result")
+
+          if [[ "$avg_time" != "N/A" ]]; then
+            avg_time="$(format_time "$avg_time")"
+          fi
+          if [[ "$peak_mem" != "N/A" ]]; then
+            peak_mem="$(format_memory "$peak_mem")"
+          fi
+
+          echo "$(printf '%-20s %-15s %-15s %-15s\n' "$solution_name" "$avg_time" "$peak_mem" "$success_rate")" >>"$comparison_file"
+        else
+          echo "$(printf '%-20s %-15s %-15s %-15s\n' "$solution_name" "N/A" "N/A" "N/A")" >>"$comparison_file"
+        fi
+      done
+      echo >>"$comparison_file"
     done
-    echo >>"$comparison_file"
-  done
+  else
+    # Simple comparison without jq
+    for test_case in "${test_cases[@]}"; do
+      echo "Test Case: $test_case" >>"$comparison_file"
+      for solution in "${solutions[@]}"; do
+        echo "  $(basename "$solution" .cpp): Check individual reports" >>"$comparison_file"
+      done
+      echo >>"$comparison_file"
+    done
+  fi
 
   log_success "Comparison report saved: $comparison_file"
+  cat "$comparison_file"
+}
+
+# Profile memory usage with valgrind
+profile_solution() {
+  local solution="$1"
+  local test_case="$2"
+
+  if ! command_exists valgrind; then
+    log_error "valgrind not found. Please install valgrind for profiling."
+    exit 1
+  fi
+
+  local target_name="$(basename "$solution" .cpp)"
+  local input_file="$BENCHMARK_DIR/${test_case}.in"
+
+  if [[ ! -f "$input_file" ]]; then
+    log_error "Test case not found: $input_file"
+    exit 1
+  fi
+
+  log_info "Building solution in debug mode..."
+  if ! make TARGET_NAME="$target_name" SRCDIR="$(dirname "$solution")" BUILD_TYPE=debug clean all; then
+    log_error "Failed to build solution"
+    exit 1
+  fi
+
+  log_info "Running memory profiling with valgrind..."
+  valgrind --tool=memcheck \
+    --leak-check=full \
+    --show-leak-kinds=all \
+    --track-origins=yes \
+    --verbose \
+    --log-file="$RESULTS_DIR/valgrind-$target_name-$(date +%Y%m%d-%H%M%S).log" \
+    "./bin/$target_name" <"$input_file"
+
+  log_success "Profiling complete. Check results in $RESULTS_DIR/"
 }
 
 show_help() {
@@ -543,7 +622,7 @@ ${C_CYAN}Commands:${C_RESET}
   ${C_GREEN}create-tests${C_RESET}           - Create standard test cases (small, medium, large)
   ${C_GREEN}bench <solution> [tests...]${C_RESET}  - Benchmark solution with specified test cases
   ${C_GREEN}compare <sol1> <sol2> [...]${C_RESET} - Compare multiple solutions
-  ${C_GREEN}profile <solution> <test>${C_RESET}   - Detailed profiling with valgrind (if available)
+  ${C_GREEN}profile <solution> <test>${C_RESET}   - Detailed profiling with valgrind
   ${C_GREEN}help${C_RESET}                   - Show this help
 
 ${C_CYAN}Options:${C_RESET}
@@ -640,17 +719,7 @@ main() {
       exit 1
     fi
 
-    local solution="$1"
-    local test_case="$2"
-
-    if ! command_exists valgrind; then
-      log_error "valgrind not found. Please install valgrind for profiling."
-      exit 1
-    fi
-
-    log_info "Profiling not yet implemented. Use valgrind manually:"
-    echo "  make TARGET_NAME=\"$(basename "$solution" .cpp)\" BUILD_TYPE=debug"
-    echo "  valgrind --tool=callgrind ./bin/$(basename "$solution" .cpp) < $BENCHMARK_DIR/${test_case}.in"
+    profile_solution "$1" "$2"
     ;;
   "help" | "-h" | "--help")
     show_help
@@ -665,3 +734,6 @@ main() {
 
 # Run main function
 main "$@"
+
+# =========================================================================== #
+# End of script
