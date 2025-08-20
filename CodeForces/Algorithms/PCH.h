@@ -330,7 +330,7 @@ using std::chrono::microseconds;
 // GCC specific optimizations
 #ifdef COMPILER_GCC
     #pragma GCC optimize("O3,unroll-loops")
-    #pragma GCC target("avx2,bmi,bmi2,lzcnt,popcnt")
+    // #pragma GCC target("avx2,bmi,bmi2,lzcnt,popcnt")
     #define likely(x)   __builtin_expect(!!(x), 1)
     #define unlikely(x) __builtin_expect(!!(x), 0)
 #endif
