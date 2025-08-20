@@ -10,8 +10,8 @@
  */
 //===---------------------------------------------------------------------===//
 /* Included library */
-// clang-format off
 
+// clang-format off
 // Sanitaze macro:
 #ifdef USE_CLANG_SANITIZE
   #include "../Algorithms/PCH.h"

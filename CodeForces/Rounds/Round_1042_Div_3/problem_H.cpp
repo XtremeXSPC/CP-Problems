@@ -8,15 +8,9 @@
  */
 //===----------------------------------------------------------------------===//
 /* Included library */
-
 // clang-format off
-// Sanitaze macro:
-#ifdef USE_CLANG_SANITIZE
-  #include "PCH.h"
-#else
-  #include <bits/stdc++.h>
-#endif
 
+#include <bits/stdc++.h>
 using namespace std;
 
 //===----------------------------------------------------------------------===//
