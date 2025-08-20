@@ -8,8 +8,14 @@
  */
 //===----------------------------------------------------------------------===//
 /* Included library */
+// clang-format off
 
-#include <bits/stdc++.h>
+// Sanitaze macro:
+#ifdef USE_CLANG_SANITIZE
+  #include "PCH.h"
+#else
+  #include <bits/stdc++.h>
+#endif
 
 using namespace std;
 
@@ -18,10 +24,11 @@ using namespace std;
 
 // Debug macro:
 #ifdef LOCAL
-#include "debug.h"
+  #include "debug.h"
 #else
-#define debug(...) 42
+  #define debug(...) 42
 #endif
+// clang-format on
 
 // Type aliases
 using ll   = long long;

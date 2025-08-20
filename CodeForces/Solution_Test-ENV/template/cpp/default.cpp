@@ -1,13 +1,14 @@
 //===----------------------------------------------------------------------===//
 /**
- * @file: problem_C.cpp
- * @brief Codeforces Round 1042 (Div. 3) - Problem C
+ * @file: __FILE_NAME__
+ * @brief Codeforces Round #XXX (Div. X) - Problem Y
  * @author: Costantino Lombardi
  *
- * @status: PASSED
+ * @status: In Progress
  */
 //===----------------------------------------------------------------------===//
 /* Included library */
+
 // clang-format off
 
 // Sanitaze macro:
@@ -24,7 +25,7 @@ using namespace std;
 
 // Debug macro:
 #ifdef LOCAL
-  #include "debug.h"
+  #include "../Algorithms/debug.h"
 #else
   #define debug(...) 42
 #endif
@@ -41,40 +42,14 @@ using vpii = vector<pii>;
 constexpr int MOD  = 1000000007;
 constexpr int INF  = 1e9;
 constexpr ll  LINF = 1e18;
+constexpr int LIM  = 1000000 + 5;
 
 //===----------------------------------------------------------------------===//
 /* Data Types and Function Definitions */
 
 // Function to solve a single test case
 void solve() {
-  size_t n;
-  ll     k;
-  cin >> n >> k;
-
-  vll s_canon_rem(n);
-  for (size_t i = 0; i < n; ++i) {
-    ll val;
-    cin >> val;
-    ll rem         = val % k;
-    s_canon_rem[i] = min(rem, k - rem);
-  }
-
-  vll t_canon_rem(n);
-  for (size_t i = 0; i < n; ++i) {
-    ll val;
-    cin >> val;
-    ll rem         = val % k;
-    t_canon_rem[i] = min(rem, k - rem);
-  }
-
-  sort(s_canon_rem.begin(), s_canon_rem.end());
-  sort(t_canon_rem.begin(), t_canon_rem.end());
-
-  if (s_canon_rem == t_canon_rem) {
-    cout << "YES" << endl;
-  } else {
-    cout << "NO" << endl;
-  }
+  // Your solution here
 }
 
 //===----------------------------------------------------------------------===//

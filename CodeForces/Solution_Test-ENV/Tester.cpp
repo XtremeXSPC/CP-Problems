@@ -10,20 +10,20 @@
  */
 //===---------------------------------------------------------------------===//
 /* Included library */
-
 // clang-format off
+
+// Sanitaze macro:
+#ifdef USE_CLANG_SANITIZE
+  #include "../Algorithms/PCH.h"
+#else
+  #include <bits/stdc++.h>
+#endif
+
 // Debug macro:
 #ifdef LOCAL
   #include "../Algorithms/debug.h"
 #else
   #define debug(...) 42
-#endif
-
-// Sanitaze macro:
-#ifdef USE_CLANG_SANITIZE
-  #include "PCH.h"
-#else
-  #include <bits/stdc++.h>
 #endif
 // clang-format on
 
