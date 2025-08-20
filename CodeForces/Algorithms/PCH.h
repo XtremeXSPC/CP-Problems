@@ -310,33 +310,7 @@ template <typename T>
 inline T max(T a, T b, T c) {
   return max(a, max(b, c));
 }
-
 // clang-format off
-// Debug macros (only define if not already defined)
-#ifndef DEBUG_MACROS_DEFINED
-    #define DEBUG_MACROS_DEFINED
-    #ifndef ONLINE_JUDGE
-        #ifndef debug
-            #define debug(x) cerr << #x << " = " << (x) << endl
-        #endif
-        #ifndef debug2
-            #define debug2(x, y) cerr << #x << " = " << (x) << ", " << #y << " = " << (y) << endl
-        #endif
-        #ifndef debug_vec
-            #define debug_vec(v) { cerr << #v << " = ["; for(auto& x : v) cerr << x << " "; cerr << "]" << endl; }
-        #endif
-    #else
-        #ifndef debug
-            #define debug(x)
-        #endif
-        #ifndef debug2
-            #define debug2(x, y)
-        #endif
-        #ifndef debug_vec
-            #define debug_vec(v)
-        #endif
-    #endif
-#endif
 
 //===---------------------------------------------------------------------===//
 // NAMESPACE USAGE

@@ -238,7 +238,7 @@ endif
 SYSTEM_INCLUDES := -I/usr/local/include
 CXXFLAGS_TOOLCHAIN := 
 STDLIB_FLAG := 
-PCH_INCLUDE := 
+PCH_INCLUDE :=
 
 # Configure toolchain based on effective compiler and mode
 ifeq ($(EFFECTIVE_COMPILER),gcc)

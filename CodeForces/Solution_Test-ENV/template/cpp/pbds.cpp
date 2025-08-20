@@ -1,31 +1,29 @@
 //===----------------------------------------------------------------------===//
 /**
- * @file: problem_A.cpp
- * @brief Codeforces Round 1042 (Div. 3) - Problem A
+ * @file: __FILE_NAME__
+ * @brief Codeforces Round #XXX (Div. X) - Problem Y
  * @author: Costantino Lombardi
  *
- * @status: PASSED
+ * @status: In Progress
  */
 //===----------------------------------------------------------------------===//
 /* Included library */
-// clang-format off
 
-// Sanitaze macro:
-#ifdef USE_CLANG_SANITIZE
-  #include "PCH.h"
-#else
-  #include <bits/stdc++.h>
-#endif
+#include <bits/stdc++.h>
+
+// Headers for Policy-Based Data Structures
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
 
 using namespace std;
-// clang-format on
+using namespace __gnu_pbds;
 
 //===----------------------------------------------------------------------===//
-/* Macros and Type Aliases */
+/* Macros, Type Aliases, and PBDS */
 
-// Debug macro:
+// Debug macro: enabled only when LOCAL is defined
 #ifdef LOCAL
-#include "debug.h"
+#include "../Algorithms/debug.h"
 #else
 #define debug(...) 42
 #endif
@@ -37,8 +35,17 @@ using pii  = pair<int, int>;
 using vll  = vector<ll>;
 using vpii = vector<pii>;
 
+// ----- PBDS Typedefs ----- //
+// Ordered Set (for unique elements)
+template <typename T>
+using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+// Ordered Multiset (for duplicate elements)
+template <typename T>
+using ordered_multiset = tree<T, null_type, less_equal<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
 // Constants
-constexpr int MOD  = 1000000007;
+constexpr int MOD  = 1e9 + 7;
 constexpr int INF  = 1e9;
 constexpr ll  LINF = 1e18;
 
@@ -47,32 +54,12 @@ constexpr ll  LINF = 1e18;
 
 // Function to solve a single test case
 void solve() {
-  Timer timer;
-
-  size_t n;
-  cin >> n;
-  vi a(n), b(n);
-  ll total_excess = 0;
-
-  for (size_t i = 0; i < n; i++) {
-    cin >> a[i];
-  }
-
-  for (size_t i = 0; i < n; i++) {
-    cin >> b[i];
-  }
-
-  for (size_t i = 0; i < n; i++) {
-    if (a[i] > b[i]) {
-      total_excess += a[i] - b[i];
-    }
-  }
-
-  cout << total_excess + 1 << endl;
+  // Your solution here
 }
 
 //===----------------------------------------------------------------------===//
-/* Main function */
+//  Main Function
+//===----------------------------------------------------------------------===//
 
 int main() {
   // Fast I/O
@@ -87,5 +74,3 @@ int main() {
 
   return 0;
 }
-
-//===----------------------------------------------------------------------===//
