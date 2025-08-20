@@ -1,0 +1,393 @@
+# Test Suite Configuration for Competitive Programming Problems
+# This file defines test suites for different problem types
+
+# =========================================================================== #
+# ----------------------------- Graph Problems ------------------------------ #
+
+graph_problems:
+  shortest_path:
+    generators:
+      - type: random_graph
+        cases:
+          - name: sparse_small
+            size: small
+            constraints:
+              edge_prob: 0.1
+              weighted: true
+              min_weight: 1
+              max_weight: 100
+
+          - name: dense_small
+            size: small
+            constraints:
+              edge_prob: 0.7
+              weighted: true
+              min_weight: 1
+              max_weight: 100
+
+          - name: negative_weights
+            size: medium
+            constraints:
+              edge_prob: 0.3
+              weighted: true
+              min_weight: -50
+              max_weight: 100
+
+          - name: stress_test
+            size: large
+            constraints:
+              edge_prob: 0.2
+              weighted: true
+              min_weight: 1
+              max_weight: 1000000
+
+  mst:
+    generators:
+      - type: random_graph
+        cases:
+          - name: basic
+            size: small
+            constraints:
+              edge_prob: 0.5
+              weighted: true
+              min_weight: 1
+              max_weight: 100
+
+          - name: complete_graph
+            size: tiny
+            constraints:
+              edge_prob: 1.0
+              weighted: true
+
+          - name: large_sparse
+            size: large
+            constraints:
+              edge_prob: 0.1
+              weighted: true
+
+  tree_problems:
+    generators:
+      - type: tree
+        cases:
+          - name: balanced
+            size: medium
+            constraints:
+              weighted: false
+
+          - name: weighted_tree
+            size: medium
+            constraints:
+              weighted: true
+              min_weight: 1
+              max_weight: 1000
+
+      - type: centroid_tree
+        cases:
+          - name: centroid_optimized
+            size: large
+
+# =========================================================================== #
+# ---------------------- Dynamic Programming Problems ----------------------- #
+
+dp_problems:
+  knapsack:
+    generators:
+      - type: array
+        cases:
+          - name: small_values
+            size: small
+            constraints:
+              min_val: 1
+              max_val: 100
+
+          - name: large_values
+            size: medium
+            constraints:
+              min_val: 1
+              max_val: 1000000
+
+          - name: stress
+            size: stress
+            constraints:
+              min_val: 1
+              max_val: 1000000000
+
+  lis: # Longest Increasing Subsequence
+    generators:
+      - type: array
+        cases:
+          - name: random
+            size: medium
+            constraints:
+              min_val: 1
+              max_val: 1000000
+
+      - type: sorted_array
+        cases:
+          - name: increasing
+            size: medium
+            constraints:
+              descending: false
+
+          - name: decreasing
+            size: medium
+            constraints:
+              descending: true
+
+      - type: permutation
+        cases:
+          - name: permutation
+            size: medium
+
+  grid_paths:
+    generators:
+      - type: dp_path
+        cases:
+          - name: random_grid
+            size: medium
+            constraints:
+              pattern: random
+
+          - name: increasing_grid
+            size: medium
+            constraints:
+              pattern: increasing
+
+          - name: spiral_grid
+            size: large
+            constraints:
+              pattern: spiral
+
+# =========================================================================== #
+# ----------------------------- String Problems ----------------------------- #
+
+string_problems:
+  pattern_matching:
+    generators:
+      - type: string
+        cases:
+          - name: lowercase
+            size: medium
+            constraints:
+              alphabet: "abcdefghijklmnopqrstuvwxyz"
+
+          - name: binary
+            size: large
+            constraints:
+              alphabet: "01"
+
+          - name: small_alphabet
+            size: stress
+            constraints:
+              alphabet: "abc"
+
+      - type: binary_string
+        cases:
+          - name: balanced
+            size: large
+            constraints:
+              prob_one: 0.5
+
+          - name: sparse_ones
+            size: large
+            constraints:
+              prob_one: 0.1
+
+  palindrome:
+    generators:
+      - type: palindrome
+        cases:
+          - name: perfect_palindrome
+            size: medium
+
+          - name: large_palindrome
+            size: large
+            constraints:
+              alphabet: "ab"
+
+# =========================================================================== #
+# ------------------------- Data Structure Problems ------------------------- #
+
+data_structures:
+  segment_tree:
+    generators:
+      - type: segtree_query
+        cases:
+          - name: balanced_ops
+            size: medium
+            constraints:
+              num_queries: 100000
+
+          - name: update_heavy
+            size: large
+            constraints:
+              num_queries: 200000
+
+      - type: range_query
+        cases:
+          - name: simple_ranges
+            size: medium
+            constraints:
+              num_queries: 50000
+
+  fenwick_tree:
+    generators:
+      - type: update_query
+        cases:
+          - name: point_updates
+            size: medium
+            constraints:
+              num_ops: 100000
+              update_prob: 0.5
+
+          - name: query_heavy
+            size: large
+            constraints:
+              num_ops: 200000
+              update_prob: 0.2
+
+# =========================================================================== #
+# ---------------------------- Geometry Problems ---------------------------- #
+
+geometry:
+  convex_hull:
+    generators:
+      - type: points
+        cases:
+          - name: random_points
+            size: medium
+            constraints:
+              min_coord: -1000000
+              max_coord: 1000000
+              unique: true
+
+          - name: collinear_points
+            size: small
+            constraints:
+              min_coord: -100
+              max_coord: 100
+
+      - type: convex_polygon
+        cases:
+          - name: already_convex
+            size: medium
+
+  closest_pair:
+    generators:
+      - type: points
+        cases:
+          - name: sparse_points
+            size: large
+            constraints:
+              min_coord: -1000000000
+              max_coord: 1000000000
+              unique: true
+
+          - name: dense_points
+            size: medium
+            constraints:
+              min_coord: -100
+              max_coord: 100
+
+# =========================================================================== #
+# -------------------------- Network Flow Problems -------------------------- #
+
+network_flow:
+  max_flow:
+    generators:
+      - type: flow_network
+        cases:
+          - name: small_network
+            size: small
+            constraints:
+              layers: 3
+
+          - name: large_network
+            size: large
+            constraints:
+              layers: 10
+
+      - type: bipartite
+        cases:
+          - name: bipartite_matching
+            size: medium
+            constraints:
+              edge_prob: 0.4
+              left_size: 50
+
+# =========================================================================== #
+# -------------------------- Contest Problem Sets --------------------------- #
+
+contest_sets:
+  div2_a: # Easy problems
+    test_sizes: [tiny, small, medium]
+    generators: [array, string, sorted_array]
+
+  div2_b: # Medium problems
+    test_sizes: [small, medium, large]
+    generators: [array, tree, binary_string, range_query]
+
+  div2_c: # Hard problems
+    test_sizes: [small, medium, large, stress]
+    generators: [dag, segment_tree_query, dp_path]
+
+  div1_a: # Advanced problems
+    test_sizes: [medium, large, stress]
+    generators: [flow_network, centroid_tree, convex_polygon]
+
+# =========================================================================== #
+# ------------------------- Stress Testing Profiles ------------------------- #
+
+stress_profiles:
+  memory_intensive:
+    generators:
+      - type: matrix
+        size: stress
+        constraints:
+          cols: 1000
+
+      - type: tree
+        size: stress
+        constraints:
+          weighted: true
+
+  time_intensive:
+    generators:
+      - type: random_graph
+        size: stress
+        constraints:
+          edge_prob: 0.5
+          weighted: true
+
+      - type: segtree_query
+        size: stress
+        constraints:
+          num_queries: 1000000
+
+  edge_cases:
+    generators:
+      - type: array
+        cases:
+          - name: all_same
+            size: large
+            constraints:
+              min_val: 42
+              max_val: 42
+
+          - name: alternating
+            size: large
+            constraints:
+              min_val: 0
+              max_val: 1
+
+      - type: sorted_array
+        cases:
+          - name: sorted_asc
+            size: large
+            constraints:
+              descending: false
+
+          - name: sorted_desc
+            size: large
+            constraints:
+              descending: true
