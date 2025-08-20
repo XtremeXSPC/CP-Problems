@@ -1,29 +1,26 @@
-# Generic Makefile for Competitive Programming C++ projects.
-# Optimized for GCC with bits/stdc++.h and pb_ds support.
+# Enhanced Makefile for Competitive Programming C++ projects
+# Optimized for GCC with bits/stdc++.h and pb_ds support
 
 # =========================================================================== #
 # ------------------------ System Pre-configuration  ------------------------ #
 # =========================================================================== #
-# Use Homebrew's bash if available to avoid macOS SIP issues with tools like 'bear',
-# which rely on DYLD_INSERT_LIBRARIES. SIP strips this variable from system shells.
+# Use Homebrew's bash if available to avoid macOS SIP issues with tools like
+# 'bear', which rely on DYLD_INSERT_LIBRARIES.
 HOMEBREW_BASH := $(shell which bash | grep 'homebrew')
-
 ifeq ($(strip $(HOMEBREW_BASH)),)
     SHELL := /bin/bash
 else
-    # Use the first bash found in a homebrew path
     SHELL := $(firstword $(HOMEBREW_BASH))
 endif
 
-# Continue with the rest of the Makefile...
 .ONESHELL:
 .SHELLFLAGS := -eu -o pipefail -c
+.DEFAULT_GOAL := all
 
 # =========================================================================== #
 # -------------------------- ANSI Color Codes ------------------------------- #
 # =========================================================================== #
 # Check if terminal supports colors and define color variables.
-# These will be empty if colors are not supported, allowing for graceful degradation.
 ifeq ($(shell test -t 1 -o -t 2 && echo true), true)
     N_COLORS := $(shell tput colors 2>/dev/null || echo 0)
     ifeq ($(shell test $(N_COLORS) -ge 8 && echo true), true)
@@ -38,34 +35,33 @@ ifeq ($(shell test -t 1 -o -t 2 && echo true), true)
 endif
 
 # =========================================================================== #
-# ----------------------- User-configurable variables ----------------------- #
+# ----------------------- User-configurable Variables ----------------------- #
 # =========================================================================== #
+
 TARGET_NAME    ?= Tester
 SRCDIR         ?= .
 BINDIR         ?= bin
 OBJDIR_BASE    ?= obj
 
-# Standardized I/O and config directories
+# Project directories
 INPUT_DIR      ?= input
 OUTPUT_DIR     ?= output
 IDE_CONFIG_DIR ?= .ide-config
-
-# Define the location for helper scripts
 SCRIPTS_DIR    ?= scripts
 
-# Build profile for competitive programming: debug (default), release, or sanitize.
+# Build profile for competitive programming: debug (default), release, or sanitize
 BUILD_TYPE     ?= debug
 
 # IDE configuration mode - when set to 'yes', produces clean compile commands
 # without toolchain-specific flags that can confuse clangd
 IDE_CONFIG     ?= no
 
-# Competitive programming specific settings
+# Competitive programming settings
 ENABLE_FAST_IO ?= 1
 ENABLE_DEBUG   ?= 1
 
 # =========================================================================== #
-# -------------- Automatic OS configuration and path settings --------------- #
+# -------------- Platform Detection and Path Configuration ------------------ #
 # =========================================================================== #
 # Initial default definitions to avoid empty values if OS logic fails
 PathSep        := /
@@ -94,8 +90,8 @@ else ifneq (,$(findstring MINGW,$(UNAME_S))) # MinGW (Git Bash, MSYS2)
 	MKDIR_P     := mkdir -p
 else ifneq (,$(findstring CYGWIN,$(UNAME_S))) # Cygwin
 	detected_os := WINDOWS_CYGWIN
-  # Cygwin can handle with or without .exe
 	TARGET_EXEC := $(TARGET_NAME).exe
+  # Cygwin prefers Unix-style slashes
 	PathSep     := /
 	RM          := rm -f
 	RMDIR_CMD   := rm -rf
@@ -124,12 +120,26 @@ endif
 
 TARGET_DIR_WITH_SEP := $(BINDIR)$(PathSep)
 TARGET_PATH         := $(TARGET_DIR_WITH_SEP)$(TARGET_EXEC)
+OBJDIR := $(OBJDIR_BASE)/$(BUILD_TYPE)
 
 # =========================================================================== #
 # ------------- Competitive Programming Compiler Configuration -------------- #
 # =========================================================================== #
 
-# ------------------------ GCC Detection for bits/stdc++.h ------------------ #
+# ------------- Enhanced CP header detection (ignores comments) ------------- #
+# Use the get_gcc_includes script to detect competitive programming headers
+NEEDS_GCC_RESULT := $(shell ./$(SCRIPTS_DIR)/get_gcc_includes.sh --check-competitive $(SRCDIR) 2>/dev/null || echo "no")
+NEEDS_GCC := $(NEEDS_GCC_RESULT)
+
+# Debug output for competitive header detection
+ifeq ($(NEEDS_GCC),yes)
+    $(info $(C_CYAN)Competitive programming headers detected - GCC required$(C_RESET))
+else
+    $(info $(C_GREEN)No competitive programming headers found - Clang can be used$(C_RESET))
+endif
+
+
+# ------------------------ Compiler Detection Logic ------------------------- #
 # Find the include path and prefix of the latest installed GCC version via Homebrew
 GCC_PREFIX      := $(shell brew --prefix gcc 2>/dev/null || echo "")
 
@@ -143,9 +153,7 @@ endif
 ifeq ($(GCC_BINARY),)
     SYSTEM_GCC := $(shell which g++ 2>/dev/null)
     ifneq ($(SYSTEM_GCC),)
-        # ----- START: Platform-Aware Heuristic ----- #
-        # This check is platform-specific. On macOS, /usr/bin/g++ is a
-        # symlink to clang that must be skipped. On Linux, it is the real GCC.
+        # Platform-Aware Heuristic
         ifeq ($(detected_os),MACOS)
             ifeq ($(SYSTEM_GCC),/usr/bin/g++)
                 # This is Xcode's g++ symlink to clang, skip it
@@ -157,34 +165,18 @@ ifeq ($(GCC_BINARY),)
             # On non-macOS systems (like Linux), trust the system g++
             GCC_BINARY := $(SYSTEM_GCC)
         endif
-        # ------ END: Platform-Aware Heuristic ------ #
     endif
 endif
 
-# ------------- Enhanced CP header detection (ignores comments) ------------- #
-# Use the enhanced script to detect competitive programming headers
-NEEDS_GCC_RESULT := $(shell ./scripts/get_gcc_includes.sh --check-competitive $(SRCDIR) 2>/dev/null || echo "no")
-NEEDS_GCC := $(NEEDS_GCC_RESULT)
-
-# Debug output for competitive header detection
-ifeq ($(NEEDS_GCC),yes)
-    $(info $(C_CYAN)Competitive programming headers detected - GCC required$(C_RESET))
-else
-    $(info $(C_GREEN)No competitive programming headers found - Clang can be used$(C_RESET))
-endif
-
-# ----------- Enhanced Compiler Selection with Sanitizer Support ------------ #
-# Variables to track effective compiler configuration
+# -------------------- Enhanced Compiler Selection Logic -------------------- #
 EFFECTIVE_COMPILER := 
 EFFECTIVE_CC := 
 USE_PCH_FALLBACK := no
 SANITIZER_AVAILABLE := no
 
-# Determine sanitizer availability and compiler selection
+# Determine effective compiler based on build type and GCC availability
 ifeq ($(BUILD_TYPE),sanitize)
-    # For sanitize mode, we need to check compiler capabilities
     ifeq ($(NEEDS_GCC),yes)
-        # Competitive headers detected - check if GCC has sanitizers
         ifneq ($(GCC_BINARY),)
             # Test if GCC sanitizers are available
             GCC_SANITIZER_TEST := $(shell echo 'int main(){}' | $(GCC_BINARY) -x c++ -fsanitize=address,undefined - -o /tmp/sanitizer_test 2>/dev/null && echo "yes" || echo "no")
@@ -194,7 +186,6 @@ ifeq ($(BUILD_TYPE),sanitize)
                 EFFECTIVE_CC := $(subst g++,gcc,$(GCC_BINARY))
                 $(info $(C_CYAN)Using GCC with sanitizers for competitive programming$(C_RESET))
             else
-                # GCC sanitizers not working, fall back to Clang with PCH
                 SANITIZER_AVAILABLE := yes
                 EFFECTIVE_COMPILER := clang
                 EFFECTIVE_CC := clang
@@ -202,7 +193,6 @@ ifeq ($(BUILD_TYPE),sanitize)
                 $(info $(C_YELLOW)GCC sanitizers unavailable, using Clang with PCH fallback$(C_RESET))
             endif
         else
-            # No GCC available, must use Clang with PCH fallback
             SANITIZER_AVAILABLE := yes
             EFFECTIVE_COMPILER := clang
             EFFECTIVE_CC := clang
@@ -210,7 +200,6 @@ ifeq ($(BUILD_TYPE),sanitize)
             $(info $(C_YELLOW)No GCC found, using Clang with PCH fallback for sanitizers$(C_RESET))
         endif
     else
-        # Standard C++ - use Clang for sanitizers
         SANITIZER_AVAILABLE := yes
         EFFECTIVE_COMPILER := clang
         EFFECTIVE_CC := clang
@@ -257,7 +246,7 @@ ifeq ($(EFFECTIVE_COMPILER),gcc)
     ifeq ($(USE_PCH_FALLBACK),no)
         # Standard GCC configuration for competitive programming
         ifneq ($(GCC_BINARY),)
-            GCC_ISYSTEM_FLAGS := $(shell ./scripts/get_gcc_includes.sh $(CXX))
+            GCC_ISYSTEM_FLAGS := $(shell ./$(SCRIPTS_DIR)/get_gcc_includes.sh $(CXX))
         else
             GCC_ISYSTEM_FLAGS :=
         endif
@@ -283,10 +272,8 @@ ifeq ($(EFFECTIVE_COMPILER),gcc)
             endif
         endif
     else
-        # PCH fallback mode: use Clang with custom PCH.h instead of bits/stdc++.h
-        # Define macro to let source code know it should use PCH.h
+        # PCH fallback mode
         CXXFLAGS_TOOLCHAIN := -DUSE_PCH_FALLBACK=1 -DUSE_CLANG_SANITIZE=1
-        # DO NOT force include PCH.h - let source code decide
         PCH_INCLUDE := 
         SYSTEM_INCLUDES := -I/usr/local/include
         STDLIB_FLAG := 
@@ -298,11 +285,8 @@ else
     SYSTEM_INCLUDES := -I/usr/local/include
     STDLIB_FLAG := 
     
-    # Add PCH fallback configuration if needed
     ifeq ($(USE_PCH_FALLBACK),yes)
-        # Define macro to let source code know it should use PCH.h
         CXXFLAGS_TOOLCHAIN := -DUSE_PCH_FALLBACK=1 -DUSE_CLANG_SANITIZE=1
-        # DO NOT force include PCH.h - let source code decide
         PCH_INCLUDE := 
         $(info $(C_YELLOW)PCH fallback mode enabled for Clang$(C_RESET))
     endif
@@ -326,16 +310,15 @@ ifeq ($(ENABLE_DEBUG),1)
     COMPETITIVE_DEFINES += -DDEBUG=1
 endif
 
-# Include paths - combine and deduplicate (PCH_INCLUDE removed from here)
+# Include paths
 CPPFLAGS := $(sort $(PROJECT_INCLUDES)) $(SYSTEM_INCLUDES)
 
-# -------------- Enhanced Build Profile Configuration -------------------- #
+# ------------------- Enhanced Build Profile Configuration ------------------- #
 # Initialize LDFLAGS with standard library flag if needed
 LDFLAGS := $(STDLIB_FLAG)
 
 ifeq ($(BUILD_TYPE), release)
     # Release: Maximum optimization for contest submission
-    # Platform-specific optimization flags
     ifeq ($(detected_os),MACOS)
         ARCH_FLAGS := -mcpu=native
     else
@@ -346,11 +329,11 @@ ifeq ($(BUILD_TYPE), release)
     WARNING_FLAGS := -w
     $(info $(C_GREEN)Build mode: Release (optimized for submission)$(C_RESET))
 else ifeq ($(BUILD_TYPE), sanitize)
-    # Enhanced sanitize mode with better error handling
+    # Enhanced sanitize mode
     ifeq ($(SANITIZER_AVAILABLE),no)
         $(error $(C_RED)Sanitizers not available with current configuration$(C_RESET))
     endif
-    
+		
     # Base sanitizer flags
     SANITIZER_FLAGS := -fsanitize=address,undefined -fno-omit-frame-pointer
     PROFILE_FLAGS := -g -O1 $(SANITIZER_FLAGS)
@@ -389,7 +372,6 @@ else ifeq ($(BUILD_TYPE), sanitize)
             endif
         endif
     else
-        # Clang sanitizer setup - should work out of the box
         $(info $(C_CYAN)Using Clang sanitizers with system libraries$(C_RESET))
     endif
 else
@@ -400,13 +382,10 @@ else
     $(info $(C_BLUE)Build mode: Debug (development and testing)$(C_RESET))
 endif
 
-# Define final object directory based on build type
-OBJDIR := $(OBJDIR_BASE)/$(BUILD_TYPE)
-
-# Final compiler flags for competitive programming
+# Final compiler flags
 CXXFLAGS := $(COMMON_FLAGS) $(WARNING_FLAGS) $(PROFILE_FLAGS) $(COMPETITIVE_DEFINES) $(CXXFLAGS_TOOLCHAIN)
 
-# -------------- Enhanced Linker Configuration --------------------------- #
+# ---------------------- Enhanced Linker Configuration ---------------------- #
 # Add GCC library path if using GCC and not in IDE config mode
 ifeq ($(EFFECTIVE_COMPILER),gcc)
     ifneq ($(IDE_CONFIG),yes)
@@ -414,7 +393,6 @@ ifeq ($(EFFECTIVE_COMPILER),gcc)
             # Standard GCC linking
             GCC_LIB_BASE := $(shell dirname $(GCC_BINARY))/../lib
             LDFLAGS += -L$(GCC_LIB_BASE)
-            
             # On macOS, add rpath for runtime library discovery
             ifeq ($(detected_os),MACOS)
                 LDFLAGS += -Wl,-rpath,$(GCC_LIB_BASE)
@@ -442,7 +420,7 @@ DEPS           := $(OBJS:.o=.d)
 DIR_SENTINEL := $(OBJDIR)/.dirs_created
 
 # =========================================================================== #
-# -------------------- Enhanced Linker Configuration ----------------------- #
+# ---------------------- Enhanced Linker Configuration ---------------------- #
 # =========================================================================== #
 ifeq ($(strip $(CPP_SRCS)),)
 	LD = @echo "$(C_RED)No C++ sources found for competitive programming!$(C_RESET)"; false
@@ -452,7 +430,7 @@ else
 endif
 
 # =========================================================================== #
-# ------------------------- Competitive Programming Rules ------------------- #
+# ---------------------- Competitive Programming Rules ---------------------- #
 # =========================================================================== #
 .PHONY: all
 
@@ -465,7 +443,7 @@ $(DIR_SENTINEL):
 	@$(MKDIR_P) $(OBJDIR) $(BINDIR)
 	@touch $@
 
-# Enhanced linking rule with better error messages
+# Enhanced linking rule
 $(TARGET_PATH): $(OBJS)
 	@echo "$(C_BLUE)# ------ Linking Competitive Programming Executable ------ #$(C_RESET)"
 	@echo "$(C_BLUE)Compiler:$(C_RESET) $(CXX)"
@@ -477,7 +455,7 @@ $(TARGET_PATH): $(OBJS)
 	$(LD) $(OBJS) $(LDFLAGS_FINAL) -o $@
 	@echo "$(C_GREEN)✓ Build successful$(C_RESET)"
 
-# Enhanced compilation rules with PCH fallback support
+# Enhanced compilation rules
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(DIR_SENTINEL)
 	@echo "$(C_CYAN)Compiling C++:$(C_RESET) $< -> $@"
 	@if [ "$(USE_PCH_FALLBACK)" = "yes" ]; then \
@@ -525,11 +503,10 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cxx $(DIR_SENTINEL)
 # =========================================================================== #
 .PHONY: contest run test
 
-# Quick build for contest environment (release mode)
 contest: clean
 	@$(MAKE) BUILD_TYPE=release all
 
-# Enhanced run target with better error handling
+# Enhanced run target
 INPUT_FILE ?= $(INPUT_DIR)/$(TARGET_NAME).in
 OUTPUT_FILE ?= $(OUTPUT_DIR)/$(TARGET_NAME).out
 ARGS ?=
@@ -547,7 +524,6 @@ run: all
 		./$(TARGET_PATH) $(ARGS) < $(INPUT_FILE); \
 	fi
 
-# Test with standardized input/output file locations
 test: all
 	@echo "$(C_BLUE)Running $(TARGET_PATH) with I/O redirection...$(C_RESET)"
 	@if [ ! -f "$(INPUT_FILE)" ]; then \
@@ -572,7 +548,6 @@ init-ide-config:
 		echo "$(C_YELLOW)Warning: Template 'clangd-macos.yml' not found. 'config-ide' may fail on macOS.$(C_RESET)"; \
 	fi
 
-.PHONY: config-ide
 config-ide:
 	@echo "$(C_BOLD)----- Configuring IDE Integration (Clangd) -----$(C_RESET)"
 	@echo "$(C_CYAN)Detected OS: $(detected_os)$(C_RESET)"
@@ -622,23 +597,19 @@ config-ide:
 # =========================================================================== #
 .PHONY: benchmark create-bench-tests compare
 
-# Variables for benchmark targets
 BENCH_TARGET ?= $(TARGET_NAME)
 BENCH_TESTS  ?= small medium large
 SOLUTIONS    ?=
 
-# Create standard benchmark test cases (small, medium, large, stress)
 create-bench-tests:
 	@if [ ! -f "$(SCRIPTS_DIR)/benchmark.sh" ]; then echo "$(C_RED)benchmark.sh not found in '$(SCRIPTS_DIR)/'!$(C_RESET)"; exit 1; fi
 	@./$(SCRIPTS_DIR)/benchmark.sh create-tests
 	
-# Run benchmark for a specific target
 benchmark:
 	@if [ ! -f "$(SCRIPTS_DIR)/benchmark.sh" ]; then echo "$(C_RED)benchmark.sh not found in '$(SCRIPTS_DIR)/'!$(C_RESET)"; exit 1; fi
 	@echo "$(C_CYAN)Running benchmark for target $(BENCH_TARGET) with tests: $(BENCH_TESTS)...$(C_RESET)"
 	@./$(SCRIPTS_DIR)/benchmark.sh bench $(BENCH_TARGET).cpp $(BENCH_TESTS)
 
-# Compare multiple solutions
 compare:
 	@if [ ! -f "$(SCRIPTS_DIR)/benchmark.sh" ]; then echo "$(C_RED)benchmark.sh not found in '$(SCRIPTS_DIR)/'!$(C_RESET)"; exit 1; fi
 	@if [ -z "$(SOLUTIONS)" ]; then echo "$(C_RED)Please specify solutions to compare, e.g., make compare SOLUTIONS=\"A.cpp B.cpp\"$(C_RESET)"; exit 1; fi
@@ -675,16 +646,14 @@ clean:
 distclean: clean
 	@echo "$(C_YELLOW)Cleaning all directories and temporary files...$(C_RESET)"
 	-$(RMDIR_CMD) $(OBJDIR) $(BINDIR) $(OUTPUT_DIR)
-	# Remove competitive programming artifacts and IDE configuration
 	-$(RM) *~ *.bak .clangd compile_commands.json
 	@echo "$(C_GREEN)Distclean complete.$(C_RESET)"
 
-# Compilation Database for clangd (essential for competitive programming IDEs)
 compile_commands:
 	@echo "$(C_CYAN)Generating compile_commands.json for IDE support...$(C_RESET)"
 	@compiledb -n make clean all BUILD_TYPE=$(BUILD_TYPE)
 
-# Enhanced debug-info target with sanitizer information
+# Enhanced debug-info target
 debug-info:
 	@echo "$(C_BOLD)/====------------ Competitive Programming Debug Info ------------====/$(C_RESET)"
 	@echo "$(C_CYAN)Build Configuration:$(C_RESET)"
@@ -705,8 +674,6 @@ debug-info:
 	@echo ""
 	@echo "$(C_CYAN)Competitive Programming Detection:$(C_RESET)"
 	@echo "  NEEDS_GCC: $(NEEDS_GCC)"
-	@echo "  NEEDS_BITS_STDC: $(if $(NEEDS_BITS_STDC),YES ($(NEEDS_BITS_STDC)),NO)"
-	@echo "  NEEDS_PBDS: $(if $(NEEDS_PBDS),YES ($(NEEDS_PBDS)),NO)"
 	@echo ""
 	@echo "$(C_CYAN)Enhanced Compiler Configuration:$(C_RESET)"
 	@echo "  EFFECTIVE_COMPILER: $(EFFECTIVE_COMPILER)"
@@ -728,71 +695,6 @@ debug-info:
 	@echo "$(CXXFLAGS)" | tr ' ' '\n' | sed 's/^-/    -/' | head -20
 	@echo "  LDFLAGS_FINAL:"
 	@echo "$(LDFLAGS_FINAL)" | tr ' ' '\n' | sed 's/^-/    -/' | head -20
-	@echo ""
-	@echo "$(C_CYAN)Enhanced Sanitizer Configuration:$(C_RESET)"
-	@if [ "$(BUILD_TYPE)" = "sanitize" ]; then \
-		echo "  Status: ENABLED"; \
-		echo "  Effective Compiler: $(EFFECTIVE_COMPILER)"; \
-		echo "  PCH Fallback Mode: $(USE_PCH_FALLBACK)"; \
-		if [ "$(EFFECTIVE_COMPILER)" = "gcc" ]; then \
-			echo "  GCC Sanitizer Test Results:"; \
-			GCC_SANITIZER_TEST=$$(echo 'int main(){}' | $(CXX) -x c++ -fsanitize=address,undefined - -o /tmp/sanitizer_test 2>/dev/null && echo "PASS" || echo "FAIL"); \
-			echo "    Test Result: $$GCC_SANITIZER_TEST"; \
-			if [ "$$GCC_SANITIZER_TEST" = "PASS" ]; then \
-				echo "    ✓ GCC sanitizers are functional"; \
-			else \
-				echo "    ✗ GCC sanitizers failed, using fallback"; \
-			fi; \
-			echo "  Library Detection:"; \
-			if [ "$(detected_os)" = "MACOS" ]; then \
-				LIBASAN_CHECK=$$($(CXX) -print-file-name=libasan.dylib 2>/dev/null); \
-				if [ "$$LIBASAN_CHECK" != "libasan.dylib" ]; then \
-					echo "    ✓ Found libasan: $$LIBASAN_CHECK"; \
-				else \
-					echo "    ✗ libasan not found via print-file-name"; \
-					MANUAL_SEARCH=$$(find $$(dirname $(GCC_BINARY))/.. -name "*asan*" -type f 2>/dev/null | head -3); \
-					if [ -n "$$MANUAL_SEARCH" ]; then \
-						echo "    Manual search results:"; \
-						echo "$$MANUAL_SEARCH" | sed 's/^/      /'; \
-					else \
-						echo "    ✗ No sanitizer libraries found"; \
-					fi; \
-				fi; \
-			else \
-				LIBASAN_CHECK=$$($(CXX) -print-file-name=libasan.so 2>/dev/null); \
-				if [ "$$LIBASAN_CHECK" != "libasan.so" ]; then \
-					echo "    ✓ Found libasan: $$LIBASAN_CHECK"; \
-				else \
-					echo "    ✗ libasan not found"; \
-				fi; \
-			fi; \
-		else \
-			echo "  Using Clang sanitizers (should work out of the box)"; \
-			CLANG_SANITIZER_TEST=$$(echo 'int main(){}' | clang++ -x c++ -fsanitize=address,undefined - -o /tmp/clang_sanitizer_test 2>/dev/null && echo "PASS" || echo "FAIL"); \
-			echo "  Clang Sanitizer Test: $$CLANG_SANITIZER_TEST"; \
-		fi; \
-	else \
-		echo "  Status: DISABLED (Build type: $(BUILD_TYPE))"; \
-	fi
-	@echo ""
-	@echo "$(C_CYAN)PCH Fallback Information:$(C_RESET)"
-	@if [ "$(USE_PCH_FALLBACK)" = "yes" ]; then \
-		echo "  Status: ACTIVE"; \
-		echo "  PCH File: $(SRCDIR)/PCH.h"; \
-		if [ -f "$(SRCDIR)/PCH.h" ]; then \
-			echo "  ✓ PCH.h file exists"; \
-		else \
-			echo "  ✗ PCH.h file missing!"; \
-		fi; \
-		echo "  Reason: $(if $(filter $(BUILD_TYPE),sanitize),Sanitizer fallback for competitive headers,Unknown)"; \
-	else \
-		echo "  Status: INACTIVE"; \
-	fi
-	@echo ""
-	@echo "$(C_CYAN)OS Commands:$(C_RESET)"
-	@echo "  RM: $(RM)"
-	@echo "  RMDIR_CMD: $(RMDIR_CMD)"
-	@echo "  MKDIR_P: $(MKDIR_P)"
 	@echo "$(C_BOLD)/====------------------------------------------------------------====/$(C_RESET)"
 
 help:
@@ -801,45 +703,30 @@ help:
 	@echo "Usage: make $(C_YELLOW)[TARGET] [VARIABLE=VALUE]$(C_RESET)"
 	@echo ""
 	@echo "$(C_CYAN)Core Build Targets:$(C_RESET)"
-	@echo "  $(C_GREEN)all$(C_RESET)         - Build with specified BUILD_TYPE (default: debug)"
-	@echo "  $(C_GREEN)contest$(C_RESET)     - Quick release build for contests"
-	@echo "  $(C_GREEN)run$(C_RESET)         - Build and run (uses 'input/\$(TARGET_NAME).in' by default)"
-	@echo "  $(C_GREEN)test$(C_RESET)        - Run with I/O redirection ('input/' -> 'output/')"
+	@echo "  $(C_GREEN)all$(C_RESET)           - Build with specified BUILD_TYPE (default: debug)"
+	@echo "  $(C_GREEN)contest$(C_RESET)       - Quick release build for contests"
+	@echo "  $(C_GREEN)run$(C_RESET)           - Build and run (uses 'input/\$(TARGET_NAME).in' by default)"
+	@echo "  $(C_GREEN)test$(C_RESET)          - Run with I/O redirection ('input/' -> 'output/')"
 	@echo ""
 	@echo "$(C_CYAN)Build Types:$(C_RESET)"
 	@echo "  $(C_YELLOW)BUILD_TYPE=debug$(C_RESET)     - Debug build (default, -g -O0)"
 	@echo "  $(C_YELLOW)BUILD_TYPE=release$(C_RESET)   - Optimized for contest submission (-O2)"
 	@echo "  $(C_YELLOW)BUILD_TYPE=sanitize$(C_RESET)  - Debug with memory sanitizers (enhanced)"
 	@echo ""
-	@echo "$(C_CYAN)Enhanced Sanitizer Features:$(C_RESET)"
-	@echo "  • Automatic compiler selection (GCC → Clang fallback)"
-	@echo "  • PCH.h fallback for competitive headers when needed"
-	@echo "  • Improved library detection on macOS"
-	@echo "  • Better error reporting and diagnostics"
-	@echo ""
 	@echo "$(C_CYAN)IDE & Tooling:$(C_RESET)"
-	@echo "  $(C_GREEN)config-ide$(C_RESET)         - Configure IDE (clangd) for the current platform"
-	@echo "  $(C_GREEN)init-ide-config$(C_RESET)    - Create/verify the IDE config directory and templates"
-	@echo "  $(C_GREEN)compile_commands$(C_RESET)   - Generate compile_commands.json for IDEs"
-	@echo ""
-	@echo "$(C_CYAN)Benchmarking Targets:$(C_RESET)"
-	@echo "  $(C_GREEN)create-bench-tests$(C_RESET) - Create standard benchmark input files"
-	@echo "  $(C_GREEN)benchmark$(C_RESET)          - Benchmark a target (e.g., 'make benchmark BENCH_TARGET=A')"
-	@echo "  $(C_GREEN)compare$(C_RESET)            - Compare solutions  (e.g., 'make compare SOLUTIONS=\"A.cpp B.cpp\"')"
+	@echo "  $(C_GREEN)config-ide$(C_RESET)           - Configure IDE (clangd) for the current platform"
+	@echo "  $(C_GREEN)init-ide-config$(C_RESET)      - Create/verify the IDE config directory and templates"
+	@echo "  $(C_GREEN)compile_commands$(C_RESET)     - Generate compile_commands.json for IDEs"
 	@echo ""
 	@echo "$(C_CYAN)Cleaning Targets:$(C_RESET)"
-	@echo "  $(C_GREEN)clean$(C_RESET)       - Remove build artifacts"
-	@echo "  $(C_GREEN)distclean$(C_RESET)   - Remove everything including output and IDE config"
+	@echo "  $(C_GREEN)clean$(C_RESET)         - Remove build artifacts"
+	@echo "  $(C_GREEN)distclean$(C_RESET)     - Remove everything including output and IDE config"
 	@echo ""
 	@echo "$(C_CYAN)Debug & Info:$(C_RESET)"
-	@echo "  $(C_GREEN)debug-info$(C_RESET)  - Show detailed build configuration (enhanced)"
-	@echo "  $(C_GREEN)help$(C_RESET)        - Show this message"
-	@echo ""
-	@echo "$(C_CYAN)Examples:$(C_RESET)"
-	@echo "  make BUILD_TYPE=sanitize all  # Build with enhanced sanitizers"
-	@echo "  make debug-info               # Check sanitizer availability"
-	@echo "  make config-ide              # Setup IDE with current configuration"
+	@echo "  $(C_GREEN)debug-info$(C_RESET)    - Show detailed build configuration"
+	@echo "  $(C_GREEN)test-colors$(C_RESET)   - Test color output"
+	@echo "  $(C_GREEN)help$(C_RESET)          - Show this message"
 
 .SUFFIXES:
 
-# =========================================================================== #
+# ============================= End of Makefile ============================= #
