@@ -1,19 +1,31 @@
 #!/bin/bash
 # =========================================================================== #
-# Helper script for the Makefile to robustly get GCC system include paths
-# and detect competitive programming headers.
+# Enhanced helper script for the Makefile to robustly get GCC system include
+# paths and detect competitive programming headers.
 #
-# It is now PLATFORM-AWARE:
-# - On macOS: It uses the reliable "build-and-verify" logic based on Homebrew.
-# - On Linux: It parses the compiler's own verbose output, which is the
+# PLATFORM-AWARE with improved error handling but original detection logic:
+# - On macOS: Uses the reliable "build-and-verify" logic based on Homebrew.
+# - On Linux: Parses the compiler's own verbose output, which is the
 #             standard way to find include paths on a native GCC system.
 #
-# NEW: Added competitive programming header detection functionality.
+# FEATURES: Competitive programming header detection with original robustness.
 # =========================================================================== #
 
 set -euo pipefail
 
-# --------------------------------------------------------------------------- #
+# Configuration
+readonly DEBUG="${DEBUG:-false}"
+
+# Logging functions
+log_debug() {
+  [[ "$DEBUG" == "true" ]] && echo "DEBUG: $*" >&2
+}
+
+log_error() {
+  echo "ERROR: $*" >&2
+}
+
+# =========================================================================== #
 # ========================= Function Definitions ============================ #
 
 # Function to check if competitive programming headers are needed
@@ -22,73 +34,49 @@ check_competitive_headers() {
   local src_dir="$1"
   local found_competitive=false
 
-  # Debug mode (set to true to enable debug output)
-  local debug=true
-
-  if [ "$debug" = true ]; then
-    echo "DEBUG: Checking for competitive headers in: $src_dir" >&2
-  fi
+  log_debug "Checking for competitive headers in: $src_dir"
 
   # Check if source directory exists
   if [ ! -d "$src_dir" ]; then
-    if [ "$debug" = true ]; then
-      echo "DEBUG: Source directory does not exist: $src_dir" >&2
-    fi
+    log_debug "Source directory does not exist: $src_dir"
     echo "no"
     return 0
   fi
 
-  # Find all C++ source files (simplified approach)
+  # Find all C++ source files (restored original approach)
   local cpp_files
   cpp_files=$(find "$src_dir" -name "*.cpp" -o -name "*.cc" -o -name "*.cxx" 2>/dev/null || true)
 
-  if [ "$debug" = true ]; then
-    echo "DEBUG: Found files:" >&2
-    echo "$cpp_files" >&2
-    echo "DEBUG: File count: $(echo "$cpp_files" | wc -l)" >&2
-  fi
+  log_debug "Found files: $cpp_files"
 
   # Check each file for competitive programming headers
   for file in $cpp_files; do
     if [ ! -f "$file" ]; then
-      if [ "$debug" = true ]; then
-        echo "DEBUG: Skipping non-existent file: $file" >&2
-      fi
+      log_debug "Skipping non-existent file: $file"
       continue
     fi
 
-    if [ "$debug" = true ]; then
-      echo "DEBUG: Checking file: $file" >&2
-    fi
+    log_debug "Checking file: $file"
 
     # Read first 50 lines (where includes are typically found)
     local file_content
     file_content=$(head -50 "$file" 2>/dev/null || true)
 
-    if [ "$debug" = true ]; then
-      echo "DEBUG: First few lines of $file:" >&2
-      echo "$file_content" | head -10 >&2
-    fi
-
-    # Simple approach - just look for the include patterns
-    # Using basic regex that works across different shells
+    log_debug "First few lines of $file:"
+    echo "$file_content" | head -30 >&2
 
     # Check for bits/stdc++.h (multiple patterns to be safe)
     if echo "$file_content" | grep -q "#include.*bits/stdc"; then
-      if [ "$debug" = true ]; then
-        echo "DEBUG: Found bits/stdc++.h pattern in: $file" >&2
-        echo "$file_content" | grep "#include.*bits/stdc" >&2
-      fi
+      log_debug "Found bits/stdc++.h pattern in: $file"
+      echo "$file_content" | grep "#include.*bits/stdc" >&2
       found_competitive=true
       break
     fi
 
     # Check for ext/pb_ds
     if echo "$file_content" | grep -q "#include.*ext/pb_ds"; then
-      if [ "$debug" = true ]; then
-        echo "DEBUG: Found ext/pb_ds pattern in: $file" >&2
-        echo "$file_content" | grep "#include.*ext/pb_ds" >&2
-      fi
+      log_debug "Found ext/pb_ds pattern in: $file"
+      echo "$file_content" | grep "#include.*ext/pb_ds" >&2
       found_competitive=true
       break
     fi
@@ -110,18 +98,14 @@ check_competitive_headers() {
       # Check for include patterns
       case "$line" in
       "#include"*"bits/stdc"*)
-        if [ "$debug" = true ]; then
-          echo "DEBUG: Line-by-line found bits/stdc in: $file" >&2
-          echo "DEBUG: Line: $line" >&2
-        fi
+        log_debug "Line-by-line found bits/stdc in: $file"
+        log_debug "Line: $line"
         found_competitive=true
         break 2
         ;;
       "#include"*"ext/pb_ds"*)
-        if [ "$debug" = true ]; then
-          echo "DEBUG: Line-by-line found ext/pb_ds in: $file" >&2
-          echo "DEBUG: Line: $line" >&2
-        fi
+        log_debug "Line-by-line found ext/pb_ds in: $file"
+        log_debug "Line: $line"
         found_competitive=true
         break 2
         ;;
@@ -133,9 +117,7 @@ check_competitive_headers() {
     fi
   done
 
-  if [ "$debug" = true ]; then
-    echo "DEBUG: Final result: found_competitive=$found_competitive" >&2
-  fi
+  log_debug "Final result: found_competitive=$found_competitive"
 
   if [ "$found_competitive" = true ]; then
     echo "yes"
@@ -144,7 +126,7 @@ check_competitive_headers() {
   fi
 }
 
-# Function to get GCC include paths (existing functionality)
+# Function to get GCC include paths (RESTORED original logic)
 get_gcc_includes() {
   local compiler_path="$1"
   local platform
@@ -170,7 +152,7 @@ get_gcc_includes() {
     local gcc_machine
     gcc_machine=$("$compiler_path" -dumpmachine)
 
-    # This array contains all the candidate paths from the working CMake configuration.
+    # RESTORED: Original candidate paths from working configuration
     local candidate_paths=(
       "${brew_gcc_prefix}/include/c++/${gcc_version}"
       "${brew_gcc_prefix}/include/c++/${gcc_version}/${gcc_machine}"
@@ -192,24 +174,23 @@ get_gcc_includes() {
 
   elif [[ "$platform" == "Linux" ]]; then
     # -------------------- Linux Logic (Compiler-based) --------------------- #
-    # On Linux, parsing the compiler's own output is the most reliable way.
-    # We do not need to filter out conflicting SDKs as on macOS.
+    # RESTORED: Original Linux logic that was working
     echo "" | "$compiler_path" -E -x c++ -v - 2>&1 |
       awk '
-            BEGIN { in_section = 0; }
-            /#include <...> search starts here/ { in_section = 1; next; }
-            /End of search list/ { in_section = 0; }
-            {
-                if (in_section) {
-                    # Trim leading/trailing whitespace and print the -isystem flag.
-                    sub(/^[[:space:]]+/, "");
-                    sub(/[[:space:]]+$/, "");
-                    if (length($0) > 0) {
-                        print "-isystem " $0;
+                BEGIN { in_section = 0; }
+                /#include <...> search starts here/ { in_section = 1; next; }
+                /End of search list/ { in_section = 0; }
+                {
+                    if (in_section) {
+                        # Trim leading/trailing whitespace and print the -isystem flag.
+                        sub(/^[[:space:]]+/, "");
+                        sub(/[[:space:]]+$/, "");
+                        if (length($0) > 0) {
+                            print "-isystem " $0;
+                        }
                     }
                 }
-            }
-        '
+            '
   else
     echo "ERROR: Unsupported platform: $platform" >&2
     return 1
@@ -220,7 +201,7 @@ get_gcc_includes() {
 # ----------------------------- Main Logic ---------------------------------- #
 # =========================================================================== #
 
-# Parse command line arguments
+# RESTORED: Original argument parsing
 case "${1:-}" in
 --check-competitive)
   # Check for competitive programming headers
