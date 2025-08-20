@@ -14,7 +14,7 @@
 set -euo pipefail
 
 # Configuration
-readonly DEBUG="${DEBUG:-false}"
+readonly DEBUG="${DEBUG:-true}"
 
 # Logging functions
 log_debug() {
@@ -236,7 +236,7 @@ Options:
     --help, -h                       Show this help message
 
 Legacy usage (for backward compatibility):
-    $0 <compiler_path>               Same as --get-includes <compiler_path>
+    $0 <compiler_path>        Same as --get-includes <compiler_path>
 
 Examples:
     $0 --check-competitive ./src
