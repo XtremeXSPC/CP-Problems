@@ -4,7 +4,7 @@
  * @brief Codeforces Round 1043 (Div. 3) - Problem A
  * @author: Costantino Lombardi
  *
- * @status: In Progress
+ * @status: PASSED
  */
 //===----------------------------------------------------------------------===//
 /* Included library */
@@ -58,7 +58,31 @@ constexpr int         MOD2 = 998244353;
 
 // Function to solve a single test case
 void solve() {
-  // Your solution here
+  int n;
+  cin >> n;
+  string a;
+  cin >> a;
+
+  int m;
+  cin >> m;
+  string b;
+  cin >> b;
+  string c;
+  cin >> c;
+
+  string result = a;
+
+  for (int i = 0; i < m; ++i) {
+    if (c[i] == 'V') {
+      // Vlad adds to the beginning
+      result = b[i] + result;
+    } else {
+      // Dima adds to the end
+      result += b[i];
+    }
+  }
+
+  cout << result << "\n";
 }
 
 //===----------------------------------------------------------------------===//

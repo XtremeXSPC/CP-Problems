@@ -1,10 +1,10 @@
 //===----------------------------------------------------------------------===//
 /**
- * @file: problem_H.cpp
- * @brief Codeforces Round 1043 (Div. 3) - Problem H
+ * @file: problem_C1.cpp
+ * @brief Codeforces Round 1043 (Div. 3) - Problem C1
  * @author: Costantino Lombardi
  *
- * @status: In Progress
+ * @status: PASSED
  */
 //===----------------------------------------------------------------------===//
 /* Included library */
@@ -56,9 +56,50 @@ constexpr int         MOD2 = 998244353;
 //===----------------------------------------------------------------------===//
 /* Data Types and Function Definitions */
 
+// A table to store powers of 3, pre-calculated for efficiency.
+// A size of 40 is sufficient for numbers up to 10^18.
+vector<ull> ternary_powers;
+
+void build_power_table() {
+  ternary_powers.resize(40, 1);
+  for (int i = 1; i < 40; ++i) {
+    ternary_powers[i] = ternary_powers[i - 1] * 3ull;
+  }
+}
+
 // Function to solve a single test case
 void solve() {
-  // Your solution here
+  ll melons_to_buy_ll;
+  cin >> melons_to_buy_ll;
+
+  ull melons_to_process = melons_to_buy_ll;
+  ull final_price       = 0;
+  int x                 = 0;
+
+  while (melons_to_process > 0) {
+    int ternary_coeff = melons_to_process % 3;
+
+    // If the coefficient for this power of 3 is not zero, add its cost
+    if (ternary_coeff != 0) {
+      ull cost_per_single_deal;
+
+      // Calculate cost C(x) = 3^(x+1) + x * 3^(x-1)
+      if (x == 0) {
+        // For x=0, the second term is 0. C(0) = 3^1 = 3.
+        cost_per_single_deal = 3;
+      } else {
+        cost_per_single_deal = ternary_powers[x + 1] + (ull)x * ternary_powers[x - 1];
+      }
+
+      final_price += (ull)ternary_coeff * cost_per_single_deal;
+    }
+
+    // Move to the next digit in base 3
+    melons_to_process /= 3;
+    x++;
+  }
+
+  cout << final_price << "\n";
 }
 
 //===----------------------------------------------------------------------===//
@@ -68,6 +109,8 @@ int main() {
   // Fast I/O
   ios_base::sync_with_stdio(false);
   cin.tie(nullptr);
+
+  build_power_table();
 
   int t = 1;
   cin >> t;
