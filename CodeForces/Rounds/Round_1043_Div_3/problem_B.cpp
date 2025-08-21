@@ -4,7 +4,7 @@
  * @brief Codeforces Round 1043 (Div. 3) - Problem B
  * @author: Costantino Lombardi
  *
- * @status: In Progress
+ * @status: PASSED
  */
 //===----------------------------------------------------------------------===//
 /* Included library */
@@ -58,7 +58,41 @@ constexpr int         MOD2 = 998244353;
 
 // Function to solve a single test case
 void solve() {
-  // Your solution here
+  ll n;
+  cin >> n;
+
+  vll solutions;
+  ll  power_of_10 = 10;
+
+  // k is the number of appended zeros. We can iterate on k.
+  for (int k = 1; k <= 18; ++k) {
+    ll divisor = power_of_10 + 1;
+
+    // If the divisor becomes larger than n, x would be less than 1.
+    if (divisor > n) {
+      break;
+    }
+
+    if (n % divisor == 0) {
+      solutions.push_back(n / divisor);
+    }
+
+    if (power_of_10 > LINF / 10) {
+      break;
+    }
+    power_of_10 *= 10;
+  }
+
+  if (solutions.empty()) {
+    cout << 0 << "\n";
+  } else {
+    sort(solutions.begin(), solutions.end());
+    cout << solutions.size() << "\n";
+    for (size_t i = 0; i < solutions.size(); ++i) {
+      cout << solutions[i] << (i == solutions.size() - 1 ? "" : " ");
+    }
+    cout << "\n";
+  }
 }
 
 //===----------------------------------------------------------------------===//
