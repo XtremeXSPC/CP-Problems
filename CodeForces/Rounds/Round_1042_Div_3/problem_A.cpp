@@ -30,6 +30,9 @@ using namespace std;
 #define debug(...) 42
 #endif
 
+//===----------------------------------------------------------------------===//
+/* Data Types and Function Definitions */
+
 // Type aliases
 using ll   = long long;
 using vi   = vector<int>;
@@ -41,9 +44,6 @@ using vpii = vector<pii>;
 constexpr int MOD  = 1000000007;
 constexpr int INF  = 1e9;
 constexpr ll  LINF = 1e18;
-
-//===----------------------------------------------------------------------===//
-/* Data Types and Function Definitions */
 
 // Function to solve a single test case
 void solve() {

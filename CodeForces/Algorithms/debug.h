@@ -282,30 +282,43 @@ namespace AlgoDebug {
   // Helper traits to detect common member names
   template <typename T, typename = void>
   struct has_member_value : std::false_type {};
+
   template <typename T>
   struct has_member_value<T, std::void_t<decltype(std::declval<T>().value)>> : std::true_type {};
+
   template <typename T, typename = void>
   struct has_member_val : std::false_type {};
+
   template <typename T>
   struct has_member_val<T, std::void_t<decltype(std::declval<T>().val)>> : std::true_type {};
+
   template <typename T, typename = void>
   struct has_member_key : std::false_type {};
+
   template <typename T>
   struct has_member_key<T, std::void_t<decltype(std::declval<T>().key)>> : std::true_type {};
+
   template <typename T, typename = void>
   struct has_member_data : std::false_type {};
+
   template <typename T>
   struct has_member_data<T, std::void_t<decltype(std::declval<T>().data)>> : std::true_type {};
+
   template <typename T, typename = void>
   struct has_member_left : std::false_type {};
+
   template <typename T>
   struct has_member_left<T, std::void_t<decltype(std::declval<T>().left)>> : std::true_type {};
+
   template <typename T, typename = void>
   struct has_member_right : std::false_type {};
+
   template <typename T>
   struct has_member_right<T, std::void_t<decltype(std::declval<T>().right)>> : std::true_type {};
+
   template <typename T, typename = void>
   struct has_member_children : std::false_type {};
+
   template <typename T>
   struct has_member_children<T, std::void_t<decltype(std::begin(std::declval<T>().children))>> : std::true_type {};
 
