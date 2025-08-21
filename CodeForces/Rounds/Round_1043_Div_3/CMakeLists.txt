@@ -271,7 +271,7 @@ function(cp_add_problem TARGET_NAME SOURCE_FILE)
         # GCC flags
         set(COMMON_FLAGS -Wall -Wextra -Wpedantic -Wshadow)
         set(DEBUG_FLAGS -g2 -O0 -fstack-protector-strong)
-        set(RELEASE_FLAGS -O3 -funroll-loops -ftree-vectorize -ffast-math)
+        set(RELEASE_FLAGS -O2 -funroll-loops -ftree-vectorize -ffast-math)
         
         if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86_64|AMD64)")
             list(APPEND RELEASE_FLAGS -march=native)
@@ -286,8 +286,8 @@ function(cp_add_problem TARGET_NAME SOURCE_FILE)
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang")
         # Clang flags
         set(COMMON_FLAGS -Wall -Wextra -Wpedantic -Wshadow)
-        set(DEBUG_FLAGS -g3 -O0 -fstack-protector-strong)
-        set(RELEASE_FLAGS -O3 -funroll-loops -fvectorize)
+        set(DEBUG_FLAGS -g2 -O0 -fstack-protector-strong)
+        set(RELEASE_FLAGS -O2 -funroll-loops -fvectorize)
         
         # Clang sanitizer flags (work well on all platforms)
         set(SANITIZE_FLAGS -g -O1 
@@ -359,7 +359,13 @@ function(cp_add_problem TARGET_NAME SOURCE_FILE)
 
     # Enable Link Time Optimization in Release mode
     if(CMAKE_BUILD_TYPE STREQUAL "Release")
-        set_property(TARGET ${TARGET_NAME} PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
+        include(CheckIPOSupported)
+        check_ipo_supported(RESULT ipo_supported OUTPUT ipo_error)
+        if(ipo_supported)
+            set_property(TARGET ${TARGET_NAME} PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
+        else()
+            message(STATUS "IPO is not supported for ${TARGET_NAME}: ${ipo_error}")
+        endif()
     endif()
 
     if(USE_PCH)
