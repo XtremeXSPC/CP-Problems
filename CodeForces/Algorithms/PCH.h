@@ -307,7 +307,7 @@
 // clang-format on
 
 /*
-// Common shortcuts for competitive programming
+// Type aliases
 using ll   = long long;
 using ull  = unsigned long long;
 using ld   = long double;
@@ -321,7 +321,7 @@ using vs   = std::vector<std::string>;
 using vpii = std::vector<std::pair<int, int>>;
 using vpll = std::vector<std::pair<long long, long long>>;
 
-// Mathematical constants and functions
+// Mathematical constants
 constexpr long double PI   = 3.141592653589793238462643383279502884L;
 constexpr long double E    = 2.718281828459045235360287471352662498L;
 constexpr long double EPS  = 1e-9L;
