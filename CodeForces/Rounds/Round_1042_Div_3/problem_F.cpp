@@ -1,13 +1,13 @@
 //===----------------------------------------------------------------------===//
 /**
  * @file: problem_F.cpp
- * @brief Codeforces Round 1042 (Div. 3) - Problem F
+ * @brief: Codeforces Round 1042 (Div. 3) - Problem F
  * @author: Costantino Lombardi
  *
  * @status: PASSED
  */
 //===----------------------------------------------------------------------===//
-/* Included library */
+/* Included library and Macros */
 
 // clang-format off
 // Sanitaze macro:
@@ -17,11 +17,6 @@
   #include <bits/stdc++.h>
 #endif
 
-using namespace std;
-
-//===----------------------------------------------------------------------===//
-/* Macros and Type Aliases */
-
 // Debug macro:
 #ifdef LOCAL
   #include "debug.h"
@@ -30,17 +25,36 @@ using namespace std;
 #endif
 // clang-format on
 
-// Type aliases
-using ll   = long long;
-using vi   = vector<int>;
-using pii  = pair<int, int>;
-using vll  = vector<ll>;
-using vpii = vector<pii>;
+//===----------------------------------------------------------------------===//
+/* Type Aliases and Constants */
 
-// Constants
-constexpr int MOD  = 1000000007;
-constexpr int INF  = 1e9;
-constexpr ll  LINF = 1e18;
+// Type aliases
+using ll     = long long;
+using ull    = unsigned long long;
+using ld     = long double;
+using pii    = std::pair<int, int>;
+using pll    = std::pair<long long, long long>;
+using vi     = std::vector<int>;
+using vui    = std::vector<unsigned int>;
+using vll    = std::vector<long long>;
+using vvi    = std::vector<std::vector<int>>;
+using vvll   = std::vector<std::vector<long long>>;
+using vs     = std::vector<std::string>;
+using vpii   = std::vector<std::pair<int, int>>;
+using vpll   = std::vector<std::pair<long long, long long>>;
+using map_ll = std::map<long long, long long>;
+
+// Mathematical constants
+constexpr long double PI   = 3.141592653589793238462643383279502884L;
+constexpr long double E    = 2.718281828459045235360287471352662498L;
+constexpr long double EPS  = 1e-9L;
+constexpr int         INF  = 0x3f3f3f3f;
+constexpr long long   LINF = 0x3f3f3f3f3f3f3f3fLL;
+constexpr int         LIM  = 1000000 + 5;
+constexpr int         MOD  = 1000000007;
+constexpr int         MOD2 = 998244353;
+
+using namespace std;
 
 //===----------------------------------------------------------------------===//
 /* Data Types and Function Definitions */

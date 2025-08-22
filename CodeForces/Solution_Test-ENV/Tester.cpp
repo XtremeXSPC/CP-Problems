@@ -1,11 +1,11 @@
 //===---------------------------------------------------------------------===//
 /**
- * @file Tester.cpp
- * @brief Tester for coding data structures and algorithms.
- * @version 0.1
- * @date 2025-05-20
+ * @file: Tester.cpp
+ * @brief: Tester for coding data structures and algorithms.
+ * @version: 0.1
+ * @date: 2025-05-20
  *
- * @copyright Copyright MIT 2025
+ * @copyright: Copyright MIT 2025
  *
  */
 //===---------------------------------------------------------------------===//
