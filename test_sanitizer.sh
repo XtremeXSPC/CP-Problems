@@ -36,6 +36,30 @@ fi
 # Suppress the loading message
 export CP_QUIET_LOAD=1
 
+# Function to run a command and handle errors
+run_command() {
+  local description=$1
+  shift
+  local command_to_run=("$@")
+
+  echo -e "${YELLOW}TASK: ${description}...${NC}"
+
+  # Capture the output
+  output=$("${command_to_run[@]}" 2>&1)
+
+  if [ $? -eq 0 ]; then
+    echo -e "${GREEN}✓ ${description} successful${NC}"
+    return 0
+  else
+    echo -e "${RED}✗ ${description} failed${NC}"
+    echo -e "${RED}----- Error Output -----${NC}"
+    echo "$output"
+    echo -e "${RED}----- End Output -----${NC}"
+    # Do not use 'exit 1' here to allow flexible failure handling
+    return 1
+  fi
+}
+
 echo -e "${BLUE}/===----- Sanitizer Configuration Test -----===/${NC}"
 
 # Test 1: Create a test contest
@@ -100,15 +124,22 @@ else
   echo -e "${RED}✗ Release configuration failed${NC}"
 fi
 
+# Clean build directory before sanitizer test
+echo -e "\n${YELLOW}INFO: Cleaning build directory before testing sanitizers to ensure a clean state.${NC}"
+rm -rf build
+
 echo -e "\n${YELLOW}Test 5: Testing Sanitize build (should use Clang on macOS)...${NC}"
 if cppconf Sanitize >/dev/null 2>&1; then
   echo -e "${GREEN}✓ Sanitize configuration successful${NC}"
 
   # Check which compiler was selected
+  COMPILER_USED="Unknown"
   if grep -q "Clang" build/CMakeCache.txt; then
+    COMPILER_USED="Clang"
     echo -e "${GREEN}✓ Using Clang for sanitizers${NC}"
   elif grep -q "GNU" build/CMakeCache.txt; then
-    echo -e "${YELLOW}⚠ Using GCC for sanitizers (check if sanitizers work)${NC}"
+    COMPILER_USED="GCC"
+    echo -e "${YELLOW}⚠ Using GCC for sanitizers${NC}"
   fi
 
   if cppbuild test_memory >/dev/null 2>&1; then
@@ -133,6 +164,10 @@ echo -e "\n${YELLOW}Test 7: Testing PCH.h compatibility...${NC}"
 cat >test_pch.cpp <<'EOF'
 #define USE_CLANG_SANITIZE
 #include "PCH.h"
+
+// Type aliases
+using ll     = long long;
+using vi     = std::vector<int>;
 
 using namespace std;
 
