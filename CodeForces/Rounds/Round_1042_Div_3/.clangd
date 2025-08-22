@@ -1,4 +1,4 @@
-# .clangd Configuration for "Competitive Programming" (Cross-Platform)
+# .clangd Configuration for "Competitive Programming"
 
 CompileFlags:
   Add:
@@ -28,9 +28,9 @@ CompileFlags:
   Compiler: clang
 
 Diagnostics:
-  # Suppress diagnostics from system and standard library files (Cross-Platform)
+  # Suppress diagnostics from system and standard library files
   Suppress:
-    # Suppress the specific __float128 error on Apple Silicon
+    # Suppress unsupported types warning
     - type_unsupported
 
     # macOS specific paths
@@ -38,12 +38,6 @@ Diagnostics:
     - "^/usr/local/.*"
     - "^/System/.*"
     - "^/Applications/Xcode.app/.*"
-
-    # Linux specific paths
-    - "^/usr/include/.*"
-    - "^/usr/lib/.*"
-    - "^/lib/.*"
-    - "^/usr/share/.*"
 
     # Generic system paths
     - "^/opt/.*"

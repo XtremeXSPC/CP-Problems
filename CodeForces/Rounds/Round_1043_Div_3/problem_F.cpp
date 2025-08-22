@@ -1,13 +1,13 @@
 //===----------------------------------------------------------------------===//
 /**
  * @file: problem_F.cpp
- * @brief Codeforces Round 1043 (Div. 3) - Problem F
+ * @brief: Codeforces Round 1043 (Div. 3) - Problem F
  * @author: Costantino Lombardi
  *
  * @status: PASSED
  */
 //===----------------------------------------------------------------------===//
-/* Included library */
+/* Included library and Macros */
 
 // clang-format off
 // Sanitaze macro:
@@ -17,11 +17,6 @@
   #include <bits/stdc++.h>
 #endif
 
-using namespace std;
-
-//===----------------------------------------------------------------------===//
-/* Macros and Type Aliases */
-
 // Debug macro:
 #ifdef LOCAL
   #include "debug.h"
@@ -30,19 +25,24 @@ using namespace std;
 #endif
 // clang-format on
 
+//===----------------------------------------------------------------------===//
+/* Type Aliases and Constants */
+
 // Type aliases
-using ll   = long long;
-using ull  = unsigned long long;
-using ld   = long double;
-using pii  = std::pair<int, int>;
-using pll  = std::pair<long long, long long>;
-using vi   = std::vector<int>;
-using vll  = std::vector<long long>;
-using vvi  = std::vector<std::vector<int>>;
-using vvll = std::vector<std::vector<long long>>;
-using vs   = std::vector<std::string>;
-using vpii = std::vector<std::pair<int, int>>;
-using vpll = std::vector<std::pair<long long, long long>>;
+using ll     = long long;
+using ull    = unsigned long long;
+using ld     = long double;
+using pii    = std::pair<int, int>;
+using pll    = std::pair<long long, long long>;
+using vi     = std::vector<int>;
+using vui    = std::vector<unsigned int>;
+using vll    = std::vector<long long>;
+using vvi    = std::vector<std::vector<int>>;
+using vvll   = std::vector<std::vector<long long>>;
+using vs     = std::vector<std::string>;
+using vpii   = std::vector<std::pair<int, int>>;
+using vpll   = std::vector<std::pair<long long, long long>>;
+using map_ll = std::map<long long, long long>;
 
 // Mathematical constants
 constexpr long double PI   = 3.141592653589793238462643383279502884L;
@@ -50,12 +50,16 @@ constexpr long double E    = 2.718281828459045235360287471352662498L;
 constexpr long double EPS  = 1e-9L;
 constexpr int         INF  = 0x3f3f3f3f;
 constexpr long long   LINF = 0x3f3f3f3f3f3f3f3fLL;
+constexpr int         LIM  = 1000000 + 5;
 constexpr int         MOD  = 1000000007;
 constexpr int         MOD2 = 998244353;
+
+using namespace std;
 
 //===----------------------------------------------------------------------===//
 /* Data Types and Function Definitions */
 
+// Maximum number of nodes and lanes
 const int MAXN = 200005;
 
 // Graph representation and bridge finding variables
@@ -76,6 +80,7 @@ vi   parent_node, parent_edge_idx;
 // Lane endpoints
 vi lane_u, lane_v;
 
+// DFS to find bridges using Tarjan's algorithm
 void find_bridges_dfs(int u, int p_edge_idx) {
   discovery_time[u] = lowest_time[u] = ++timer;
   for (auto& edge : adj[u]) {
@@ -95,6 +100,7 @@ void find_bridges_dfs(int u, int p_edge_idx) {
   }
 }
 
+// DFS to find biconnected components
 void find_components_dfs(int u) {
   component_id[u] = current_component_id;
   for (auto& edge : adj[u]) {
@@ -106,6 +112,7 @@ void find_components_dfs(int u) {
   }
 }
 
+// DFS to find path of essential bridges in the component tree
 void find_path_on_tree_dfs(int u, int p, int edge_p_idx) {
   parent_node[u]     = p;
   parent_edge_idx[u] = edge_p_idx;
