@@ -10,6 +10,23 @@
 /* Included library and Macros */
 
 // clang-format off
+// Compiler optimizations:
+#ifdef __GNUC__
+  #pragma GCC optimize("Ofast,unroll-loops,fast-math,O3")
+  // x86_64 optimizations:
+  #ifdef __x86_64__
+    #pragma GCC target("avx,avx2,fma")
+  #endif
+  // Apple Silicon optimizations:
+  #ifdef __aarch64__
+    #pragma GCC target("+simd")
+  #endif
+#endif
+
+#ifdef __clang__
+  #pragma clang optimize on
+#endif
+
 // Sanitaze macro:
 #ifdef USE_CLANG_SANITIZE
   #include "PCH.h"
@@ -24,7 +41,6 @@
   #define debug(...) 42
 #endif
 // clang-format on
-
 //===----------------------------------------------------------------------===//
 /* Type Aliases and Constants */
 
