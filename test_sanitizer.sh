@@ -18,7 +18,7 @@ NC='\033[0m'
 
 # Source the competitive programming utilities
 # Try to find competitive.sh in common locations
-if [ -f "$HOME/.config/cpp-tools/comcpetitive.sh" ]; then
+if [ -f "$HOME/.config/cpp-tools/competitive.sh" ]; then
   source "$HOME/.config/cpp-tools/competitive.sh"
 elif [ -f "$(dirname "$0")/competitive.sh" ]; then
   source "$(dirname "$0")/competitive.sh"
