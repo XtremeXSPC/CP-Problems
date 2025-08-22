@@ -18,19 +18,19 @@ NC='\033[0m'
 
 # Source the competitive programming utilities
 # Try to find competitive.sh in common locations
-if [ -f "$HOME/.config/cpp-tools/competitive.sh" ]; then
-    source "$HOME/.config/cpp-tools/competitive.sh"
+if [ -f "$HOME/.config/cpp-tools/comcpetitive.sh" ]; then
+  source "$HOME/.config/cpp-tools/competitive.sh"
 elif [ -f "$(dirname "$0")/competitive.sh" ]; then
-    source "$(dirname "$0")/competitive.sh"
+  source "$(dirname "$0")/competitive.sh"
 elif [ -f "./competitive.sh" ]; then
-    source "./competitive.sh"
+  source "./competitive.sh"
 else
-    echo -e "${RED}Error: Could not find competitive.sh${NC}"
-    echo "Please ensure competitive.sh is in one of these locations:"
-    echo "  - ~/.config/cpp-tools/competitive.sh"
-    echo "  - Same directory as this script"
-    echo "  - Current directory"
-    exit 1
+  echo -e "${RED}Error: Could not find competitive.sh${NC}"
+  echo "Please ensure competitive.sh is in one of these locations:"
+  echo "  - ~/.config/cpp-tools/competitive.sh"
+  echo "  - Same directory as this script"
+  echo "  - Current directory"
+  exit 1
 fi
 
 # Suppress the loading message
@@ -42,10 +42,10 @@ echo -e "${BLUE}/===----- Sanitizer Configuration Test -----===/${NC}"
 echo -e "\n${YELLOW}Test 1: Creating test contest...${NC}"
 TEST_DIR="test_sanitizer_$$"
 if cppcontest "$TEST_DIR"; then
-    echo -e "${GREEN}✓ Contest creation successful${NC}"
+  echo -e "${GREEN}✓ Contest creation successful${NC}"
 else
-    echo -e "${RED}✗ Contest creation failed${NC}"
-    exit 1
+  echo -e "${RED}✗ Contest creation failed${NC}"
+  exit 1
 fi
 
 # Test 2: Create a test problem with intentional memory error
@@ -78,54 +78,54 @@ EOF
 # Test 3: Try different build configurations
 echo -e "\n${YELLOW}Test 3: Testing Debug build (GCC)...${NC}"
 if cppconf Debug >/dev/null 2>&1; then
-    echo -e "${GREEN}✓ Debug configuration successful${NC}"
-    if cppbuild test_memory >/dev/null 2>&1; then
-        echo -e "${GREEN}✓ Debug build successful${NC}"
-    else
-        echo -e "${RED}✗ Debug build failed${NC}"
-    fi
+  echo -e "${GREEN}✓ Debug configuration successful${NC}"
+  if cppbuild test_memory >/dev/null 2>&1; then
+    echo -e "${GREEN}✓ Debug build successful${NC}"
+  else
+    echo -e "${RED}✗ Debug build failed${NC}"
+  fi
 else
-    echo -e "${RED}✗ Debug configuration failed${NC}"
+  echo -e "${RED}✗ Debug configuration failed${NC}"
 fi
 
 echo -e "\n${YELLOW}Test 4: Testing Release build (GCC)...${NC}"
 if cppconf Release >/dev/null 2>&1; then
-    echo -e "${GREEN}✓ Release configuration successful${NC}"
-    if cppbuild test_memory >/dev/null 2>&1; then
-        echo -e "${GREEN}✓ Release build successful${NC}"
-    else
-        echo -e "${RED}✗ Release build failed${NC}"
-    fi
+  echo -e "${GREEN}✓ Release configuration successful${NC}"
+  if cppbuild test_memory >/dev/null 2>&1; then
+    echo -e "${GREEN}✓ Release build successful${NC}"
+  else
+    echo -e "${RED}✗ Release build failed${NC}"
+  fi
 else
-    echo -e "${RED}✗ Release configuration failed${NC}"
+  echo -e "${RED}✗ Release configuration failed${NC}"
 fi
 
 echo -e "\n${YELLOW}Test 5: Testing Sanitize build (should use Clang on macOS)...${NC}"
 if cppconf Sanitize >/dev/null 2>&1; then
-    echo -e "${GREEN}✓ Sanitize configuration successful${NC}"
+  echo -e "${GREEN}✓ Sanitize configuration successful${NC}"
 
-    # Check which compiler was selected
-    if grep -q "Clang" build/CMakeCache.txt; then
-        echo -e "${GREEN}✓ Using Clang for sanitizers${NC}"
-    elif grep -q "GNU" build/CMakeCache.txt; then
-        echo -e "${YELLOW}⚠ Using GCC for sanitizers (check if sanitizers work)${NC}"
-    fi
+  # Check which compiler was selected
+  if grep -q "Clang" build/CMakeCache.txt; then
+    echo -e "${GREEN}✓ Using Clang for sanitizers${NC}"
+  elif grep -q "GNU" build/CMakeCache.txt; then
+    echo -e "${YELLOW}⚠ Using GCC for sanitizers (check if sanitizers work)${NC}"
+  fi
 
-    if cppbuild test_memory >/dev/null 2>&1; then
-        echo -e "${GREEN}✓ Sanitize build successful${NC}"
+  if cppbuild test_memory >/dev/null 2>&1; then
+    echo -e "${GREEN}✓ Sanitize build successful${NC}"
 
-        # Test if sanitizer actually detects the error
-        echo -e "\n${YELLOW}Test 6: Running with sanitizers (should detect buffer overflow)...${NC}"
-        if ./bin/test_memory 2>&1 | grep -q "AddressSanitizer\|buffer-overflow\|ERROR"; then
-            echo -e "${GREEN}✓ Sanitizer detected the memory error correctly!${NC}"
-        else
-            echo -e "${YELLOW}⚠ Sanitizer did not detect the error (may not be available)${NC}"
-        fi
+    # Test if sanitizer actually detects the error
+    echo -e "\n${YELLOW}Test 6: Running with sanitizers (should detect buffer overflow)...${NC}"
+    if ./bin/test_memory 2>&1 | grep -q "AddressSanitizer\|buffer-overflow\|ERROR"; then
+      echo -e "${GREEN}✓ Sanitizer detected the memory error correctly!${NC}"
     else
-        echo -e "${RED}✗ Sanitize build failed${NC}"
+      echo -e "${YELLOW}⚠ Sanitizer did not detect the error (may not be available)${NC}"
     fi
+  else
+    echo -e "${RED}✗ Sanitize build failed${NC}"
+  fi
 else
-    echo -e "${RED}✗ Sanitize configuration failed${NC}"
+  echo -e "${RED}✗ Sanitize configuration failed${NC}"
 fi
 
 # Test 7: Create a clean problem to test PCH.h
@@ -155,42 +155,42 @@ int main() {
 EOF
 
 if cppconf Sanitize clang >/dev/null 2>&1; then
-    if cppbuild test_pch >/dev/null 2>&1; then
-        echo -e "${GREEN}✓ PCH.h compilation successful${NC}"
-        if ./bin/test_pch >/dev/null 2>&1; then
-            echo -e "${GREEN}✓ PCH.h execution successful${NC}"
-        else
-            echo -e "${RED}✗ PCH.h execution failed${NC}"
-        fi
+  if cppbuild test_pch >/dev/null 2>&1; then
+    echo -e "${GREEN}✓ PCH.h compilation successful${NC}"
+    if ./bin/test_pch >/dev/null 2>&1; then
+      echo -e "${GREEN}✓ PCH.h execution successful${NC}"
     else
-        echo -e "${RED}✗ PCH.h compilation failed${NC}"
+      echo -e "${RED}✗ PCH.h execution failed${NC}"
     fi
+  else
+    echo -e "${RED}✗ PCH.h compilation failed${NC}"
+  fi
 fi
 
 # Test 8: Verify file structure
 echo -e "\n${YELLOW}Test 8: Verifying file structure...${NC}"
 if [ -f "algorithms/debug.h" ]; then
-    echo -e "${GREEN}✓ debug.h present${NC}"
+  echo -e "${GREEN}✓ debug.h present${NC}"
 else
-    echo -e "${RED}✗ debug.h missing${NC}"
+  echo -e "${RED}✗ debug.h missing${NC}"
 fi
 
 if [ -f "algorithms/PCH.h" ]; then
-    echo -e "${GREEN}✓ PCH.h present${NC}"
+  echo -e "${GREEN}✓ PCH.h present${NC}"
 else
-    echo -e "${YELLOW}⚠ PCH.h missing (needed for Clang sanitizers)${NC}"
+  echo -e "${YELLOW}⚠ PCH.h missing (needed for Clang sanitizers)${NC}"
 fi
 
 if [ -f "gcc-toolchain.cmake" ]; then
-    echo -e "${GREEN}✓ gcc-toolchain.cmake present${NC}"
+  echo -e "${GREEN}✓ gcc-toolchain.cmake present${NC}"
 else
-    echo -e "${RED}✗ gcc-toolchain.cmake missing${NC}"
+  echo -e "${RED}✗ gcc-toolchain.cmake missing${NC}"
 fi
 
 if [ -f "clang-toolchain.cmake" ]; then
-    echo -e "${GREEN}✓ clang-toolchain.cmake present${NC}"
+  echo -e "${GREEN}✓ clang-toolchain.cmake present${NC}"
 else
-    echo -e "${YELLOW}⚠ clang-toolchain.cmake missing (created on demand)${NC}"
+  echo -e "${YELLOW}⚠ clang-toolchain.cmake missing (created on demand)${NC}"
 fi
 
 # Cleanup
