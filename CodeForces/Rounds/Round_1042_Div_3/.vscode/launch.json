@@ -52,18 +52,16 @@
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/bin/${fileBasenameNoExtension}",
-      "args": [],
+      "args": [
+        "<",
+        "${workspaceFolder}/input_cases/${fileBasenameNoExtension}.in"
+      ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],
       "externalConsole": false,
       "MIMode": "lldb",
       "preLaunchTask": "Build: Build Active File (Debug)",
-      "stdio": [
-        "${workspaceFolder}/input_cases/${fileBasenameNoExtension}.in",
-        null,
-        null
-      ],
       "setupCommands": [
         {
           "description": "Load Custom LLDB Formatters",
@@ -117,15 +115,13 @@
       "osx": {
         "program": "${workspaceFolder}/bin/${fileBasenameNoExtension}",
         "MIMode": "lldb",
-        "stdio": [
-          "${workspaceFolder}/input_cases/${fileBasenameNoExtension}.in",
-          null,
-          null
+        "args": [
+          "<",
+          "${workspaceFolder}/input_cases/${fileBasenameNoExtension}.in"
         ]
       },
 
       //===------------------------ Setup Commands ------------------------===//
-      "console": "integratedTerminal",
       "setupCommands": [
         {
           "description": "Load Custom LLDB Formatters (macOS)",
