@@ -13,10 +13,6 @@
 // Compiler optimizations:
 #ifdef __GNUC__
   #pragma GCC optimize("Ofast,unroll-loops,fast-math,O3")
-  // x86_64 optimizations:
-  #ifdef __x86_64__
-    #pragma GCC target("avx,avx2,fma")
-  #endif
   // Apple Silicon optimizations:
   #ifdef __aarch64__
     #pragma GCC target("+simd")
@@ -41,6 +37,7 @@
   #define debug(...) 42
 #endif
 // clang-format on
+
 //===----------------------------------------------------------------------===//
 /* Type Aliases and Constants */
 
