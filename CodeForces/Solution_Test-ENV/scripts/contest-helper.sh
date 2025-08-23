@@ -4,6 +4,7 @@
 # contest-helper.sh
 # Enhanced wrapper script to streamline the competitive programming workflow
 # using the enhanced Makefile with improved error handling and validation.
+# =========================================================================== #
 
 set -euo pipefail
 
@@ -204,7 +205,7 @@ cmd_new() {
   if [[ $# -eq 0 ]]; then
     log_error "Usage: $SCRIPT_NAME new <ProblemName> [template]"
     log_info "Available templates: default, pbds, graph, string"
-    log_info "Example: $SCRIPT_NAME new Problem1 pbds"
+    log_info "Example: $SCRIPT_NAME new problem_G pbds"
     return 1
   fi
 
@@ -261,7 +262,7 @@ cmd_new() {
 cmd_run() {
   if [[ $# -eq 0 ]]; then
     log_error "Usage: $SCRIPT_NAME run <ProblemName> [args...]"
-    log_info "Example: $SCRIPT_NAME run Problem1"
+    log_info "Example: $SCRIPT_NAME run problem_G"
     return 1
   fi
 
@@ -319,7 +320,7 @@ cmd_bench() {
   if [[ $# -eq 0 ]]; then
     log_error "Usage: $SCRIPT_NAME bench <ProblemName> [test_types...]"
     log_info "Available test types: small, medium, large, stress"
-    log_info "Example: $SCRIPT_NAME bench Problem1 small large"
+    log_info "Example: $SCRIPT_NAME bench problem_G small large"
     return 1
   fi
 
@@ -556,13 +557,13 @@ ${C_CYAN}COMMANDS:${C_RESET}
   ${C_GREEN}help${C_RESET}                        - Show this help message
 
 ${C_CYAN}EXAMPLES:${C_RESET}
-  $SCRIPT_NAME init                    # Set up new project
-  $SCRIPT_NAME new Problem1            # Create Problem1.cpp from default template
-  $SCRIPT_NAME new GraphProblem pbds   # Create with policy-based data structures template
-  $SCRIPT_NAME test Problem1           # Test with input/Problem1.in -> output/Problem1.out
-  $SCRIPT_NAME bench Problem1 small    # Benchmark with small test case only
-  $SCRIPT_NAME run Problem1 --verbose  # Run with command line arguments
-  $SCRIPT_NAME debug                   # Show debug info and test detection
+  $SCRIPT_NAME init                     # Set up new project
+  $SCRIPT_NAME new problem_G            # Create problem_G.cpp from default template
+  $SCRIPT_NAME new GraphProblem pbds    # Create with policy-based data structures template
+  $SCRIPT_NAME test problem_G           # Test with input/problem_G.in -> output/problem_G.out
+  $SCRIPT_NAME bench problem_G small    # Benchmark with small test case only
+  $SCRIPT_NAME run problem_G --verbose  # Run with command line arguments
+  $SCRIPT_NAME debug                    # Show debug info and test detection
 
 ${C_CYAN}DIRECTORY STRUCTURE:${C_RESET}
   project-root/

@@ -12,7 +12,7 @@
 cmake_minimum_required(VERSION 3.20)
 project(competitive_programming LANGUAGES CXX)
 
-# ----------------------- Compilation Timing Setup ------------------------- #
+# ------------------------ Compilation Timing Setup ------------------------- #
 # Enable detailed compilation timing
 if(CMAKE_GENERATOR STREQUAL "Unix Makefiles" OR CMAKE_GENERATOR STREQUAL "Ninja")
   set(CMAKE_VERBOSE_MAKEFILE ON CACHE BOOL "Enable verbose output" FORCE)

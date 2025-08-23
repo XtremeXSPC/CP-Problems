@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
+# =========================================================================== #
 # integrate_benchmark.sh
 # Integration script to use Python TestGen with existing benchmark system
+# =========================================================================== #
 
 set -euo pipefail
 
