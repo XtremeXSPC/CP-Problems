@@ -3,7 +3,7 @@ bin/
 lib/
 algorithms/
 not_passed/
-.vscode/
+!.vscode/
 .idea/
 .cache/*
 CMakeLists.txt
