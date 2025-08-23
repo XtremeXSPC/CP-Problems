@@ -6,13 +6,13 @@ not_passed/
 !.vscode/
 .idea/
 .cache/*
+.ide-configs/
+.statistics/
 CMakeLists.txt
 gcc-toolchain.cmake
 clang-toolchain.cmake
 compile_commands.json
 .clangd
-.contest_metadata
-.problem_times
 *.out
 *.exe
 *.dSYM/

@@ -11,7 +11,7 @@
 
 // clang-format off
 // Compiler optimizations:
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
   #pragma GCC optimize("Ofast,unroll-loops,fast-math,O3")
   // Apple Silicon optimizations:
   #ifdef __aarch64__
@@ -22,7 +22,6 @@
 #ifdef __clang__
   #pragma clang optimize on
 #endif
-
 
 // Sanitaze macro:
 #ifdef USE_CLANG_SANITIZE
