@@ -4,7 +4,7 @@
     {
       //===------------- Competitive Programming Task (macOS) -------------===//
       // Uses CodeLLDB and redirects input from the corresponding '.in' file.
-      "name": "Debug (Competitions) - CodeLLDB",
+      "name": "[[Competitions]] Debug - CodeLLDB",
       "type": "lldb",
       "request": "launch",
       "program": "${workspaceFolder}/bin/${fileBasenameNoExtension}",
@@ -20,7 +20,7 @@
     {
       //===----------------- Standard Debug Task (macOS) ------------------===//
       // This version also loads your custom LLDB formatters.
-      "name": "Debug (macOS) - CodeLLDB",
+      "name": "(macOS) Debug - CodeLLDB",
       "type": "lldb",
       "request": "launch",
       "program": "${workspaceFolder}/bin/${fileBasenameNoExtension}",
@@ -33,23 +33,20 @@
       ]
     },
     {
-      //===----------------- Standard Debug Task (Linux) ------------------===//
-      "name": "Debug (Linux) - CodeLLDB",
+      //===---------- Debug with user-provided arguments (macOS) ----------===//
+      "name": "(macOS) Debug with Arguments - CodeLLDB",
       "type": "lldb",
       "request": "launch",
       "program": "${workspaceFolder}/bin/${fileBasenameNoExtension}",
-      "args": [],
+      "args": ["${input:debugArgs}"],
       "cwd": "${workspaceFolder}",
-      "preLaunchTask": "Build: Build Active File (Debug)",
-      "sourceLanguages": ["cpp"],
-      "initCommands": [
-        "command script import /home/lcs-dev/.lldb/LLDB_Formatters"
-      ]
+      "preLaunchTask": "Build: Build Active File (Debug)"
     },
     {
       //===------------ Debug with MS C/C++ Extension (macOS) -------------===//
-      "name": "Debug (macOS) - MS C/C++",
+      "name": "(macOS) Debug - MS C/C++",
       "type": "cppdbg",
+      "targetArchitecture": "aarch64",
       "request": "launch",
       "program": "${workspaceFolder}/bin/${fileBasenameNoExtension}",
       "args": [
@@ -71,14 +68,43 @@
       ]
     },
     {
-      //===---------- Debug with user-provided arguments (macOS) ----------===//
-      "name": "Debug with Arguments (macOS)",
+      //===----------------- Standard Debug Task (Linux) ------------------===//
+      "name": "(Linux) Debug - CodeLLDB",
       "type": "lldb",
       "request": "launch",
       "program": "${workspaceFolder}/bin/${fileBasenameNoExtension}",
-      "args": ["${input:debugArgs}"],
+      "args": [],
       "cwd": "${workspaceFolder}",
-      "preLaunchTask": "Build: Build Active File (Debug)"
+      "preLaunchTask": "Build: Build Active File (Debug)",
+      "sourceLanguages": ["cpp"],
+      "initCommands": [
+        "command script import /home/lcs-dev/.lldb/LLDB_Formatters"
+      ]
+    },
+    {
+      //===------------ Debug with MS C/C++ Extension (Linuz) -------------===//
+      "name": "(Linux) Debug - MS C/C++",
+      "type": "cppdbg",
+      "targetArchitecture": "x64",
+      "request": "launch",
+      "program": "${workspaceFolder}/bin/${fileBasenameNoExtension}",
+      "args": [
+        "<",
+        "${workspaceFolder}/input_cases/${fileBasenameNoExtension}.in"
+      ],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "lldb",
+      "preLaunchTask": "Build: Build Active File (Debug)",
+      "setupCommands": [
+        {
+          "description": "Load Custom LLDB Formatters",
+          "text": "command script import /home/lcs-dev/.lldb/lldb_formatters.py",
+          "ignoreFailures": false
+        }
+      ]
     },
     {
       //===---- Cross-Platform Debug Configuration with Input Support -----===//

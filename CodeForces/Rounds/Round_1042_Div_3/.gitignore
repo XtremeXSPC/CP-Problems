@@ -3,7 +3,6 @@ bin/
 lib/
 algorithms/
 not_passed/
-!.vscode/
 .idea/
 .cache/*
 CMakeLists.txt
@@ -17,3 +16,4 @@ compile_commands.json
 *.exe
 *.dSYM/
 *.DS_Store
+!.vscode/
