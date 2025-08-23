@@ -4,7 +4,7 @@
     {
       //===------------- Competitive Programming Task (macOS) -------------===//
       // Uses CodeLLDB and redirects input from the corresponding '.in' file.
-      "name": "Debug (Competitions) - CodeLLDB",
+      "name": "[[Competitions]] Debug - CodeLLDB",
       "type": "lldb",
       "request": "launch",
       "program": "${workspaceFolder}/bin/${fileBasenameNoExtension}",
@@ -20,7 +20,7 @@
     {
       //===----------------- Standard Debug Task (macOS) ------------------===//
       // This version also loads your custom LLDB formatters.
-      "name": "Debug (macOS) - CodeLLDB",
+      "name": "(macOS) Debug - CodeLLDB",
       "type": "lldb",
       "request": "launch",
       "program": "${workspaceFolder}/bin/${fileBasenameNoExtension}",
@@ -33,8 +33,43 @@
       ]
     },
     {
+      //===---------- Debug with user-provided arguments (macOS) ----------===//
+      "name": "(macOS) Debug with Arguments - CodeLLDB",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/bin/${fileBasenameNoExtension}",
+      "args": ["${input:debugArgs}"],
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "Build: Build Active File (Debug)"
+    },
+    {
+      //===------------ Debug with MS C/C++ Extension (macOS) -------------===//
+      "name": "(macOS) Debug - MS C/C++",
+      "type": "cppdbg",
+      "targetArchitecture": "aarch64",
+      "request": "launch",
+      "program": "${workspaceFolder}/bin/${fileBasenameNoExtension}",
+      "args": [
+        "<",
+        "${workspaceFolder}/input_cases/${fileBasenameNoExtension}.in"
+      ],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "lldb",
+      "preLaunchTask": "Build: Build Active File (Debug)",
+      "setupCommands": [
+        {
+          "description": "Load Custom LLDB Formatters",
+          "text": "command script import /Users/lcs-dev/.lldb/lldb_formatters.py",
+          "ignoreFailures": false
+        }
+      ]
+    },
+    {
       //===----------------- Standard Debug Task (Linux) ------------------===//
-      "name": "Debug (Linux) - CodeLLDB",
+      "name": "(Linux) Debug - CodeLLDB",
       "type": "lldb",
       "request": "launch",
       "program": "${workspaceFolder}/bin/${fileBasenameNoExtension}",
@@ -47,40 +82,29 @@
       ]
     },
     {
-      //===------------ Debug with MS C/C++ Extension (macOS) -------------===//
-      "name": "Debug (macOS) - MS C/C++",
+      //===------------ Debug with MS C/C++ Extension (Linuz) -------------===//
+      "name": "(Linux) Debug - MS C/C++",
       "type": "cppdbg",
+      "targetArchitecture": "x64",
       "request": "launch",
       "program": "${workspaceFolder}/bin/${fileBasenameNoExtension}",
-      "args": [],
+      "args": [
+        "<",
+        "${workspaceFolder}/input_cases/${fileBasenameNoExtension}.in"
+      ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [],
       "externalConsole": false,
       "MIMode": "lldb",
       "preLaunchTask": "Build: Build Active File (Debug)",
-      "stdio": [
-        "${workspaceFolder}/input_cases/${fileBasenameNoExtension}.in",
-        null,
-        null
-      ],
       "setupCommands": [
         {
           "description": "Load Custom LLDB Formatters",
-          "text": "command script import /Users/lcs-dev/.lldb/lldb_formatters.py",
+          "text": "command script import /home/lcs-dev/.lldb/lldb_formatters.py",
           "ignoreFailures": false
         }
       ]
-    },
-    {
-      //===---------- Debug with user-provided arguments (macOS) ----------===//
-      "name": "Debug with Arguments (macOS)",
-      "type": "lldb",
-      "request": "launch",
-      "program": "${workspaceFolder}/bin/${fileBasenameNoExtension}",
-      "args": ["${input:debugArgs}"],
-      "cwd": "${workspaceFolder}",
-      "preLaunchTask": "Build: Build Active File (Debug)"
     },
     {
       //===---- Cross-Platform Debug Configuration with Input Support -----===//
@@ -117,15 +141,13 @@
       "osx": {
         "program": "${workspaceFolder}/bin/${fileBasenameNoExtension}",
         "MIMode": "lldb",
-        "stdio": [
-          "${workspaceFolder}/input_cases/${fileBasenameNoExtension}.in",
-          null,
-          null
+        "args": [
+          "<",
+          "${workspaceFolder}/input_cases/${fileBasenameNoExtension}.in"
         ]
       },
 
       //===------------------------ Setup Commands ------------------------===//
-      "console": "integratedTerminal",
       "setupCommands": [
         {
           "description": "Load Custom LLDB Formatters (macOS)",
