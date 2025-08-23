@@ -11,7 +11,7 @@
 
 // clang-format off
 // Compiler optimizations:
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
   #pragma GCC optimize("Ofast,unroll-loops,fast-math,O3")
   // Apple Silicon optimizations:
   #ifdef __aarch64__
@@ -122,10 +122,10 @@ private:
   // Checks if the superimposition of the grid and its 180-degree rotated
   // version is palindromic.
   bool is_superimposition_valid(int tx, int ty) const {
-    int r_start = max(0, tx - (n - 1));
-    int r_end   = min(n - 1, tx);
-    int c_start = max(0, ty - (m - 1));
-    int c_end   = min(m - 1, ty);
+    int r_start = std::max(0, tx - (n - 1));
+    int r_end   = std::min(n - 1, tx);
+    int c_start = std::max(0, ty - (m - 1));
+    int c_end   = std::min(m - 1, ty);
 
     if (r_start > r_end || c_start > c_end)
       return true;
@@ -187,7 +187,7 @@ public:
           for (int j = 0; j < ty_count; ++j) {
             int ty = ty_options[j];
             if (is_superimposition_valid(tx, ty)) {
-              best_cost = min(best_cost, current_cost);
+              best_cost = std::min(best_cost, current_cost);
             }
           }
         }

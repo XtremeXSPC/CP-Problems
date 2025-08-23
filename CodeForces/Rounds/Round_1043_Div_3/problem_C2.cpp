@@ -11,7 +11,7 @@
 
 // clang-format off
 // Compiler optimizations:
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
   #pragma GCC optimize("Ofast,unroll-loops,fast-math,O3")
   // Apple Silicon optimizations:
   #ifdef __aarch64__
@@ -118,7 +118,7 @@ void solve() {
   ll breakdowns_to_perform = (target_deal_count - min_deals_needed) / 2;
   for (int i = highest_deal_type; i >= 1 && breakdowns_to_perform > 0; --i) {
     ll possible_breakdowns = deal_counts[i];
-    ll actual_breakdowns   = min(breakdowns_to_perform, possible_breakdowns);
+    ll actual_breakdowns   = std::min(breakdowns_to_perform, possible_breakdowns);
 
     if (actual_breakdowns > 0) {
       deal_counts[i] -= actual_breakdowns;

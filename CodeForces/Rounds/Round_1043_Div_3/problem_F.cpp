@@ -102,10 +102,10 @@ void find_bridges_dfs(int u, int p_edge_idx) {
     if (edge_idx == p_edge_idx)
       continue;
     if (discovery_time[v] != -1) {
-      lowest_time[u] = min(lowest_time[u], discovery_time[v]);
+      lowest_time[u] = std::min(lowest_time[u], discovery_time[v]);
     } else {
       find_bridges_dfs(v, edge_idx);
-      lowest_time[u] = min(lowest_time[u], lowest_time[v]);
+      lowest_time[u] = std::min(lowest_time[u], lowest_time[v]);
       if (lowest_time[v] > discovery_time[u]) {
         is_bridge[edge_idx] = true;
       }
@@ -255,7 +255,7 @@ void solve() {
         nearest_lane_idx[v] = nearest_lane_idx[u];
         q.push(v);
       } else if (min_distance[v] == min_distance[u] + 1) {
-        nearest_lane_idx[v] = min(nearest_lane_idx[v], nearest_lane_idx[u]);
+        nearest_lane_idx[v] = std::min(nearest_lane_idx[v], nearest_lane_idx[u]);
       }
     }
   }
