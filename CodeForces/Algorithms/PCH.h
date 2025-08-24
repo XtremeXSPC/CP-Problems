@@ -16,31 +16,51 @@
 
 // Compiler detection and version checks
 #if defined(__GNUC__) && !defined(__clang__)
-    #define COMPILER_GCC
-    #define COMPILER_NAME "GCC"
+    #ifndef COMPILER_GCC
+        #define COMPILER_GCC
+    #endif
+    #ifndef COMPILER_NAME
+        #define COMPILER_NAME "GCC"
+    #endif
     #if __GNUC__ < 9
         #error "GCC 9 or later required"
     #endif
 #elif defined(__clang__)
-    #define COMPILER_CLANG
+    #ifndef COMPILER_CLANG
+        #define COMPILER_CLANG
+    #endif
     #if defined(__apple_build_version__)
-        #define COMPILER_APPLE_CLANG
-        #define COMPILER_NAME "Apple Clang"
-    else
-        #define COMPILER_NAME "LLVM Clang"
+        #ifndef COMPILER_APPLE_CLANG
+            #define COMPILER_APPLE_CLANG
+        #endif
+        #ifndef COMPILER_NAME
+            #define COMPILER_NAME "Apple Clang"
+        #endif
+    #else
+        #ifndef COMPILER_NAME
+            #define COMPILER_NAME "LLVM Clang"
+        #endif
     #endif
     #if __clang_major__ < 10
         #error "Clang 10 or later required"
     #endif
 #elif defined(_MSC_VER)
-    #define COMPILER_MSVC
-    #define COMPILER_NAME "MSVC"
+    #ifndef COMPILER_MSVC
+        #define COMPILER_MSVC
+    #endif
+    #ifndef COMPILER_NAME
+        #define COMPILER_NAME "MSVC"
+    #endif
     #if _MSC_VER < 1920
         #error "Visual Studio 2019 or later required"
     #endif
 #else
-    #define COMPILER_UNKNOWN
-    #define COMPILER_NAME "Unknown"
+    #ifndef COMPILER_UNKNOWN
+        #define COMPILER_UNKNOWN
+    #endif
+    #ifndef COMPILER_NAME
+        #define COMPILER_NAME "Unknown"
+    #endif
 #endif
 
 // Ensure COMPILER_NAME is always defined
