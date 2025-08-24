@@ -1,7 +1,7 @@
 //===----------------------------------------------------------------------===//
 /**
- * @file: __FILE_NAME__
- * @brief Codeforces Round #XXX (Div. X) - Problem Y
+ * @file: problem_A.cpp
+ * @brief Codeforces Round 1044 (Div. 2) - Problem A
  * @author: Costantino Lombardi
  *
  * @status: In Progress
@@ -74,7 +74,25 @@ using namespace std;
 
 // Function to solve a single test case
 void solve() {
-  // Your solution here
+  int n;
+  cin >> n;
+
+  vi gears(n);
+  for (auto& teeth : gears) {
+    cin >> teeth;
+  }
+
+  // Sort the gears to easily find duplicates.
+  sort(gears.begin(), gears.end());
+
+  // Check for any adjacent identical elements.
+  auto it = adjacent_find(gears.begin(), gears.end());
+
+  if (it != gears.end()) {
+    cout << "YES\n";
+  } else {
+    cout << "NO\n";
+  }
 }
 
 //===----------------------------------------------------------------------===//
