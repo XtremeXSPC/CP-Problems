@@ -54,7 +54,7 @@ IDE_CONFIG_DIR ?= .ide-config
 SCRIPTS_DIR    ?= scripts
 TIMING_DIR     ?= timing-reports
 
-# Build profile for competitive programming: debug (default), release, or sanitize
+# Build profile for 'Competitive Programming': debug (default), release, or sanitize
 BUILD_TYPE     ?= debug
 
 # IDE configuration mode - when set to 'yes', produces clean compile commands
@@ -158,7 +158,7 @@ ifeq ($(strip $(FORCE_COMPILER)),auto)
 	ifeq ($(NEEDS_GCC),yes)
     $(info $(C_CYAN)Competitive programming headers detected - GCC required$(C_RESET))
 	else
-    $(info $(C_GREEN)No competitive programming headers found - Clang can be used$(C_RESET))
+    $(info $(C_GREEN)No 'Competitive Programming' headers found - Clang can be used$(C_RESET))
 	endif
 endif
 
@@ -239,7 +239,7 @@ ifeq ($(BUILD_TYPE),sanitize)
                     SANITIZER_AVAILABLE := yes
                     EFFECTIVE_COMPILER := gcc
                     EFFECTIVE_CC := $(subst g++,gcc,$(GCC_BINARY))
-                    $(info $(C_CYAN)Using GCC with sanitizers for competitive programming$(C_RESET))
+                    $(info $(C_CYAN)Using GCC with sanitizers for 'Competitive Programming'$(C_RESET))
                 else
                     SANITIZER_AVAILABLE := yes
                     EFFECTIVE_COMPILER := clang
@@ -286,7 +286,7 @@ else
             ifneq ($(GCC_BINARY),)
                 EFFECTIVE_COMPILER := gcc
                 EFFECTIVE_CC := $(subst g++,gcc,$(GCC_BINARY))
-                $(info $(C_CYAN)Using GCC for competitive programming$(C_RESET))
+                $(info $(C_CYAN)Using GCC for 'Competitive Programming'$(C_RESET))
             else
                 $(error $(C_RED)Competitive programming headers detected but compatible GCC not found!$(C_RESET))
             endif
@@ -320,7 +320,7 @@ PCH_INCLUDE :=
 # Configure toolchain based on effective compiler and mode
 ifeq ($(EFFECTIVE_COMPILER),gcc)
     ifeq ($(USE_PCH_FALLBACK),no)
-        # Standard GCC configuration for competitive programming
+        # Standard GCC configuration for 'Competitive Programming'
         ifneq ($(GCC_BINARY),)
             GCC_ISYSTEM_FLAGS := $(shell ./$(SCRIPTS_DIR)/get_gcc_includes.sh $(CXX))
         else
@@ -353,7 +353,7 @@ ifeq ($(EFFECTIVE_COMPILER),gcc)
         PCH_INCLUDE := 
         SYSTEM_INCLUDES := -I/usr/local/include
         STDLIB_FLAG := 
-        $(info $(C_YELLOW)Using PCH.h fallback for competitive programming headers$(C_RESET))
+        $(info $(C_YELLOW)Using PCH.h fallback for 'Competitive Programming' headers$(C_RESET))
     endif
 else
     # Clang configuration
@@ -372,7 +372,7 @@ endif
 PROJECT_INCLUDES := -I$(SRCDIR) -I$(SRCDIR)/include
 
 # ----------------- Competitive Programming Compiler Flags ------------------ #
-# Base flags optimized for competitive programming
+# Base flags optimized for 'Competitive Programming'
 COMMON_FLAGS := -std=c++23
 
 # Competitive programming specific defines
@@ -528,7 +528,7 @@ DIR_SENTINEL := $(OBJDIR)/.dirs_created
 # ---------------------- Enhanced Linker Configuration ---------------------- #
 # =========================================================================== #
 ifeq ($(strip $(CPP_SRCS)),)
-  LD = @echo "$(C_RED)No C++ sources found for competitive programming!$(C_RESET)"; false
+  LD = @echo "$(C_RED)No C++ sources found for 'Competitive Programming'!$(C_RESET)"; false
 else
   LD := $(CXX)
   LDFLAGS_FINAL := $(LDFLAGS) $(PROFILE_FLAGS) $(LIBS)
@@ -567,7 +567,7 @@ $(TARGET_PATH): $(OBJS)
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(DIR_SENTINEL)
 	@echo "$(C_CYAN)Compiling C++:$(C_RESET) $< -> $@"
 	@if [ "$(USE_PCH_FALLBACK)" = "yes" ]; then \
-		echo "$(C_YELLOW)  Using PCH.h fallback for competitive programming headers$(C_RESET)"; \
+		echo "$(C_YELLOW)  Using PCH.h fallback for 'Competitive Programming' headers$(C_RESET)"; \
 	fi
 	@if [ "$(BUILD_TYPE)" = "sanitize" ]; then \
 		echo "$(C_YELLOW)  Compiling with sanitizers enabled$(C_RESET)"; \
@@ -588,7 +588,6 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(DIR_SENTINEL)
 			ELAPSED=$$(echo "$$END_TIME - $$START_TIME" | bc); \
 			ELAPSED_FORMATTED=$$(printf "%.3f" $$ELAPSED 2>/dev/null || echo $$ELAPSED); \
 			echo "$(C_MAGENTA)  Compilation time: $${ELAPSED_FORMATTED}s$(C_RESET)"; \
-			echo ""
 		else \
 			echo "$(C_MAGENTA)  Compilation completed$(C_RESET)"; \
 		fi; \
@@ -599,7 +598,7 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(DIR_SENTINEL)
 $(OBJDIR)/%.o: $(SRCDIR)/%.cc $(DIR_SENTINEL)
 	@echo "$(C_CYAN)Compiling C++:$(C_RESET) $< -> $@"
 	@if [ "$(USE_PCH_FALLBACK)" = "yes" ]; then \
-		echo "$(C_YELLOW)  Using PCH.h fallback for competitive programming headers$(C_RESET)"; \
+		echo "$(C_YELLOW)  Using PCH.h fallback for 'Competitive Programming' headers$(C_RESET)"; \
 	fi
 	@echo "$(C_CYAN)  Compiler:$(C_RESET) $(CXX)"
 	@echo "$(C_CYAN)  Includes:$(C_RESET)"
@@ -611,7 +610,7 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cc $(DIR_SENTINEL)
 $(OBJDIR)/%.o: $(SRCDIR)/%.cxx $(DIR_SENTINEL)
 	@echo "$(C_CYAN)Compiling C++:$(C_RESET) $< -> $@"
 	@if [ "$(USE_PCH_FALLBACK)" = "yes" ]; then \
-		echo "$(C_YELLOW)  Using PCH.h fallback for competitive programming headers$(C_RESET)"; \
+		echo "$(C_YELLOW)  Using PCH.h fallback for 'Competitive Programming' headers$(C_RESET)"; \
 	fi
 	@echo "$(C_CYAN)  Compiler:$(C_RESET) $(CXX)"
 	@echo "$(C_CYAN)  Includes:$(C_RESET)"
