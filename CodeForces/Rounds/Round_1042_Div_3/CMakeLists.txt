@@ -29,10 +29,11 @@ if(CP_ENABLE_TIMING)
         message(STATUS "${ANSI_COLOR_CYAN}Using GCC timing: (-ftime-report).${ANSI_COLOR_RESET}")
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang")
         # Clang: Use -ftime-trace to generate detailed JSON trace files.
-        # add_compile_options(-ftime-trace -ftime-trace-granularity=1)
+        add_compile_options(-ftime-trace -ftime-trace-granularity=1)
         message(STATUS "${ANSI_COLOR_CYAN}Using Clang timing: (-ftime-trace).${ANSI_COLOR_RESET}")
         # Alternative: -Xclang -ftime-report for console output (like GCC)
-        add_compile_options(-v -Xclang -ftime-report)
+        # add_compile_options(-v -Xclang -ftime-report)
+        
     endif()
 endif()
 
