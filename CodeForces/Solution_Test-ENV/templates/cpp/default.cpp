@@ -32,7 +32,7 @@
 
 // Debug macro:
 #ifdef LOCAL
-  #include "debug.h"
+  #include "../Algorithms/debug.h"
 #else
   #define debug(...) 42
 #endif

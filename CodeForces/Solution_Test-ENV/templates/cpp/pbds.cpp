@@ -7,22 +7,33 @@
  * @status: In Progress
  */
 //===----------------------------------------------------------------------===//
-/* Included library */
+/* Included library, Macros and PBDS */
 
 // clang-format off
-#include <bits/stdc++.h>
+// Compiler optimizations:
+#if defined(__GNUC__) && !defined(__clang__)
+  #pragma GCC optimize("Ofast,unroll-loops,fast-math,O3")
+  // Apple Silicon optimizations:
+  #ifdef __aarch64__
+    #pragma GCC target("+simd")
+  #endif
+#endif
 
-// Headers for Policy-Based Data Structures
-#include <ext/pb_ds/assoc_container.hpp>
-#include <ext/pb_ds/tree_policy.hpp>
+#ifdef __clang__
+  #pragma clang optimize on
+#endif
 
-using namespace std;
-using namespace __gnu_pbds;
+// Sanitaze macro:
+#ifdef USE_CLANG_SANITIZE
+  #include "PCH.h"
+#else
+  #include <bits/stdc++.h>
+  // Headers for Policy-Based Data Structures
+  #include <ext/pb_ds/assoc_container.hpp>
+  #include <ext/pb_ds/tree_policy.hpp>
+#endif
 
-//===----------------------------------------------------------------------===//
-/* Macros, Type Aliases, and PBDS */
-
-// Debug macro: enabled only when LOCAL is defined
+// Debug macro:
 #ifdef LOCAL
   #include "../Algorithms/debug.h"
 #else
@@ -30,12 +41,38 @@ using namespace __gnu_pbds;
 #endif
 // clang-format on
 
+//===----------------------------------------------------------------------===//
+/* Type Aliases and Constants */
+
 // Type aliases
-using ll   = long long;
-using vi   = vector<int>;
-using pii  = pair<int, int>;
-using vll  = vector<ll>;
-using vpii = vector<pii>;
+using ll     = long long;
+using ull    = unsigned long long;
+using ld     = long double;
+using pii    = std::pair<int, int>;
+using pll    = std::pair<long long, long long>;
+using vi     = std::vector<int>;
+using vui    = std::vector<unsigned int>;
+using vll    = std::vector<long long>;
+using vvi    = std::vector<std::vector<int>>;
+using vvll   = std::vector<std::vector<long long>>;
+using vs     = std::vector<std::string>;
+using vpii   = std::vector<std::pair<int, int>>;
+using vpll   = std::vector<std::pair<long long, long long>>;
+using map_ll = std::map<long long, long long>;
+
+// Mathematical constants
+constexpr long double PI   = 3.141592653589793238462643383279502884L;
+constexpr long double E    = 2.718281828459045235360287471352662498L;
+constexpr long double EPS  = 1e-9L;
+constexpr int         INF  = 0x3f3f3f3f;
+constexpr long long   LINF = 0x3f3f3f3f3f3f3f3fLL;
+constexpr int         LIM  = 1000000 + 5;
+constexpr int         MOD  = 1000000007;
+constexpr int         MOD2 = 998244353;
+
+// Namespaces
+using namespace std;
+using namespace __gnu_pbds;
 
 // ----- PBDS Typedefs ----- //
 // Ordered Set (for unique elements)
@@ -46,11 +83,6 @@ using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statisti
 template <typename T>
 using ordered_multiset = tree<T, null_type, less_equal<T>, rb_tree_tag, tree_order_statistics_node_update>;
 
-// Constants
-constexpr int MOD  = 1e9 + 7;
-constexpr int INF  = 1e9;
-constexpr ll  LINF = 1e18;
-
 //===----------------------------------------------------------------------===//
 /* Data Types and Function Definitions */
 
@@ -60,8 +92,7 @@ void solve() {
 }
 
 //===----------------------------------------------------------------------===//
-//  Main Function
-//===----------------------------------------------------------------------===//
+/* Main function */
 
 int main() {
   // Fast I/O
@@ -76,3 +107,5 @@ int main() {
 
   return 0;
 }
+
+//===----------------------------------------------------------------------===//
