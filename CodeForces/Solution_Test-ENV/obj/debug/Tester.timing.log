@@ -1,0 +1,27 @@
+In file included from Tester.cpp:16:
+../Algorithms/PCH.h:398:50: error: pragma or attribute 'target("avx2")' is not valid
+  398 |   #pragma GCC target("avx2,bmi,bmi2,lzcnt,popcnt")
+      |                                                  ^
+../Algorithms/PCH.h:398:50: error: pragma or attribute 'target("avx2")' is not valid
+
+Time variable                                  wall           GGC
+ phase setup                        :   0.02 (  2%)  3456k (  1%)
+ phase parsing                      :   0.99 ( 71%)   309M ( 80%)
+ phase lang. deferred               :   0.35 ( 25%)    66M ( 17%)
+ phase opt and generate             :   0.04 (  3%)  6827k (  2%)
+ |name lookup                       :   0.10 (  7%)    10M (  3%)
+ |overload resolution               :   0.22 ( 15%)    48M ( 13%)
+ garbage collection                 :   0.08 (  6%)     0  (  0%)
+ callgraph construction             :   0.02 (  2%)  3046k (  1%)
+ preprocessing                      :   0.23 ( 16%)    12M (  3%)
+ parser (global)                    :   0.15 ( 10%)   111M ( 29%)
+ parser struct body                 :   0.13 (  9%)    47M ( 12%)
+ parser function body               :   0.07 (  5%)    12M (  3%)
+ parser inl. func. body             :   0.08 (  5%)    12M (  3%)
+ parser inl. meth. body             :   0.19 ( 13%)    58M ( 15%)
+ template instantiation             :   0.34 ( 24%)   108M ( 28%)
+ constant expression evaluation     :   0.03 (  2%)  1775k (  0%)
+ constraint normalization           :   0.01 (  1%)  1344k (  0%)
+ constraint satisfaction            :   0.04 (  3%)  8688k (  2%)
+ tree gimplify                      :   0.01 (  1%)  2395k (  1%)
+ TOTAL                              :   1.40          386M

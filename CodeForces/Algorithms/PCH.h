@@ -393,46 +393,54 @@ namespace chrono_literals = std::chrono_literals;
 //===---------------------------------------------------------------------===//
 
 // GCC specific optimizations
-#ifdef COMPILER_GCC
-    #pragma GCC optimize("O3,unroll-loops")
-    #pragma GCC target("avx2,bmi,bmi2,lzcnt,popcnt")
-    #define likely(x)   __builtin_expect(!!(x), 1)
-    #define unlikely(x) __builtin_expect(!!(x), 0)
-    #define __builtin_popcount __builtin_popcount
-    #define __builtin_popcountll __builtin_popcountll
+#if defined(COMPILER_GCC) && defined(__GNUC__) && !defined(__clang__)
+  #pragma GCC optimize("O3,unroll-loops")
+  #pragma GCC target("avx2,bmi,bmi2,lzcnt,popcnt")
+  #define likely(x)   __builtin_expect(!!(x), 1)
+  #define unlikely(x) __builtin_expect(!!(x), 0)
+  #define __builtin_popcount __builtin_popcount
+  #define __builtin_popcountll __builtin_popcountll
 #endif
 
 // Clang specific optimizations  
-#ifdef COMPILER_CLANG
-    #pragma clang optimize on
-    #define likely(x)   __builtin_expect(!!(x), 1)
-    #define unlikely(x) __builtin_expect(!!(x), 0)
-    
-    // Ensure builtin functions are available
-    #ifndef __builtin_popcount
-        #define __builtin_popcount __builtin_popcount
-    #endif
-    #ifndef __builtin_popcountll
-        #define __builtin_popcountll __builtin_popcountll
-    #endif
+#if defined(COMPILER_CLANG) && defined(__clang__)
+  #pragma clang optimize on
+  #define likely(x)   __builtin_expect(!!(x), 1)
+  #define unlikely(x) __builtin_expect(!!(x), 0)
+  
+  // Ensure builtin functions are available
+  #ifndef __builtin_popcount
+    #define __builtin_popcount __builtin_popcount
+  #endif
+  #ifndef __builtin_popcountll
+    #define __builtin_popcountll __builtin_popcountll
+  #endif
 #endif
 
 // MSVC specific optimizations
-#ifdef COMPILER_MSVC
-    #pragma optimize("gt", on)
-    #define likely(x)   (x)
-    #define unlikely(x) (x)
-    #include <intrin.h>
-    #define __builtin_popcount __popcnt
-    #define __builtin_popcountll __popcnt64
+#if defined(COMPILER_MSVC) && defined(_MSC_VER)
+  #pragma optimize("gt", on)
+  #define likely(x)   (x)
+  #define unlikely(x) (x)
+  #include <intrin.h>
+  #define __builtin_popcount __popcnt
+  #define __builtin_popcountll __popcnt64
 #endif
 
-// Default definitions if not provided
+// Default definitions if not provided by any compiler
 #ifndef likely
-    #define likely(x) (x)
+  #define likely(x) (x)
 #endif
 #ifndef unlikely
-    #define unlikely(x) (x)
+  #define unlikely(x) (x)
+#endif
+
+// Fallback for popcount if not available
+#ifndef __builtin_popcount
+  #define __builtin_popcount(x) std::bitset<32>(x).count()
+#endif
+#ifndef __builtin_popcountll
+  #define __builtin_popcountll(x) std::bitset<64>(x).count()
 #endif
 
 //===---------------------------------------------------------------------===//
