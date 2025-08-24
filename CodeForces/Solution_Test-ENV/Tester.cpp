@@ -15,7 +15,7 @@
 
 // clang-format off
 // Compiler optimizations:
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
   #pragma GCC optimize("Ofast,unroll-loops,fast-math,O3")
   // Apple Silicon optimizations:
   #ifdef __aarch64__
@@ -29,7 +29,7 @@
 
 // Sanitaze macro:
 #ifdef USE_CLANG_SANITIZE
-  #include "PCH.h"
+  #include "../Algorithms/PCH.h"
 #else
   #include <bits/stdc++.h>
 #endif

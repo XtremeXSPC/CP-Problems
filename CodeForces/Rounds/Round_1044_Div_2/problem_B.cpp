@@ -1,7 +1,7 @@
 //===----------------------------------------------------------------------===//
 /**
- * @file: __FILE_NAME__
- * @brief Codeforces Round #XXX (Div. X) - Problem Y
+ * @file: problem_B.cpp
+ * @brief Codeforces Round 1044 (Div. 2) - Problem B
  * @author: Costantino Lombardi
  *
  * @status: In Progress
@@ -74,7 +74,23 @@ using namespace std;
 
 // Function to solve a single test case
 void solve() {
-  // Your solution here
+  int num_villagers;
+  cin >> num_villagers;
+
+  vll grumpiness_levels(num_villagers);
+  for (ll& level : grumpiness_levels) {
+    cin >> level;
+  }
+
+  // Sort grumpiness levels for optimal strategy
+  std::ranges::sort(grumpiness_levels);
+
+  // Sum elements with stride 2, offset based on parity
+  int  offset          = (num_villagers % 2 == 0);
+  auto elements_to_sum = grumpiness_levels | std::views::drop(offset) | std::views::stride(2);
+  ll   total_emeralds  = std::accumulate(elements_to_sum.begin(), elements_to_sum.end(), 0LL);
+
+  cout << total_emeralds << endl;
 }
 
 //===----------------------------------------------------------------------===//
