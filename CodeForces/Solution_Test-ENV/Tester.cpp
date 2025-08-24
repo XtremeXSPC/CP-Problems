@@ -27,11 +27,19 @@
   #pragma clang optimize on
 #endif
 
-// Sanitaze macro:
-#ifdef USE_CLANG_SANITIZE
+// Smart header selection based on compiler and flags:
+#if defined(USE_PCH_FALLBACK) || defined(USE_CLANG_SANITIZE)
+  // Explicitly requested PCH fallback
   #include "../Algorithms/PCH.h"
-#else
+#elif defined(__clang__)
+  // Using Clang, need PCH fallback
+  #include "../Algorithms/PCH.h"
+#elif __has_include(<bits/stdc++.h>)
+  // GCC with bits/stdc++.h available
   #include <bits/stdc++.h>
+#else
+  // Final fallback
+  #include "../Algorithms/PCH.h"
 #endif
 
 // Debug macro:

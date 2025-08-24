@@ -9,10 +9,10 @@
 # system shells.
 HOMEBREW_BASH := $(shell which bash | grep 'homebrew')
 ifeq ($(strip $(HOMEBREW_BASH)),)
-	SHELL := /bin/bash
+  SHELL := /bin/bash
 else
-	# Use the first bash found in a homebrew path
-	SHELL := $(firstword $(HOMEBREW_BASH))
+  # Use the first bash found in a homebrew path
+  SHELL := $(firstword $(HOMEBREW_BASH))
 endif
 
 .ONESHELL:
@@ -25,16 +25,16 @@ endif
 # Check if terminal supports colors and define color variables.
 # These will be empty if colors are not supported, allowing for graceful degradation.
 ifeq ($(shell test -t 1 -o -t 2 && echo true), true)
-	N_COLORS := $(shell tput colors 2>/dev/null || echo 0)
+  N_COLORS := $(shell tput colors 2>/dev/null || echo 0)
 	ifeq ($(shell test $(N_COLORS) -ge 8 && echo true), true)
-		C_RESET   := $(shell tput sgr0 2>/dev/null)
-		C_BOLD    := $(shell tput bold 2>/dev/null)
-		C_RED     := $(shell tput setaf 1 2>/dev/null)
-		C_GREEN   := $(shell tput setaf 2 2>/dev/null)
-		C_YELLOW  := $(shell tput setaf 3 2>/dev/null)
-		C_BLUE    := $(shell tput setaf 4 2>/dev/null)
-		C_MAGENTA := $(shell tput setaf 5 2>/dev/null)
-		C_CYAN    := $(shell tput setaf 6 2>/dev/null)
+    C_RESET   := $(shell tput sgr0 2>/dev/null)
+    C_BOLD    := $(shell tput bold 2>/dev/null)
+    C_RED     := $(shell tput setaf 1 2>/dev/null)
+    C_GREEN   := $(shell tput setaf 2 2>/dev/null)
+    C_YELLOW  := $(shell tput setaf 3 2>/dev/null)
+    C_BLUE    := $(shell tput setaf 4 2>/dev/null)
+    C_MAGENTA := $(shell tput setaf 5 2>/dev/null)
+    C_CYAN    := $(shell tput setaf 6 2>/dev/null)
 	endif
 endif
 
@@ -69,6 +69,9 @@ ENABLE_DEBUG   ?= 1
 ENABLE_TIMING  ?= no
 TIMING_FORMAT  ?= both  # Options: json, text, both
 
+# Force specific compiler (overrides auto-detection)
+FORCE_COMPILER ?= auto  # Options: auto, gcc, clang
+
 # =========================================================================== #
 # -------------- Platform Detection and Path Configuration ------------------ #
 # =========================================================================== #
@@ -84,46 +87,46 @@ UNAME_S        := $(shell uname -s)
 detected_os    := UNKNOWN_UNIX
 
 ifeq ($(UNAME_S),Darwin)
-	detected_os := MACOS
-	# Default Unix settings are already correct for macOS
+  detected_os := MACOS
+  # Default Unix settings are already correct for macOS
 else ifeq ($(UNAME_S),Linux)
-	detected_os := LINUX
-	# Default Unix settings are already correct for Linux
+  detected_os := LINUX
+  # Default Unix settings are already correct for Linux
 else ifneq (,$(findstring MINGW,$(UNAME_S))) # MinGW (Git Bash, MSYS2)
-	detected_os := WINDOWS_MINGW
-	TARGET_EXEC := $(TARGET_NAME).exe
-	# MinGW prefers Unix-style slashes
-	PathSep     := /
-	RM          := rm -f
-	RMDIR_CMD   := rm -rf
-	MKDIR_P     := mkdir -p
+  detected_os := WINDOWS_MINGW
+  TARGET_EXEC := $(TARGET_NAME).exe
+  # MinGW prefers Unix-style slashes
+  PathSep     := /
+  RM          := rm -f
+  RMDIR_CMD   := rm -rf
+  MKDIR_P     := mkdir -p
 else ifneq (,$(findstring CYGWIN,$(UNAME_S))) # Cygwin
-	detected_os := WINDOWS_CYGWIN
-	TARGET_EXEC := $(TARGET_NAME).exe
-	# Cygwin prefers Unix-style slashes
-	PathSep     := /
-	RM          := rm -f
-	RMDIR_CMD   := rm -rf
-	MKDIR_P     := mkdir -p
+  detected_os := WINDOWS_CYGWIN
+  TARGET_EXEC := $(TARGET_NAME).exe
+  # Cygwin prefers Unix-style slashes
+  PathSep     := /
+  RM          := rm -f
+  RMDIR_CMD   := rm -rf
+  MKDIR_P     := mkdir -p
 else ifeq ($(OS),Windows_NT) # Environment variable from cmd.exe or PowerShell
-	detected_os := WINDOWS_NATIVE_OS_VAR
-	TARGET_EXEC := $(TARGET_NAME).exe
-	PathSep     := \
-	RM          := del /Q /F
-	RMDIR_CMD   := rd /S /Q
-	# MKDIR_P handled in create_dirs rule
+  detected_os := WINDOWS_NATIVE_OS_VAR
+  TARGET_EXEC := $(TARGET_NAME).exe
+  PathSep     := \
+  RM          := del /Q /F
+  RMDIR_CMD   := rd /S /Q
+  # MKDIR_P handled in create_dirs rule
 else # Fallback to `ver` check only if others fail
-	WINDOWS_VER_CHECK := $(shell ver 2>/dev/null) 
+  WINDOWS_VER_CHECK := $(shell ver 2>/dev/null) 
 	ifneq (,$(findstring Windows,$(WINDOWS_VER_CHECK)))
-		# MKDIR_P handled in create_dirs rule
-		detected_os := WINDOWS_NATIVE_VER_CMD
-		TARGET_EXEC := $(TARGET_NAME).exe
-		PathSep     := \
-		RM          := del /Q /F
-		RMDIR_CMD   := rd /S /Q
+    # MKDIR_P handled in create_dirs rule
+    detected_os := WINDOWS_NATIVE_VER_CMD
+    TARGET_EXEC := $(TARGET_NAME).exe
+    PathSep     := \
+    RM          := del /Q /F
+    RMDIR_CMD   := rd /S /Q
 	else
-		# Final default if everything fails
-		detected_os ?= UNKNOWN_UNIX
+    # Final default if everything fails
+    detected_os ?= UNKNOWN_UNIX
 	endif
 endif
 
@@ -136,15 +139,27 @@ OBJDIR := $(OBJDIR_BASE)/$(BUILD_TYPE)
 # =========================================================================== #
 
 # ------------- Enhanced CP header detection (ignores comments) ------------- #
-# Use the get_gcc_includes script to detect competitive programming headers
-NEEDS_GCC_RESULT := $(shell ./$(SCRIPTS_DIR)/get_gcc_includes.sh --check-competitive $(SRCDIR) 2>/dev/null || echo "no")
-NEEDS_GCC := $(NEEDS_GCC_RESULT)
+# Only check for competitive headers if not forcing a specific compiler
+ifeq ($(strip $(FORCE_COMPILER)),auto)
+  NEEDS_GCC_RESULT := $(shell ./$(SCRIPTS_DIR)/get_gcc_includes.sh --check-competitive $(SRCDIR) 2>/dev/null || echo "no")
+  NEEDS_GCC := $(NEEDS_GCC_RESULT)
+else ifeq ($(strip $(FORCE_COMPILER)),gcc)
+  NEEDS_GCC := yes
+  $(info $(C_MAGENTA)Forcing GCC compiler as requested.$(C_RESET))
+else ifeq ($(strip $(FORCE_COMPILER)),clang)
+  NEEDS_GCC := no
+  $(info $(C_MAGENTA)Forcing Clang compiler as requested.$(C_RESET))
+else
+  $(error Invalid FORCE_COMPILER value: '$(FORCE_COMPILER)'. Use 'auto', 'gcc', or 'clang')
+endif
 
 # Debug output for competitive header detection
-ifeq ($(NEEDS_GCC),yes)
-    $(info $(C_CYAN)'Competitive Programming' headers detected - GCC required.$(C_RESET))
-else
-    $(info $(C_GREEN)No 'Competitive Programming' headers found - Clang can be used.$(C_RESET))
+ifeq ($(strip $(FORCE_COMPILER)),auto)
+	ifeq ($(NEEDS_GCC),yes)
+    $(info $(C_CYAN)Competitive programming headers detected - GCC required$(C_RESET))
+	else
+    $(info $(C_GREEN)No competitive programming headers found - Clang can be used$(C_RESET))
+	endif
 endif
 
 # ------------------------ Compiler Detection Logic ------------------------- #
@@ -154,16 +169,16 @@ GCC_PREFIX      := $(shell brew --prefix gcc 2>/dev/null || echo "")
 # Find GCC binary - Prioritize Homebrew installation over system GCC
 GCC_BINARY :=
 ifneq ($(GCC_PREFIX),)
-	GCC_BINARY := $(shell find $(GCC_PREFIX)/bin -name "g++-*" -type f 2>/dev/null | sort -V | tail -n 1)
+  GCC_BINARY := $(shell find $(GCC_PREFIX)/bin -name "g++-*" -type f 2>/dev/null | sort -V | tail -n 1)
 endif
 
 # Only use system GCC as last resort and warn about potential issues
 ifeq ($(GCC_BINARY),)
     SYSTEM_GCC := $(shell which g++ 2>/dev/null)
     ifneq ($(SYSTEM_GCC),)
-        # ----- START: Platform-Aware Heuristic ----- #
-        # This check is platform-specific. On macOS, /usr/bin/g++ is a
-        # symlink to clang that must be skipped. On Linux, it is the real GCC.
+        # Platform-Aware Heuristic:
+        # On macOS, /usr/bin/g++ is a symlink to clang that must be skipped.
+        # On Linux, it is the real GCC.
         ifeq ($(detected_os),MACOS)
             ifeq ($(SYSTEM_GCC),/usr/bin/g++)
                 # This is Xcode's g++ symlink to clang, skip it
@@ -175,7 +190,6 @@ ifeq ($(GCC_BINARY),)
             # On non-macOS systems (like Linux), trust the system g++
             GCC_BINARY := $(SYSTEM_GCC)
         endif
-        # ------ END: Platform-Aware Heuristic ------ #
     endif
 endif
 
@@ -185,11 +199,22 @@ EFFECTIVE_CC :=
 USE_PCH_FALLBACK := no
 SANITIZER_AVAILABLE := no
 
-# Determine effective compiler based on build type and GCC availability
+# Determine effective compiler based on build type, forced compiler, and GCC availability
 ifeq ($(BUILD_TYPE),sanitize)
-    # For sanitize mode, we need to check compiler capabilities
-    ifeq ($(NEEDS_GCC),yes)
-        # Competitive headers detected - check if GCC has sanitizers
+    # Special handling for sanitize mode
+    ifeq ($(FORCE_COMPILER),clang)
+        # User explicitly wants Clang for sanitizers
+        SANITIZER_AVAILABLE := yes
+        EFFECTIVE_COMPILER := clang
+        EFFECTIVE_CC := clang
+        ifeq ($(NEEDS_GCC),yes)
+            USE_PCH_FALLBACK := yes
+            $(info $(C_YELLOW)Using Clang with PCH fallback for sanitizers (forced)$(C_RESET))
+        else
+            $(info $(C_CYAN)Using Clang with sanitizers (forced)$(C_RESET))
+        endif
+    else ifeq ($(FORCE_COMPILER),gcc)
+        # User explicitly wants GCC for sanitizers
         ifneq ($(GCC_BINARY),)
             # Test if GCC sanitizers are available
             GCC_SANITIZER_TEST := $(shell echo 'int main(){}' | $(GCC_BINARY) -x c++ -fsanitize=address,undefined - -o /tmp/sanitizer_test 2>/dev/null && echo "yes" || echo "no")
@@ -197,44 +222,79 @@ ifeq ($(BUILD_TYPE),sanitize)
                 SANITIZER_AVAILABLE := yes
                 EFFECTIVE_COMPILER := gcc
                 EFFECTIVE_CC := $(subst g++,gcc,$(GCC_BINARY))
-                $(info $(C_CYAN)Using GCC with sanitizers for 'Competitive Programming'$(C_RESET))
+                $(info $(C_CYAN)Using GCC with sanitizers (forced)$(C_RESET))
             else
-                # GCC sanitizers not working, fall back to Clang with PCH
+                $(error $(C_RED)GCC sanitizers not available but GCC was forced. Cannot proceed.$(C_RESET))
+            endif
+        else
+            $(error $(C_RED)GCC was forced but no GCC binary found!$(C_RESET))
+        endif
+    else
+        # Auto mode for sanitizers
+        ifeq ($(NEEDS_GCC),yes)
+            ifneq ($(GCC_BINARY),)
+                # Test if GCC sanitizers are available
+                GCC_SANITIZER_TEST := $(shell echo 'int main(){}' | $(GCC_BINARY) -x c++ -fsanitize=address,undefined - -o /tmp/sanitizer_test 2>/dev/null && echo "yes" || echo "no")
+                ifeq ($(GCC_SANITIZER_TEST),yes)
+                    SANITIZER_AVAILABLE := yes
+                    EFFECTIVE_COMPILER := gcc
+                    EFFECTIVE_CC := $(subst g++,gcc,$(GCC_BINARY))
+                    $(info $(C_CYAN)Using GCC with sanitizers for competitive programming$(C_RESET))
+                else
+                    SANITIZER_AVAILABLE := yes
+                    EFFECTIVE_COMPILER := clang
+                    EFFECTIVE_CC := clang
+                    USE_PCH_FALLBACK := yes
+                    $(info $(C_YELLOW)GCC sanitizers unavailable, using Clang with PCH fallback$(C_RESET))
+                endif
+            else
                 SANITIZER_AVAILABLE := yes
                 EFFECTIVE_COMPILER := clang
                 EFFECTIVE_CC := clang
                 USE_PCH_FALLBACK := yes
-                $(info $(C_YELLOW)GCC sanitizers unavailable, using Clang with PCH fallback$(C_RESET))
+                $(info $(C_YELLOW)No GCC found, using Clang with PCH fallback for sanitizers$(C_RESET))
             endif
         else
-            # No GCC available, must use Clang with PCH fallback
             SANITIZER_AVAILABLE := yes
             EFFECTIVE_COMPILER := clang
             EFFECTIVE_CC := clang
-            USE_PCH_FALLBACK := yes
-            $(info $(C_YELLOW)No GCC found, using Clang with PCH fallback for sanitizers$(C_RESET))
+            $(info $(C_CYAN)Using Clang with sanitizers for standard C++$(C_RESET))
         endif
-    else
-        # Standard C++ - use Clang for sanitizers
-        SANITIZER_AVAILABLE := yes
-        EFFECTIVE_COMPILER := clang
-        EFFECTIVE_CC := clang
-        $(info $(C_CYAN)Using Clang with sanitizers for standard C++$(C_RESET))
     endif
 else
-    # Non-sanitize modes - use original logic
-    ifeq ($(NEEDS_GCC),yes)
+    # Non-sanitize modes
+    ifeq ($(FORCE_COMPILER),clang)
+        EFFECTIVE_COMPILER := clang
+        EFFECTIVE_CC := clang
+        ifeq ($(NEEDS_GCC),yes)
+            USE_PCH_FALLBACK := yes
+            $(info $(C_CYAN)Using Clang with PCH fallback (forced)$(C_RESET))
+        else
+            $(info $(C_CYAN)Using Clang for standard C++ (forced)$(C_RESET))
+        endif
+    else ifeq ($(FORCE_COMPILER),gcc)
         ifneq ($(GCC_BINARY),)
             EFFECTIVE_COMPILER := gcc
             EFFECTIVE_CC := $(subst g++,gcc,$(GCC_BINARY))
-            $(info $(C_CYAN)Using GCC for 'Competitive Programming'$(C_RESET))
+            $(info $(C_CYAN)Using GCC (forced)$(C_RESET))
         else
-            $(error $(C_RED)'Competitive programming headers detected but compatible GCC not found!$(C_RESET))
+            $(error $(C_RED)GCC was forced but no GCC binary found!$(C_RESET))
         endif
     else
-        EFFECTIVE_COMPILER := clang
-        EFFECTIVE_CC := clang
-        $(info $(C_CYAN)Using Clang for standard C++$(C_RESET))
+        # Auto mode
+        ifeq ($(NEEDS_GCC),yes)
+            ifneq ($(GCC_BINARY),)
+                EFFECTIVE_COMPILER := gcc
+                EFFECTIVE_CC := $(subst g++,gcc,$(GCC_BINARY))
+                $(info $(C_CYAN)Using GCC for competitive programming$(C_RESET))
+            else
+                $(error $(C_RED)Competitive programming headers detected but compatible GCC not found!$(C_RESET))
+            endif
+        else
+            EFFECTIVE_COMPILER := clang
+            EFFECTIVE_CC := clang
+            $(info $(C_CYAN)Using Clang for standard C++$(C_RESET))
+        endif
     endif
 endif
 
@@ -269,16 +329,16 @@ ifeq ($(EFFECTIVE_COMPILER),gcc)
 
         # For IDE configuration, we skip the toolchain-specific flags
         ifeq ($(IDE_CONFIG),yes)
-            CXXFLAGS_TOOLCHAIN :=
+            CXXFLAGS_TOOLCHAIN := -DCOMPILER_GCC=1
             SYSTEM_INCLUDES := -I/usr/local/include
             STDLIB_FLAG :=
         else
             # Use -nostdinc++ to prevent default search paths
             ifneq ($(GCC_ISYSTEM_FLAGS),)
-                CXXFLAGS_TOOLCHAIN := -nostdinc++
+                CXXFLAGS_TOOLCHAIN := -nostdinc++ -DCOMPILER_GCC=1
                 SYSTEM_INCLUDES := $(GCC_ISYSTEM_FLAGS)
             else
-                CXXFLAGS_TOOLCHAIN :=
+                CXXFLAGS_TOOLCHAIN := -DCOMPILER_GCC=1
                 SYSTEM_INCLUDES := -I/usr/local/include
             endif
 
@@ -289,24 +349,20 @@ ifeq ($(EFFECTIVE_COMPILER),gcc)
         endif
     else
         # PCH fallback mode: use Clang with custom PCH.h instead of bits/stdc++.h
-        # Define macro to let source code know it should use PCH.h
-        CXXFLAGS_TOOLCHAIN := -DUSE_PCH_FALLBACK=1 -DUSE_CLANG_SANITIZE=1
-        # DO NOT force include PCH.h - let source code decide
+        CXXFLAGS_TOOLCHAIN := -DUSE_PCH_FALLBACK=1 -DUSE_CLANG_SANITIZE=1 -DCOMPILER_CLANG=1
         PCH_INCLUDE := 
         SYSTEM_INCLUDES := -I/usr/local/include
         STDLIB_FLAG := 
-        $(info $(C_YELLOW)Using PCH.h fallback for 'Competitive Programming' headers$(C_RESET))
+        $(info $(C_YELLOW)Using PCH.h fallback for competitive programming headers$(C_RESET))
     endif
 else
     # Clang configuration
-    CXXFLAGS_TOOLCHAIN := 
+    CXXFLAGS_TOOLCHAIN := -DCOMPILER_CLANG=1
     SYSTEM_INCLUDES := -I/usr/local/include
     STDLIB_FLAG := 
     
     ifeq ($(USE_PCH_FALLBACK),yes)
-        # Define macro to let source code know it should use PCH.h
-        CXXFLAGS_TOOLCHAIN := -DUSE_PCH_FALLBACK=1 -DUSE_CLANG_SANITIZE=1
-        # DO NOT force include PCH.h - let source code decide
+        CXXFLAGS_TOOLCHAIN := -DUSE_PCH_FALLBACK=1 -DUSE_CLANG_SANITIZE=1 -DCOMPILER_CLANG=1
         PCH_INCLUDE := 
         $(info $(C_YELLOW)PCH fallback mode enabled for Clang$(C_RESET))
     endif
@@ -339,7 +395,6 @@ LDFLAGS := $(STDLIB_FLAG)
 
 ifeq ($(BUILD_TYPE), release)
     # Release: Maximum optimization for contest submission
-    # Platform-specific optimization flags
     ifeq ($(detected_os),MACOS)
         ARCH_FLAGS := -mcpu=native
     else
@@ -473,10 +528,10 @@ DIR_SENTINEL := $(OBJDIR)/.dirs_created
 # ---------------------- Enhanced Linker Configuration ---------------------- #
 # =========================================================================== #
 ifeq ($(strip $(CPP_SRCS)),)
-	LD = @echo "$(C_RED)No C++ sources found for 'Competitive Programming'!$(C_RESET)"; false
+  LD = @echo "$(C_RED)No C++ sources found for competitive programming!$(C_RESET)"; false
 else
-	LD := $(CXX)
-	LDFLAGS_FINAL := $(LDFLAGS) $(PROFILE_FLAGS) $(LIBS)
+  LD := $(CXX)
+  LDFLAGS_FINAL := $(LDFLAGS) $(PROFILE_FLAGS) $(LIBS)
 endif
 
 # =========================================================================== #
@@ -512,7 +567,7 @@ $(TARGET_PATH): $(OBJS)
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(DIR_SENTINEL)
 	@echo "$(C_CYAN)Compiling C++:$(C_RESET) $< -> $@"
 	@if [ "$(USE_PCH_FALLBACK)" = "yes" ]; then \
-		echo "$(C_YELLOW)  Using PCH.h fallback for 'Competitive Programming' headers$(C_RESET)"; \
+		echo "$(C_YELLOW)  Using PCH.h fallback for competitive programming headers$(C_RESET)"; \
 	fi
 	@if [ "$(BUILD_TYPE)" = "sanitize" ]; then \
 		echo "$(C_YELLOW)  Compiling with sanitizers enabled$(C_RESET)"; \
@@ -526,11 +581,17 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(DIR_SENTINEL)
 	@echo "$(C_CYAN)  Options:$(C_RESET)"
 	@echo "$(CXXFLAGS)" | tr ' ' '\n' | sed 's/^/    /'
 	@if [ "$(ENABLE_TIMING)" = "yes" ]; then \
-		START_TIME=$$(date +%s.%N); \
+		START_TIME=$$(date +%s.%N 2>/dev/null || date +%s); \
 		$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@ 2>&1 | tee $(OBJDIR)/$*.timing.log; \
-		END_TIME=$$(date +%s.%N); \
-		ELAPSED=$$(echo "$$END_TIME - $$START_TIME" | bc); \
-		echo "$(C_MAGENTA)  Compilation time: $${ELAPSED}s$(C_RESET)"; \
+		END_TIME=$$(date +%s.%N 2>/dev/null || date +%s); \
+		if command -v bc >/dev/null 2>&1; then \
+			ELAPSED=$$(echo "$$END_TIME - $$START_TIME" | bc); \
+			ELAPSED_FORMATTED=$$(printf "%.3f" $$ELAPSED 2>/dev/null || echo $$ELAPSED); \
+			echo "$(C_MAGENTA)  Compilation time: $${ELAPSED_FORMATTED}s$(C_RESET)"; \
+			echo ""
+		else \
+			echo "$(C_MAGENTA)  Compilation completed$(C_RESET)"; \
+		fi; \
 	else \
 		$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@; \
 	fi
@@ -538,7 +599,7 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(DIR_SENTINEL)
 $(OBJDIR)/%.o: $(SRCDIR)/%.cc $(DIR_SENTINEL)
 	@echo "$(C_CYAN)Compiling C++:$(C_RESET) $< -> $@"
 	@if [ "$(USE_PCH_FALLBACK)" = "yes" ]; then \
-		echo "$(C_YELLOW)  Using PCH.h fallback for 'Competitive Programming' headers$(C_RESET)"; \
+		echo "$(C_YELLOW)  Using PCH.h fallback for competitive programming headers$(C_RESET)"; \
 	fi
 	@echo "$(C_CYAN)  Compiler:$(C_RESET) $(CXX)"
 	@echo "$(C_CYAN)  Includes:$(C_RESET)"
@@ -550,7 +611,7 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cc $(DIR_SENTINEL)
 $(OBJDIR)/%.o: $(SRCDIR)/%.cxx $(DIR_SENTINEL)
 	@echo "$(C_CYAN)Compiling C++:$(C_RESET) $< -> $@"
 	@if [ "$(USE_PCH_FALLBACK)" = "yes" ]; then \
-		echo "$(C_YELLOW)  Using PCH.h fallback for 'Competitive Programming' headers$(C_RESET)"; \
+		echo "$(C_YELLOW)  Using PCH.h fallback for competitive programming headers$(C_RESET)"; \
 	fi
 	@echo "$(C_CYAN)  Compiler:$(C_RESET) $(CXX)"
 	@echo "$(C_CYAN)  Includes:$(C_RESET)"
@@ -583,7 +644,7 @@ timing-gcc:
 	@$(MKDIR_P) $(TIMING_DIR)/gcc
 	@echo "$(C_CYAN)Using GCC: $(GCC_BINARY)$(C_RESET)"
 	@$(MAKE) clean
-	@CXX=$(GCC_BINARY) $(MAKE) ENABLE_TIMING=yes TIMING_FORMAT=text all
+	@$(MAKE) FORCE_COMPILER=gcc ENABLE_TIMING=yes TIMING_FORMAT=text all
 	@echo "$(C_GREEN)GCC timing report saved to $(TIMING_DIR)/gcc/$(C_RESET)"
 
 # Force build with Clang and timing
@@ -592,23 +653,28 @@ timing-clang:
 	@$(MKDIR_P) $(TIMING_DIR)/clang
 	@echo "$(C_CYAN)Using Clang: clang++$(C_RESET)"
 	@$(MAKE) clean
-	@CXX=clang++ $(MAKE) ENABLE_TIMING=yes TIMING_FORMAT=both all
+	@$(MAKE) FORCE_COMPILER=clang ENABLE_TIMING=yes TIMING_FORMAT=both all
 	@echo "$(C_GREEN)Clang timing report saved to $(TIMING_DIR)/clang/$(C_RESET)"
 
 # Compare timing between GCC and Clang
 timing-compare: clean-timing
-	@echo "$(C_BOLD)$(C_MAGENTA)/===--------- Compiler Performance Comparison ----------===/$(C_RESET)"
+	@echo "$(C_BOLD)$(C_MAGENTA)/===-------------- Compiler Performance Comparison ---------------===/$(C_RESET)"
 	@$(MKDIR_P) $(TIMING_DIR)
 	@echo ""
 	@echo "$(C_CYAN)----- Testing with GCC -----$(C_RESET)"
 	@if [ -n "$(GCC_BINARY)" ]; then \
 		echo "GCC Version: $$($(GCC_BINARY) --version | head -1)" > $(TIMING_DIR)/comparison.txt; \
-		START_TIME=$$(date +%s.%N); \
+		START_TIME=$$(date +%s.%N 2>/dev/null || date +%s); \
 		$(MAKE) timing-gcc > /dev/null 2>&1; \
-		END_TIME=$$(date +%s.%N); \
-		GCC_TIME=$$(echo "$$END_TIME - $$START_TIME" | bc); \
-		echo "GCC Total Time: $${GCC_TIME}s" >> $(TIMING_DIR)/comparison.txt; \
-		echo "$(C_GREEN)GCC compilation time: $${GCC_TIME}s$(C_RESET)"; \
+		END_TIME=$$(date +%s.%N 2>/dev/null || date +%s); \
+		if command -v bc >/dev/null 2>&1; then \
+			GCC_TIME=$$(echo "$$END_TIME - $$START_TIME" | bc); \
+			echo "GCC Total Time: $${GCC_TIME}s" >> $(TIMING_DIR)/comparison.txt; \
+			echo "$(C_GREEN)GCC compilation time: $${GCC_TIME}s$(C_RESET)"; \
+		else \
+			echo "GCC compilation completed" >> $(TIMING_DIR)/comparison.txt; \
+			echo "$(C_GREEN)GCC compilation completed$(C_RESET)"; \
+		fi; \
 	else \
 		echo "$(C_YELLOW)GCC not available, skipping...$(C_RESET)"; \
 		echo "GCC: Not available" >> $(TIMING_DIR)/comparison.txt; \
@@ -616,14 +682,19 @@ timing-compare: clean-timing
 	@echo ""
 	@echo "$(C_CYAN)----- Testing with Clang -----$(C_RESET)"
 	@echo "Clang Version: $$(clang++ --version | head -1)" >> $(TIMING_DIR)/comparison.txt
-	@START_TIME=$$(date +%s.%N)
+	@START_TIME=$$(date +%s.%N 2>/dev/null || date +%s)
 	@$(MAKE) timing-clang > /dev/null 2>&1
-	@END_TIME=$$(date +%s.%N)
-	@CLANG_TIME=$$(echo "$$END_TIME - $$START_TIME" | bc)
-	@echo "Clang Total Time: $${CLANG_TIME}s" >> $(TIMING_DIR)/comparison.txt
-	@echo "$(C_GREEN)Clang compilation time: $${CLANG_TIME}s$(C_RESET)"
+	@END_TIME=$$(date +%s.%N 2>/dev/null || date +%s)
+	@if command -v bc >/dev/null 2>&1; then \
+		CLANG_TIME=$$(echo "$$END_TIME - $$START_TIME" | bc); \
+		echo "Clang Total Time: $${CLANG_TIME}s" >> $(TIMING_DIR)/comparison.txt; \
+		echo "$(C_GREEN)Clang compilation time: $${CLANG_TIME}s$(C_RESET)"; \
+	else \
+		echo "Clang compilation completed" >> $(TIMING_DIR)/comparison.txt; \
+		echo "$(C_GREEN)Clang compilation completed$(C_RESET)"; \
+	fi
 	@echo ""
-	@echo "$(C_BOLD)$(C_MAGENTA)/===--------------------- Summary ----------------------===/$(C_RESET)"
+	@echo "$(C_BOLD)$(C_MAGENTA)/===-------------------------- Summary ---------------------------===/$(C_RESET)"
 	@cat $(TIMING_DIR)/comparison.txt
 	@echo ""
 	@echo "$(C_CYAN)Detailed reports saved in $(TIMING_DIR)/$(C_RESET)"
@@ -706,7 +777,7 @@ init-ide-config:
 	fi
 
 config-ide:
-	@echo "$(C_BOLD)/===----- Configuring IDE Integration (Clangd) -----===/$(C_RESET)"
+	@echo "$(C_BOLD)----- Configuring IDE Integration (Clangd) -----$(C_RESET)"
 	@echo "$(C_CYAN)Detected OS: $(detected_os)$(C_RESET)"
 	
 	@echo "$(C_CYAN)Step 1: Managing platform-specific .clangd configuration...$(C_RESET)"
@@ -833,6 +904,7 @@ debug-info:
 	@echo "  DEPS: $(DEPS)"
 	@echo ""
 	@echo "$(C_CYAN)Competitive Programming Detection:$(C_RESET)"
+	@echo "  FORCE_COMPILER: $(FORCE_COMPILER)"
 	@echo "  NEEDS_GCC: $(NEEDS_GCC)"
 	@echo "  NEEDS_BITS_STDC: $(if $(NEEDS_BITS_STDC),YES ($(NEEDS_BITS_STDC)),NO)"
 	@echo "  NEEDS_PBDS: $(if $(NEEDS_PBDS),YES ($(NEEDS_PBDS)),NO)"
@@ -881,6 +953,11 @@ help:
 	@echo "  $(C_YELLOW)BUILD_TYPE=release$(C_RESET)   - Optimized for contest submission (-O2)"
 	@echo "  $(C_YELLOW)BUILD_TYPE=sanitize$(C_RESET)  - Debug with memory sanitizers (enhanced)"
 	@echo ""
+	@echo "$(C_CYAN)Compiler Control:$(C_RESET)"
+	@echo "  $(C_YELLOW)FORCE_COMPILER=auto$(C_RESET)  - Auto-detect based on headers (default)"
+	@echo "  $(C_YELLOW)FORCE_COMPILER=gcc$(C_RESET)   - Force GCC usage"
+	@echo "  $(C_YELLOW)FORCE_COMPILER=clang$(C_RESET) - Force Clang usage"
+	@echo ""
 	@echo "$(C_CYAN)Compilation Timing Targets:$(C_RESET)"
 	@echo "  $(C_GREEN)timing$(C_RESET)         - Build with timing profiling enabled"
 	@echo "  $(C_GREEN)timing-gcc$(C_RESET)     - Force GCC build with timing"
@@ -913,8 +990,8 @@ help:
 	@echo ""
 	@echo "$(C_CYAN)Examples:$(C_RESET)"
 	@echo "  make timing-compare                # Compare GCC vs Clang compilation speed"
+	@echo "  make FORCE_COMPILER=clang all      # Force Clang for build"
 	@echo "  make ENABLE_TIMING=yes all         # Build with timing profiling"
-	@echo "  make timing-gcc                    # Profile GCC compilation"
 
 .SUFFIXES:
 

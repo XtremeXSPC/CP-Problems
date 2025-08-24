@@ -395,7 +395,12 @@ namespace chrono_literals = std::chrono_literals;
 // GCC specific optimizations
 #if defined(COMPILER_GCC) && defined(__GNUC__) && !defined(__clang__)
   #pragma GCC optimize("O3,unroll-loops")
-  #pragma GCC target("avx2,bmi,bmi2,lzcnt,popcnt")
+  // Only enable these for x86 architectures:
+  #if defined(__x86_64__) || defined(__i386__)
+    #pragma GCC target("avx2,bmi,bmi2,lzcnt,popcnt")
+  #elif defined(__aarch64__) || defined(__arm__)
+    #pragma GCC target("neon,+simd")
+  #endif
   #define likely(x)   __builtin_expect(!!(x), 1)
   #define unlikely(x) __builtin_expect(!!(x), 0)
   #define __builtin_popcount __builtin_popcount
