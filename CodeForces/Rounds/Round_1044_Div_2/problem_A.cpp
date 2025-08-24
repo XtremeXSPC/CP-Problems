@@ -4,7 +4,7 @@
  * @brief Codeforces Round #XXX (Div. X) - Problem Y
  * @author: Costantino Lombardi
  *
- * @status: In Progress
+ * @status: PASSED
  */
 //===----------------------------------------------------------------------===//
 /* Included library */

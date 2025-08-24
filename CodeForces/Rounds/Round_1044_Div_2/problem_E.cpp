@@ -4,7 +4,7 @@
  * @brief Codeforces Round 1044 (Div. 2) - Problem E
  * @author: Costantino Lombardi
  *
- * @status: In Progress
+ * @status: PASSED
  */
 //===----------------------------------------------------------------------===//
 /* Included library */
