@@ -1,10 +1,3 @@
-In file included from Tester.cpp:36:
-./../Algorithms/PCH.h:25:13: warning: 'COMPILER_CLANG' macro redefined [-Wmacro-redefined]
-   25 |     #define COMPILER_CLANG
-      |             ^
-<command line>:4:9: note: previous definition is here
-    4 | #define COMPILER_CLANG 1
-      |         ^
 ===-------------------------------------------------------------------------===
                           Pass execution timing report
 ===-------------------------------------------------------------------------===

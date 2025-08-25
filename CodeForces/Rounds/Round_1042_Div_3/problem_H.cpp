@@ -4,7 +4,7 @@
  * @brief: Codeforces Round 1042 (Div. 3) - Problem H
  * @author: Costantino Lombardi
  *
- * @status: PASSED
+ * @status:
  */
 //===----------------------------------------------------------------------===//
 /* Included library and Macros */
@@ -128,7 +128,7 @@ struct NumberTheoryEngine {
   }
 };
 
-// Global immutable instance
+// Global immutable instance.
 inline const NumberTheoryEngine NT_ENGINE;
 
 // Value compression system using modern idioms.
@@ -197,13 +197,16 @@ public:
     }
   }
 
-  [[nodiscard]] auto count_coprimes(span<const int> squarefree_factors) const -> int {
-    return transform_reduce(squarefree_factors.begin(), squarefree_factors.end(), 0, plus<>{}, [this](int d) {
-      return NT_ENGINE.moebius[d] * divisor_multiplicities[d];
-    });
+  // Optimized direct loop instead of transform_reduce.
+  [[nodiscard]] inline int count_coprimes(const vector<int>& squarefree_factors) const {
+    int sum = 0;
+    for (int d : squarefree_factors) {
+      sum += NT_ENGINE.moebius[d] * divisor_multiplicities[d];
+    }
+    return sum;
   }
 
-  void modify_element_presence(span<const int> squarefree_factors, int delta) {
+  void modify_element_presence(const vector<int>& squarefree_factors, int delta) {
     for (int divisor : squarefree_factors) {
       divisor_multiplicities[divisor] += delta;
     }
@@ -213,7 +216,7 @@ public:
 // Solution orchestrator using modern patterns.
 class CoprimePairSolver {
 private:
-  // Problem specification
+  // Problem specification.
   struct ProblemSpec {
     int         element_count;
     int         value_bound;
@@ -221,15 +224,19 @@ private:
     vector<int> value_histogram;
   } spec;
 
-  // Core components
+  // Core components.
   ValueCompressor                 compressor;
   unique_ptr<CoprimalityAnalyzer> analyzer;
+
+  // Performance optimization caches
+  vector<int>         sequence_to_compressed_id; // Direct O(1) access to compressed IDs.
+  vector<vector<int>> cached_squarefree_factors; // Pre-computed squarefree factors.
 
   // Solution type
   using Quadruple     = array<int, 4>;
   using MaybeSolution = optional<Quadruple>;
 
-  // Strategy pattern for different solving approaches
+  // Strategy pattern for different solving approaches.
   struct UnitValueStrategy {
     static auto execute(span<const int> unit_indices, span<const int> sequence) -> MaybeSolution {
       size_t unit_count = unit_indices.size();
@@ -263,29 +270,30 @@ private:
     }
   };
 
-  // Advanced search with coprimality filtering
+  // Optimized coprime search with cached access.
   auto filtered_coprime_search(int excluded_first, int excluded_second) -> pair<int, int> {
-    for (size_t idx = 1; idx < spec.sequence.size(); ++idx) {
-      if (static_cast<int>(idx) == excluded_first || static_cast<int>(idx) == excluded_second)
+    for (int idx = 1; idx <= spec.element_count; ++idx) {
+      if (idx == excluded_first || idx == excluded_second)
         continue;
 
-      auto compressed_id = compressor.get_compressed_id(spec.sequence[idx]);
-      if (!compressed_id)
+      // Direct cache access instead of map lookup.
+      int compressed_id = sequence_to_compressed_id[idx];
+      if (compressed_id == -1)
         continue;
 
-      const auto& compressed         = compressor.get_compressed_values()[*compressed_id];
-      int         potential_partners = analyzer->count_coprimes(compressed.squarefree_factors);
+      // Use cached factors directly
+      int potential_partners = analyzer->count_coprimes(cached_squarefree_factors[compressed_id]);
 
-      if (compressed.original == 1)
+      if (spec.sequence[idx] == 1)
         potential_partners--;
 
       if (potential_partners >= 1) {
-        for (size_t partner = 1; partner < spec.sequence.size(); ++partner) {
-          if (partner == static_cast<size_t>(excluded_first) || partner == static_cast<size_t>(excluded_second) || partner == idx)
+        for (int partner = 1; partner <= spec.element_count; ++partner) {
+          if (partner == excluded_first || partner == excluded_second || partner == idx)
             continue;
 
           if (gcd(spec.sequence[idx], spec.sequence[partner]) == 1) {
-            return {static_cast<int>(idx), static_cast<int>(partner)};
+            return {idx, partner};
           }
         }
       }
@@ -304,14 +312,31 @@ public:
       spec.value_histogram[spec.sequence[i]]++;
     }
 
-    // Initialize compression and analysis
+    // Initialize compression and analysis.
     span<const int> sequence_view(spec.sequence.data() + 1, spec.element_count);
     compressor.compress(sequence_view);
     analyzer = make_unique<CoprimalityAnalyzer>(spec.value_bound, spec.value_histogram);
+
+    // Build performance caches.
+    sequence_to_compressed_id.assign(spec.element_count + 1, -1);
+    cached_squarefree_factors.resize(compressor.unique_count());
+
+    // Populate compressed ID cache for O(1) access.
+    for (int i = 1; i <= spec.element_count; ++i) {
+      if (auto id = compressor.get_compressed_id(spec.sequence[i]); id.has_value()) {
+        sequence_to_compressed_id[i] = static_cast<int>(*id);
+      }
+    }
+
+    // Pre-compute all squarefree factors.
+    for (size_t id = 0; id < compressor.unique_count(); ++id) {
+      const auto& compressed        = compressor.get_compressed_values()[id];
+      cached_squarefree_factors[id] = compressed.squarefree_factors;
+    }
   }
 
   void solve() {
-    // Phase 1: Unit value optimization
+    // Phase 1: Unit value optimization.
     if (auto unit_id = compressor.get_compressed_id(1); unit_id.has_value()) {
       const auto& unit_data = compressor.get_compressed_values()[*unit_id];
 
@@ -320,7 +345,7 @@ public:
         return;
       }
 
-      // Single unit special case
+      // Single unit special case.
       if (unit_data.occurrence_indices.size() == 1) {
         if (auto solution = handle_single_unit_case(unit_data.occurrence_indices[0]); solution.has_value()) {
           output_solution(*solution);
@@ -331,7 +356,7 @@ public:
       }
     }
 
-    // Phase 2: Duplicate value exploitation
+    // Phase 2: Duplicate value exploitation.
     for (const auto& compressed : compressor.get_compressed_values()) {
       if (compressed.occurrence_indices.size() >= 2 && compressed.original != 1) {
         int coprime_candidates = analyzer->count_coprimes(compressed.squarefree_factors);
@@ -352,7 +377,7 @@ public:
       }
     }
 
-    // Phase 3: Graph-theoretic search with pruning
+    // Phase 3: Graph-theoretic search with pruning.
     if (auto solution = execute_graph_search(); solution.has_value()) {
       output_solution(*solution);
       return;
@@ -364,7 +389,7 @@ public:
 private:
   // Handle the special case with a single unit value present.
   auto handle_single_unit_case(int unit_index) -> MaybeSolution {
-    // Find any coprime pair among non-unit values
+    // Find any coprime pair among non-unit values.
     for (const auto& compressed : compressor.get_compressed_values()) {
       if (compressed.original == 1)
         continue;
@@ -391,30 +416,33 @@ private:
     return nullopt;
   }
 
-  // Execute a graph search based on coprimality degrees.
+  // Execute optimized graph search based on coprimality degrees.
   auto execute_graph_search() -> MaybeSolution {
-    // Compute coprimality degrees
+    // Compute coprimality degrees using cached data.
     vector<tuple<int, int, int>> vertex_properties; // {degree, value_id, index}
 
-    for (const auto& compressed : compressor.get_compressed_values()) {
-      int degree = analyzer->count_coprimes(compressed.squarefree_factors);
-      if (compressed.original == 1)
+    for (int i = 1; i <= spec.element_count; ++i) {
+      int compressed_id = sequence_to_compressed_id[i];
+      if (compressed_id == -1)
+        continue;
+
+      // Direct cache access for performance.
+      int degree = analyzer->count_coprimes(cached_squarefree_factors[compressed_id]);
+      if (spec.sequence[i] == 1)
         degree--;
 
       if (degree >= 1) {
-        for (int idx : compressed.occurrence_indices) {
-          vertex_properties.emplace_back(degree, compressed.compressed_id, idx);
-        }
+        vertex_properties.emplace_back(degree, compressed_id, i);
       }
     }
 
-    // Process by ascending degree
+    // Process by ascending degree.
     sort(vertex_properties.begin(), vertex_properties.end());
 
     constexpr int SEARCH_WIDTH = 30;
 
     for (const auto& [degree, value_id, primary_index] : vertex_properties) {
-      // Special handling for leaf vertices
+      // Special handling for leaf vertices.
       if (degree == 1) {
         if (auto solution = process_leaf_vertex(primary_index); solution.has_value()) {
           return solution;
@@ -422,7 +450,7 @@ private:
         continue;
       }
 
-      // General search with bounded candidates
+      // General search with bounded candidates.
       vector<int> candidate_partners;
       candidate_partners.reserve(SEARCH_WIDTH);
 
@@ -433,18 +461,14 @@ private:
       }
 
       for (int secondary_index : candidate_partners) {
-        if (static_cast<size_t>(value_id) >= compressor.get_compressed_values().size())
+        // Use cached ID for O(1) access.
+        int secondary_id = sequence_to_compressed_id[secondary_index];
+        if (secondary_id == -1)
           continue;
-        const auto& primary_compressed = compressor.get_compressed_values()[value_id];
-        auto        secondary_id       = compressor.get_compressed_id(spec.sequence[secondary_index]);
 
-        if (!secondary_id)
-          continue;
-        const auto& secondary_compressed = compressor.get_compressed_values()[*secondary_id];
-
-        // Temporarily remove from active set
-        analyzer->modify_element_presence(primary_compressed.squarefree_factors, -1);
-        analyzer->modify_element_presence(secondary_compressed.squarefree_factors, -1);
+        // Temporarily remove from active set using cached factors.
+        analyzer->modify_element_presence(cached_squarefree_factors[value_id], -1);
+        analyzer->modify_element_presence(cached_squarefree_factors[secondary_id], -1);
 
         auto [third, fourth] = filtered_coprime_search(primary_index, secondary_index);
 
@@ -452,30 +476,29 @@ private:
           return Quadruple{primary_index, secondary_index, third, fourth};
         }
 
-        // Restore to active set
-        analyzer->modify_element_presence(primary_compressed.squarefree_factors, +1);
-        analyzer->modify_element_presence(secondary_compressed.squarefree_factors, +1);
+        // Restore to active set.
+        analyzer->modify_element_presence(cached_squarefree_factors[value_id], +1);
+        analyzer->modify_element_presence(cached_squarefree_factors[secondary_id], +1);
       }
     }
 
     return nullopt;
   }
 
-  // Specialized processing for leaf vertices (degree == 1) in the coprimality graph.
+  // Optimized processing for leaf vertices in the coprimality graph.
   auto process_leaf_vertex(int leaf_index) -> MaybeSolution {
     for (int partner = 1; partner <= spec.element_count; ++partner) {
       if (partner != leaf_index && gcd(spec.sequence[leaf_index], spec.sequence[partner]) == 1) {
-        auto leaf_id    = compressor.get_compressed_id(spec.sequence[leaf_index]);
-        auto partner_id = compressor.get_compressed_id(spec.sequence[partner]);
+        // Use cached IDs for O(1) access.
+        int leaf_id    = sequence_to_compressed_id[leaf_index];
+        int partner_id = sequence_to_compressed_id[partner];
 
-        if (!leaf_id || !partner_id)
+        if (leaf_id == -1 || partner_id == -1)
           continue;
 
-        const auto& leaf_compressed    = compressor.get_compressed_values()[*leaf_id];
-        const auto& partner_compressed = compressor.get_compressed_values()[*partner_id];
-
-        analyzer->modify_element_presence(leaf_compressed.squarefree_factors, -1);
-        analyzer->modify_element_presence(partner_compressed.squarefree_factors, -1);
+        // Use cached factors directly.
+        analyzer->modify_element_presence(cached_squarefree_factors[leaf_id], -1);
+        analyzer->modify_element_presence(cached_squarefree_factors[partner_id], -1);
 
         auto [third, fourth] = filtered_coprime_search(leaf_index, partner);
 
@@ -483,9 +506,9 @@ private:
           return Quadruple{leaf_index, partner, third, fourth};
         }
 
-        analyzer->modify_element_presence(leaf_compressed.squarefree_factors, +1);
-        analyzer->modify_element_presence(partner_compressed.squarefree_factors, +1);
-        break; // Leaf has only one partner
+        analyzer->modify_element_presence(cached_squarefree_factors[leaf_id], +1);
+        analyzer->modify_element_presence(cached_squarefree_factors[partner_id], +1);
+        break; // Leaf has only one partner.
       }
     }
     return nullopt;
