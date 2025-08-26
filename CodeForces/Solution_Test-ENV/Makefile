@@ -47,7 +47,7 @@ SRCDIR         ?= .
 BINDIR         ?= bin
 OBJDIR_BASE    ?= obj
 
-# Project directories.
+# Standardized I/O and config directories.
 INPUT_DIR      ?= input
 OUTPUT_DIR     ?= output
 IDE_CONFIG_DIR ?= .ide-config
@@ -133,9 +133,6 @@ endif
 TARGET_DIR_WITH_SEP := $(BINDIR)$(PathSep)
 TARGET_PATH         := $(TARGET_DIR_WITH_SEP)$(TARGET_EXEC)
 
-# Object directory based on build type.
-OBJDIR := $(OBJDIR_BASE)/$(BUILD_TYPE)
-
 # =========================================================================== #
 # ------------- Competitive Programming Compiler Configuration -------------- #
 # =========================================================================== #
@@ -205,15 +202,15 @@ SANITIZER_AVAILABLE := no
 ifeq ($(BUILD_TYPE),sanitize)
     # Special handling for sanitize mode.
     ifeq ($(FORCE_COMPILER),clang)
-        # User explicitly wants Clang for sanitizers.
+        # Select Clang for sanitizers.
         SANITIZER_AVAILABLE := yes
         EFFECTIVE_COMPILER := clang
         EFFECTIVE_CC := clang
         ifeq ($(NEEDS_GCC),yes)
             USE_PCH_FALLBACK := yes
-            $(info $(C_YELLOW)Using Clang with PCH fallback for sanitizers (forced)$(C_RESET))
+            $(info $(C_YELLOW)Using Clang with PCH fallback for sanitizers (forced).$(C_RESET))
         else
-            $(info $(C_CYAN)Using Clang with sanitizers (forced)$(C_RESET))
+            $(info $(C_CYAN)Using Clang with sanitizers (forced).$(C_RESET))
         endif
     else ifeq ($(FORCE_COMPILER),gcc)
         # User explicitly wants GCC for sanitizers.
@@ -224,7 +221,7 @@ ifeq ($(BUILD_TYPE),sanitize)
                 SANITIZER_AVAILABLE := yes
                 EFFECTIVE_COMPILER := gcc
                 EFFECTIVE_CC := $(subst g++,gcc,$(GCC_BINARY))
-                $(info $(C_CYAN)Using GCC with sanitizers (forced)$(C_RESET))
+                $(info $(C_CYAN)Using GCC with sanitizers (forced).$(C_RESET))
             else
                 $(error $(C_RED)GCC sanitizers not available but GCC was forced. Cannot proceed.$(C_RESET))
             endif
@@ -243,6 +240,7 @@ ifeq ($(BUILD_TYPE),sanitize)
                     EFFECTIVE_CC := $(subst g++,gcc,$(GCC_BINARY))
                     $(info $(C_CYAN)Using GCC with sanitizers for 'Competitive Programming'$(C_RESET))
                 else
+                		# GCC sanitizers not working, fall back to Clang with PCH.
                     SANITIZER_AVAILABLE := yes
                     EFFECTIVE_COMPILER := clang
                     EFFECTIVE_CC := clang
@@ -250,6 +248,7 @@ ifeq ($(BUILD_TYPE),sanitize)
                     $(info $(C_YELLOW)GCC sanitizers unavailable, using Clang with PCH fallback$(C_RESET))
                 endif
             else
+                # No GCC available, must use Clang with PCH fallback.
                 SANITIZER_AVAILABLE := yes
                 EFFECTIVE_COMPILER := clang
                 EFFECTIVE_CC := clang
@@ -257,6 +256,7 @@ ifeq ($(BUILD_TYPE),sanitize)
                 $(info $(C_YELLOW)No GCC found, using Clang with PCH fallback for sanitizers$(C_RESET))
             endif
         else
+            # Standard C++ - use Clang for sanitizers
             SANITIZER_AVAILABLE := yes
             EFFECTIVE_COMPILER := clang
             EFFECTIVE_CC := clang
@@ -460,6 +460,9 @@ else
     $(info $(C_BLUE)Build mode: Debug (development and testing)$(C_RESET))
 endif
 
+# Define final object directory based on build type
+OBJDIR := $(OBJDIR_BASE)/$(BUILD_TYPE)
+
 # ----------------- Compilation Timing Flags Configuration ------------------ #
 TIMING_FLAGS :=
 TIMING_OUTPUT_FLAGS :=
@@ -517,6 +520,10 @@ LIBS := -lm
 CPP_SRCS       := $(wildcard $(SRCDIR)/$(TARGET_NAME).cpp \
                              $(SRCDIR)/$(TARGET_NAME).cc \
                              $(SRCDIR)/$(TARGET_NAME).cxx)
+ifeq ($(strip $(CPP_SRCS)),)
+    # Fallback: pick the first C++ source file found.
+    CPP_SRCS := $(firstword $(wildcard $(SRCDIR)/*.cpp $(SRCDIR)/*.cc $(SRCDIR)/*.cxx))
+endif
 CPP_OBJS       := $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(filter %.cpp,$(CPP_SRCS))) \
                   $(patsubst $(SRCDIR)/%.cc,$(OBJDIR)/%.o,$(filter %.cc,$(CPP_SRCS))) \
                   $(patsubst $(SRCDIR)/%.cxx,$(OBJDIR)/%.o,$(filter %.cxx,$(CPP_SRCS)))
@@ -530,7 +537,7 @@ DIR_SENTINEL := $(OBJDIR)/.dirs_created
 # ---------------------- Enhanced Linker Configuration ---------------------- #
 # =========================================================================== #
 ifeq ($(strip $(CPP_SRCS)),)
-  LD = @echo "$(C_RED)No C++ sources found for 'Competitive Programming'!$(C_RESET)"; false
+  LD = $(if $(strip $(CPP_OBJS)),$(CXX),@echo "$(C_RED)No C++ sources found!$(C_RESET)"; false)
 else
   LD := $(CXX)
   LDFLAGS_FINAL := $(LDFLAGS) $(PROFILE_FLAGS) $(LIBS)
@@ -552,55 +559,52 @@ $(DIR_SENTINEL):
 
 # Enhanced linking rule.
 $(TARGET_PATH): $(OBJS)
-	@echo "$(C_BLUE)# ------ Linking Competitive Programming Executable ------ #$(C_RESET)"
+	@echo "$(C_BLUE)/===------ Linking Competitive Programming Executable ------===/$(C_RESET)"
 	@echo "$(C_BLUE)Compiler:$(C_RESET) $(CXX)"
 	@echo "$(C_BLUE)Mode:$(C_RESET) $(BUILD_TYPE)"
 	@echo "$(C_BLUE)Output:$(C_RESET) $@"
 	@if [ "$(BUILD_TYPE)" = "sanitize" ]; then \
 		echo "$(C_YELLOW)Sanitizer linking - this may take extra time$(C_RESET)"; \
 	fi
-	$(LD) $(OBJS) $(LDFLAGS_FINAL) -o $@
+	@$(LD) $(OBJS) $(LDFLAGS_FINAL) -o $@
 	@echo "$(C_GREEN)✔ Build successful$(C_RESET)"
 	@if [ "$(ENABLE_TIMING)" = "yes" ]; then \
 		$(MAKE) process-timing-reports; \
 	fi
 
-# Enhanced compilation rules with timing support.
+# Enhanced compilation rules with timing support
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(DIR_SENTINEL)
 	@echo "$(C_CYAN)Compiling C++:$(C_RESET) $< -> $@"
 	@if [ "$(USE_PCH_FALLBACK)" = "yes" ]; then \
-		echo "$(C_YELLOW)  Using PCH.h fallback for 'Competitive Programming' headers$(C_RESET)"; \
+		echo "$(C_YELLOW)  Using PCH.h fallback for competitive programming headers$(C_RESET)"; \
 	fi
 	@if [ "$(BUILD_TYPE)" = "sanitize" ]; then \
 		echo "$(C_YELLOW)  Compiling with sanitizers enabled$(C_RESET)"; \
 	fi
 	@if [ "$(ENABLE_TIMING)" = "yes" ]; then \
 		echo "$(C_MAGENTA)  Timing profiling enabled$(C_RESET)"; \
+		START_TIME=$(date +%s.%N 2>/dev/null || date +%s); \
 	fi
 	@echo "$(C_CYAN)  Compiler:$(C_RESET) $(CXX)"
 	@echo "$(C_CYAN)  Includes:$(C_RESET)"
 	@echo "$(CPPFLAGS)" | tr ' ' '\n' | sed 's/^/    /'
 	@echo "$(C_CYAN)  Options:$(C_RESET)"
 	@echo "$(CXXFLAGS)" | tr ' ' '\n' | sed 's/^/    /'
+	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@
 	@if [ "$(ENABLE_TIMING)" = "yes" ]; then \
-		START_TIME=$$(date +%s.%N 2>/dev/null || date +%s); \
-		$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@ 2>&1 | tee $(OBJDIR)/$*.timing.log; \
-		END_TIME=$$(date +%s.%N 2>/dev/null || date +%s); \
+		END_TIME=$(date +%s.%N 2>/dev/null || date +%s); \
 		if command -v bc >/dev/null 2>&1; then \
-			ELAPSED=$$(echo "$$END_TIME - $$START_TIME" | bc); \
-			ELAPSED_FORMATTED=$$(printf "%.3f" $$ELAPSED 2>/dev/null || echo $$ELAPSED); \
-			echo "$(C_MAGENTA)  Compilation time: $${ELAPSED_FORMATTED}s$(C_RESET)"; \
+			ELAPSED=$(echo "$END_TIME - $START_TIME" | bc); \
+			echo "$(C_MAGENTA)  Compilation time: ${ELAPSED}s$(C_RESET)"; \
 		else \
 			echo "$(C_MAGENTA)  Compilation completed$(C_RESET)"; \
 		fi; \
-	else \
-		$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@; \
 	fi
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cc $(DIR_SENTINEL)
 	@echo "$(C_CYAN)Compiling C++:$(C_RESET) $< -> $@"
 	@if [ "$(USE_PCH_FALLBACK)" = "yes" ]; then \
-		echo "$(C_YELLOW)  Using PCH.h fallback for 'Competitive Programming' headers$(C_RESET)"; \
+		echo "$(C_YELLOW)  Using PCH.h fallback for Competitive Programming headers.$(C_RESET)"; \
 	fi
 	@echo "$(C_CYAN)  Compiler:$(C_RESET) $(CXX)"
 	@echo "$(C_CYAN)  Includes:$(C_RESET)"
@@ -612,7 +616,7 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cc $(DIR_SENTINEL)
 $(OBJDIR)/%.o: $(SRCDIR)/%.cxx $(DIR_SENTINEL)
 	@echo "$(C_CYAN)Compiling C++:$(C_RESET) $< -> $@"
 	@if [ "$(USE_PCH_FALLBACK)" = "yes" ]; then \
-		echo "$(C_YELLOW)  Using PCH.h fallback for 'Competitive Programming' headers$(C_RESET)"; \
+		echo "$(C_YELLOW)  Using PCH.h fallback for Competitive Programming headers.$(C_RESET)"; \
 	fi
 	@echo "$(C_CYAN)  Compiler:$(C_RESET) $(CXX)"
 	@echo "$(C_CYAN)  Includes:$(C_RESET)"
@@ -778,7 +782,7 @@ init-ide-config:
 	fi
 
 config-ide:
-	@echo "$(C_BOLD)----- Configuring IDE Integration (Clangd) -----$(C_RESET)"
+	@echo "$(C_BOLD)/===------- Configuring IDE Integration (Clangd) -------===/$(C_RESET)"
 	@echo "$(C_CYAN)Detected OS: $(detected_os)$(C_RESET)"
 	
 	@echo "$(C_CYAN)Step 1: Managing platform-specific .clangd configuration...$(C_RESET)"
@@ -883,7 +887,7 @@ distclean: clean clean-timing
 
 compile_commands:
 	@echo "$(C_CYAN)Generating compile_commands.json for IDE support...$(C_RESET)"
-	@compiledb -n make clean all BUILD_TYPE=$(BUILD_TYPE)
+	@compiledb -n make clean all BUILD_TYPE=$(BUILD_TYPE) ENABLE_TIMING=no
 
 # Enhanced debug-info target.
 debug-info:
