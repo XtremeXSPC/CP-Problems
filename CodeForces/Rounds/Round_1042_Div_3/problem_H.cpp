@@ -481,6 +481,7 @@ private:
   }
 
 public:
+  // Function to solve a single test case.
   void solve_test_case() {
     read_input_data();
     compute_divisibility_counts();
