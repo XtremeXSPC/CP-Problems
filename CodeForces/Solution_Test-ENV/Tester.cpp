@@ -199,7 +199,7 @@ private:
           info.squarefree_divisors = sieve.generate_squarefree_divisors(info.prime_factors);
         }
 
-        unique_elements.push_back(move(info));
+        unique_elements.push_back(std::move(info));
       } else {
         unique_elements[value_to_index[current_value]].positions.push_back(idx);
       }
