@@ -41,97 +41,99 @@ endif
 # =========================================================================== #
 # ----------------------- User-configurable Variables ----------------------- #
 # =========================================================================== #
-
+# Project settings.
 TARGET_NAME    ?= Tester
 SRCDIR         ?= .
 BINDIR         ?= bin
 OBJDIR_BASE    ?= obj
 
-# Project directories
+# Project directories.
 INPUT_DIR      ?= input
 OUTPUT_DIR     ?= output
 IDE_CONFIG_DIR ?= .ide-config
 SCRIPTS_DIR    ?= scripts
 TIMING_DIR     ?= timing-reports
 
-# Build profile for 'Competitive Programming': debug (default), release, or sanitize
+# Build profile for 'Competitive Programming': debug (default), release, or sanitize.
 BUILD_TYPE     ?= debug
 
 # IDE configuration mode - when set to 'yes', produces clean compile commands
-# without toolchain-specific flags that can confuse clangd
+# without toolchain-specific flags that can confuse clangd.
 IDE_CONFIG     ?= no
 
-# Competitive programming settings
+# Competitive programming settings.
 ENABLE_FAST_IO ?= 1
 ENABLE_DEBUG   ?= 1
 
-# Timing profiling options
+# Timing profiling options.
 ENABLE_TIMING  ?= no
 TIMING_FORMAT  ?= both  # Options: json, text, both
 
-# Force specific compiler (overrides auto-detection)
+# Force specific compiler (overrides auto-detection).
 FORCE_COMPILER ?= auto  # Options: auto, gcc, clang
 
 # =========================================================================== #
 # -------------- Platform Detection and Path Configuration ------------------ #
 # =========================================================================== #
-# Initial default definitions to avoid empty values if OS logic fails
-PathSep        := /
-TARGET_EXEC    := $(TARGET_NAME)
-RM             := rm -f
-RMDIR_CMD      := rm -rf
-MKDIR_P        := mkdir -p
+# Initial default definitions to avoid empty values if OS logic fails.
+PathSep       := /
+TARGET_EXEC   := $(TARGET_NAME)
+RM            := rm -f
+RMDIR_CMD     := rm -rf
+MKDIR_P       := mkdir -p
 
-# Try to determine the operating system
-UNAME_S        := $(shell uname -s)
-detected_os    := UNKNOWN_UNIX
+# Try to determine the operating system.
+UNAME_S       := $(shell uname -s)
+detected_os   := UNKNOWN_UNIX
 
 ifeq ($(UNAME_S),Darwin)
-  detected_os := MACOS
-  # Default Unix settings are already correct for macOS
+	detected_os := MACOS
+  # Default Unix settings are already correct for macOS.
 else ifeq ($(UNAME_S),Linux)
-  detected_os := LINUX
-  # Default Unix settings are already correct for Linux
+	detected_os := LINUX
+  # Default Unix settings are already correct for Linux.
 else ifneq (,$(findstring MINGW,$(UNAME_S))) # MinGW (Git Bash, MSYS2)
-  detected_os := WINDOWS_MINGW
-  TARGET_EXEC := $(TARGET_NAME).exe
-  # MinGW prefers Unix-style slashes
-  PathSep     := /
-  RM          := rm -f
-  RMDIR_CMD   := rm -rf
-  MKDIR_P     := mkdir -p
+	detected_os := WINDOWS_MINGW
+	TARGET_EXEC := $(TARGET_NAME).exe
+  # MinGW prefers Unix-style slashes.
+	PathSep     := /
+	RM          := rm -f
+	RMDIR_CMD   := rm -rf
+	MKDIR_P     := mkdir -p
 else ifneq (,$(findstring CYGWIN,$(UNAME_S))) # Cygwin
-  detected_os := WINDOWS_CYGWIN
-  TARGET_EXEC := $(TARGET_NAME).exe
-  # Cygwin prefers Unix-style slashes
-  PathSep     := /
-  RM          := rm -f
-  RMDIR_CMD   := rm -rf
-  MKDIR_P     := mkdir -p
+	detected_os := WINDOWS_CYGWIN
+	TARGET_EXEC := $(TARGET_NAME).exe
+  # Cygwin prefers Unix-style slashes.
+	PathSep     := /
+	RM          := rm -f
+	RMDIR_CMD   := rm -rf
+	MKDIR_P     := mkdir -p
 else ifeq ($(OS),Windows_NT) # Environment variable from cmd.exe or PowerShell
-  detected_os := WINDOWS_NATIVE_OS_VAR
-  TARGET_EXEC := $(TARGET_NAME).exe
-  PathSep     := \
-  RM          := del /Q /F
-  RMDIR_CMD   := rd /S /Q
-  # MKDIR_P handled in create_dirs rule
-else # Fallback to `ver` check only if others fail
-  WINDOWS_VER_CHECK := $(shell ver 2>/dev/null) 
+	detected_os := WINDOWS_NATIVE_OS_VAR
+	TARGET_EXEC := $(TARGET_NAME).exe
+	PathSep     := \
+	RM          := del /Q /F
+	RMDIR_CMD   := rd /S /Q
+  # MKDIR_P handled in create_dirs rule.
+else # Fallback to `ver` check only if others fail.
+	WINDOWS_VER_CHECK := $(shell ver 2>/dev/null) 
 	ifneq (,$(findstring Windows,$(WINDOWS_VER_CHECK)))
-    # MKDIR_P handled in create_dirs rule
-    detected_os := WINDOWS_NATIVE_VER_CMD
-    TARGET_EXEC := $(TARGET_NAME).exe
-    PathSep     := \
-    RM          := del /Q /F
-    RMDIR_CMD   := rd /S /Q
+    # MKDIR_P handled in create_dirs rule.
+		detected_os := WINDOWS_NATIVE_VER_CMD
+		TARGET_EXEC := $(TARGET_NAME).exe
+		PathSep     := \
+		RM          := del /Q /F
+		RMDIR_CMD   := rd /S /Q
 	else
-    # Final default if everything fails
-    detected_os ?= UNKNOWN_UNIX
+    # Final default if everything fails.
+		detected_os ?= UNKNOWN_UNIX
 	endif
 endif
 
 TARGET_DIR_WITH_SEP := $(BINDIR)$(PathSep)
 TARGET_PATH         := $(TARGET_DIR_WITH_SEP)$(TARGET_EXEC)
+
+# Object directory based on build type.
 OBJDIR := $(OBJDIR_BASE)/$(BUILD_TYPE)
 
 # =========================================================================== #
@@ -139,7 +141,7 @@ OBJDIR := $(OBJDIR_BASE)/$(BUILD_TYPE)
 # =========================================================================== #
 
 # ------------- Enhanced CP header detection (ignores comments) ------------- #
-# Only check for competitive headers if not forcing a specific compiler
+# Only check for competitive headers if not forcing a specific compiler.
 ifeq ($(strip $(FORCE_COMPILER)),auto)
   NEEDS_GCC_RESULT := $(shell ./$(SCRIPTS_DIR)/get_gcc_includes.sh --check-competitive $(SRCDIR) 2>/dev/null || echo "no")
   NEEDS_GCC := $(NEEDS_GCC_RESULT)
@@ -153,26 +155,26 @@ else
   $(error Invalid FORCE_COMPILER value: '$(FORCE_COMPILER)'. Use 'auto', 'gcc', or 'clang')
 endif
 
-# Debug output for competitive header detection
+# Debug output for competitive header detection.
 ifeq ($(strip $(FORCE_COMPILER)),auto)
 	ifeq ($(NEEDS_GCC),yes)
-    $(info $(C_CYAN)Competitive programming headers detected - GCC required$(C_RESET))
+    $(info $(C_CYAN)'Competitive Programming' headers detected - GCC required.$(C_RESET))
 	else
-    $(info $(C_GREEN)No 'Competitive Programming' headers found - Clang can be used$(C_RESET))
+    $(info $(C_GREEN)No 'Competitive Programming' headers found - Clang can be used.$(C_RESET))
 	endif
 endif
 
 # ------------------------ Compiler Detection Logic ------------------------- #
-# Find the include path and prefix of the latest installed GCC version via Homebrew
+# Find the include path and prefix of the latest installed GCC version via Homebrew.
 GCC_PREFIX      := $(shell brew --prefix gcc 2>/dev/null || echo "")
 
-# Find GCC binary - Prioritize Homebrew installation over system GCC
+# Find GCC binary - Prioritize Homebrew installation over system GCC.
 GCC_BINARY :=
 ifneq ($(GCC_PREFIX),)
   GCC_BINARY := $(shell find $(GCC_PREFIX)/bin -name "g++-*" -type f 2>/dev/null | sort -V | tail -n 1)
 endif
 
-# Only use system GCC as last resort and warn about potential issues
+# Only use system GCC as last resort and warn about potential issues.
 ifeq ($(GCC_BINARY),)
     SYSTEM_GCC := $(shell which g++ 2>/dev/null)
     ifneq ($(SYSTEM_GCC),)
@@ -181,13 +183,13 @@ ifeq ($(GCC_BINARY),)
         # On Linux, it is the real GCC.
         ifeq ($(detected_os),MACOS)
             ifeq ($(SYSTEM_GCC),/usr/bin/g++)
-                # This is Xcode's g++ symlink to clang, skip it
+                # This is Xcode's g++ symlink to clang, skip it.
                 GCC_BINARY :=
             else
                 GCC_BINARY := $(SYSTEM_GCC)
             endif
         else
-            # On non-macOS systems (like Linux), trust the system g++
+            # On non-macOS systems (like Linux), trust the system g++.
             GCC_BINARY := $(SYSTEM_GCC)
         endif
     endif
@@ -199,11 +201,11 @@ EFFECTIVE_CC :=
 USE_PCH_FALLBACK := no
 SANITIZER_AVAILABLE := no
 
-# Determine effective compiler based on build type, forced compiler, and GCC availability
+# Determine effective compiler based on build type, forced compiler, and GCC availability.
 ifeq ($(BUILD_TYPE),sanitize)
-    # Special handling for sanitize mode
+    # Special handling for sanitize mode.
     ifeq ($(FORCE_COMPILER),clang)
-        # User explicitly wants Clang for sanitizers
+        # User explicitly wants Clang for sanitizers.
         SANITIZER_AVAILABLE := yes
         EFFECTIVE_COMPILER := clang
         EFFECTIVE_CC := clang
@@ -214,9 +216,9 @@ ifeq ($(BUILD_TYPE),sanitize)
             $(info $(C_CYAN)Using Clang with sanitizers (forced)$(C_RESET))
         endif
     else ifeq ($(FORCE_COMPILER),gcc)
-        # User explicitly wants GCC for sanitizers
+        # User explicitly wants GCC for sanitizers.
         ifneq ($(GCC_BINARY),)
-            # Test if GCC sanitizers are available
+            # Test if GCC sanitizers are available.
             GCC_SANITIZER_TEST := $(shell echo 'int main(){}' | $(GCC_BINARY) -x c++ -fsanitize=address,undefined - -o /tmp/sanitizer_test 2>/dev/null && echo "yes" || echo "no")
             ifeq ($(GCC_SANITIZER_TEST),yes)
                 SANITIZER_AVAILABLE := yes
@@ -230,10 +232,10 @@ ifeq ($(BUILD_TYPE),sanitize)
             $(error $(C_RED)GCC was forced but no GCC binary found!$(C_RESET))
         endif
     else
-        # Auto mode for sanitizers
+        # Auto mode for sanitizers.
         ifeq ($(NEEDS_GCC),yes)
             ifneq ($(GCC_BINARY),)
-                # Test if GCC sanitizers are available
+                # Test if GCC sanitizers are available.
                 GCC_SANITIZER_TEST := $(shell echo 'int main(){}' | $(GCC_BINARY) -x c++ -fsanitize=address,undefined - -o /tmp/sanitizer_test 2>/dev/null && echo "yes" || echo "no")
                 ifeq ($(GCC_SANITIZER_TEST),yes)
                     SANITIZER_AVAILABLE := yes
@@ -262,7 +264,7 @@ ifeq ($(BUILD_TYPE),sanitize)
         endif
     endif
 else
-    # Non-sanitize modes
+    # Non-sanitize modes.
     ifeq ($(FORCE_COMPILER),clang)
         EFFECTIVE_COMPILER := clang
         EFFECTIVE_CC := clang
@@ -281,7 +283,7 @@ else
             $(error $(C_RED)GCC was forced but no GCC binary found!$(C_RESET))
         endif
     else
-        # Auto mode
+        # Auto mode.
         ifeq ($(NEEDS_GCC),yes)
             ifneq ($(GCC_BINARY),)
                 EFFECTIVE_COMPILER := gcc
@@ -298,7 +300,7 @@ else
     endif
 endif
 
-# Set final compiler variables based on effective compiler
+# Set final compiler variables based on effective compiler.
 ifeq ($(EFFECTIVE_COMPILER),gcc)
     CC := $(EFFECTIVE_CC)
     CXX := $(GCC_BINARY)
@@ -311,29 +313,29 @@ endif
 # ----------------- Enhanced Toolchain Configuration System ----------------- #
 # =========================================================================== #
 
-# Initialize toolchain-specific variables
+# Initialize toolchain-specific variables.
 SYSTEM_INCLUDES := -I/usr/local/include
 CXXFLAGS_TOOLCHAIN := 
 STDLIB_FLAG := 
 PCH_INCLUDE :=
 
-# Configure toolchain based on effective compiler and mode
+# Configure toolchain based on effective compiler and mode.
 ifeq ($(EFFECTIVE_COMPILER),gcc)
     ifeq ($(USE_PCH_FALLBACK),no)
-        # Standard GCC configuration for 'Competitive Programming'
+        # Standard GCC configuration for 'Competitive Programming'.
         ifneq ($(GCC_BINARY),)
             GCC_ISYSTEM_FLAGS := $(shell ./$(SCRIPTS_DIR)/get_gcc_includes.sh $(CXX))
         else
             GCC_ISYSTEM_FLAGS :=
         endif
 
-        # For IDE configuration, we skip the toolchain-specific flags
+        # For IDE configuration, we skip the toolchain-specific flags.
         ifeq ($(IDE_CONFIG),yes)
             CXXFLAGS_TOOLCHAIN := -DCOMPILER_GCC=1
             SYSTEM_INCLUDES := -I/usr/local/include
             STDLIB_FLAG :=
         else
-            # Use -nostdinc++ to prevent default search paths
+            # Use -nostdinc++ to prevent default search paths.
             ifneq ($(GCC_ISYSTEM_FLAGS),)
                 CXXFLAGS_TOOLCHAIN := -nostdinc++ -DCOMPILER_GCC=1
                 SYSTEM_INCLUDES := $(GCC_ISYSTEM_FLAGS)
@@ -342,13 +344,13 @@ ifeq ($(EFFECTIVE_COMPILER),gcc)
                 SYSTEM_INCLUDES := -I/usr/local/include
             endif
 
-            # Platform-specific standard library flag for macOS
+            # Platform-specific standard library flag for macOS.
             ifeq ($(detected_os),MACOS)
                 STDLIB_FLAG := -stdlib=libstdc++
             endif
         endif
     else
-        # PCH fallback mode: use Clang with custom PCH.h instead of bits/stdc++.h
+        # PCH fallback mode: use Clang with custom PCH.h instead of bits/stdc++.h.
         CXXFLAGS_TOOLCHAIN := -DUSE_PCH_FALLBACK=1 -DUSE_CLANG_SANITIZE=1 -DCOMPILER_CLANG=1
         PCH_INCLUDE := 
         SYSTEM_INCLUDES := -I/usr/local/include
@@ -356,7 +358,7 @@ ifeq ($(EFFECTIVE_COMPILER),gcc)
         $(info $(C_YELLOW)Using PCH.h fallback for 'Competitive Programming' headers$(C_RESET))
     endif
 else
-    # Clang configuration
+    # Clang configuration.
     CXXFLAGS_TOOLCHAIN := -DCOMPILER_CLANG=1
     SYSTEM_INCLUDES := -I/usr/local/include
     STDLIB_FLAG := 
@@ -368,14 +370,14 @@ else
     endif
 endif
 
-# Define project-specific include directories
+# Define project-specific include directories.
 PROJECT_INCLUDES := -I$(SRCDIR) -I$(SRCDIR)/include
 
 # ----------------- Competitive Programming Compiler Flags ------------------ #
-# Base flags optimized for 'Competitive Programming'
+# Base flags optimized for 'Competitive Programming'.
 COMMON_FLAGS := -std=c++23
 
-# Competitive programming specific defines
+# Competitive programming specific defines.
 COMPETITIVE_DEFINES := -DLOCAL=1
 
 ifeq ($(ENABLE_FAST_IO),1)
@@ -390,11 +392,11 @@ endif
 CPPFLAGS := $(sort $(PROJECT_INCLUDES)) $(SYSTEM_INCLUDES)
 
 # ------------------- Enhanced Build Profile Configuration ------------------- #
-# Initialize LDFLAGS with standard library flag if needed
+# Initialize LDFLAGS with standard library flag if needed.
 LDFLAGS := $(STDLIB_FLAG)
 
 ifeq ($(BUILD_TYPE), release)
-    # Release: Maximum optimization for contest submission
+    # Release: Maximum optimization for contest submission.
     ifeq ($(detected_os),MACOS)
         ARCH_FLAGS := -mcpu=native
     else
@@ -405,29 +407,29 @@ ifeq ($(BUILD_TYPE), release)
     WARNING_FLAGS := -w
     $(info $(C_GREEN)Build mode: Release (optimized for submission)$(C_RESET))
 else ifeq ($(BUILD_TYPE), sanitize)
-    # Enhanced sanitize mode
+    # Enhanced sanitize mode.
     ifeq ($(SANITIZER_AVAILABLE),no)
         $(error $(C_RED)Sanitizers not available with current configuration$(C_RESET))
     endif
 		
-    # Base sanitizer flags
+    # Base sanitizer flags.
     SANITIZER_FLAGS := -fsanitize=address,undefined -fno-omit-frame-pointer
     PROFILE_FLAGS := -g -O1 $(SANITIZER_FLAGS)
     WARNING_FLAGS := -Wall -Wextra
     $(info $(C_YELLOW)Build mode: Sanitize (debug with memory checks)$(C_RESET))
     
-    # Enhanced sanitizer library configuration
+    # Enhanced sanitizer library configuration.
     ifeq ($(EFFECTIVE_COMPILER),gcc)
-        # GCC sanitizer library setup
+        # GCC sanitizer library setup.
         ifeq ($(detected_os),MACOS)
-            # macOS GCC sanitizer library detection
+            # macOS GCC sanitizer library detection.
             LIBASAN_PATH := $(shell $(CXX) -print-file-name=libasan.dylib 2>/dev/null)
             ifneq ($(LIBASAN_PATH),libasan.dylib)
                 SANITIZER_LIB_DIR := $(dir $(LIBASAN_PATH))
                 LDFLAGS += -L$(SANITIZER_LIB_DIR) -Wl,-rpath,$(SANITIZER_LIB_DIR)
                 $(info $(C_CYAN)Found GCC libasan at: $(LIBASAN_PATH)$(C_RESET))
             else
-                # Fallback search in GCC installation
+                # Fallback search in GCC installation.
                 GCC_BASE := $(shell dirname $(GCC_BINARY))/..
                 LIBASAN_SEARCH := $(shell find $(GCC_BASE) -name "libasan.*" -type f 2>/dev/null | head -1)
                 ifneq ($(LIBASAN_SEARCH),)
@@ -439,7 +441,7 @@ else ifeq ($(BUILD_TYPE), sanitize)
                 endif
             endif
         else
-            # Linux GCC - standard library paths should work
+            # Linux GCC - standard library paths should work.
             LIBASAN_PATH := $(shell $(CXX) -print-file-name=libasan.so 2>/dev/null)
             ifneq ($(LIBASAN_PATH),libasan.so)
                 SANITIZER_LIB_DIR := $(dir $(LIBASAN_PATH))
@@ -451,7 +453,7 @@ else ifeq ($(BUILD_TYPE), sanitize)
         $(info $(C_CYAN)Using Clang sanitizers with system libraries$(C_RESET))
     endif
 else
-    # Debug: Full debug info, no optimization
+    # Debug: Full debug info, no optimization.
     BUILD_TYPE    := debug
     PROFILE_FLAGS := -g -O0
     WARNING_FLAGS := -Wall -Wno-unused-variable -Wno-unused-parameter -Wno-sign-compare
@@ -464,7 +466,7 @@ TIMING_OUTPUT_FLAGS :=
 
 ifeq ($(ENABLE_TIMING),yes)
     ifeq ($(EFFECTIVE_COMPILER),gcc)
-        # GCC timing flags
+        # GCC timing flags.
         ifeq ($(TIMING_FORMAT),json)
             $(info $(C_YELLOW)Note: GCC doesn't support JSON timing output, using text format$(C_RESET))
             TIMING_FLAGS := -ftime-report
@@ -472,14 +474,14 @@ ifeq ($(ENABLE_TIMING),yes)
             TIMING_FLAGS := -ftime-report
         endif
     else
-        # Clang timing flags
+        # Clang timing flags.
         ifeq ($(TIMING_FORMAT),json)
             TIMING_FLAGS := -ftime-trace
             TIMING_OUTPUT_FLAGS := -ftime-trace-granularity=1
         else ifeq ($(TIMING_FORMAT),text)
             TIMING_FLAGS := -ftime-report
         else
-            # both
+            # Both.
             TIMING_FLAGS := -ftime-trace -ftime-report
             TIMING_OUTPUT_FLAGS := -ftime-trace-granularity=1
         endif
@@ -487,18 +489,18 @@ ifeq ($(ENABLE_TIMING),yes)
     $(info $(C_MAGENTA)Compilation timing enabled (format: $(TIMING_FORMAT))$(C_RESET))
 endif
 
-# Final compiler flags
+# Final compiler flags.
 CXXFLAGS := $(COMMON_FLAGS) $(WARNING_FLAGS) $(PROFILE_FLAGS) $(COMPETITIVE_DEFINES) $(CXXFLAGS_TOOLCHAIN) $(TIMING_FLAGS) $(TIMING_OUTPUT_FLAGS)
 
 # ---------------------- Enhanced Linker Configuration ---------------------- #
-# Add GCC library path if using GCC and not in IDE config mode
+# Add GCC library path if using GCC and not in IDE config mode.
 ifeq ($(EFFECTIVE_COMPILER),gcc)
     ifneq ($(IDE_CONFIG),yes)
         ifneq ($(USE_PCH_FALLBACK),yes)
-            # Standard GCC linking
+            # Standard GCC linking.
             GCC_LIB_BASE := $(shell dirname $(GCC_BINARY))/../lib
             LDFLAGS += -L$(GCC_LIB_BASE)
-            # On macOS, add rpath for runtime library discovery
+            # On macOS, add rpath for runtime library discovery.
             ifeq ($(detected_os),MACOS)
                 LDFLAGS += -Wl,-rpath,$(GCC_LIB_BASE)
             endif
@@ -506,7 +508,7 @@ ifeq ($(EFFECTIVE_COMPILER),gcc)
     endif
 endif
 
-# Standard math library
+# Standard math library.
 LIBS := -lm
 
 # =========================================================================== #
@@ -521,7 +523,7 @@ CPP_OBJS       := $(patsubst $(SRCDIR)/%.cpp,$(OBJDIR)/%.o,$(filter %.cpp,$(CPP_
 OBJS           := $(CPP_OBJS)
 DEPS           := $(OBJS:.o=.d)
 
-# Sentinel file to track directory creation
+# Sentinel file to track directory creation.
 DIR_SENTINEL := $(OBJDIR)/.dirs_created
 
 # =========================================================================== #
@@ -539,16 +541,16 @@ endif
 # =========================================================================== #
 .PHONY: all
 
-# Default target
+# Default target.
 all: $(TARGET_PATH)
 
-# Directory creation with sentinel
+# Directory creation with sentinel.
 $(DIR_SENTINEL):
 	@echo "$(C_CYAN)Creating directories $(OBJDIR) and $(BINDIR)...$(C_RESET)"
 	@$(MKDIR_P) $(OBJDIR) $(BINDIR)
 	@touch $@
 
-# Enhanced linking rule
+# Enhanced linking rule.
 $(TARGET_PATH): $(OBJS)
 	@echo "$(C_BLUE)# ------ Linking Competitive Programming Executable ------ #$(C_RESET)"
 	@echo "$(C_BLUE)Compiler:$(C_RESET) $(CXX)"
@@ -563,7 +565,7 @@ $(TARGET_PATH): $(OBJS)
 		$(MAKE) process-timing-reports; \
 	fi
 
-# Enhanced compilation rules with timing support
+# Enhanced compilation rules with timing support.
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(DIR_SENTINEL)
 	@echo "$(C_CYAN)Compiling C++:$(C_RESET) $< -> $@"
 	@if [ "$(USE_PCH_FALLBACK)" = "yes" ]; then \
@@ -619,7 +621,7 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cxx $(DIR_SENTINEL)
 	@echo "$(CXXFLAGS)" | tr ' ' '\n' | sed 's/^/    /'
 	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@
 
-# Include dependency files
+# Include dependency files.
 -include $(DEPS)
 
 # =========================================================================== #
@@ -627,13 +629,13 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cxx $(DIR_SENTINEL)
 # =========================================================================== #
 .PHONY: timing timing-gcc timing-clang timing-compare process-timing-reports clean-timing
 
-# Build with timing enabled
+# Build with timing enabled.
 timing:
 	@echo "$(C_MAGENTA)Building with compilation timing enabled...$(C_RESET)"
 	@$(MAKE) clean
 	@$(MAKE) ENABLE_TIMING=yes all
 
-# Force build with GCC and timing
+# Force build with GCC and timing.
 timing-gcc:
 	@echo "$(C_MAGENTA)Building with GCC and timing enabled...$(C_RESET)"
 	@if [ -z "$(GCC_BINARY)" ]; then \
@@ -646,7 +648,7 @@ timing-gcc:
 	@$(MAKE) FORCE_COMPILER=gcc ENABLE_TIMING=yes TIMING_FORMAT=text all
 	@echo "$(C_GREEN)GCC timing report saved to $(TIMING_DIR)/gcc/$(C_RESET)"
 
-# Force build with Clang and timing
+# Force build with Clang and timing.
 timing-clang:
 	@echo "$(C_MAGENTA)Building with Clang and timing enabled...$(C_RESET)"
 	@$(MKDIR_P) $(TIMING_DIR)/clang
@@ -655,7 +657,7 @@ timing-clang:
 	@$(MAKE) FORCE_COMPILER=clang ENABLE_TIMING=yes TIMING_FORMAT=both all
 	@echo "$(C_GREEN)Clang timing report saved to $(TIMING_DIR)/clang/$(C_RESET)"
 
-# Compare timing between GCC and Clang
+# Compare timing between GCC and Clang.
 timing-compare: clean-timing
 	@echo "$(C_BOLD)$(C_MAGENTA)/===-------------- Compiler Performance Comparison ---------------===/$(C_RESET)"
 	@$(MKDIR_P) $(TIMING_DIR)
@@ -702,7 +704,7 @@ timing-compare: clean-timing
 		echo "$(C_YELLOW)Open in chrome://tracing or similar tool$(C_RESET)"; \
 	fi
 
-# Process timing reports after compilation
+# Process timing reports after compilation.
 process-timing-reports:
 	@if [ "$(ENABLE_TIMING)" = "yes" ]; then \
 		$(MKDIR_P) $(TIMING_DIR)/$(EFFECTIVE_COMPILER); \
@@ -717,7 +719,7 @@ process-timing-reports:
 		fi; \
 	fi
 
-# Clean timing reports
+# Clean timing reports.
 clean-timing:
 	@echo "$(C_YELLOW)Cleaning timing reports...$(C_RESET)"
 	-$(RMDIR_CMD) $(TIMING_DIR)
@@ -733,7 +735,7 @@ clean-timing:
 contest: clean
 	@$(MAKE) BUILD_TYPE=release all
 
-# Enhanced run target
+# Enhanced run target.
 INPUT_FILE ?= $(INPUT_DIR)/$(TARGET_NAME).in
 OUTPUT_FILE ?= $(OUTPUT_DIR)/$(TARGET_NAME).out
 ARGS ?=
@@ -883,7 +885,7 @@ compile_commands:
 	@echo "$(C_CYAN)Generating compile_commands.json for IDE support...$(C_RESET)"
 	@compiledb -n make clean all BUILD_TYPE=$(BUILD_TYPE)
 
-# Enhanced debug-info target
+# Enhanced debug-info target.
 debug-info:
 	@echo "$(C_BOLD)/====------------ Competitive Programming Debug Info ------------====/$(C_RESET)"
 	@echo "$(C_CYAN)Build Configuration:$(C_RESET)"
