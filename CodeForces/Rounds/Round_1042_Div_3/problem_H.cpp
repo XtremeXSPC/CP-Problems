@@ -224,15 +224,19 @@ private:
     vector<int> value_histogram;
   } spec;
 
-  // Core components.
+  // Core components
   ValueCompressor                 compressor;
   unique_ptr<CoprimalityAnalyzer> analyzer;
 
   // Performance optimization caches
   vector<int>         sequence_to_compressed_id; // Direct O(1) access to compressed IDs.
   vector<vector<int>> cached_squarefree_factors; // Pre-computed squarefree factors.
+  vector<int>         cached_coprime_degrees;    // Pre-computed coprime degrees per unique value.
+  vector<int>         promising_indices;         // Indices with degree >= 1 for faster search.
+  vector<int>         cached_original_values;    // Original values per compressed ID.
+  vector<vector<int>> cached_occurrences;        // Occurrence indices per compressed ID.
 
-  // Solution type
+  // Solution type.
   using Quadruple     = array<int, 4>;
   using MaybeSolution = optional<Quadruple>;
 
@@ -272,16 +276,14 @@ private:
 
   // Optimized coprime search with cached access.
   auto filtered_coprime_search(int excluded_first, int excluded_second) -> pair<int, int> {
-    for (int idx = 1; idx <= spec.element_count; ++idx) {
+    // Iterate only over promising indices instead of all elements.
+    for (int idx : promising_indices) {
       if (idx == excluded_first || idx == excluded_second)
         continue;
 
-      // Direct cache access instead of map lookup.
       int compressed_id = sequence_to_compressed_id[idx];
-      if (compressed_id == -1)
-        continue;
 
-      // Use cached factors directly
+      // Recompute partners after removal (necessary due to dynamic graph changes).
       int potential_partners = analyzer->count_coprimes(cached_squarefree_factors[compressed_id]);
 
       if (spec.sequence[idx] == 1)
@@ -320,34 +322,55 @@ public:
     // Build performance caches.
     sequence_to_compressed_id.assign(spec.element_count + 1, -1);
     cached_squarefree_factors.resize(compressor.unique_count());
+    cached_coprime_degrees.resize(compressor.unique_count());
+    cached_original_values.resize(compressor.unique_count());
+    cached_occurrences.resize(compressor.unique_count());
 
-    // Populate compressed ID cache for O(1) access.
+    // Populate compressed ID cache for O(1) access
     for (int i = 1; i <= spec.element_count; ++i) {
       if (auto id = compressor.get_compressed_id(spec.sequence[i]); id.has_value()) {
         sequence_to_compressed_id[i] = static_cast<int>(*id);
       }
     }
 
-    // Pre-compute all squarefree factors.
+    // Pre-compute all attributes for each unique value.
     for (size_t id = 0; id < compressor.unique_count(); ++id) {
       const auto& compressed        = compressor.get_compressed_values()[id];
       cached_squarefree_factors[id] = compressed.squarefree_factors;
+      cached_original_values[id]    = compressed.original;
+      cached_occurrences[id]        = compressed.occurrence_indices;
+
+      // Pre-compute coprime degree for this unique value.
+      int degree = analyzer->count_coprimes(cached_squarefree_factors[id]);
+      if (compressed.original == 1) {
+        degree--;
+      }
+      cached_coprime_degrees[id] = degree;
+    }
+
+    // Build list of promising indices for faster search.
+    promising_indices.reserve(spec.element_count);
+    for (int i = 1; i <= spec.element_count; ++i) {
+      int compressed_id = sequence_to_compressed_id[i];
+      if (compressed_id != -1 && cached_coprime_degrees[compressed_id] >= 1) {
+        promising_indices.push_back(i);
+      }
     }
   }
 
   void solve() {
     // Phase 1: Unit value optimization.
     if (auto unit_id = compressor.get_compressed_id(1); unit_id.has_value()) {
-      const auto& unit_data = compressor.get_compressed_values()[*unit_id];
+      const auto& unit_occurrences = cached_occurrences[*unit_id];
 
-      if (auto result = UnitValueStrategy::execute(unit_data.occurrence_indices, spec.sequence); result.has_value()) {
+      if (auto result = UnitValueStrategy::execute(unit_occurrences, spec.sequence); result.has_value()) {
         output_solution(*result);
         return;
       }
 
       // Single unit special case.
-      if (unit_data.occurrence_indices.size() == 1) {
-        if (auto solution = handle_single_unit_case(unit_data.occurrence_indices[0]); solution.has_value()) {
+      if (unit_occurrences.size() == 1) {
+        if (auto solution = handle_single_unit_case(unit_occurrences[0]); solution.has_value()) {
           output_solution(*solution);
           return;
         }
@@ -357,20 +380,21 @@ public:
     }
 
     // Phase 2: Duplicate value exploitation.
-    for (const auto& compressed : compressor.get_compressed_values()) {
-      if (compressed.occurrence_indices.size() >= 2 && compressed.original != 1) {
-        int coprime_candidates = analyzer->count_coprimes(compressed.squarefree_factors);
+    for (size_t id = 0; id < compressor.unique_count(); ++id) {
+      if (cached_occurrences[id].size() >= 2 && cached_original_values[id] != 1) {
+        // Use pre-computed degree
+        int coprime_candidates = cached_coprime_degrees[id];
 
         if (coprime_candidates >= 2) {
           vector<int> partners;
           for (int i = 1; i <= spec.element_count && partners.size() < 2; ++i) {
-            if (gcd(compressed.original, spec.sequence[i]) == 1) {
+            if (gcd(cached_original_values[id], spec.sequence[i]) == 1) {
               partners.push_back(i);
             }
           }
 
           if (partners.size() >= 2) {
-            output_solution({compressed.occurrence_indices[0], partners[0], compressed.occurrence_indices[1], partners[1]});
+            output_solution({cached_occurrences[id][0], partners[0], cached_occurrences[id][1], partners[1]});
             return;
           }
         }
@@ -389,22 +413,23 @@ public:
 private:
   // Handle the special case with a single unit value present.
   auto handle_single_unit_case(int unit_index) -> MaybeSolution {
-    // Find any coprime pair among non-unit values.
-    for (const auto& compressed : compressor.get_compressed_values()) {
-      if (compressed.original == 1)
+    // Find any coprime pair among non-unit values
+    for (size_t id = 0; id < compressor.unique_count(); ++id) {
+      if (cached_original_values[id] == 1)
         continue;
 
-      int non_unit_coprimes = analyzer->count_coprimes(compressed.squarefree_factors) - 1;
+      // Use pre-computed degree and adjust for non-unit context.
+      int non_unit_coprimes = cached_coprime_degrees[id] - 1; // -1 because we exclude the unit.
       if (non_unit_coprimes < 1)
         continue;
 
-      int first_index = compressed.occurrence_indices[0];
+      int first_index = cached_occurrences[id][0];
 
       for (int partner = 1; partner <= spec.element_count; ++partner) {
         if (partner == unit_index || partner == first_index)
           continue;
 
-        if (gcd(compressed.original, spec.sequence[partner]) == 1) {
+        if (gcd(cached_original_values[id], spec.sequence[partner]) == 1) {
           for (int fourth = 1; fourth <= spec.element_count; ++fourth) {
             if (fourth != unit_index && fourth != first_index && fourth != partner) {
               return Quadruple{first_index, partner, unit_index, fourth};
@@ -418,7 +443,7 @@ private:
 
   // Execute optimized graph search based on coprimality degrees.
   auto execute_graph_search() -> MaybeSolution {
-    // Compute coprimality degrees using cached data.
+    // Build vertex list using pre-computed degrees.
     vector<tuple<int, int, int>> vertex_properties; // {degree, value_id, index}
 
     for (int i = 1; i <= spec.element_count; ++i) {
@@ -426,10 +451,8 @@ private:
       if (compressed_id == -1)
         continue;
 
-      // Direct cache access for performance.
-      int degree = analyzer->count_coprimes(cached_squarefree_factors[compressed_id]);
-      if (spec.sequence[i] == 1)
-        degree--;
+      // Use pre-computed degree for O(1) access.
+      int degree = cached_coprime_degrees[compressed_id];
 
       if (degree >= 1) {
         vertex_properties.emplace_back(degree, compressed_id, i);
