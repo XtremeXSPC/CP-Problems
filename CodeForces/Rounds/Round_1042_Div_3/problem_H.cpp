@@ -23,11 +23,19 @@
   #pragma clang optimize on
 #endif
 
-// Sanitaze macro:
-#ifdef USE_CLANG_SANITIZE
+// Smart header selection based on compiler and flags:
+#if defined(USE_PCH_FALLBACK) || defined(USE_CLANG_SANITIZE)
+  // Explicitly requested PCH fallback
   #include "PCH.h"
-#else
+#elif defined(__clang__)
+  // Using Clang, need PCH fallback
+  #include "PCH.h"
+#elif __has_include(<bits/stdc++.h>)
+  // GCC with bits/stdc++.h available
   #include <bits/stdc++.h>
+#else
+  // Final fallback
+  #include "PCH.h"
 #endif
 
 // Debug macro:
@@ -82,12 +90,12 @@ namespace MathUtilities {
     vector<int32_t>           prime_numbers;
 
     SieveData() {
-      // Initialize smallest prime factor array
+      // Initialize smallest prime factor array.
       iota(smallest_factor.begin(), smallest_factor.end(), 0);
       fill(mobius_values.begin(), mobius_values.end(), 0);
       mobius_values[1] = 1;
 
-      prime_numbers.reserve(80000);
+      prime_numbers.reserve(80000); // Approximate prime count.
 
       for (int32_t current = 2; current < MAX_VALUE; ++current) {
         if (smallest_factor[current] == current) {
@@ -106,6 +114,7 @@ namespace MathUtilities {
       }
     }
 
+    // Extract unique prime factors of a number.
     vector<int32_t> extract_prime_factors(int32_t number) const {
       vector<int32_t> factors;
       while (number > 1) {
@@ -118,6 +127,7 @@ namespace MathUtilities {
       return factors;
     }
 
+    // Generate all square-free divisors from prime factors.
     vector<int32_t> generate_squarefree_divisors(const vector<int32_t>& primes) const {
       vector<int32_t> divisors{1};
       for (const auto& prime : primes) {
@@ -131,6 +141,7 @@ namespace MathUtilities {
     }
   };
 
+  // Singleton access to the sieve data.
   inline const SieveData& get_sieve() {
     static const SieveData sieve_instance;
     return sieve_instance;
@@ -141,10 +152,10 @@ namespace MathUtilities {
 class CoprimeQuadrupleSearcher {
 private:
   struct ElementInfo {
-    int32_t         value;
-    vector<int32_t> positions;
-    vector<int32_t> prime_factors;
-    vector<int32_t> squarefree_divisors;
+    int32_t         value;               // The actual value of the element.
+    vector<int32_t> positions;           // 1-based indices where this value occurs.
+    vector<int32_t> prime_factors;       // Unique prime factors of the value.
+    vector<int32_t> squarefree_divisors; // All square-free divisors of the value.
   };
 
   int32_t                        array_size;
@@ -155,6 +166,7 @@ private:
   unordered_map<int32_t, size_t> value_to_index;
   vector<ElementInfo>            unique_elements;
 
+  // Read input data and initialize frequency counts.
   void read_input_data() {
     cin >> array_size >> max_value;
     elements.resize(array_size + 1);
