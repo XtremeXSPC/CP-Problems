@@ -1,10 +1,10 @@
 //===----------------------------------------------------------------------===//
 /**
  * @file: problem_F1.cpp
- * @brief Codeforces Round #XXX (Div. X) - Problem Y
+ * @brief Codeforces Round 1046 (Div. 2) - Problem F1
  * @author: Costantino Lombardi
  *
- * @status: In Progress
+ * @status: PASSED (After contest)
  */
 //===----------------------------------------------------------------------===//
 /* Included library */
@@ -72,66 +72,107 @@ using namespace std;
 //===----------------------------------------------------------------------===//
 /* Data Types and Function Definitions */
 
-/**
- * Ask the judge with a single-word article of length x.
- * Protocol: print "? 1 x\n", flush, then read the integer reply.
- * Returns:
- *   1  -> x <= W  (fits on one line)
- *   0  -> x >  W  (editor cannot display the article)
- *  -1  -> invalid / closed stream: must exit immediately.
- */
-static int ask_one(int x) {
-  cout << "? 1 " << x << '\n' << flush;
-  int r;
-  if (!(cin >> r)) {
-    // Stream closed unexpectedly; exit as per statement.
-    std::exit(0);
-  }
-  if (r == -1) {
-    std::exit(0);
-  }
-  return r;
-}
-
-//===----------------------------------------------------------------------===//
-/* Core solving routine (one test case) */
-
-/**
- * Strategy:
- *  - Binary search W in [1, 100000] using only single-word queries.
- *  - Monotonic predicate: P(x) := (x <= W) <=> ask_one(x) == 1.
- *  - The interactor may be adaptive but must remain consistent; the
- *    final 'lo' we obtain is a valid W satisfying all answers so far.
- *
- * Complexity:
- *  - At most ceil(log2(1e5)) ≈ 17 queries per test case.
- */
-void solve() {
-  int lo = 1, hi = 100000;
-  while (lo < hi) {
-    int mid = lo + (hi - lo + 1) / 2;
-    int r   = ask_one(mid);
-    if (r == 1) {
-      lo = mid; // mid <= W
-    } else {
-      hi = mid - 1; // mid  > W
+// Class to interact with the editor oracle.
+class EditorOracle {
+public:
+  static constexpr int ARTICLE_SIZE = 100'000;
+  // Query the editor with an article.
+  [[nodiscard]] static int submitArticle(const vi& article) {
+    cout << "? " << article.size();
+    for (const auto& word : article) {
+      cout << ' ' << word;
     }
+    cout << '\n';
+    cout.flush();
+
+    int lines;
+    cin >> lines;
+
+    if (!cin || lines == -1) {
+      exit(0);
+    }
+
+    return lines;
   }
-  // Report the discovered W
-  cout << "! " << lo << '\n' << flush;
+
+  // Report the discovered width.
+  static void reportWidth(int width) {
+    cout << "! " << width << '\n';
+    cout.flush();
+  }
+
+  // Find candidate widths based on quotient.
+  [[nodiscard]] static pii findWidthRange(int quotient) {
+    int minWidth = ARTICLE_SIZE;
+    int maxWidth = 1;
+
+    for (int w = 1; w <= ARTICLE_SIZE; ++w) {
+      if ((ARTICLE_SIZE + w - 1) / w == quotient) {
+        minWidth = min(minWidth, w);
+        maxWidth = max(maxWidth, w);
+      }
+    }
+
+    return {minWidth, maxWidth};
+  }
+
+  // Build distinguishing query pattern.
+  [[nodiscard]] static vi buildQuery(int left, int right) {
+    vi query;
+    query.reserve(2 * (right - left + 1));
+
+    // Create pairs: (left, 1), (left, 2), ..., (left, right-left+1).
+    for (int offset = 1; offset <= right - left + 1; ++offset) {
+      query.push_back(left);
+      query.push_back(offset);
+    }
+
+    return query;
+  }
+
+  // Calculate width from observed lines.
+  [[nodiscard]] static int deduceWidth(int observedLines, int querySize, int left) {
+    // Formula: width = querySize - observedLines + left.
+    return querySize - observedLines + left;
+  }
+};
+
+// Function to solve a single test case.
+void solve() {
+  // First query: uniform article of single-width words.
+  const vi  uniformArticle(EditorOracle::ARTICLE_SIZE, 1);
+  const int quotient = EditorOracle::submitArticle(uniformArticle);
+
+  // Determine possible width range.
+  auto [leftBound, rightBound] = EditorOracle::findWidthRange(quotient);
+
+  // If unique width found, report it.
+  if (leftBound == rightBound) {
+    EditorOracle::reportWidth(leftBound);
+    return;
+  }
+
+  // Second query: distinguishing pattern.
+  const vi  distinguishingQuery = EditorOracle::buildQuery(leftBound, rightBound);
+  const int observedLines       = EditorOracle::submitArticle(distinguishingQuery);
+
+  // Deduce the exact width.
+  const int width = EditorOracle::deduceWidth(observedLines, distinguishingQuery.size(), leftBound);
+  EditorOracle::reportWidth(width);
 }
 
 //===----------------------------------------------------------------------===//
 /* Main function */
 
-int main() {
+auto main() -> int {
   // Fast I/O
-  ios_base::sync_with_stdio(false);
-  cin.tie(nullptr);
+  // ios_base::sync_with_stdio(false);
+  // cin.tie(nullptr);
 
   int t = 1;
   cin >> t;
-  while (t--) {
+
+  for ([[maybe_unused]] auto _ : views::iota(0, t)) {
     solve();
   }
 

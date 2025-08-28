@@ -745,27 +745,72 @@ OUTPUT_FILE ?= $(OUTPUT_DIR)/$(TARGET_NAME).out
 ARGS ?=
 
 run: all
-	@echo "$(C_BLUE)Running $(TARGET_PATH)...$(C_RESET)"
-	@if [ "$(BUILD_TYPE)" = "sanitize" ]; then \
-		echo "$(C_YELLOW)Running with sanitizers - expect slower performance$(C_RESET)"; \
-	fi
+	@echo ""
+	@echo "$(C_BLUE)/===---------- RUNNING: $(TARGET_NAME) ----------===/$(C_RESET)"
 	@if [ ! -f "$(INPUT_FILE)" ]; then \
 		echo "$(C_YELLOW)Input file '$(INPUT_FILE)' not found, running without redirection.$(C_RESET)"; \
+		START_TIME=$$(date +%s%N 2>/dev/null || python3 -c 'import time; print(int(time.time()*1000000000))' 2>/dev/null || date +%s000000000); \
 		./$(TARGET_PATH) $(ARGS); \
+		EXIT_CODE=$$?; \
+		END_TIME=$$(date +%s%N 2>/dev/null || python3 -c 'import time; print(int(time.time()*1000000000))' 2>/dev/null || date +%s000000000); \
+		echo "$(C_BLUE)/===------------- FINISHED --------------===/$(C_RESET)"; \
+		if command -v bc >/dev/null 2>&1; then \
+			ELAPSED_NS=$$(echo "$$END_TIME - $$START_TIME" | bc); \
+			ELAPSED_MS=$$(echo "scale=2; $$ELAPSED_NS / 1000000" | bc); \
+			echo "$(C_GREEN)Execution time: $${ELAPSED_MS}ms$(C_RESET)"; \
+		elif command -v python3 >/dev/null 2>&1; then \
+			ELAPSED_MS=$$(python3 -c "print(f'{($$END_TIME - $$START_TIME) / 1000000:.2f}')"); \
+			echo "$(C_GREEN)Execution time: $${ELAPSED_MS}ms$(C_RESET)"; \
+		else \
+			echo "$(C_GREEN)Execution completed$(C_RESET)"; \
+		fi; \
+		exit $$EXIT_CODE; \
 	else \
-		echo "$(C_CYAN)Input from: $(INPUT_FILE)$(C_RESET)"; \
+		echo "$(C_CYAN)(input from $(INPUT_FILE))$(C_RESET)"; \
+		START_TIME=$$(date +%s%N 2>/dev/null || python3 -c 'import time; print(int(time.time()*1000000000))' 2>/dev/null || date +%s000000000); \
 		./$(TARGET_PATH) $(ARGS) < $(INPUT_FILE); \
+		EXIT_CODE=$$?; \
+		END_TIME=$$(date +%s%N 2>/dev/null || python3 -c 'import time; print(int(time.time()*1000000000))' 2>/dev/null || date +%s000000000); \
+		echo "$(C_BLUE)/===------------- FINISHED --------------===/$(C_RESET)"; \
+		if command -v bc >/dev/null 2>&1; then \
+			ELAPSED_NS=$$(echo "$$END_TIME - $$START_TIME" | bc); \
+			ELAPSED_MS=$$(echo "scale=2; $$ELAPSED_NS / 1000000" | bc); \
+			echo "$(C_GREEN)Execution time: $${ELAPSED_MS}ms$(C_RESET)"; \
+		elif command -v python3 >/dev/null 2>&1; then \
+			ELAPSED_MS=$$(python3 -c "print(f'{($$END_TIME - $$START_TIME) / 1000000:.2f}')"); \
+			echo "$(C_GREEN)Execution time: $${ELAPSED_MS}ms$(C_RESET)"; \
+		else \
+			echo "$(C_GREEN)Execution completed$(C_RESET)"; \
+		fi; \
+		exit $$EXIT_CODE; \
 	fi
 
 test: all
-	@echo "$(C_BLUE)Running $(TARGET_PATH) with I/O redirection...$(C_RESET)"
+	@echo ""
+	@echo "$(C_BLUE)/===------ TESTING: $(TARGET_NAME) ------===/$(C_RESET)"
 	@if [ ! -f "$(INPUT_FILE)" ]; then \
 		echo "$(C_RED)Error: Input file '$(INPUT_FILE)' not found for testing.$(C_RESET)"; \
 		exit 1; \
 	fi
 	@$(MKDIR_P) $(OUTPUT_DIR)
-	./$(TARGET_PATH) $(ARGS) < $(INPUT_FILE) > $(OUTPUT_FILE)
-	@echo "$(C_GREEN)Output written to $(OUTPUT_FILE)$(C_RESET)"
+	@echo "$(C_CYAN)(input from $(INPUT_FILE) -> output to $(OUTPUT_FILE))$(C_RESET)"
+	@START_TIME=$$(date +%s%N 2>/dev/null || python3 -c 'import time; print(int(time.time()*1000000000))' 2>/dev/null || date +%s000000000)
+	@./$(TARGET_PATH) $(ARGS) < $(INPUT_FILE) > $(OUTPUT_FILE)
+	@EXIT_CODE=$$?
+	@END_TIME=$$(date +%s%N 2>/dev/null || python3 -c 'import time; print(int(time.time()*1000000000))' 2>/dev/null || date +%s000000000)
+	@echo "$(C_BLUE)/===----------- FINISHED -----------===/$(C_RESET)"
+	@if command -v bc >/dev/null 2>&1; then \
+		ELAPSED_NS=$$(echo "$$END_TIME - $$START_TIME" | bc); \
+		ELAPSED_MS=$$(echo "scale=2; $$ELAPSED_NS / 1000000" | bc); \
+		echo "$(C_GREEN)Execution time: $${ELAPSED_MS}ms$(C_RESET)"; \
+	elif command -v python3 >/dev/null 2>&1; then \
+		ELAPSED_MS=$$(python3 -c "print(f'{($$END_TIME - $$START_TIME) / 1000000:.2f}')"); \
+		echo "$(C_GREEN)Execution time: $${ELAPSED_MS}ms$(C_RESET)"; \
+	else \
+		echo "$(C_GREEN)Execution completed$(C_RESET)"; \
+	fi
+	@echo "$(C_CYAN)Output written to $(OUTPUT_FILE)$(C_RESET)"
+	@exit $$EXIT_CODE
 
 # =========================================================================== #
 # ----------------- Platform-Aware IDE Configuration System ----------------- #
