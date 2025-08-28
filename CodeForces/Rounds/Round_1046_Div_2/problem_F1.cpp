@@ -1,10 +1,10 @@
 //===----------------------------------------------------------------------===//
 /**
- * @file: problem_A.cpp
- * @brief Codeforces Round 1046 (Div. 2) - Problem A
+ * @file: problem_F1.cpp
+ * @brief Codeforces Round #XXX (Div. X) - Problem Y
  * @author: Costantino Lombardi
  *
- * @status: PASSED
+ * @status: In Progress
  */
 //===----------------------------------------------------------------------===//
 /* Included library */
@@ -72,27 +72,53 @@ using namespace std;
 //===----------------------------------------------------------------------===//
 /* Data Types and Function Definitions */
 
-// Function to solve a single test case.
-void solve() {
-  ll a, b, c, d;
-  cin >> a >> b >> c >> d;
-
-  // Calculate goals scored specifically in the second half.
-  ll second_half_a_goals = c - a;
-  ll second_half_b_goals = d - b;
-
-  // A lambda to check if a single half is valid.
-  auto isValidHalf = [](ll score1, ll score2) -> bool {
-    auto [min_score, max_score] = std::minmax(score1, score2);
-    return max_score <= 2 * (min_score + 1);
-  };
-
-  // The dream is possible if and only if both halves are valid.
-  if (isValidHalf(a, b) && isValidHalf(second_half_a_goals, second_half_b_goals)) {
-    cout << "YES\n";
-  } else {
-    cout << "NO\n";
+/**
+ * Ask the judge with a single-word article of length x.
+ * Protocol: print "? 1 x\n", flush, then read the integer reply.
+ * Returns:
+ *   1  -> x <= W  (fits on one line)
+ *   0  -> x >  W  (editor cannot display the article)
+ *  -1  -> invalid / closed stream: must exit immediately.
+ */
+static int ask_one(int x) {
+  cout << "? 1 " << x << '\n' << flush;
+  int r;
+  if (!(cin >> r)) {
+    // Stream closed unexpectedly; exit as per statement.
+    std::exit(0);
   }
+  if (r == -1) {
+    std::exit(0);
+  }
+  return r;
+}
+
+//===----------------------------------------------------------------------===//
+/* Core solving routine (one test case) */
+
+/**
+ * Strategy:
+ *  - Binary search W in [1, 100000] using only single-word queries.
+ *  - Monotonic predicate: P(x) := (x <= W) <=> ask_one(x) == 1.
+ *  - The interactor may be adaptive but must remain consistent; the
+ *    final 'lo' we obtain is a valid W satisfying all answers so far.
+ *
+ * Complexity:
+ *  - At most ceil(log2(1e5)) ≈ 17 queries per test case.
+ */
+void solve() {
+  int lo = 1, hi = 100000;
+  while (lo < hi) {
+    int mid = lo + (hi - lo + 1) / 2;
+    int r   = ask_one(mid);
+    if (r == 1) {
+      lo = mid; // mid <= W
+    } else {
+      hi = mid - 1; // mid  > W
+    }
+  }
+  // Report the discovered W
+  cout << "! " << lo << '\n' << flush;
 }
 
 //===----------------------------------------------------------------------===//
