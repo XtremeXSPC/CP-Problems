@@ -1,0 +1,16 @@
+build/
+bin/
+lib/
+algorithms/
+not_passed/
+!.vscode/
+.idea/
+.cache/*
+.ide-configs/
+.statistics/
+compile_commands.json
+.clangd
+*.out
+*.exe
+*.dSYM/
+*.DS_Store

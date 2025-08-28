@@ -17,7 +17,7 @@
   #pragma GCC optimize("Ofast,unroll-loops,fast-math,O3")
   // Apple Silicon optimizations:
   #ifdef __aarch64__
-    #pragma GCC target("+simd")
+    #pragma GCC target("+simd,neon")
   #endif
 #endif
 
