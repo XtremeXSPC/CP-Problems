@@ -378,7 +378,7 @@ auto main() -> int {
   cin.tie(nullptr);
 
   int t = 1;
-  std::cin >> t;
+  cin >> t;
 
   for ([[maybe_unused]] auto _ : views::iota(0, t)) {
     solve();

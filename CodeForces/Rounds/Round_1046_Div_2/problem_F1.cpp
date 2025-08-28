@@ -166,8 +166,8 @@ void solve() {
 
 auto main() -> int {
   // Fast I/O
-  // ios_base::sync_with_stdio(false);
-  // cin.tie(nullptr);
+  ios_base::sync_with_stdio(false);
+  cin.tie(nullptr);
 
   int t = 1;
   cin >> t;
