@@ -14,10 +14,10 @@
 /* Included library */
 
 // clang-format off
-// Compiler optimizations:
 #if defined(__GNUC__) && !defined(__clang__)
   #pragma GCC optimize("Ofast,unroll-loops,fast-math,O3")
   // Apple Silicon optimizations:
+  
   #ifdef __aarch64__
     #pragma GCC target("+simd")
   #endif
@@ -25,6 +25,14 @@
 
 #ifdef __clang__
   #pragma clang optimize on
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wunused-result"
+    // Target-specific optimizations for Clang
+    #ifdef __aarch64__
+      #pragma clang attribute push (__attribute__((target("neon"))), apply_to=function)
+    #elif defined(__x86_64__)
+      #pragma clang attribute push (__attribute__((target("sse4.2,popcnt"))), apply_to=function)
+    #endif
 #endif
 
 // Smart header selection based on compiler and flags:
@@ -572,5 +580,18 @@ int main() {
 
   return 0;
 }
+
+//===----------------------------------------------------------------------===//
+
+// clang-format off
+// Restore original compiler settings.
+#ifdef __clang__
+    #ifdef __aarch64__
+      #pragma clang attribute pop
+    #elif defined(__x86_64__)
+      #pragma clang attribute pop
+    #endif
+    #pragma clang diagnostic pop
+#endif
 
 //===----------------------------------------------------------------------===//

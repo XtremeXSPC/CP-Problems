@@ -372,14 +372,15 @@ void solve() {
 //===----------------------------------------------------------------------===//
 /* Main function */
 
-int main() {
+auto main() -> int {
   // Fast I/O
   ios_base::sync_with_stdio(false);
   cin.tie(nullptr);
 
   int t = 1;
-  cin >> t;
-  while (t--) {
+  std::cin >> t;
+
+  for ([[maybe_unused]] auto _ : views::iota(0, t)) {
     solve();
   }
 
