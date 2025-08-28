@@ -237,8 +237,6 @@ private:
   vector<int>         cached_original_values;    // Original values per compressed ID.
   vector<vector<int>> cached_occurrences;        // Occurrence indices per compressed ID.
 
-  // vector<int>         promising_indices;         // Indices with degree >= 1 for faster search.
-
   // Solution type.
   using Quadruple     = array<int, 4>;
   using MaybeSolution = optional<Quadruple>;
@@ -279,8 +277,8 @@ private:
 
   // Optimized coprime search with cached access.
   auto filtered_coprime_search(int excluded_first, int excluded_second) -> pair<int, int> {
-    // MUST iterate over ALL elements, not just promising_indices
-    // because the graph changes dynamically after removals.
+    // MUST iterate over "ALL" elements, not just promising_indices
+    // because the graph changes dynamically after removals
     for (int idx = 1; idx <= spec.element_count; ++idx) {
       if (idx == excluded_first || idx == excluded_second)
         continue;
@@ -289,7 +287,7 @@ private:
       if (compressed_id == -1)
         continue;
 
-      // Recompute coprimes AFTER dynamic removal (necessary due to dynamic graph changes).
+      // Recompute coprimes "AFTER" dynamic removal (necessary due to dynamic graph changes).
       int potential_partners = analyzer->count_coprimes(cached_squarefree_factors[compressed_id]);
 
       if (spec.sequence[idx] == 1)
@@ -353,17 +351,6 @@ public:
       }
       cached_coprime_degrees[id] = degree;
     }
-
-    /*
-    // Build list of promising indices for faster search.
-    promising_indices.reserve(spec.element_count);
-    for (int i = 1; i <= spec.element_count; ++i) {
-      int compressed_id = sequence_to_compressed_id[i];
-      if (compressed_id != -1 && cached_coprime_degrees[compressed_id] >= 1) {
-        promising_indices.push_back(i);
-      }
-    }
-    */
   }
 
   void solve() {
