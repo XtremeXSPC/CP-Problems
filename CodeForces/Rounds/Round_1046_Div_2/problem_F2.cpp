@@ -1,10 +1,10 @@
 //===----------------------------------------------------------------------===//
 /**
- * @file: problem_A.cpp
- * @brief Codeforces Round 1046 (Div. 2) - Problem A
+ * @file: problem_F2.cpp
+ * @brief Codeforces Round #XXX (Div. X) - Problem Y
  * @author: Costantino Lombardi
  *
- * @status: PASSED
+ * @status: In Progress
  */
 //===----------------------------------------------------------------------===//
 /* Included library */
@@ -72,27 +72,9 @@ using namespace std;
 //===----------------------------------------------------------------------===//
 /* Data Types and Function Definitions */
 
-// Function to solve a single test case.
+// Function to solve a single test case
 void solve() {
-  ll a, b, c, d;
-  cin >> a >> b >> c >> d;
-
-  // Calculate goals scored specifically in the second half.
-  ll second_half_a_goals = c - a;
-  ll second_half_b_goals = d - b;
-
-  // A lambda to check if a single half is valid.
-  auto isValidHalf = [](ll score1, ll score2) -> bool {
-    auto [min_score, max_score] = std::minmax(score1, score2);
-    return max_score <= 2 * (min_score + 1);
-  };
-
-  // The dream is possible if and only if both halves are valid.
-  if (isValidHalf(a, b) && isValidHalf(second_half_a_goals, second_half_b_goals)) {
-    cout << "YES\n";
-  } else {
-    cout << "NO\n";
-  }
+  // Your solution here
 }
 
 //===----------------------------------------------------------------------===//

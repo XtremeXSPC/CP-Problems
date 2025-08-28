@@ -1,7 +1,7 @@
 //===----------------------------------------------------------------------===//
 /**
- * @file: problem_A.cpp
- * @brief Codeforces Round 1046 (Div. 2) - Problem A
+ * @file: problem_D.cpp
+ * @brief Codeforces Round 1046 (Div. 2) - Problem D
  * @author: Costantino Lombardi
  *
  * @status: PASSED
@@ -72,27 +72,76 @@ using namespace std;
 //===----------------------------------------------------------------------===//
 /* Data Types and Function Definitions */
 
+// Structure to represent a beacon point.
+struct Beacon {
+  ll x_coord, y_coord;
+
+  [[nodiscard]] ll diagonal_sum() const noexcept { return x_coord + y_coord; }
+
+  [[nodiscard]] ll anti_diagonal_diff() const noexcept { return x_coord - y_coord; }
+};
+
+// Function to perform a movement query and receive Manhattan distance.
+ll perform_movement(char direction, ll distance) {
+  cout << "? " << direction << ' ' << distance << '\n';
+  cout.flush();
+
+  ll manhattan_dist;
+  if (!(cin >> manhattan_dist) || manhattan_dist == -1) {
+    exit(0);
+  }
+  return manhattan_dist;
+}
+
+// Function to announce the discovered coordinates.
+void announce_position(ll x_pos, ll y_pos) {
+  cout << "! " << x_pos << ' ' << y_pos << '\n';
+  cout.flush();
+}
+
 // Function to solve a single test case.
 void solve() {
-  ll a, b, c, d;
-  cin >> a >> b >> c >> d;
+  int beacon_count;
+  cin >> beacon_count;
 
-  // Calculate goals scored specifically in the second half.
-  ll second_half_a_goals = c - a;
-  ll second_half_b_goals = d - b;
-
-  // A lambda to check if a single half is valid.
-  auto isValidHalf = [](ll score1, ll score2) -> bool {
-    auto [min_score, max_score] = std::minmax(score1, score2);
-    return max_score <= 2 * (min_score + 1);
-  };
-
-  // The dream is possible if and only if both halves are valid.
-  if (isValidHalf(a, b) && isValidHalf(second_half_a_goals, second_half_b_goals)) {
-    cout << "YES\n";
-  } else {
-    cout << "NO\n";
+  vector<Beacon> beacons(beacon_count);
+  for (auto& beacon : beacons) {
+    cin >> beacon.x_coord >> beacon.y_coord;
   }
+
+  // Calculate critical values from beacon positions.
+  auto diagonal_values = beacons | views::transform(&Beacon::diagonal_sum);
+  ll   max_diagonal    = ranges::max(diagonal_values);
+
+  auto anti_diagonal_values = beacons | views::transform(&Beacon::anti_diagonal_diff);
+  ll   max_anti_diagonal    = ranges::max(anti_diagonal_values);
+
+  constexpr ll LARGE_STEP = 1'000'000'000LL;
+
+  // Phase 1: Navigate to extreme northeast position (X + 2L, Y + 2L).
+  perform_movement('R', LARGE_STEP);
+  perform_movement('R', LARGE_STEP);
+  perform_movement('U', LARGE_STEP);
+  ll northeast_distance = perform_movement('U', LARGE_STEP);
+
+  // Phase 2: Navigate to extreme southeast position (X + 2L, Y - 2L).
+  perform_movement('D', LARGE_STEP);
+  perform_movement('D', LARGE_STEP);
+  perform_movement('D', LARGE_STEP);
+  ll southeast_distance = perform_movement('D', LARGE_STEP);
+
+  // Apply the linearization formula for extreme positions:
+  // At northeast: distance ≈ (X + 2L) + (Y + 2L) - max_diagonal
+  // At southeast: distance ≈ (X + 2L) - (Y - 2L) - max_anti_diagonal
+
+  ll coordinate_sum  = northeast_distance - 4LL * LARGE_STEP + max_diagonal;
+  ll coordinate_diff = southeast_distance - 4LL * LARGE_STEP + max_anti_diagonal;
+
+  // Solve the system: X + Y = coordinate_sum, X - Y = coordinate_diff.
+  ll origin_x = (coordinate_sum + coordinate_diff) >> 1;
+  ll origin_y = (coordinate_sum - coordinate_diff) >> 1;
+
+  announce_position(origin_x, origin_y);
 }
 
 //===----------------------------------------------------------------------===//

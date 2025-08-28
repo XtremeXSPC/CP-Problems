@@ -4,7 +4,7 @@
  * @brief Codeforces Round 1046 (Div. 2) - Problem B
  * @author: Costantino Lombardi
  *
- * @status: In Progress
+ * @status: PASSED
  */
 //===----------------------------------------------------------------------===//
 /* Included library */
@@ -15,7 +15,7 @@
   #pragma GCC optimize("Ofast,unroll-loops,fast-math,O3")
   // Apple Silicon optimizations:
   #ifdef __aarch64__
-    #pragma GCC target("+simd,neon")
+    #pragma GCC target("+simd")
   #endif
 #endif
 
@@ -72,9 +72,61 @@ using namespace std;
 //===----------------------------------------------------------------------===//
 /* Data Types and Function Definitions */
 
-// Function to solve a single test case
+// Function to solve a single test case.
 void solve() {
-  // Your solution here
+  int    n;
+  ll     k;
+  string s;
+  cin >> n >> k >> s;
+
+  // Check if there's a contiguous block of k or more '1's.
+  int  consecutive_ones = 0;
+  bool possible         = true;
+  for (char bit : s) {
+    if (bit == '1') {
+      consecutive_ones++;
+    } else {
+      consecutive_ones = 0;
+    }
+    if (consecutive_ones >= k) {
+      possible = false;
+      break;
+    }
+  }
+
+  if (!possible) {
+    cout << "NO\n";
+    return;
+  }
+
+  cout << "YES\n";
+
+  // Assign high values to '0' positions and low values to '1' positions.
+  vi p(n);
+  vi indices(n);
+  iota(indices.begin(), indices.end(), 0);
+
+  // Partition indices: '0's first, then '1's.
+  auto partition_point = partition(indices.begin(), indices.end(), [&](int index) { return s[index] == '0'; });
+
+  // Assign permutation values.
+  int current_value = n;
+
+  for (auto it = indices.begin(); it != partition_point; ++it) {
+    p[*it] = current_value--;
+  }
+  for (auto it = partition_point; it != indices.end(); ++it) {
+    p[*it] = current_value--;
+  }
+
+  // Print the resulting permutation.
+  if (n > 0) {
+    cout << p[0];
+    for (int i = 1; i < n; ++i) {
+      cout << ' ' << p[i];
+    }
+  }
+  cout << '\n';
 }
 
 //===----------------------------------------------------------------------===//

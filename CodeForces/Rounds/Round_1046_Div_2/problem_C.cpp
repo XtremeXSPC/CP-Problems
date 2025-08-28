@@ -4,7 +4,7 @@
  * @brief Codeforces Round 1046 (Div. 2) - Problem C
  * @author: Costantino Lombardi
  *
- * @status: In Progress
+ * @status: PASSED
  */
 //===----------------------------------------------------------------------===//
 /* Included library */
@@ -15,7 +15,7 @@
   #pragma GCC optimize("Ofast,unroll-loops,fast-math,O3")
   // Apple Silicon optimizations:
   #ifdef __aarch64__
-    #pragma GCC target("+simd,neon")
+    #pragma GCC target("+simd")
   #endif
 #endif
 
@@ -72,9 +72,70 @@ using namespace std;
 //===----------------------------------------------------------------------===//
 /* Data Types and Function Definitions */
 
-// Function to solve a single test case
+// Structure to represent a block candidate.
+struct BlockCandidate {
+  int start_idx;
+  int end_idx;
+  int length;
+};
+
+// Function to solve a single test case.
 void solve() {
-  // Your solution here
+  int n;
+  cin >> n;
+  vi  a(n);
+  vvi positions(n + 1);
+  for (int i = 0; i < n; ++i) {
+    cin >> a[i];
+    if (a[i] <= n) {
+      positions[a[i]].push_back(i);
+    }
+  }
+
+  // Find all possible blocks for Weighted Interval Scheduling.
+  vector<BlockCandidate> candidates;
+  for (int val = 1; val <= n; ++val) {
+    if (positions[val].size() < static_cast<size_t>(val)) {
+      continue;
+    }
+    for (size_t i = 0; i <= positions[val].size() - val; ++i) {
+      candidates.push_back({.start_idx = positions[val][i], .end_idx = positions[val][i + val - 1], .length = val});
+    }
+  }
+
+  if (candidates.empty()) {
+    cout << 0 << "\n";
+    return;
+  }
+
+  // Sort candidates by end index.
+  ranges::sort(candidates, {}, &BlockCandidate::end_idx);
+
+  // DP: dp[i] = maximum length using first i+1 candidates.
+  vll dp(candidates.size());
+  dp[0] = candidates[0].length;
+
+  for (size_t i = 1; i < candidates.size(); ++i) {
+    const auto& current = candidates[i];
+
+    // Include current block + best non-overlapping previous.
+    ll length_if_included = current.length;
+
+    // Find last candidate ending before current starts.
+    auto it = ranges::upper_bound(candidates.begin(), candidates.begin() + i, current.start_idx - 1, {}, &BlockCandidate::end_idx);
+
+    if (it != candidates.begin()) {
+      int prev_idx = distance(candidates.begin(), prev(it));
+      length_if_included += dp[prev_idx];
+    }
+
+    // Exclude current block.
+    ll length_if_excluded = dp[i - 1];
+
+    dp[i] = max(length_if_included, length_if_excluded);
+  }
+
+  cout << dp.back() << "\n";
 }
 
 //===----------------------------------------------------------------------===//
