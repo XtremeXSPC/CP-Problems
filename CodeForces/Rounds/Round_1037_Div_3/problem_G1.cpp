@@ -1,13 +1,13 @@
 //===----------------------------------------------------------------------===//
 /**
- * @file: __FILE_NAME__
- * @brief Codeforces Round #XXX (Div. X) - Problem Y
+ * @file: problem_G1.cpp
+ * @brief Codeforces Round 1037 Div. 3 - Problem G1
  * @author: Costantino Lombardi
  *
  * @status: In Progress
  */
 //===----------------------------------------------------------------------===//
-/* Included library, Macros and PBDS */
+/* Included library */
 
 // clang-format off
 // Compiler optimizations:
@@ -28,14 +28,11 @@
   #include "PCH.h"
 #else
   #include <bits/stdc++.h>
-  // Headers for Policy-Based Data Structures
-  #include <ext/pb_ds/assoc_container.hpp>
-  #include <ext/pb_ds/tree_policy.hpp>
 #endif
 
 // Debug macro:
 #ifdef LOCAL
-  #include "../Algorithms/debug.h"
+  #include "debug.h"
 #else
   #define debug(...) 42
 #endif
@@ -70,25 +67,65 @@ constexpr int         LIM  = 1000000 + 5;
 constexpr int         MOD  = 1000000007;
 constexpr int         MOD2 = 998244353;
 
-// Namespaces
 using namespace std;
-using namespace __gnu_pbds;
-
-// ----- PBDS Typedefs ----- //
-// Ordered Set (for unique elements)
-template <typename T>
-using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
-
-// Ordered Multiset (for duplicate elements)
-template <typename T>
-using ordered_multiset = tree<T, null_type, less_equal<T>, rb_tree_tag, tree_order_statistics_node_update>;
 
 //===----------------------------------------------------------------------===//
 /* Data Types and Function Definitions */
 
 // Function to solve a single test case
 void solve() {
-  // Your solution here
+  int n;
+  std::cin >> n;
+  std::vector<int> a(n);
+  int              min_val = 101; // Constraints are 1 <= a_i <= min(n, 100)
+  int              max_val = 0;
+
+  // Read input array and find global min and max values
+  for (int i = 0; i < n; ++i) {
+    std::cin >> a[i];
+    if (a[i] < min_val) {
+      min_val = a[i];
+    }
+    if (a[i] > max_val) {
+      max_val = a[i];
+    }
+  }
+
+  int max_ans = 0;
+
+  // Candidate 1: Max difference between any adjacent elements.
+  // This covers optimal subarrays of length 2.
+  for (int i = 1; i < n; ++i) {
+    if (a[i - 1] > a[i]) {
+      if (a[i - 1] - a[i] > max_ans) {
+        max_ans = a[i - 1] - a[i];
+      }
+    } else {
+      if (a[i] - a[i - 1] > max_ans) {
+        max_ans = a[i] - a[i - 1];
+      }
+    }
+  }
+
+  // Candidate 2: Subarray whose median is the global max_val.
+  // We check the difference with the very first element.
+  if (max_val - a[0] > max_ans) {
+    max_ans = max_val - a[0];
+  }
+
+  // Candidate 3: Subarray whose min is the global min_val.
+  // We check the difference with the very last element.
+  if (a[n - 1] - min_val > max_ans) {
+    max_ans = a[n - 1] - min_val;
+  }
+
+  // Also check max_val vs min_val over the whole array, as the array itself is a subarray
+  // this check is needed because max_val might be at a[0] and min_val at a[n-1].
+  if (max_val - min_val > max_ans) {
+    max_ans = max_val - min_val;
+  }
+
+  std::cout << max_ans << std::endl;
 }
 
 //===----------------------------------------------------------------------===//

@@ -1,13 +1,13 @@
 //===----------------------------------------------------------------------===//
 /**
- * @file: __FILE_NAME__
- * @brief Codeforces Round #XXX (Div. X) - Problem Y
+ * @file: problem_G2.cpp
+ * @brief Codeforces Round 1037 Div. 3 - Problem G2
  * @author: Costantino Lombardi
  *
  * @status: In Progress
  */
 //===----------------------------------------------------------------------===//
-/* Included library, Macros and PBDS */
+/* Included library */
 
 // clang-format off
 // Compiler optimizations:
@@ -28,14 +28,11 @@
   #include "PCH.h"
 #else
   #include <bits/stdc++.h>
-  // Headers for Policy-Based Data Structures
-  #include <ext/pb_ds/assoc_container.hpp>
-  #include <ext/pb_ds/tree_policy.hpp>
 #endif
 
 // Debug macro:
 #ifdef LOCAL
-  #include "../Algorithms/debug.h"
+  #include "debug.h"
 #else
   #define debug(...) 42
 #endif
@@ -70,18 +67,7 @@ constexpr int         LIM  = 1000000 + 5;
 constexpr int         MOD  = 1000000007;
 constexpr int         MOD2 = 998244353;
 
-// Namespaces
 using namespace std;
-using namespace __gnu_pbds;
-
-// ----- PBDS Typedefs ----- //
-// Ordered Set (for unique elements)
-template <typename T>
-using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
-
-// Ordered Multiset (for duplicate elements)
-template <typename T>
-using ordered_multiset = tree<T, null_type, less_equal<T>, rb_tree_tag, tree_order_statistics_node_update>;
 
 //===----------------------------------------------------------------------===//
 /* Data Types and Function Definitions */
