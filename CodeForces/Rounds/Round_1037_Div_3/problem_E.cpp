@@ -43,20 +43,14 @@ using namespace std;
 //===----------------------------------------------------------------------===//
 /* Function Definitions */
 
-// Fast I/O
-void setup_io() {
-  ios_base::sync_with_stdio(false);
-  cin.tie(nullptr);
-}
-
-// Function to compute Least Common Multiple - LCM
+// Function to compute Least Common Multiple - LCM.
 long long lcm(long long a, long long b) {
   if (a == 0 || b == 0)
     return 0;
   return abs(a * b) / gcd(a, b);
 }
 
-// Function to solve a single test case
+// Function to solve a single test case.
 void solve() {
   int n;
   cin >> n;
@@ -68,12 +62,12 @@ void solve() {
 
   bool possible = true;
 
-  // "Condition 1: p_n must be equal to s_1 (0-indexed: p[n-1] == s[0])"
+  // "Condition 1: p_n must be equal to s_1 (0-indexed: p[n-1] == s[0])".
   if (p[n - 1] != s[0]) {
     possible = false;
   }
 
-  // "Condition 2: p[i] must divide p[i-1] (0-indexed: p[i+1] must divide p[i])"
+  // "Condition 2: p[i] must divide p[i-1] (0-indexed: p[i+1] must divide p[i])".
   if (possible) {
     for (int i = 0; i < n - 1; ++i) {
       if (p[i] % p[i + 1] != 0) {
@@ -83,7 +77,7 @@ void solve() {
     }
   }
 
-  // "Condition 3: s[i] must divide s[i+1] (0-indexed: s[i] must divide s[i+1])"
+  // "Condition 3: s[i] must divide s[i+1] (0-indexed: s[i] must divide s[i+1])".
   if (possible) {
     for (int i = 0; i < n - 1; ++i) {
       if (s[i + 1] % s[i] != 0) {
@@ -93,7 +87,7 @@ void solve() {
     }
   }
 
-  // "Condition 4: gcd(p[i], s[i+1]) must be equal to p[n-1]"
+  // "Condition 4: gcd(p[i], s[i+1]) must be equal to p[n-1]".
   if (possible) {
     for (int i = 0; i < n - 1; ++i) {
       if (gcd(p[i], s[i + 1]) != p[n - 1]) {
@@ -113,13 +107,17 @@ void solve() {
 //===----------------------------------------------------------------------===//
 /* Main function */
 
-int main() {
-  setup_io();
-  int t;
-  cin >> t;
-  while (t--) {
+auto main() -> int {
+  // Fast I/O
+  ios_base::sync_with_stdio(false);
+  cin.tie(nullptr);
+
+  int T = 1;
+  cin >> T;
+  for ([[maybe_unused]] auto _ : views::iota(0, T)) {
     solve();
   }
+
   return 0;
 }
 

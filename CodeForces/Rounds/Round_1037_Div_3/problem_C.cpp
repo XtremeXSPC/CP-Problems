@@ -46,13 +46,7 @@ const ll INF = 1e18;
 //===----------------------------------------------------------------------===//
 /* Function Definitions */
 
-// Fast I/O
-void setup_io() {
-  ios_base::sync_with_stdio(false);
-  cin.tie(nullptr);
-}
-
-// Function to solve a single test case
+// Function to solve a single test case.
 void solve() {
   int n;
   int k;
@@ -119,7 +113,7 @@ void solve() {
       }
     };
 
-    // Find and check the two best neighbors in the unvisited set
+    // Find and check the two best neighbors in the unvisited set.
     auto it = unvisited.lower_bound({h[u], -1});
 
     if (it != unvisited.end()) {
@@ -136,13 +130,17 @@ void solve() {
 //===----------------------------------------------------------------------===//
 /* Main function */
 
-int main() {
-  setup_io();
-  int t;
-  cin >> t;
-  while (t--) {
+auto main() -> int {
+  // Fast I/O
+  ios_base::sync_with_stdio(false);
+  cin.tie(nullptr);
+
+  int T = 1;
+  cin >> T;
+  for ([[maybe_unused]] auto _ : views::iota(0, T)) {
     solve();
   }
+
   return 0;
 }
 

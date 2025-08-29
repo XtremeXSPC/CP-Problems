@@ -43,13 +43,7 @@ using namespace std;
 //===----------------------------------------------------------------------===//
 /* Data Types and Function Definitions */
 
-// Fast I/O
-void setup_io() {
-  ios_base::sync_with_stdio(false);
-  cin.tie(nullptr);
-}
-
-// Function that solves a single test case
+// Function that solves a single test case.
 void solve() {
   int x;
   cin >> x;
@@ -61,8 +55,6 @@ void solve() {
   }
 
   // For numbers with two or more digits, find the minimum digit.
-  // This will be the answer, as it is the smallest non-negative y
-  // that shares a digit with x.
   int min_digit = 9;
   int temp_x    = x;
   while (temp_x > 0) {
@@ -84,12 +76,14 @@ void solve() {
 //===----------------------------------------------------------------------===//
 /* Main function */
 
-int main() {
-  setup_io();
+auto main() -> int {
+  // Fast I/O
+  ios_base::sync_with_stdio(false);
+  cin.tie(nullptr);
 
-  int t;
-  cin >> t;
-  while (t--) {
+  int T = 1;
+  cin >> T;
+  for ([[maybe_unused]] auto _ : views::iota(0, T)) {
     solve();
   }
 
