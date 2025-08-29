@@ -1,316 +1,442 @@
-//===---------------------------------------------------------------------===//
-// PCH.h - Pre-compiled Header for Clang/MSVC compatibility
-// Enhanced version that emulates <bits/stdc++.h> for competitive programming
-// Compatible with GCC, Clang, MSVC, and other modern C++ compilers
-// Optimized for use with sanitizers when GCC's sanitizer libraries are unavailable
-
+//===----------------------------------------------------------------------===//
+/* PCH.h - Ultra-Optimized Precompiled Header for C++23
+ * Enhanced version that provides comprehensive standard library access
+ *
+ * Optimized for competitive programming with advanced compiler features
+ * Compatible with GCC, Clang, MSVC, and Apple Clang
+ */
+//===----------------------------------------------------------------------===//
 // clang-format off
-#ifndef PCH_H
-#define PCH_H
 
-// Prevent inclusion of bits/stdc++.h when using this header
+#ifndef MODERN_PCH_H
+#define MODERN_PCH_H
+
+// Prevent multiple inclusions and conflicts.
 #ifndef _GLIBCXX_NO_ASSERT
     #define _GLIBCXX_NO_ASSERT
 #endif
 #define _BITS_STDCPP_H 1
 
-// Compiler detection and version checks
+//===----------------------------------------------------------------------===//
+//===================== COMPILER DETECTION AND VERSIONING ====================//
+
+// Enhanced compiler detection with feature capabilities.
 #if defined(__GNUC__) && !defined(__clang__)
-    #ifndef COMPILER_GCC
-        #define COMPILER_GCC
+    #define COMPILER_GCC
+    #define COMPILER_NAME "GCC"
+    #define COMPILER_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
+    #if COMPILER_VERSION < 120000  // GCC 12.0
+        #error "GCC 12 or later required for full C++23 support"
     #endif
-    #ifndef COMPILER_NAME
-        #define COMPILER_NAME "GCC"
-    #endif
-    #if __GNUC__ < 9
-        #error "GCC 9 or later required"
-    #endif
+    #define SUPPORTS_CONCEPTS 1
+    #define SUPPORTS_RANGES 1
+    #define SUPPORTS_COROUTINES (__GNUC__ >= 11)
+    #define SUPPORTS_MODULES (__GNUC__ >= 13)
 #elif defined(__clang__)
-    #ifndef COMPILER_CLANG
-        #define COMPILER_CLANG
-    #endif
+    #define COMPILER_CLANG
     #if defined(__apple_build_version__)
-        #ifndef COMPILER_APPLE_CLANG
-            #define COMPILER_APPLE_CLANG
-        #endif
-        #ifndef COMPILER_NAME
-            #define COMPILER_NAME "Apple Clang"
-        #endif
+        #define COMPILER_APPLE_CLANG
+        #define COMPILER_NAME "Apple Clang"
+        #define COMPILER_VERSION __apple_build_version__
     #else
-        #ifndef COMPILER_NAME
-            #define COMPILER_NAME "LLVM Clang"
-        #endif
+        #define COMPILER_NAME "LLVM Clang"
+        #define COMPILER_VERSION (__clang_major__ * 10000 + __clang_minor__ * 100 + __clang_patchlevel__)
     #endif
-    #if __clang_major__ < 10
-        #error "Clang 10 or later required"
+    #if __clang_major__ < 15
+        #warning "Clang 15 or later recommended for optimal C++23 support"
     #endif
+    #define SUPPORTS_CONCEPTS (__clang_major__ >= 12)
+    #define SUPPORTS_RANGES (__clang_major__ >= 13)
+    #define SUPPORTS_COROUTINES (__clang_major__ >= 14)
+    #define SUPPORTS_MODULES (__clang_major__ >= 16)
 #elif defined(_MSC_VER)
-    #ifndef COMPILER_MSVC
-        #define COMPILER_MSVC
+    #define COMPILER_MSVC
+    #define COMPILER_NAME "MSVC"
+    #define COMPILER_VERSION _MSC_VER
+    #if _MSC_VER < 1930  // Visual Studio 2022 17.0
+        #error "Visual Studio 2022 or later required"
     #endif
-    #ifndef COMPILER_NAME
-        #define COMPILER_NAME "MSVC"
-    #endif
-    #if _MSC_VER < 1920
-        #error "Visual Studio 2019 or later required"
-    #endif
+    #define SUPPORTS_CONCEPTS (_MSC_VER >= 1929)
+    #define SUPPORTS_RANGES (_MSC_VER >= 1930)
+    #define SUPPORTS_COROUTINES (_MSC_VER >= 1928)
+    #define SUPPORTS_MODULES (_MSC_VER >= 1930)
 #else
-    #ifndef COMPILER_UNKNOWN
-        #define COMPILER_UNKNOWN
-    #endif
-    #ifndef COMPILER_NAME
-        #define COMPILER_NAME "Unknown"
-    #endif
-#endif
-
-// Ensure COMPILER_NAME is always defined
-#ifndef COMPILER_NAME
+    #define COMPILER_UNKNOWN
     #define COMPILER_NAME "Unknown"
+    #define COMPILER_VERSION 0
+    #define SUPPORTS_CONCEPTS 0
+    #define SUPPORTS_RANGES 0
+    #define SUPPORTS_COROUTINES 0
+    #define SUPPORTS_MODULES 0
 #endif
 
-// C++ Standard version check - relaxed to C++20 for broader compatibility
-#if __cplusplus < 202002L && !defined(__clang__)
-    #pragma message("C++20 or later recommended for full feature support")
+// C++ Standard version detection and feature availability.
+#define CPP_STANDARD __cplusplus
+#define HAS_CPP20 (CPP_STANDARD >= 202002L)
+#define HAS_CPP23 (CPP_STANDARD >= 202302L)
+
+// Feature test macros.
+#ifdef __has_include
+    #define HAS_HEADER(header) __has_include(header)
+#else
+    #define HAS_HEADER(header) 0
 #endif
-// clang-format on
 
-//===---------------------------------------------------------------------===//
-// C++ STANDARD LIBRARY HEADERS
-//===---------------------------------------------------------------------===//
-// clang-format off
+#ifdef __has_cpp_attribute
+    #define HAS_ATTRIBUTE(attr) __has_cpp_attribute(attr)
+#else
+    #define HAS_ATTRIBUTE(attr) 0
+#endif
 
-// Input/Output Stream Library
-#include <fstream>
+//===----------------------------------------------------------------------===//
+//===================== COMPILER-SPECIFIC OPTIMIZATIONS ======================//
+
+// GCC optimizations with advanced features.
+#ifdef COMPILER_GCC
+    #pragma GCC optimize("Ofast,unroll-loops,fast-math,inline-functions,tree-vectorize")
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wunused-result"
+    #pragma GCC diagnostic ignored "-Wunused-variable"
+    #pragma GCC diagnostic ignored "-Wunused-function"
+    
+    // Architecture-specific optimizations.
+    #if defined(__x86_64__) || defined(__i386__)
+        #pragma GCC target("avx2,bmi,bmi2,lzcnt,popcnt,sse4.2,fma,f16c")
+    #elif defined(__aarch64__)
+        #pragma GCC target("+simd,+crypto,+fp16,+sve")
+    #elif defined(__arm__)
+        #pragma GCC target("+neon,+vfp4")
+    #endif
+    
+    // Branch prediction hints.
+    #define LIKELY(x)   __builtin_expect(!!(x), 1)
+    #define UNLIKELY(x) __builtin_expect(!!(x), 0)
+    #define UNREACHABLE() __builtin_unreachable()
+    
+    // Function attributes.
+    #define ALWAYS_INLINE __attribute__((always_inline)) inline
+    #define NEVER_INLINE __attribute__((noinline))
+    #define PURE_FUNCTION __attribute__((const))
+    #define HOT_FUNCTION __attribute__((hot))
+    #define COLD_FUNCTION __attribute__((cold))
+    
+#elif defined(COMPILER_CLANG)
+    #pragma clang optimize on
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wunused-result"
+    #pragma clang diagnostic ignored "-Wunused-variable"
+    #pragma clang diagnostic ignored "-Wunused-function"
+    
+    // Branch prediction hints.
+    #define LIKELY(x)   __builtin_expect(!!(x), 1)
+    #define UNLIKELY(x) __builtin_expect(!!(x), 0)
+    #define UNREACHABLE() __builtin_unreachable()
+    #define ALWAYS_INLINE __attribute__((always_inline)) inline
+    #define NEVER_INLINE __attribute__((noinline))
+    #define PURE_FUNCTION __attribute__((const))
+    #define HOT_FUNCTION __attribute__((hot))
+    #define COLD_FUNCTION __attribute__((cold))
+    
+    // Architecture-specific optimizations for Clang.
+    #if defined(__x86_64__) || defined(__i386__)
+        #define CLANG_TARGET_X86
+    #elif defined(__aarch64__)
+        #define CLANG_TARGET_ARM64
+    #endif
+    
+    // Architecture-specific function attributes.
+    #ifdef CLANG_TARGET_X86
+        #define TARGET_OPTIMIZED __attribute__((target("avx2,bmi,bmi2,lzcnt,popcnt,sse4.2,fma")))
+    #elif defined(CLANG_TARGET_ARM64)
+        #define TARGET_OPTIMIZED __attribute__((target("+simd,+crypto,+fp16")))
+    #else
+        #define TARGET_OPTIMIZED
+    #endif
+    
+#elif defined(COMPILER_MSVC)
+    #pragma optimize("gt", on)
+    #include <intrin.h>
+    
+    // Branch prediction hints.
+    #define LIKELY(x)   (x)
+    #define UNLIKELY(x) (x)
+    #define UNREACHABLE() __assume(0)
+    #define ALWAYS_INLINE __forceinline
+    #define NEVER_INLINE __declspec(noinline)
+    #define PURE_FUNCTION
+    #define HOT_FUNCTION
+    #define COLD_FUNCTION
+    
+#else
+    // Fallback definitions for unknown compilers.
+    #define LIKELY(x) (x)
+    #define UNLIKELY(x) (x)
+    #define UNREACHABLE()
+    #define ALWAYS_INLINE inline
+    #define NEVER_INLINE
+    #define PURE_FUNCTION
+    #define HOT_FUNCTION
+    #define COLD_FUNCTION
+#endif
+
+//===----------------------------------------------------------------------===//
+//====================== COMPREHENSIVE HEADER INCLUDES =======================//
+
+// Core C++ headers - always available.
+#include <iostream>
 #include <iomanip>
 #include <ios>
 #include <iosfwd>
-#include <iostream>
 #include <istream>
 #include <ostream>
+#include <fstream>
 #include <sstream>
 #include <streambuf>
 
-// Containers Library
-#include <array>
-#include <bitset>
-#include <deque>
-#include <forward_list>
-#include <list>
-#include <map>
-#include <queue>
-#include <set>
-#include <stack>
-#include <unordered_map>
-#include <unordered_set>
+// Container headers.
 #include <vector>
+#include <array>
+#include <deque>
+#include <list>
+#include <forward_list>
+#include <set>
+#include <map>
+#include <unordered_set>
+#include <unordered_map>
+#include <stack>
+#include <queue>
+#include <bitset>
 
-// Iterator Library
-#include <iterator>
-
-// Algorithm Library
+// Algorithm and iterator headers.
 #include <algorithm>
 #include <numeric>
-
-// C++17 Parallel algorithms (if available)
-#if __cplusplus >= 201703L && __has_include(<execution>)
-    #include <execution>
-#endif
-
-// Function Objects
+#include <iterator>
 #include <functional>
 
-// String Library
-#include <regex>
+// String and localization.
 #include <string>
 #include <string_view>
-
-// Localization Library (conditionally include codecvt as it's deprecated in C++17)
+#include <regex>
 #include <locale>
-#if __cplusplus < 201703L
-    #include <codecvt>
-#endif
 
-// Error Handling
-#include <exception>
-#include <stdexcept>
-#include <system_error>
-
-// Memory Management
+// Memory management.
 #include <memory>
 #include <new>
 #include <scoped_allocator>
-#if __cplusplus >= 201703L && __has_include(<memory_resource>)
-    #include <memory_resource>
-#endif
 
-// Metaprogramming Utilities
-#include <initializer_list>
-#include <tuple>
-#include <type_traits>
-#include <typeindex>
-#include <typeinfo>
+// Utilities.
 #include <utility>
-
-// C++17 features
-#if __cplusplus >= 201703L
-    #include <any>
-    #include <optional>
-    #include <variant>
-    #if __has_include(<filesystem>)
-        #include <filesystem>
-    #endif
-#endif
-
-// Numerics Library
-#include <cfloat>
+#include <tuple>
+#include <initializer_list>
+#include <type_traits>
+#include <typeinfo>
+#include <typeindex>
+#include <limits>
 #include <climits>
+#include <cfloat>
+
+// Error handling.
+#include <exception>
+#include <stdexcept>
+#include <system_error>
+#include <cassert>
+
+// Math and numerics
 #include <cmath>
 #include <complex>
-#include <limits>
-#include <numeric>
+#include <valarray>
 #include <random>
 #include <ratio>
-#include <valarray>
+#include <cinttypes>
+#include <cstdint>
 
-// Time Library
+// Time utilities.
 #include <chrono>
 #include <ctime>
 
-// Thread Support Library (conditionally for competitive programming)
-#ifdef ENABLE_THREADING
-    #include <thread>
-    #include <mutex>
-    #include <shared_mutex>
-    #include <condition_variable>
-    #include <atomic>
-    #include <future>
-#endif
-
-// C++20 and later features
-#if __cplusplus >= 202002L
-    #ifdef __has_include
-        #if __has_include(<semaphore>)
-            #include <semaphore>
-        #endif
-        #if __has_include(<barrier>)
-            #include <barrier>
-        #endif
-        #if __has_include(<latch>)
-            #include <latch>
-        #endif
-        #if __has_include(<stop_token>)
-            #include <stop_token>
-        #endif
-        #if __has_include(<source_location>)
-            #include <source_location>
-        #endif
-        #if __has_include(<span>)
-            #include <span>
-        #endif
-        #if __has_include(<ranges>)
-            #include <ranges>
-        #endif
-        #if __has_include(<concepts>)
-            #include <concepts>
-        #endif
-        #if __has_include(<coroutine>)
-            #include <coroutine>
-        #endif
-        #if __has_include(<compare>)
-            #include <compare>
-        #endif
-        #if __has_include(<version>)
-            #include <version>
-        #endif
-        #if __has_include(<format>)
-            #include <format>
-        #endif
-        #if __has_include(<numbers>)
-            #include <numbers>
-        #endif
-        #if __has_include(<bit>)
-            #include <bit>
-        #endif
-    #endif
-#endif
-
-// C++23 features
-#if __cplusplus >= 202302L
-    #ifdef __has_include
-        #if __has_include(<expected>)
-            #include <expected>
-        #endif
-        #if __has_include(<flat_map>)
-            #include <flat_map>
-        #endif
-        #if __has_include(<flat_set>)
-            #include <flat_set>
-        #endif
-        #if __has_include(<generator>)
-            #include <generator>
-        #endif
-        #if __has_include(<mdspan>)
-            #include <mdspan>
-        #endif
-        #if __has_include(<print>)
-            #include <print>
-        #endif
-        #if __has_include(<spanstream>)
-            #include <spanstream>
-        #endif
-        #if __has_include(<stacktrace>)
-            #include <stacktrace>
-        #endif
-        #if __has_include(<stdfloat>)
-            #include <stdfloat>
-        #endif
-    #endif
-#endif
-
-// C Standard Library Headers
-#include <cassert>
+// C standard library.
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <cctype>
 #include <cerrno>
 #include <cfenv>
-#include <cfloat>
-#include <cinttypes>
-#include <climits>
 #include <clocale>
-#include <cmath>
 #include <csetjmp>
 #include <csignal>
 #include <cstdarg>
 #include <cstddef>
-#include <cstdint>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <ctime>
-#include <cuchar>
 #include <cwchar>
 #include <cwctype>
 
-//===---------------------------------------------------------------------===//
-// COMPETITIVE PROGRAMMING OPTIMIZATIONS AND UTILITIES
-//===---------------------------------------------------------------------===//
-
-// Fast I/O optimization
-#ifndef FAST_IO
-    #ifdef ONLINE_JUDGE
-        #define FAST_IO ios_base::sync_with_stdio(false); cin.tie(nullptr); cout.tie(nullptr)
-    #else
-        #define FAST_IO ios_base::sync_with_stdio(false); cin.tie(nullptr)
+// C++17 features.
+#if HAS_CPP20
+    #if HAS_HEADER(<optional>)
+        #include <optional>
+        #define HAS_OPTIONAL 1
+    #endif
+    #if HAS_HEADER(<variant>)
+        #include <variant>
+        #define HAS_VARIANT 1
+    #endif
+    #if HAS_HEADER(<any>)
+        #include <any>
+        #define HAS_ANY 1
+    #endif
+    #if HAS_HEADER(<filesystem>)
+        #include <filesystem>
+        #define HAS_FILESYSTEM 1
+    #endif
+    #if HAS_HEADER(<execution>)
+        #include <execution>
+        #define HAS_EXECUTION 1
     #endif
 #endif
 
-// Debug mode detection
-#ifdef LOCAL
-    #define DEBUG_MODE 1
-#else
-    #define DEBUG_MODE 0
+// C++20 features.
+#if HAS_CPP20
+    #if HAS_HEADER(<concepts>) && SUPPORTS_CONCEPTS
+        #include <concepts>
+        #define HAS_CONCEPTS 1
+    #endif
+    #if HAS_HEADER(<ranges>) && SUPPORTS_RANGES
+        #include <ranges>
+        #define HAS_RANGES 1
+    #endif
+    #if HAS_HEADER(<coroutine>) && SUPPORTS_COROUTINES
+        #include <coroutine>
+        #define HAS_COROUTINES 1
+    #endif
+    #if HAS_HEADER(<compare>)
+        #include <compare>
+        #define HAS_COMPARE 1
+    #endif
+    #if HAS_HEADER(<span>)
+        #include <span>
+        #define HAS_SPAN 1
+    #endif
+    #if HAS_HEADER(<source_location>)
+        #include <source_location>
+        #define HAS_SOURCE_LOCATION 1
+    #endif
+    #if HAS_HEADER(<version>)
+        #include <version>
+        #define HAS_VERSION_HEADER 1
+    #endif
+    #if HAS_HEADER(<bit>)
+        #include <bit>
+        #define HAS_BIT_HEADER 1
+    #endif
+    #if HAS_HEADER(<numbers>)
+        #include <numbers>
+        #define HAS_NUMBERS 1
+    #endif
+    
+    // Thread support (conditional for competitive programming).
+    #ifdef ENABLE_THREADING
+        #if HAS_HEADER(<atomic>)
+            #include <atomic>
+        #endif
+        #if HAS_HEADER(<thread>)
+            #include <thread>
+        #endif
+        #if HAS_HEADER(<mutex>)
+            #include <mutex>
+        #endif
+        #if HAS_HEADER(<condition_variable>)
+            #include <condition_variable>
+        #endif
+        #if HAS_HEADER(<future>)
+            #include <future>
+        #endif
+        #if HAS_HEADER(<shared_mutex>)
+            #include <shared_mutex>
+        #endif
+        #if HAS_HEADER(<semaphore>)
+            #include <semaphore>
+            #define HAS_SEMAPHORE 1
+        #endif
+        #if HAS_HEADER(<latch>)
+            #include <latch>
+            #define HAS_LATCH 1
+        #endif
+        #if HAS_HEADER(<barrier>)
+            #include <barrier>
+            #define HAS_BARRIER 1
+        #endif
+        #if HAS_HEADER(<stop_token>)
+            #include <stop_token>
+            #define HAS_STOP_TOKEN 1
+        #endif
+    #endif
 #endif
 
-// Sanitizer detection
+// C++23 features.
+#if HAS_CPP23
+    #if HAS_HEADER(<format>)
+        #include <format>
+        #define HAS_FORMAT 1
+    #endif
+    #if HAS_HEADER(<print>)
+        #include <print>
+        #define HAS_PRINT 1
+    #endif
+    #if HAS_HEADER(<expected>)
+        #include <expected>
+        #define HAS_EXPECTED 1
+    #endif
+    #if HAS_HEADER(<flat_map>)
+        #include <flat_map>
+        #define HAS_FLAT_MAP 1
+    #endif
+    #if HAS_HEADER(<flat_set>)
+        #include <flat_set>
+        #define HAS_FLAT_SET 1
+    #endif
+    #if HAS_HEADER(<mdspan>)
+        #include <mdspan>
+        #define HAS_MDSPAN 1
+    #endif
+    #if HAS_HEADER(<generator>)
+        #include <generator>
+        #define HAS_GENERATOR 1
+    #endif
+    #if HAS_HEADER(<spanstream>)
+        #include <spanstream>
+        #define HAS_SPANSTREAM 1
+    #endif
+    #if HAS_HEADER(<stacktrace>)
+        #include <stacktrace>
+        #define HAS_STACKTRACE 1
+    #endif
+    #if HAS_HEADER(<stdfloat>)
+        #include <stdfloat>
+        #define HAS_STDFLOAT 1
+    #endif
+#endif
+
+//===----------------------------------------------------------------------===//
+//==================== COMPETITIVE PROGRAMMING UTILITIES =====================//
+
+// Fast I/O optimization.
+#ifndef FAST_IO_SETUP
+    #define FAST_IO_SETUP() \
+        std::ios_base::sync_with_stdio(false); \
+        std::cin.tie(nullptr); \
+        std::cout.tie(nullptr); \
+        std::cout << std::fixed << std::setprecision(10)
+#endif
+
+// Debug mode detection.
+#ifdef LOCAL
+    #define DEBUG_MODE 1
+    #define DEBUG_BUILD
+#else
+    #define DEBUG_MODE 0
+    #define RELEASE_BUILD
+#endif
+
+// Sanitizer detection for better debugging.
 #if defined(__has_feature)
     #if __has_feature(address_sanitizer)
         #define HAS_ASAN 1
@@ -318,279 +444,494 @@
     #if __has_feature(undefined_behavior_sanitizer)
         #define HAS_UBSAN 1
     #endif
+    #if __has_feature(memory_sanitizer)
+        #define HAS_MSAN 1
+    #endif
+    #if __has_feature(thread_sanitizer)
+        #define HAS_TSAN 1
+    #endif
 #endif
 
 #ifdef __SANITIZE_ADDRESS__
     #define HAS_ASAN 1
 #endif
 
-// clang-format on
+//===----------------------------------------------------------------------===//
+//================== ENHANCED COMPETITIVE PROGRAMMING TYPES ==================//
 
-/*
-// Type aliases
-using ll   = long long;
-using ull  = unsigned long long;
-using ld   = long double;
-using pii  = std::pair<int, int>;
-using pll  = std::pair<long long, long long>;
-using vi   = std::vector<int>;
-using vll  = std::vector<long long>;
-using vvi  = std::vector<std::vector<int>>;
-using vvll = std::vector<std::vector<long long>>;
-using vs   = std::vector<std::string>;
-using vpii = std::vector<std::pair<int, int>>;
-using vpll = std::vector<std::pair<long long, long long>>;
+// Modern type aliases with explicit semantics.
+using I8  = std::int8_t;
+using I16 = std::int16_t;
+using I32 = std::int32_t;
+using I64 = std::int64_t;
+using U8  = std::uint8_t;
+using U16 = std::uint16_t;
+using U32 = std::uint32_t;
+using U64 = std::uint64_t;
 
-// Mathematical constants
-constexpr long double PI   = 3.141592653589793238462643383279502884L;
-constexpr long double E    = 2.718281828459045235360287471352662498L;
-constexpr long double EPS  = 1e-9L;
-constexpr int         INF  = 0x3f3f3f3f;
-constexpr long long   LINF = 0x3f3f3f3f3f3f3f3fLL;
-constexpr int         MOD  = 1000000007;
-constexpr int         MOD2 = 998244353;
-*/
-
-// Utility functions
-template <typename T>
-inline T gcd(T a, T b) {
-  return b ? gcd(b, a % b) : a;
-}
-
-template <typename T>
-inline T lcm(T a, T b) {
-  return a / gcd(a, b) * b;
-}
-
-template <typename T>
-inline T power(T a, T b, T mod = 0) {
-  T result = 1;
-  if (mod)
-    a %= mod;
-  while (b > 0) {
-    if (b & 1)
-      result = (mod ? (result * a) % mod : result * a);
-    a = (mod ? (a * a) % mod : a * a);
-    b >>= 1;
-  }
-  return result;
-}
-
-// Min/Max variadic functions
-template <typename T>
-inline T min(T a, T b) {
-  return (a < b) ? a : b;
-}
-
-template <typename T>
-inline T max(T a, T b) {
-  return (a > b) ? a : b;
-}
-
-template <typename T, typename... Args>
-inline T min(T a, T b, Args... args) {
-  return min(a, min(b, args...));
-}
-
-template <typename T, typename... Args>
-inline T max(T a, T b, Args... args) {
-  return max(a, max(b, args...));
-}
-
-// clang-format off
-
-//===---------------------------------------------------------------------===//
-// NAMESPACE USAGE
-//===---------------------------------------------------------------------===//
-
-using namespace std;
-
-// Additional useful namespaces for competitive programming
-namespace chrono_literals = std::chrono_literals;
-
-//===---------------------------------------------------------------------===//
-// COMPILER-SPECIFIC OPTIMIZATIONS
-//===---------------------------------------------------------------------===//
-
-// GCC specific optimizations
-#if defined(COMPILER_GCC) && defined(__GNUC__) && !defined(__clang__)
-  #pragma GCC optimize("O3,unroll-loops")
-  // Only enable these for x86 architectures:
-  #if defined(__x86_64__) || defined(__i386__)
-    #pragma GCC target("avx2,bmi,bmi2,lzcnt,popcnt")
-  #elif defined(__aarch64__) || defined(__arm__)
-    #pragma GCC target("neon,+simd")
-  #endif
-  #define likely(x)   __builtin_expect(!!(x), 1)
-  #define unlikely(x) __builtin_expect(!!(x), 0)
-  #define __builtin_popcount __builtin_popcount
-  #define __builtin_popcountll __builtin_popcountll
+// Extended precision types.
+#ifdef __SIZEOF_INT128__
+    using I128 = __int128;
+    using U128 = unsigned __int128;
+    #define HAS_INT128 1
+#else
+    using I128 = I64;
+    using U128 = U64;
+    #define HAS_INT128 0
 #endif
 
-// Clang specific optimizations  
-#if defined(COMPILER_CLANG) && defined(__clang__)
-  #pragma clang optimize on
-  #define likely(x)   __builtin_expect(!!(x), 1)
-  #define unlikely(x) __builtin_expect(!!(x), 0)
-  
-  // Ensure builtin functions are available
-  #ifndef __builtin_popcount
-    #define __builtin_popcount __builtin_popcount
-  #endif
-  #ifndef __builtin_popcountll
-    #define __builtin_popcountll __builtin_popcountll
-  #endif
+// Floating point types.
+using F32 = float;
+using F64 = double;
+using F80 = long double;
+
+#ifdef __FLOAT128__
+    using F128 = __float128;
+    #define HAS_FLOAT128 1
+#else
+    using F128 = F80;
+    #define HAS_FLOAT128 0
 #endif
 
-// MSVC specific optimizations
-#if defined(COMPILER_MSVC) && defined(_MSC_VER)
-  #pragma optimize("gt", on)
-  #define likely(x)   (x)
-  #define unlikely(x) (x)
-  #include <intrin.h>
-  #define __builtin_popcount __popcnt
-  #define __builtin_popcountll __popcnt64
+// Legacy compatibility aliases.
+using ll  = I64;
+using ull = U64;
+using ld  = F80;
+
+// Container type aliases.
+template<class T> using Vec = std::vector<T>;
+template<class T> using Deque = std::deque<T>;
+template<class T> using List = std::list<T>;
+template<class T> using Set = std::set<T>;
+template<class T> using MultiSet = std::multiset<T>;
+template<class T> using UnorderedSet = std::unordered_set<T>;
+template<class K, class V> using Map = std::map<K, V>;
+template<class K, class V> using MultiMap = std::multimap<K, V>;
+template<class K, class V> using UnorderedMap = std::unordered_map<K, V>;
+template<class T> using Stack = std::stack<T, std::deque<T>>;
+template<class T> using Queue = std::queue<T, std::deque<T>>;
+template<class T> using PriorityQueue = std::priority_queue<T, std::vector<T>>;
+template<class T> using MinPriorityQueue = std::priority_queue<T, std::vector<T>, std::greater<T>>;
+
+// Pair and tuple aliases.
+template<class T, class U> using Pair = std::pair<T, U>;
+using PII = Pair<I32, I32>;
+using PLL = Pair<I64, I64>;
+using PLD = Pair<F80, F80>;
+
+// Common vector types.
+using VI  = Vec<I32>;
+using VLL = Vec<I64>;
+using VU8 = Vec<U8>;
+using VF  = Vec<F64>;
+using VS  = Vec<std::string>;
+using VB  = Vec<bool>;
+
+// 2D containers.
+using VVI = Vec<VI>;
+using VVLL = Vec<VLL>;
+using VVVF = Vec<VF>;
+
+// Vector of pairs.
+using VPII = Vec<PII>;
+using VPLL = Vec<PLL>;
+
+//===----------------------------------------------------------------------===//
+//========================== MATHEMATICAL CONSTANTS ==========================//
+
+// High precision mathematical constants.
+#ifdef HAS_NUMBERS
+    using std::numbers::pi_v;
+    using std::numbers::e_v;
+    using std::numbers::log2e_v;
+    using std::numbers::log10e_v;
+    using std::numbers::ln2_v;
+    using std::numbers::ln10_v;
+    using std::numbers::sqrt2_v;
+    using std::numbers::sqrt3_v;
+    using std::numbers::inv_sqrt3_v;
+    using std::numbers::egamma_v;
+    using std::numbers::phi_v;
+    
+    template<class T = F80>
+    constexpr T PI = pi_v<T>;
+    template<class T = F80>
+    constexpr T E = e_v<T>;
+    template<class T = F80>
+    constexpr T PHI = phi_v<T>;
+#else
+    // Fallback constants with high precision.
+    template<class T = F80>
+    constexpr T PI = static_cast<T>(3.1415926535897932384626433832795028841971693993751L);
+    template<class T = F80>
+    constexpr T E = static_cast<T>(2.7182818284590452353602874713526624977572470937000L);
+    template<class T = F80>
+    constexpr T PHI = static_cast<T>(1.6180339887498948482045868343656381177203091798058L);
 #endif
 
-// Default definitions if not provided by any compiler
-#ifndef likely
-  #define likely(x) (x)
-#endif
-#ifndef unlikely
-  #define unlikely(x) (x)
+// Epsilon values for floating point comparisons.
+template<class T = F80>
+constexpr T EPS = static_cast<T>(1e-9L);
+template<class T = F80>
+constexpr T DEPS = static_cast<T>(1e-12L);
+
+// Specialized infinity values.
+constexpr I32 INF32 = 1'010'000'000;
+constexpr I64 INF64 = 2'020'000'000'000'000'000LL;
+constexpr U32 UINF32 = 2'020'000'000U;
+constexpr U64 UINF64 = 4'040'000'000'000'000'000ULL;
+
+#if HAS_INT128
+    constexpr I128 INF128 = static_cast<I128>(INF64) * 2'000'000'000'000'000'000LL;
 #endif
 
-// Fallback for popcount if not available
-#ifndef __builtin_popcount
-  #define __builtin_popcount(x) std::bitset<32>(x).count()
-#endif
-#ifndef __builtin_popcountll
-  #define __builtin_popcountll(x) std::bitset<64>(x).count()
-#endif
-
-//===---------------------------------------------------------------------===//
-// ADDITIONAL COMPETITIVE PROGRAMMING UTILITIES
-//===---------------------------------------------------------------------===//
-
-// Custom hash for pairs (useful for unordered_map<pair<int,int>>)
-struct pair_hash {
-    template<class T1, class T2>
-    size_t operator()(const std::pair<T1, T2>& p) const {
-        auto h1 = std::hash<T1>{}(p.first);
-        auto h2 = std::hash<T2>{}(p.second);
-        // Better hash combination to reduce collisions
-        return h1 ^ (h2 << 1) ^ (h2 >> 1);
-    }
-};
-
-// Custom hash for tuples
+// Infinity values with overflow protection.
 template<class T>
-inline void hash_combine(std::size_t& seed, const T& v) {
+constexpr T INF = std::numeric_limits<T>::max() / 4;
+
+// Legacy aliases.
+constexpr I64 LINF = INF64;
+
+// Modular arithmetic constants.
+constexpr I64 MOD  = 1000000007;
+constexpr I64 MOD2 = 998244353;
+constexpr I64 MOD3 = 1000000009;
+
+//===----------------------------------------------------------------------===//
+//================== ENHANCED UTILITY FUNCTIONS AND MACROS ===================//
+
+// Bitwise operations with modern implementations.
+template<std::integral T>
+ALWAYS_INLINE constexpr I32 popcount(T x) noexcept {
+    #ifdef HAS_BIT_HEADER
+        return std::popcount(x);
+    #else
+        if constexpr (sizeof(T) <= sizeof(U32)) {
+            return __builtin_popcount(static_cast<U32>(x));
+        } else {
+            return __builtin_popcountll(static_cast<U64>(x));
+        }
+    #endif
+}
+
+template<std::integral T>
+ALWAYS_INLINE constexpr I32 countl_zero(T x) noexcept {
+    #ifdef HAS_BIT_HEADER
+        return std::countl_zero(x);
+    #else
+        if (x == 0) return sizeof(T) * 8;
+        if constexpr (sizeof(T) <= sizeof(U32)) {
+            return __builtin_clz(static_cast<U32>(x)) - (32 - sizeof(T) * 8);
+        } else {
+            return __builtin_clzll(static_cast<U64>(x)) - (64 - sizeof(T) * 8);
+        }
+    #endif
+}
+
+template<std::integral T>
+ALWAYS_INLINE constexpr I32 countr_zero(T x) noexcept {
+    #ifdef HAS_BIT_HEADER
+        return std::countr_zero(x);
+    #else
+        if (x == 0) return sizeof(T) * 8;
+        if constexpr (sizeof(T) <= sizeof(U32)) {
+            return __builtin_ctz(static_cast<U32>(x));
+        } else {
+            return __builtin_ctzll(static_cast<U64>(x));
+        }
+    #endif
+}
+
+template<std::integral T>
+ALWAYS_INLINE constexpr I32 bit_width(T x) noexcept {
+    #ifdef HAS_BIT_HEADER
+        return std::bit_width(x);
+    #else
+        return sizeof(T) * 8 - countl_zero(x);
+    #endif
+}
+
+// Legacy aliases for compatibility.
+template<std::integral T> constexpr I32 popcnt(T x) { return popcount(x); }
+template<std::integral T> constexpr I32 topbit(T x) { return bit_width(x) - 1; }
+template<std::integral T> constexpr I32 lowbit(T x) { return countr_zero(x); }
+
+// Mathematical utility functions.
+template<std::integral T>
+ALWAYS_INLINE constexpr T gcd(T a, T b) noexcept {
+    #if HAS_CPP20
+        return std::gcd(a, b);
+    #else
+        while (b != 0) {
+            T temp = b;
+            b = a % b;
+            a = temp;
+        }
+        return a;
+    #endif
+}
+
+template<std::integral T>
+ALWAYS_INLINE constexpr T lcm(T a, T b) noexcept {
+    #if HAS_CPP20
+        return std::lcm(a, b);
+    #else
+        return a / gcd(a, b) * b;
+    #endif
+}
+
+// Fast power function with modular arithmetic support.
+template<std::integral T>
+ALWAYS_INLINE constexpr T power(T base, T exp, T mod = 0) noexcept {
+    T result = 1;
+    if (mod) base %= mod;
+    
+    while (exp > 0) {
+        if (exp & 1) {
+            result = mod ? (result * base) % mod : result * base;
+        }
+        base = mod ? (base * base) % mod : base * base;
+        exp >>= 1;
+    }
+    return result;
+}
+
+// Min/Max functions with variadic support.
+template<class T>
+ALWAYS_INLINE constexpr const T& min(const T& a, const T& b) noexcept {
+    return (b < a) ? b : a;
+}
+
+template<class T>
+ALWAYS_INLINE constexpr const T& max(const T& a, const T& b) noexcept {
+    return (a < b) ? b : a;
+}
+
+template<class T, class... Args>
+ALWAYS_INLINE constexpr const T& min(const T& a, const T& b, const Args&... args) noexcept {
+    return min(a, min(b, args...));
+}
+
+template<class T, class... Args>
+ALWAYS_INLINE constexpr const T& max(const T& a, const T& b, const Args&... args) noexcept {
+    return max(a, max(b, args...));
+}
+
+// Efficient min/max update functions.
+template<class T, class S>
+ALWAYS_INLINE constexpr bool chmin(T& a, const S& b) noexcept {
+    return (a > b) ? (a = b, true) : false;
+}
+
+template<class T, class S>
+ALWAYS_INLINE constexpr bool chmax(T& a, const S& b) noexcept {
+    return (a < b) ? (a = b, true) : false;
+}
+
+//===----------------------------------------------------------------------===//
+//======================== ADVANCED HASHING UTILITIES ========================//
+
+// Modern hash combiners for custom types.
+template<class T>
+ALWAYS_INLINE void hash_combine(std::size_t& seed, const T& v) noexcept {
     std::hash<T> hasher;
     seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 }
 
-template<class Tuple, size_t Index = std::tuple_size<Tuple>::value - 1>
-struct tuple_hash_impl {
-    static void apply(size_t& seed, const Tuple& tuple) {
-        tuple_hash_impl<Tuple, Index - 1>::apply(seed, tuple);
+// Enhanced pair hash.
+struct PairHash {
+    template<class T1, class T2>
+    std::size_t operator()(const std::pair<T1, T2>& p) const noexcept {
+        std::size_t h1 = std::hash<T1>{}(p.first);
+        std::size_t h2 = std::hash<T2>{}(p.second);
+        return h1 ^ (h2 << 1) ^ (h2 >> 1);
+    }
+};
+
+// Tuple hash implementation.
+template<class Tuple, std::size_t Index = std::tuple_size_v<Tuple> - 1>
+struct TupleHashImpl {
+    static void apply(std::size_t& seed, const Tuple& tuple) {
+        TupleHashImpl<Tuple, Index - 1>::apply(seed, tuple);
         hash_combine(seed, std::get<Index>(tuple));
     }
 };
 
 template<class Tuple>
-struct tuple_hash_impl<Tuple, 0> {
-    static void apply(size_t& seed, const Tuple& tuple) {
+struct TupleHashImpl<Tuple, 0> {
+    static void apply(std::size_t& seed, const Tuple& tuple) {
         hash_combine(seed, std::get<0>(tuple));
     }
 };
 
 template<typename... T>
-struct tuple_hash {
-    size_t operator()(const std::tuple<T...>& t) const {
-        size_t seed = 0;
-        tuple_hash_impl<std::tuple<T...>>::apply(seed, t);
+struct TupleHash {
+    std::size_t operator()(const std::tuple<T...>& t) const noexcept {
+        std::size_t seed = 0;
+        TupleHashImpl<std::tuple<T...>>::apply(seed, t);
         return seed;
     }
 };
 
-// Fast input/output for large datasets
-#ifndef FAST_IO_INSTANCE_DEFINED
-    #define FAST_IO_INSTANCE_DEFINED
-    struct FastIO {
-        FastIO() {
-            std::ios_base::sync_with_stdio(false);
-            std::cin.tie(nullptr);
-            std::cout.tie(nullptr);
-            
-            // Set fixed precision for floating point output
-            std::cout << std::fixed << std::setprecision(10);
-            
-            // Increase buffer size for better performance
-            #ifdef COMPILER_GCC
-                std::cin.rdbuf()->pubsetbuf(nullptr, 1 << 20);
-                std::cout.rdbuf()->pubsetbuf(nullptr, 1 << 20);
-            #endif
-        }
-    } fast_io_instance;
-#endif
+//===----------------------------------------------------------------------===//
+//===================== RANDOM NUMBER GENERATION SYSTEM ======================//
 
-// Random number generator
-#ifndef RNG_DEFINED
-    #define RNG_DEFINED
-    std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
-    std::mt19937_64 rng64(std::chrono::steady_clock::now().time_since_epoch().count());
+#ifndef DISABLE_RANDOM_SYSTEM
+// Thread-safe random number generation.
+class RandomEngine {
+private:
+    mutable std::mt19937 gen32;
+    mutable std::mt19937_64 gen64;
     
-    template<typename T>
-    T random(T l, T r) {
+public:
+    RandomEngine() : gen32(std::chrono::steady_clock::now().time_since_epoch().count()),
+                     gen64(std::chrono::steady_clock::now().time_since_epoch().count()) {}
+                     
+    template<std::integral T>
+    T randint(T min_val, T max_val) const {
         if constexpr (sizeof(T) <= 4) {
-            return std::uniform_int_distribution<T>(l, r)(rng);
+            return std::uniform_int_distribution<T>(min_val, max_val)(gen32);
         } else {
-            return std::uniform_int_distribution<T>(l, r)(rng64);
+            return std::uniform_int_distribution<T>(min_val, max_val)(gen64);
         }
     }
     
-    template<>
-    double random<double>(double l, double r) {
-        return std::uniform_real_distribution<double>(l, r)(rng);
+    template<std::floating_point T>
+    T randreal(T min_val, T max_val) const {
+        return std::uniform_real_distribution<T>(min_val, max_val)(gen32);
     }
     
-    template<>
-    float random<float>(float l, float r) {
-        return std::uniform_real_distribution<float>(l, r)(rng);
+    bool randbool() const {
+        return std::bernoulli_distribution(0.5)(gen32);
     }
+    
+    void seed(U64 s) {
+        gen32.seed(static_cast<U32>(s));
+        gen64.seed(s);
+    }
+};
+
+// Global random engine instance.
+inline RandomEngine& random_engine() {
+    static RandomEngine engine;
+    return engine;
+}
+
+// Convenient random functions.
+template<std::integral T>
+T randint(T min_val, T max_val) {
+    return random_engine().randint(min_val, max_val);
+}
+
+template<std::floating_point T>
+T randreal(T min_val = T(0), T max_val = T(1)) {
+    return random_engine().randreal(min_val, max_val);
+}
+
+inline bool randbool() {
+    return random_engine().randbool();
+}
+
+inline void set_random_seed(U64 seed) {
+    random_engine().seed(seed);
+}
 #endif
 
-// Sanitizer-friendly assertions
-#ifdef HAS_ASAN
-    #define SANITIZER_ASSERT(x) assert(x)
-#else
-    #define SANITIZER_ASSERT(x) ((void)0)
-#endif
+//===----------------------------------------------------------------------===//
+//===================== AUTOMATIC I/O OPTIMIZATION SETUP =====================//
 
-// Print diagnostic information about the compilation environment
-#if DEBUG_MODE
-    namespace {
-        struct CompilationInfo {
-            CompilationInfo() {
-                std::cerr << "/===------ Compilation Environment ------===/" << std::endl;
-                std::cerr << "Compiler: " << COMPILER_NAME << std::endl;
-                std::cerr << "C++ Standard: " << __cplusplus << std::endl;
-                #ifdef HAS_ASAN
-                    std::cerr << "AddressSanitizer: ENABLED" << std::endl;
-                #endif
-                #ifdef HAS_UBSAN
-                    std::cerr << "UBSanitizer: ENABLED" << std::endl;
-                #endif
-                std::cerr << "/===-------------------------------------===/" << std::endl;
-            }
-        };
-        #ifdef SHOW_COMPILATION_INFO
-            CompilationInfo compilation_info;
+// RAII I/O optimizer.
+struct IOOptimizer {
+    IOOptimizer() {
+        FAST_IO_SETUP();
+        
+        #ifdef ONLINE_JUDGE
+            // Additional optimizations for online judges.
+            std::cin.rdbuf()->pubsetbuf(nullptr, 0);
+            std::cout.rdbuf()->pubsetbuf(nullptr, 0);
+        #endif
+        
+        #ifdef HAS_ASAN
+            // Disable I/O optimizations under AddressSanitizer for better debugging.
+            std::ios_base::sync_with_stdio(true);
         #endif
     }
+    
+    ~IOOptimizer() {
+        std::cout.flush();
+        std::cerr.flush();
+    }
+};
+
+// Global instance for automatic setup.
+#ifndef DISABLE_AUTO_IO_OPTIMIZATION
+    [[maybe_unused]] static IOOptimizer io_optimizer_instance;
 #endif
 
-#endif // PCH_H
+//===----------------------------------------------------------------------===//
+//============================= NAMESPACE USAGE ==============================//
 
-//===---------------------------------------------------------------------===//
+// Standard namespace usage for competitive programming.
+using namespace std;
+
+// Conditional namespace usage for C++20/23 features.
+#ifdef HAS_RANGES
+    namespace ranges = std::ranges;
+    namespace views = std::ranges::views;
+#endif
+
+#ifdef HAS_CONCEPTS
+    // Import useful concepts.
+    using std::integral;
+    using std::floating_point;
+    using std::signed_integral;
+    using std::unsigned_integral;
+#endif
+
+//===----------------------------------------------------------------------===//
+//===================== FEATURE SUMMARY AND DIAGNOSTICS ======================//
+
+// Compilation diagnostics in debug mode.
+#ifdef DEBUG_MODE
+    namespace {
+        struct CompilationDiagnostics {
+            CompilationDiagnostics() {
+                #ifdef SHOW_COMPILATION_INFO
+                    std::cerr << "╭─── Modern PCH Compilation Info ───╮\n";
+                    std::cerr << "│ Compiler: " << COMPILER_NAME;
+                    #ifdef COMPILER_VERSION
+                        std::cerr << " (version " << COMPILER_VERSION << ")";
+                    #endif
+                    std::cerr << "\n";
+                    std::cerr << "│ C++ Standard: " << CPP_STANDARD << "\n";
+                    std::cerr << "│ Features Available:\n";
+                    std::cerr << "│   • Concepts: " << (HAS_CONCEPTS ? "✓" : "✗") << "\n";
+                    std::cerr << "│   • Ranges: " << (HAS_RANGES ? "✓" : "✗") << "\n";
+                    std::cerr << "│   • Coroutines: " << (HAS_COROUTINES ? "✓" : "✗") << "\n";
+                    std::cerr << "│   • Format: " << (HAS_FORMAT ? "✓" : "✗") << "\n";
+                    std::cerr << "│   • Print: " << (HAS_PRINT ? "✓" : "✗") << "\n";
+                    std::cerr << "│   • int128: " << (HAS_INT128 ? "✓" : "✗") << "\n";
+                    std::cerr << "│   • float128: " << (HAS_FLOAT128 ? "✓" : "✗") << "\n";
+                    #ifdef HAS_ASAN
+                        std::cerr << "│ ⚠️  AddressSanitizer: ENABLED\n";
+                    #endif
+                    #ifdef HAS_UBSAN
+                        std::cerr << "│ ⚠️  UBSanitizer: ENABLED\n";
+                    #endif
+                    std::cerr << "╰───────────────────────────────────╯\n";
+                #endif
+            }
+        } diagnostics_instance;
+    }
+#endif
+
+// Restore compiler diagnostics.
+#ifdef COMPILER_GCC
+    #pragma GCC diagnostic pop
+#elif defined(COMPILER_CLANG)
+    #pragma clang diagnostic pop
+#endif
+
+#endif // MODERN_PCH_H
+
+//===----------------------------------------------------------------------===//
