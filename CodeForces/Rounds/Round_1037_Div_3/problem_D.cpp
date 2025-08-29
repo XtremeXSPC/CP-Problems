@@ -1,8 +1,8 @@
 //===----------------------------------------------------------------------===//
 /**
- * @brief Codeforces Round 1037 Div. 3
+ * @file: problem_D.cpp
+ * @brief Codeforces Round 1037 Div. 3 - Problem D
  * @author: Costantino Lombardi
- * @file: problem_D.cc
  *
  * @status: PASSED
  */
@@ -38,6 +38,39 @@
 #endif
 // clang-format on
 
+//===----------------------------------------------------------------------===//
+/* Type Aliases and Constants */
+
+// Type aliases
+using ll       = long long;
+using ull      = unsigned long long;
+using ld       = long double;
+using P_ii     = std::pair<int, int>;
+using P_ll     = std::pair<long long, long long>;
+using V_b      = std::vector<bool>;
+using V_i      = std::vector<int>;
+using V_ui     = std::vector<unsigned int>;
+using V_ll     = std::vector<long long>;
+using VV_i     = std::vector<std::vector<int>>;
+using VV_ll    = std::vector<std::vector<long long>>;
+using V_s      = std::vector<std::string>;
+using VP_ii    = std::vector<std::pair<int, int>>;
+using VVP_ii   = std::vector<std::vector<std::pair<int, int>>>;
+using VP_ll    = std::vector<std::pair<long long, long long>>;
+using VT_iii   = std::vector<std::tuple<int, int, int>>;
+using Map_ll   = std::map<long long, long long>;
+using VUMap_il = std::vector<std::unordered_map<int, ll>>;
+
+// Mathematical constants
+constexpr long double PI   = 3.141592653589793238462643383279502884L;
+constexpr long double E    = 2.718281828459045235360287471352662498L;
+constexpr long double EPS  = 1e-9L;
+constexpr int         INF  = 0x3f3f3f3f;
+constexpr long long   LINF = 0x3f3f3f3f3f3f3f3fLL;
+constexpr int         LIM  = 1000000 + 5;
+constexpr int         MOD  = 1000000007;
+constexpr int         MOD2 = 998244353;
+
 using namespace std;
 
 //===----------------------------------------------------------------------===//
@@ -45,68 +78,67 @@ using namespace std;
 
 // Structure to hold casino parameters.
 struct Casino {
-  int       id;
-  long long l, r, real;
+  int l, r;
+  ll  real;
+
+  // Allows sorting by 'l' primarily.
+  auto operator<=>(const Casino&) const = default;
 };
 
-// Fast I/O
-void setup_io() {
-  ios_base::sync_with_stdio(false);
-  cin.tie(nullptr);
-}
+// Structure for priority queue candidates.
+struct Candidate {
+  ll  real;
+  int r;
+
+  // The priority_queue needs a strict weak ordering.
+  friend bool operator<(const Candidate& a, const Candidate& b) { return a.real < b.real; }
+};
 
 // Function to solve a single test case.
 void solve() {
-  int       n;
-  long long k;
+  int n;
+  ll  k;
   cin >> n >> k;
 
   vector<Casino> casinos(n);
-  for (int i = 0; i < n; ++i) {
-    casinos[i].id = i;
-    cin >> casinos[i].l >> casinos[i].r >> casinos[i].real;
+  // Read casino data.
+  for (auto& [l, r, real] : casinos) {
+    cin >> l >> r >> real;
   }
 
-  long long max_coins = k;
+  // Sort by lower bound 'l'.
+  ranges::sort(casinos, {}, &Casino::l);
 
-  // Queue for the BFS on coin amounts.
-  queue<long long> q;
-  q.push(k);
+  // Max-priority queue for candidates {real_i, r_i}.
+  priority_queue<Candidate> candidates;
 
-  // Set to keep track of reachable coin amounts to avoid redundant processing.
-  set<long long> reachable_coins;
-  reachable_coins.insert(k);
+  int casino_idx = 0;
 
-  while (!q.empty()) {
-    long long current_coins = q.front();
-    q.pop();
+  // Main greedy loop.
+  bool changed_in_iteration = true;
+  while (changed_in_iteration) {
+    changed_in_iteration = false;
 
-    max_coins = max(max_coins, current_coins);
-
-    vector<Casino> remaining_casinos;
-    bool           changed = false;
-
-    for (const auto& casino : casinos) {
-      // Check if the current casino is visitable.
-      if (current_coins >= casino.l && current_coins <= casino.r) {
-        // If we can generate a new coin amount, add it to the queue.
-        if (reachable_coins.find(casino.real) == reachable_coins.end()) {
-          q.push(casino.real);
-          reachable_coins.insert(casino.real);
-        }
-      } else {
-        // If not used, keep it for the next iteration.
-        remaining_casinos.push_back(casino);
-      }
+    // Phase 1: Add newly reachable casinos.
+    while (casino_idx < n && casinos[casino_idx].l <= k) {
+      candidates.push({casinos[casino_idx].real, casinos[casino_idx].r});
+      casino_idx++;
     }
 
-    // The list of available casinos shrinks in each step of the BFS.
-    if (remaining_casinos.size() < casinos.size()) {
-      casinos = remaining_casinos;
+    // Phase 2: Remove invalid candidates.
+    while (!candidates.empty() && candidates.top().r < k) {
+      candidates.pop();
+    }
+
+    // Phase 3: Take best move if improvement.
+    if (!candidates.empty() && candidates.top().real > k) {
+      k = candidates.top().real;
+      candidates.pop();
+      changed_in_iteration = true;
     }
   }
 
-  cout << max_coins << "\n";
+  cout << k << '\n';
 }
 
 //===----------------------------------------------------------------------===//
