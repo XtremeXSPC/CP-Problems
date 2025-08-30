@@ -554,30 +554,30 @@ using VPLL = Vec<PLL>;
     using std::numbers::phi_v;
     
     template<class T = F80>
-    constexpr T PI = pi_v<T>;
+    constexpr T PI   = pi_v<T>;
     template<class T = F80>
-    constexpr T E = e_v<T>;
+    constexpr T E    = e_v<T>;
     template<class T = F80>
-    constexpr T PHI = phi_v<T>;
+    constexpr T PHI  = phi_v<T>;
 #else
     // Fallback constants with high precision.
     template<class T = F80>
-    constexpr T PI = static_cast<T>(3.1415926535897932384626433832795028841971693993751L);
+    constexpr T PI   = static_cast<T>(3.1415926535897932384626433832795028841971693993751L);
     template<class T = F80>
-    constexpr T E = static_cast<T>(2.7182818284590452353602874713526624977572470937000L);
+    constexpr T E    = static_cast<T>(2.7182818284590452353602874713526624977572470937000L);
     template<class T = F80>
-    constexpr T PHI = static_cast<T>(1.6180339887498948482045868343656381177203091798058L);
+    constexpr T PHI  = static_cast<T>(1.6180339887498948482045868343656381177203091798058L);
 #endif
 
 // Epsilon values for floating point comparisons.
 template<class T = F80>
-constexpr T EPS = static_cast<T>(1e-9L);
+constexpr T EPS  = static_cast<T>(1e-9L);
 template<class T = F80>
 constexpr T DEPS = static_cast<T>(1e-12L);
 
 // Specialized infinity values.
-constexpr I32 INF32 = 1'010'000'000;
-constexpr I64 INF64 = 2'020'000'000'000'000'000LL;
+constexpr I32 INF32  = 1'010'000'000;
+constexpr I64 INF64  = 2'020'000'000'000'000'000LL;
 constexpr U32 UINF32 = 2'020'000'000U;
 constexpr U64 UINF64 = 4'040'000'000'000'000'000ULL;
 

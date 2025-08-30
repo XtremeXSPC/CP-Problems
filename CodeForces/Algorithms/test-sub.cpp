@@ -1,21 +1,18 @@
 //===----------------------------------------------------------------------===//
 /**
- * @file: practical_examples.cpp
- * @brief: Practical examples of using the modern debug system in C++23.
+ * @file: __FILE_NAME__
+ * @brief Codeforces Round #XXX (Div. X) - Problem Y
  * @author: Costantino Lombardi
  *
- * @details: This file demonstrates the usage of the modern debug C++23 system,
- * including advanced data structures, algorithms, and debugging techniques.
+ * @status: In Progress
  */
 //===----------------------------------------------------------------------===//
 
-// clang-format off
 // Compiler optimizations and target-specific features:
 #if defined(__GNUC__) && !defined(__clang__)
   #pragma GCC optimize("Ofast,unroll-loops,fast-math,O3,inline-functions")
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wunused-result"
-  // Architecture-specific optimizations:
   #ifdef __x86_64__
     #pragma GCC target("avx2,bmi,bmi2,popcnt,lzcnt,sse4.2,fma")
   #endif
@@ -32,7 +29,7 @@
 
 // Conditional header inclusion based on environment:
 #ifdef USE_CLANG_SANITIZE
-  #include "PCH.h"
+  #include "../libs/PCH.h"
 #else
   #include <bits/stdc++.h>
   // Policy-Based Data Structures:
@@ -42,46 +39,48 @@
 
 // Debug utilities:
 #ifdef LOCAL
-  #include "../Algorithms/debug.h"
+  #include "../libs/debug.h"
 #else
-  #define debug(...) 42
-  #define debug_if(...) 42
-  #define debug_tree(...) 42
-  #define debug_tree_verbose(...) 42
-  #define debug_line() 42
-  #define my_assert(...) 42
-  #define COUNT_CALLS(...) 42
+  #define debug(...)
+  #define debug_if(...)
+  #define debug_tree(...)
+  #define debug_tree_verbose(...)
+  #define debug_line()
+  #define my_assert(...)
+  #define COUNT_CALLS(...)
 #endif
 
 //===----------------------------------------------------------------------===//
 /* Advanced Type System and Aliases */
 
 // Fundamental type aliases with explicit sizes:
-using I8   = std::int8_t;
-using I16  = std::int16_t;
-using I32  = std::int32_t;
-using I64  = std::int64_t;
-using U8   = std::uint8_t;
-using U16  = std::uint16_t;
-using U32  = std::uint32_t;
-using U64  = std::uint64_t;
-using F32  = float;
-using F64  = double;
-using F80  = long double;
+using I8  = std::int8_t;
+using I16 = std::int16_t;
+using I32 = std::int32_t;
+using I64 = std::int64_t;
+using U8  = std::uint8_t;
+using U16 = std::uint16_t;
+using U32 = std::uint32_t;
+using U64 = std::uint64_t;
+using F32 = float;
+using F64 = double;
+using F80 = long double;
 
 // Extended precision types (when available):
 #ifdef __SIZEOF_INT128__
-  using I128 = __int128;
-  using U128 = unsigned __int128;
+using I128 = __int128;
+using U128 = unsigned __int128;
 #else
-  using I128 = std::int64_t;
-  using U128 = std::uint64_t;
+// Fallback for compilers that don't support 128-bit integers
+using I128 = std::int64_t;
+using U128 = std::uint64_t;
 #endif
 
 #ifdef __FLOAT128__
-  using F128 = __float128;
+using F128 = __float128;
 #else
-  using F128 = long double;
+// Fallback for compilers that don't support 128-bit floats
+using F128 = long double;
 #endif
 
 // Legacy aliases for backward compatibility:
@@ -100,12 +99,12 @@ template <class T>
 using VVVVC = VC<VVVC<T>>;
 
 // Specialized container aliases:
-using VI = VC<I64>;
-using VVI = VVC<I64>;
+using VI   = VC<I64>;
+using VVI  = VVC<I64>;
 using VVVI = VVVC<I64>;
-using VB = VC<bool>;
-using VS = VC<std::string>;
-using VU8 = VC<U8>;
+using VB   = VC<bool>;
+using VS   = VC<std::string>;
+using VU8  = VC<U8>;
 using VU32 = VC<U32>;
 using VU64 = VC<U64>;
 
@@ -238,8 +237,93 @@ constexpr I64 MOD3 = 1000000009;
 #define MAX(x) *std::ranges::max_element(x)
 
 //===----------------------------------------------------------------------===//
+/* Mathematical Utilities */
+
+// Generic mathematical functions:
+template <typename T>
+[[gnu::always_inline]] constexpr T gcd(T a, T b) {
+  if constexpr (std::is_integral_v<T>) {
+    return b ? gcd(b, a % b) : a;
+  } else {
+    return std::gcd(a, b);
+  }
+}
+
+template <typename T>
+[[gnu::always_inline]] constexpr T lcm(T a, T b) {
+  return a / gcd(a, b) * b;
+}
+
+// Advanced division operations:
+template <typename T>
+[[gnu::always_inline]] constexpr T div_floor(T a, T b) {
+  return a / b - (a % b != 0 && (a ^ b) < 0);
+}
+
+template <typename T>
+[[gnu::always_inline]] constexpr T div_ceil(T a, T b) {
+  return div_floor(a + b - 1, b);
+}
+
+template <typename T>
+[[gnu::always_inline]] constexpr T mod_floor(T a, T b) {
+  return a - b * div_floor(a, b);
+}
+
+template <typename T>
+[[gnu::always_inline]] constexpr std::pair<T, T> divmod(T a, T b) {
+  T q = div_floor(a, b);
+  return {q, a - q * b};
+}
+
+// Fast modular exponentiation:
+template <typename T>
+[[gnu::always_inline]] constexpr T power(T base, T exp, T mod = 0) {
+  T result = 1;
+  if (mod) base %= mod;
+  while (exp > 0) {
+    if (exp & 1) {
+      result = mod ? (result * base) % mod : result * base;
+    }
+    base = mod ? (base * base) % mod : base * base;
+    exp >>= 1;
+  }
+  return result;
+}
+
+// Min/Max update functions:
+template <class T, class S>
+[[gnu::always_inline]] inline bool chmax(T& a, const S& b) {
+  return a < b ? (a = b, true) : false;
+}
+
+
+template <class T, class S>
+[[gnu::always_inline]] inline bool chmin(T& a, const S& b) {
+  return a > b ? (a = b, true) : false;
+}
+
+// Variadic min/max:
+template <typename T>
+constexpr const T& min(const T& a, const T& b) { return (b < a) ? b : a; }
+
+template <typename T>
+constexpr const T& max(const T& a, const T& b) { return (a < b) ? b : a; }
+
+template <typename T, typename... Args>
+constexpr const T& min(const T& a, const T& b, const Args&... args) {
+  return min(a, min(b, args...));
+}
+
+template <typename T, typename... Args>
+constexpr const T& max(const T& a, const T& b, const Args&... args) {
+  return max(a, max(b, args...));
+}
+
+//===----------------------------------------------------------------------===//
 /* Optimized I/O System */
 
+// Fast I/O
 namespace fast_io {
   static constexpr U32 BUFFER_SIZE = 1 << 17; // 128KB buffer
   alignas(64) char input_buffer[BUFFER_SIZE];
@@ -538,89 +622,6 @@ struct subset_range {
 };
 
 //===----------------------------------------------------------------------===//
-/* Mathematical Utilities */
-
-// Generic mathematical functions:
-template <typename T>
-[[gnu::always_inline]] constexpr T gcd(T a, T b) {
-  if constexpr (std::is_integral_v<T>) {
-    return b ? gcd(b, a % b) : a;
-  } else {
-    return std::gcd(a, b);
-  }
-}
-
-template <typename T>
-[[gnu::always_inline]] constexpr T lcm(T a, T b) {
-  return a / gcd(a, b) * b;
-}
-
-// Advanced division operations:
-template <typename T>
-[[gnu::always_inline]] constexpr T div_floor(T a, T b) {
-  return a / b - (a % b != 0 && (a ^ b) < 0);
-}
-
-template <typename T>
-[[gnu::always_inline]] constexpr T div_ceil(T a, T b) {
-  return div_floor(a + b - 1, b);
-}
-
-template <typename T>
-[[gnu::always_inline]] constexpr T mod_floor(T a, T b) {
-  return a - b * div_floor(a, b);
-}
-
-template <typename T>
-[[gnu::always_inline]] constexpr std::pair<T, T> divmod(T a, T b) {
-  T q = div_floor(a, b);
-  return {q, a - q * b};
-}
-
-// Fast modular exponentiation:
-template <typename T>
-[[gnu::always_inline]] constexpr T power(T base, T exp, T mod = 0) {
-  T result = 1;
-  if (mod) base %= mod;
-  while (exp > 0) {
-    if (exp & 1) {
-      result = mod ? (result * base) % mod : result * base;
-    }
-    base = mod ? (base * base) % mod : base * base;
-    exp >>= 1;
-  }
-  return result;
-}
-
-// Min/Max update functions:
-template <class T, class S>
-[[gnu::always_inline]] inline bool chmax(T& a, const S& b) {
-  return a < b ? (a = b, true) : false;
-}
-
-template <class T, class S>
-[[gnu::always_inline]] inline bool chmin(T& a, const S& b) {
-  return a > b ? (a = b, true) : false;
-}
-
-// Variadic min/max:
-template <typename T>
-constexpr const T& min(const T& a, const T& b) { return (b < a) ? b : a; }
-
-template <typename T>
-constexpr const T& max(const T& a, const T& b) { return (a < b) ? b : a; }
-
-template <typename T, typename... Args>
-constexpr const T& min(const T& a, const T& b, const Args&... args) {
-  return min(a, min(b, args...));
-}
-
-template <typename T, typename... Args>
-constexpr const T& max(const T& a, const T& b, const Args&... args) {
-  return max(a, max(b, args...));
-}
-
-//===----------------------------------------------------------------------===//
 /* Container Utilities and Algorithms */
 
 // Enhanced binary search:
@@ -715,596 +716,24 @@ VC<I32> string_to_ints(const std::string& s, char base_char = 'a') {
   }
   return result;
 }
-// clang-format on
-
 //===----------------------------------------------------------------------===//
-/* Advanced Modular Arithmetic */
-
-template <I64 MOD>
-struct ModInt {
-  U64 value;
-
-  static constexpr I64  mod() { return MOD; }
-  static constexpr bool is_prime = true;
-
-  constexpr ModInt() : value(0) {}
-  constexpr ModInt(I64 x) : value(x >= 0 ? x % MOD : (x % MOD + MOD) % MOD) {}
-
-  constexpr ModInt& operator+=(const ModInt& other) {
-    if ((value += other.value) >= MOD)
-      value -= MOD;
-    return *this;
-  }
-
-  constexpr ModInt& operator-=(const ModInt& other) {
-    if ((value += MOD - other.value) >= MOD)
-      value -= MOD;
-    return *this;
-  }
-
-  constexpr ModInt& operator*=(const ModInt& other) {
-    value = (U64)value * other.value % MOD;
-    return *this;
-  }
-
-  constexpr ModInt& operator/=(const ModInt& other) { return *this *= other.inverse(); }
-
-  constexpr ModInt operator+(const ModInt& other) const { return ModInt(*this) += other; }
-  constexpr ModInt operator-(const ModInt& other) const { return ModInt(*this) -= other; }
-  constexpr ModInt operator*(const ModInt& other) const { return ModInt(*this) *= other; }
-  constexpr ModInt operator/(const ModInt& other) const { return ModInt(*this) /= other; }
-  constexpr ModInt operator-() const { return ModInt(value ? MOD - value : 0); }
-
-  constexpr bool operator==(const ModInt& other) const { return value == other.value; }
-  constexpr bool operator!=(const ModInt& other) const { return value != other.value; }
-
-  constexpr ModInt pow(I64 exp) const {
-    ModInt result(1), base(*this);
-    while (exp > 0) {
-      if (exp & 1)
-        result *= base;
-      base *= base;
-      exp >>= 1;
-    }
-    return result;
-  }
-
-  constexpr ModInt inverse() const {
-    if constexpr (is_prime) {
-      return pow(MOD - 2);
-    } else {
-      // Extended Euclidean algorithm
-      I64 a = value, b = MOD, u = 1, v = 0;
-      while (b > 0) {
-        I64 t = a / b;
-        std::swap(a -= t * b, b);
-        std::swap(u -= t * v, v);
-      }
-      return ModInt(u);
-    }
-  }
-
-  explicit             operator I64() const { return value; }
-  friend std::ostream& operator<<(std::ostream& os, const ModInt& x) { return os << x.value; }
-  friend std::istream& operator>>(std::istream& is, ModInt& x) {
-    I64 val;
-    is >> val;
-    x = ModInt(val);
-    return is;
-  }
-};
-
-using mint  = ModInt<MOD>;
-using mint2 = ModInt<MOD2>;
-
-//===----------------------------------------------------------------------===//
-/* Fast I/O Setup */
-
-using namespace std;
-
-// Fast I/O setup:
-struct FastIOSetup {
-  FastIOSetup() {
-    std::ios_base::sync_with_stdio(false);
-    std::cin.tie(nullptr);
-    std::cout.tie(nullptr);
-    std::cout << std::fixed << std::setprecision(10);
-  }
-} fast_io_setup;
-
-//===----------------------------------------------------------------------===//
-/* EXAMPLE 1: Classic Problem - Shortest Path with Advanced Debug */
-
-struct Edge {
-  I64 to, weight;
-  Edge(I64 t, I64 w) : to(t), weight(w) {}
-};
-
-// Debug system will automatically detect the structure
-void example_shortest_path() {
-  debug_line();
-  std::cerr << "EXAMPLE 1: Shortest Path with Advanced Debug\n";
-
-  INT(n, m); // Read number of nodes and edges
-
-  // Create graph - debug will show complete structure
-  VC<VC<Edge>> graph(n);
-
-  debug("Graph initialization", n, m);
-
-  FOR(i, m) {
-    INT(u, v, w);
-    graph[u].eb(v, w);
-    graph[v].eb(u, w); // Undirected graph
-  }
-
-  debug("Graph structure", graph); // Show entire graph in readable format
-
-  // Dijkstra with debug tracking
-  PERF_START("dijkstra");
-
-  VI          dist(n, INF64);
-  VB          visited(n, false);
-  PQ_min<PLL> pq; // {distance, node}
-
-  dist[0] = 0;
-  pq.push({0, 0});
-
-  debug("Starting Dijkstra from node 0");
-
-  while (!pq.empty()) {
-    auto [d, u] = pq.top();
-    pq.pop();
-
-    debug_if(DEBUG_LEVEL >= 2, "Processing node", u, "distance", d);
-
-    if (visited[u])
-      continue;
-    visited[u] = true;
-
-    for (const auto& edge : graph[u]) {
-      I64 v = edge.to;
-      I64 w = edge.weight;
-
-      if (dist[u] + w < dist[v]) {
-        dist[v] = dist[u] + w;
-        pq.push({dist[v], v});
-
-        debug_if(DEBUG_LEVEL >= 3, "Updated distance", u, "->", v, "new_dist", dist[v]);
-      }
-    }
-  }
-
-  PERF_END("dijkstra");
-
-  debug("Final distances", dist);
-
-  // Elegant output
-  FOR(i, n) {
-    OUT("Distance to node", i, ":", dist[i] == INF64 ? -1 : dist[i]);
-  }
-}
-
-//===----------------------------------------------------------------------===//
-/* EXAMPLE 2: Complex Data Structures with Tree Visualization */
-
-struct SegmentTreeNode {
-  I64              value, lazy;
-  SegmentTreeNode* left;
-  SegmentTreeNode* right;
-
-  SegmentTreeNode(I64 val = 0) : value(val), lazy(0), left(nullptr), right(nullptr) {}
-};
-
-class SegmentTree {
-private:
-  SegmentTreeNode* root;
-  I64              size;
-
-  SegmentTreeNode* build(const VI& arr, I64 start, I64 end) {
-    if (start == end) {
-      return new SegmentTreeNode(arr[start]);
-    }
-
-    I64  mid    = (start + end) / 2;
-    auto node   = new SegmentTreeNode();
-    node->left  = build(arr, start, mid);
-    node->right = build(arr, mid + 1, end);
-    node->value = node->left->value + node->right->value;
-
-    return node;
-  }
-
-  void update(SegmentTreeNode* node, I64 start, I64 end, I64 l, I64 r, I64 val) {
-    if (l > end || r < start)
-      return;
-
-    if (l <= start && end <= r) {
-      node->value += val * (end - start + 1);
-      node->lazy += val;
-      return;
-    }
-
-    I64 mid = (start + end) / 2;
-
-    // Push down lazy
-    if (node->lazy != 0) {
-      if (node->left) {
-        node->left->value += node->lazy * (mid - start + 1);
-        node->left->lazy += node->lazy;
-      }
-      if (node->right) {
-        node->right->value += node->lazy * (end - mid);
-        node->right->lazy += node->lazy;
-      }
-      node->lazy = 0;
-    }
-
-    update(node->left, start, mid, l, r, val);
-    update(node->right, mid + 1, end, l, r, val);
-
-    node->value = (node->left ? node->left->value : 0) + (node->right ? node->right->value : 0);
-  }
-
-public:
-  SegmentTree(const VI& arr) : size(sz(arr)) {
-    PERF_START("segtree_build");
-    root = build(arr, 0, size - 1);
-    PERF_END("segtree_build");
-
-    debug("Segment Tree built with size", size);
-    debug_tree(root); // Visualize complete tree
-  }
-
-  void range_update(I64 l, I64 r, I64 val) {
-    debug("Range update", l, r, val);
-    update(root, 0, size - 1, l, r, val);
-
-    if (DEBUG_LEVEL >= 2) {
-      debug_tree_verbose(root); // Show tree with all details
-    }
-  }
-};
-
-void example_segment_tree() {
-  debug_line();
-  std::cerr << "EXAMPLE 2: Segment Tree with Tree Visualization\n";
-
-  INT(n);
-  VEC(long long, arr, n);
-
-  debug("Input array", arr);
-
-  // Build segment tree - debug will show tree visually
-  SegmentTree segtree(arr);
-
-  INT(q); // Number of queries
-
-  FOR(i, q) {
-    INT(type);
-
-    if (type == 1) {
-      INT(l, r, val);
-      debug("Query", i + 1, ": Range update [", l, ",", r, "] +=", val);
-      segtree.range_update(l, r, val);
-    }
-
-    // Other operations...
-  }
-}
-
-//===----------------------------------------------------------------------===//
-/* EXAMPLE 3: Complex Algorithms with Performance Tracking */
-
-class UnionFind {
-private:
-  VI  parent, rank;
-  I64 components;
-
-public:
-  UnionFind(I64 n) : parent(n), rank(n, 0), components(n) {
-    iota(all(parent), 0);
-    debug("UnionFind initialized with", n, "components");
-  }
-
-  I64 find(I64 x) {
-    COUNT_CALLS(find); // Count recursive calls
-
-    if (parent[x] != x) {
-      parent[x] = find(parent[x]); // Path compression
-    }
-    return parent[x];
-  }
-
-  bool unite(I64 x, I64 y) {
-    PERF_SCOPE("union_operation"); // Automatic performance tracking
-
-    I64 px = find(x), py = find(y);
-
-    debug_if(DEBUG_LEVEL >= 2, "Uniting", x, y, "roots:", px, py);
-
-    if (px == py)
-      return false;
-
-    // Union by rank
-    if (rank[px] < rank[py])
-      swap(px, py);
-
-    parent[py] = px;
-    if (rank[px] == rank[py])
-      rank[px]++;
-
-    components--;
-    debug_if(DEBUG_LEVEL >= 1, "Components now:", components);
-
-    return true;
-  }
-
-  I64 get_components() const { return components; }
-};
-
-void example_union_find() {
-  debug_line();
-  std::cerr << "EXAMPLE 3: Union Find with Performance Tracking\n";
-
-  INT(n, m);
-
-  UnionFind uf(n);
-
-  debug("Processing", m, "edges...");
-
-  FOR(i, m) {
-    INT(u, v);
-
-    PERF_START("edge_processing");
-    bool merged = uf.unite(u, v);
-    PERF_END("edge_processing");
-
-    debug_if(merged, "Merged components via edge", u, "<->", v);
-    debug_if(!merged, "Edge", u, "<->", v, "already connected");
-  }
-
-  debug("Final components:", uf.get_components());
-  OUT("Number of connected components:", uf.get_components());
-}
-
-//===----------------------------------------------------------------------===//
-/* EXAMPLE 4: Advanced Bit Manipulation with C++23 Features */
-
-void example_bit_operations() {
-  debug_line();
-  std::cerr << "EXAMPLE 4: Advanced Bit Operations (C++23)\n";
-
-  INT(n);
-  VEC(unsigned long long, numbers, n);
-
-  debug("Input numbers", numbers);
-
-  FOR(i, n) {
-    U64 num = numbers[i];
-
-    // Modern bit operations
-    I32 bits_set       = popcount(num);
-    I32 width          = bit_width(num);
-    I32 leading_zeros  = countl_zero(num);
-    I32 trailing_zeros = countr_zero(num);
-
-    debug("Number analysis for", num);
-    debug("├─ Bits set:", bits_set);
-    debug("├─ Bit width:", width);
-    debug("├─ Leading zeros:", leading_zeros);
-    debug("└─ Trailing zeros:", trailing_zeros);
-
-    // Iterate through set bits efficiently
-    std::cerr << "Set bits: ";
-    for (I32 bit : bit_range(num)) {
-      std::cerr << bit << " ";
-    }
-    std::cerr << "\n";
-
-    // Iterate through all subsets (if number is small)
-    if (bits_set <= 10) {
-      std::cerr << "Subsets: ";
-      for (U64 subset : subset_range(num)) {
-        std::cerr << subset << " ";
-      }
-      std::cerr << "\n";
-    }
-
-    debug_line();
-  }
-}
-
-//===----------------------------------------------------------------------===//
-/* EXAMPLE 5: String Algorithms with Advanced Debugging */
-
-class StringMatcher {
-private:
-  std::string pattern;
-  VI          lps; // Longest proper prefix-suffix array
-
-  void compute_lps() {
-    PERF_START("lps_computation");
-
-    I64 m = sz(pattern);
-    lps.resize(m, 0);
-
-    I64 len = 0, i = 1;
-
-    while (i < m) {
-      if (pattern[i] == pattern[len]) {
-        len++;
-        lps[i] = len;
-        i++;
-      } else {
-        if (len != 0) {
-          len = lps[len - 1];
-        } else {
-          lps[i] = 0;
-          i++;
-        }
-      }
-    }
-
-    PERF_END("lps_computation");
-    debug("LPS array for pattern", pattern, ":", lps);
-  }
-
-public:
-  StringMatcher(const std::string& pat) : pattern(pat) { compute_lps(); }
-
-  VI find_all_matches(const std::string& text) {
-    PERF_START("kmp_search");
-
-    VI  matches;
-    I64 n = sz(text), m = sz(pattern);
-    I64 i = 0, j = 0;
-
-    debug("Searching pattern", pattern, "in text of length", n);
-
-    while (i < n) {
-      debug_if(DEBUG_LEVEL >= 3, "Comparing", text[i], "with", pattern[j], "at positions", i, j);
-
-      if (pattern[j] == text[i]) {
-        i++;
-        j++;
-      }
-
-      if (j == m) {
-        matches.pb(i - j);
-        debug("Match found at position", i - j);
-        j = lps[j - 1];
-      } else if (i < n && pattern[j] != text[i]) {
-        if (j != 0) {
-          j = lps[j - 1];
-        } else {
-          i++;
-        }
-      }
-    }
-
-    PERF_END("kmp_search");
-    return matches;
-  }
-};
-
-void example_string_matching() {
-  debug_line();
-  std::cerr << "EXAMPLE 5: String Matching with KMP\n";
-
-  STR(text, pattern);
-
-  debug("Text:", text);
-  debug("Pattern:", pattern);
-
-  StringMatcher matcher(pattern);
-  VI            matches = matcher.find_all_matches(text);
-
-  debug("All matches found at positions:", matches);
-
-  if (sz(matches) == 0) {
-    OUT("Pattern not found");
-  } else {
-    OUT("Pattern found at positions:");
-    FOR(pos, sz(matches)) {
-      OUT(matches[pos]);
-    }
-  }
-}
-
-//===----------------------------------------------------------------------===//
-/* EXAMPLE 6: Ultra-Fast I/O Demonstration */
-
-void example_fast_io() {
-  debug_line();
-  std::cerr << "EXAMPLE 6: Ultra-Fast I/O Demonstration\n";
-
-  Timer io_timer("Fast I/O Operations");
-
-  // Read large amounts of data quickly
-  INT(n);
-
-  debug("Reading", n, "integers with ultra-fast I/O...");
-
-  PERF_START("bulk_input");
-  VEC(long long, data, n); // Read n integers quickly
-  PERF_END("bulk_input");
-
-  debug("First 10 elements:", VC<I64>(data.begin(), data.begin() + std::min(10LL, (I64)sz(data))));
-
-  // Fast processing
-  PERF_START("processing");
-  I64 sum = 0;
-  FOR(i, n) {
-    sum += data[i];
-    if (data[i] % 1000000 == 0) {
-      debug_if(DEBUG_LEVEL >= 2, "Large number found at", i, "value", data[i]);
-    }
-  }
-  PERF_END("processing");
-
-  // Fast output
-  PERF_START("bulk_output");
-  OUT("Sum of all elements:", sum);
-  OUT("Average:", sum / n);
-  OUT("Elements processed:", n);
-  PERF_END("bulk_output");
-
-  io_timer.checkpoint("All operations completed");
-}
-
-//===----------------------------------------------------------------------===//
-/* MAIN FUNCTION - Example Selector */
+/* Main Solver Function */
 
 void solve() {
-  INT(example_choice);
-
-  debug("Running example", example_choice);
-
-  switch (example_choice) {
-  case 1:
-    example_shortest_path();
-    break;
-  case 2:
-    example_segment_tree();
-    break;
-  case 3:
-    example_union_find();
-    break;
-  case 4:
-    example_bit_operations();
-    break;
-  case 5:
-    example_string_matching();
-    break;
-  case 6:
-    example_fast_io();
-    break;
-  default:
-    debug_error("Invalid example choice:", example_choice);
-    OUT("Available examples: 1-6");
-    break;
-  }
+  // Otimized solution here
 }
+
+//===----------------------------------------------------------------------===//
+/* Main Function */
 
 auto main() -> int {
 #ifdef LOCAL
-  Timer global_timer("Total Execution");
-  // init_debug_log(); // Redirect debug output to file
-  // std::cerr << "Debug mode enabled - output will be saved to debug_output.txt\n";
-
-  std::cerr << "\n/===---------- MODERN C++23 SYSTEM EXAMPLES ---------===/\n\n";
-  std::cerr << "Choose an example to run (1-6):\n";
-  std::cerr << "   1. Shortest Path with Advanced Debug\n";
-  std::cerr << "   2. Segment Tree with Tree Visualization\n";
-  std::cerr << "   3. Union Find with Performance Tracking\n";
-  std::cerr << "   4. Advanced Bit Operations (C++23)\n";
-  std::cerr << "   5. String Matching with KMP\n";
-  std::cerr << "   6. Ultra-Fast I/O Demonstration\n\n";
-
+  Timer timer;
+  init_debug_log();
 #endif
 
-  solve();
+  INT(T);
+  FOR(T) solve();
 
   return 0;
 }

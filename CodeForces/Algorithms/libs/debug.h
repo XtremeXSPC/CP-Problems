@@ -233,7 +233,7 @@ namespace modern_debug {
     t[0].size();
   } && !StringLike<T>;
 
-  // Source location wrapper for better debugging info
+  // Source location wrapper for better debugging info.
   #ifdef HAS_SOURCE_LOCATION
     using source_location = std::source_location;
   #else
@@ -270,7 +270,7 @@ namespace modern_debug {
     }
     
     void print_stats() const {
-      std::cerr << colors::BRIGHT_BLUE << "\n╭─------ Performance Statistics ------─╮\n" << colors::RESET;
+      std::cerr << colors::BRIGHT_BLUE << "\n╭─-───── Performance Statistics ─────-─╮\n" << colors::RESET;
       for (const auto& [label, duration] : timings) {
         if (label.ends_with("_start")) continue;
         auto ms = std::chrono::duration_cast<std::chrono::microseconds>(duration).count();
@@ -279,7 +279,7 @@ namespace modern_debug {
                   << ": " << colors::YELLOW << ms << "μs" 
                   << colors::DIM << " (" << count << " calls)" << colors::RESET << "\n";
       }
-      std::cerr << colors::BRIGHT_BLUE << "╰────────────---------─────────────────╯\n" << colors::RESET;
+      std::cerr << colors::BRIGHT_BLUE << "╰────────────-───────-─────────────────╯\n" << colors::RESET;
     }
     
     ~PerformanceTracker() {
@@ -314,10 +314,10 @@ namespace modern_debug {
     }
     
     void print_stats() const {
-      std::cerr << colors::BRIGHT_GREEN << "\n╭─------ Memory Statistics ------─╮\n" << colors::RESET;
+      std::cerr << colors::BRIGHT_GREEN << "\n╭─-───── Memory Statistics ─────-─╮\n" << colors::RESET;
       std::cerr << colors::GREEN << "│ Current: " << colors::YELLOW << (allocated_bytes / 1024.0) << " KB\n" << colors::RESET;
       std::cerr << colors::GREEN << "│ Peak:    " << colors::YELLOW << (peak_bytes / 1024.0) << " KB\n" << colors::RESET;
-      std::cerr << colors::BRIGHT_GREEN << "╰───────────------------──────────╯\n" << colors::RESET;
+      std::cerr << colors::BRIGHT_GREEN << "╰──────────-───────────-──────────╯\n" << colors::RESET;
     }
   };
   
@@ -330,10 +330,10 @@ namespace modern_debug {
   //===--------------------------------------------------------------------===//
   //======================= ADVANCED FORMATTING SYSTEM =======================//
   
-  // Thread-local visited pointers for cycle detection
+  // Thread-local visited pointers for cycle detection.
   thread_local std::unordered_set<const void*> visited_pointers;
 
-  // RAII guard for cycle detection
+  // RAII guard for cycle detection.
   class VisitGuard {
     const void* ptr;
     bool inserted;
@@ -343,7 +343,7 @@ namespace modern_debug {
     bool is_cycle() const { return !inserted; }
   };
 
-  // Modern formatter with concept-based dispatch organized by template specificity
+  // Modern formatter with concept-based dispatch organized by template specificity.
   class ModernFormatter {
   private:
     std::ostringstream output;
@@ -352,7 +352,7 @@ namespace modern_debug {
     static constexpr size_t MAX_CONTAINER_ELEMENTS = 100;
     
   public:
-    // Fundamental types - highest specificity
+    // Fundamental types - highest specificity.
     void format_value(bool value) {
       output << colors::BOLD;
       if (value) {
@@ -375,7 +375,7 @@ namespace modern_debug {
       output << colors::DIM << "nullptr" << colors::RESET;
     }
     
-    // Numeric types
+    // Numeric types.
     template<Integral T>
     void format_value(const T& value) 
       requires (!std::same_as<T, char> && !std::same_as<T, bool>) {
@@ -401,7 +401,7 @@ namespace modern_debug {
       }
     }
     
-    // String types - must come before pointer types
+    // String types - must come before pointer types.
     template<StringLike T>
     void format_value(const T& str) 
       requires (!std::same_as<T, char>) {
@@ -409,13 +409,13 @@ namespace modern_debug {
       output << colors::GREEN << "\"" << sv << "\"" << colors::RESET;
     }
     
-    // Bitset - specialized container
+    // Bitset - specialized container.
     template<size_t N>
     void format_value(const std::bitset<N>& bits) {
       output << colors::CYAN << "0b" << bits << colors::RESET;
     }
     
-    // Matrix containers - more specific than general containers
+    // Matrix containers - more specific than general containers.
     template<Matrix T>
     void format_value(const T& matrix) {
       if (depth >= MAX_DEPTH) {
@@ -427,7 +427,7 @@ namespace modern_debug {
       depth--;
     }
     
-    // General iterable containers
+    // General iterable containers.
     template<Container T>
     void format_value(const T& container) 
       requires (!Matrix<T> && !StringLike<T>) {
@@ -440,7 +440,7 @@ namespace modern_debug {
       depth--;
     }
     
-    // Pair types
+    // Pair types.
     template<PairLike T>
     void format_value(const T& pair) {
       output << colors::MAGENTA << "{" << colors::RESET;
@@ -450,7 +450,7 @@ namespace modern_debug {
       output << colors::MAGENTA << "}" << colors::RESET;
     }
     
-    // Tuple types
+    // Tuple types.
     template<TupleLike T>
     void format_value(const T& tuple) 
       requires (!PairLike<T>) {
@@ -459,7 +459,7 @@ namespace modern_debug {
       output << colors::MAGENTA << "}" << colors::RESET;
     }
     
-    // Optional-like types
+    // Optional-like types.
     template<OptionalLike T>
     void format_value(const T& opt) {
       if (opt.has_value()) {
@@ -471,13 +471,13 @@ namespace modern_debug {
       }
     }
     
-    // Smart pointers
+    // Smart pointers.
     template<SmartPointer T>
     void format_value(const T& ptr) {
       format_value(ptr.get());
     }
     
-    // Raw pointers with cycle detection
+    // Raw pointers with cycle detection.
     template<typename T>
     void format_value(T* ptr) 
       requires (!StringLike<T*>) {
@@ -497,7 +497,7 @@ namespace modern_debug {
       output << colors::CYAN << ")" << colors::RESET;
     }
     
-    // Non-copyable containers
+    // Non-copyable containers.
     template<typename T, typename Container>
     void format_value(std::queue<T, Container> queue_copy) {
       output << colors::BLUE << "queue{" << colors::RESET;
@@ -528,7 +528,7 @@ namespace modern_debug {
       output << colors::BLUE << "}" << colors::RESET;
     }
     
-    // Custom structures - constrained to avoid conflicts
+    // Custom structures - constrained to avoid conflicts.
     template<typename T>
     void format_value(const T& value) 
       requires (std::is_class_v<T> && !std::is_polymorphic_v<T> && 
@@ -550,7 +550,7 @@ namespace modern_debug {
       output << "}" << colors::RESET;
     }
     
-    // Fallback for remaining printable types
+    // Fallback for remaining printable types.
     template<Printable T>
     void format_value(const T& value) 
       requires (!Integral<T> && !FloatingPoint<T> && !StringLike<T> && 
