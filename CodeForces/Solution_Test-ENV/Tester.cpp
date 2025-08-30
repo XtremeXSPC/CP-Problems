@@ -14,10 +14,14 @@
 /* Included library */
 
 // clang-format off
+// Compiler optimizations:
 #if defined(__GNUC__) && !defined(__clang__)
   #pragma GCC optimize("Ofast,unroll-loops,fast-math,O3")
+  // x86_64 specific optimizations:
+  #ifdef __x86_64__
+    #pragma GCC target("avx2,bmi,bmi2,popcnt,lzcnt")
+  #endif
   // Apple Silicon optimizations:
-  
   #ifdef __aarch64__
     #pragma GCC target("+simd")
   #endif
@@ -25,59 +29,84 @@
 
 #ifdef __clang__
   #pragma clang optimize on
-    #pragma clang diagnostic push
-    #pragma clang diagnostic ignored "-Wunused-result"
-    // Target-specific optimizations for Clang
-    #ifdef __aarch64__
-      #pragma clang attribute push (__attribute__((target("neon"))), apply_to=function)
-    #elif defined(__x86_64__)
-      #pragma clang attribute push (__attribute__((target("sse4.2,popcnt"))), apply_to=function)
-    #endif
 #endif
 
-// Smart header selection based on compiler and flags:
-#if defined(USE_PCH_FALLBACK) || defined(USE_CLANG_SANITIZE)
-  // Explicitly requested PCH fallback
-  #include "../Algorithms/PCH.h"
-#elif defined(__clang__)
-  // Using Clang, need PCH fallback
-  #include "../Algorithms/PCH.h"
-#elif __has_include(<bits/stdc++.h>)
-  // GCC with bits/stdc++.h available
-  #include <bits/stdc++.h>
+// Sanitaze macro:
+#ifdef USE_CLANG_SANITIZE
+  #include "PCH.h"
 #else
-  // Final fallback
-  #include "../Algorithms/PCH.h"
+  #include <bits/stdc++.h>
+  // Policy-Based Data Structures:
+  #include <ext/pb_ds/assoc_container.hpp>
+  #include <ext/pb_ds/tree_policy.hpp>
 #endif
 
 // Debug macro:
 #ifdef LOCAL
-  #include "../Algorithms/debug.h"
+  #include "../Algorithms/libs/debug.h"
 #else
   #define debug(...) 42
+  #define debug_if(...) 42
+  #define debug_tree(...) 42
+  #define debug_tree_verbose(...) 42
+  #define debug_line() 42
+  #define my_assert(...) 42
+  #define COUNT_CALLS(...) 42
 #endif
-// clang-format on
 
 //===----------------------------------------------------------------------===//
-/* Type Aliases and Constants */
+/* Namespaces and Type Aliases */
 
-// Type aliases
-using ll     = long long;
-using ull    = unsigned long long;
-using ld     = long double;
-using pii    = std::pair<int, int>;
-using pll    = std::pair<long long, long long>;
-using vi     = std::vector<int>;
-using vui    = std::vector<unsigned int>;
-using vll    = std::vector<long long>;
-using vvi    = std::vector<std::vector<int>>;
-using vvll   = std::vector<std::vector<long long>>;
-using vs     = std::vector<std::string>;
-using vpii   = std::vector<std::pair<int, int>>;
-using vpll   = std::vector<std::pair<long long, long long>>;
-using map_ll = std::map<long long, long long>;
+// Type aliases.
+using ll   = long long;
+using ull  = unsigned long long;
+using ld   = long double;
+using U8   = u_int8_t;
+using U16  = u_int16_t;
+using U32  = u_int32_t;
+using U64  = u_int64_t;
+#ifdef __SIZEOF_INT128__
+  using I128 = __int128;
+  using U128 = unsigned __int128;
+#else
+  using I128 = long long;
+  using U128 = unsigned long long;
+#endif
+using I128 = __int128;
+using U128 = unsigned __int128;
+#ifdef __FLOAT128__
+  using F128 = __float128;
+#else
+  using F128 = long double;
+#endif
 
-// Mathematical constants
+// Type aliases for advanced types.
+using P_ii     = std::pair<int, int>;
+using P_ll     = std::pair<long long, long long>;
+using V_b      = std::vector<bool>;
+using V_i      = std::vector<int>;
+using V_ui     = std::vector<unsigned int>;
+using V_ll     = std::vector<long long>;
+using VV_i     = std::vector<V_i>;
+using VV_ll    = std::vector<V_ll>;
+using V_s      = std::vector<std::string>;
+using VV_s     = std::vector<V_s>;
+using VP_ii    = std::vector<P_ii>;
+using VVP_ii   = std::vector<VP_ii>;
+using VP_ll    = std::vector<P_ll>;
+using VT_iii   = std::vector<std::tuple<int, int, int>>;
+using Map_ll   = std::map<long long, long long>;
+using VUMap_il = std::vector<std::unordered_map<int, ll>>;
+
+// Namespace shortcuts.
+using namespace std;
+using namespace __gnu_pbds;
+
+// Ordered set (tree-based) - Supports order_of_key and find_by_order.
+template <typename T>
+using ordered_set = tree<T, null_type, less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
+// Mathematical constants.
 constexpr long double PI   = 3.141592653589793238462643383279502884L;
 constexpr long double E    = 2.718281828459045235360287471352662498L;
 constexpr long double EPS  = 1e-9L;
@@ -86,8 +115,147 @@ constexpr long long   LINF = 0x3f3f3f3f3f3f3f3fLL;
 constexpr int         LIM  = 1000000 + 5;
 constexpr int         MOD  = 1000000007;
 constexpr int         MOD2 = 998244353;
+// clang-format on
 
-using namespace std;
+//===----------------------------------------------------------------------===//
+/* Utility Macros and Functions */
+
+// Useful macros.
+#define overload4(a, b, c, d, e, ...) e
+#define overload3(a, b, c, d, ...) d
+#define FOR_IMPL(i, a, b, s) for (int i = (a); (s) > 0 ? i < (b) : i > (b); i += (s))
+#define FOR2(i, a) FOR_IMPL(i, 0, a, 1)
+#define FOR3(i, a, b) FOR_IMPL(i, a, b, 1)
+#define FOR4(i, a, b, s) FOR_IMPL(i, a, b, s)
+#define FOR(...) overload4(__VA_ARGS__, FOR4, FOR3, FOR2)(__VA_ARGS__)
+#define ROF(i, a, b) for (int i = (b) - 1; i >= (a); --i)
+
+// Common macros
+#define all(x) x.begin(), x.end()
+#define sz(x) (int)x.size()
+#define pb push_back
+#define eb emplace_back
+#define UNIQUE(v) sort(all(v)), v.erase(unique(all(v)), v.end())
+#define LB(c, x) distance((c).begin(), lower_bound(all(c), (x)))
+#define UB(c, x) distance((c).begin(), upper_bound(all(c), (x)))
+
+// Bitwise operations (wrappers for GCC built-ins).
+int popcnt(int x) {
+  return __builtin_popcount(x);
+}
+int popcnt(ll x) {
+  return __builtin_popcountll(x);
+}
+int topbit(int x) {
+  return x == 0 ? -1 : 31 - __builtin_clz(x);
+}
+int topbit(ll x) {
+  return x == 0 ? -1 : 63 - __builtin_clzll(x);
+}
+int lowbit(int x) {
+  return x == 0 ? -1 : __builtin_ctz(x);
+}
+int lowbit(ll x) {
+  return x == 0 ? -1 : __builtin_ctzll(x);
+}
+
+// Min/Max update functions.
+template <class T, class S>
+inline bool chmax(T& a, const S& b) {
+  return (a < b ? a = b, 1 : 0);
+}
+template <class T, class S>
+inline bool chmin(T& a, const S& b) {
+  return (a > b ? a = b, 1 : 0);
+}
+
+// Generic Binary Search.
+template <typename F>
+ll binary_search(F predicate, ll valid_bound, ll invalid_bound) {
+  while (abs(valid_bound - invalid_bound) > 1) {
+    auto mid                                       = (invalid_bound + valid_bound) / 2;
+    (predicate(mid) ? valid_bound : invalid_bound) = mid;
+  }
+  return valid_bound;
+}
+
+//===----------------------------------------------------------------------===//
+/* Math utility functions and Modular Arithmetic */
+
+ll power(ll base, ll exp) {
+  ll res = 1;
+  base %= MOD;
+  while (exp > 0) {
+    if (exp % 2 == 1)
+      res = (res * base) % MOD;
+    base = (base * base) % MOD;
+    exp /= 2;
+  }
+  return res;
+}
+
+ll modInverse(ll n) {
+  return power(n, MOD - 2);
+}
+
+ll gcd(ll a, ll b) {
+  return b == 0 ? a : gcd(b, a % b);
+}
+
+template <int MOD>
+struct modInt {
+  U32 val;
+  constexpr modInt(long long x = 0) : val((x %= MOD) < 0 ? x + MOD : x) {}
+  modInt& operator+=(const modInt& p) {
+    if ((val += p.val) >= MOD)
+      val -= MOD;
+    return *this;
+  }
+  modInt& operator-=(const modInt& p) {
+    if ((val += MOD - p.val) >= MOD)
+      val -= MOD;
+    return *this;
+  }
+  modInt& operator*=(const modInt& p) {
+    val = (unsigned long long)val * p.val % MOD;
+    return *this;
+  }
+  modInt& operator/=(const modInt& p) {
+    *this *= p.inverse();
+    return *this;
+  }
+
+  bool operator==(const modInt& p) const { return val == p.val; }
+  bool operator!=(const modInt& p) const { return val != p.val; }
+
+  modInt operator-() const { return modInt(-val); }
+  modInt operator+(const modInt& p) const { return modInt(*this) += p; }
+  modInt operator-(const modInt& p) const { return modInt(*this) -= p; }
+  modInt operator*(const modInt& p) const { return modInt(*this) *= p; }
+  modInt operator/(const modInt& p) const { return modInt(*this) /= p; }
+
+  modInt inverse() const {
+    int a = val, b = MOD, u = 1, v = 0, t;
+    while (b > 0) {
+      t = a / b;
+      swap(a -= t * b, b);
+      swap(u -= t * v, v);
+    }
+    return modInt(u);
+  }
+  modInt pow(long long n) const {
+    modInt ret(1), mul(val);
+    while (n > 0) {
+      if (n & 1)
+        ret *= mul;
+      mul *= mul;
+      n >>= 1;
+    }
+    return ret;
+  }
+};
+
+using mint = modInt<MOD>;
 
 //===----------------------------------------------------------------------===//
 /* Data Types and Function Definitions */
@@ -582,16 +750,4 @@ int main() {
 }
 
 //===----------------------------------------------------------------------===//
-
-// clang-format off
-// Restore original compiler settings.
-#ifdef __clang__
-    #ifdef __aarch64__
-      #pragma clang attribute pop
-    #elif defined(__x86_64__)
-      #pragma clang attribute pop
-    #endif
-    #pragma clang diagnostic pop
-#endif
-
-//===----------------------------------------------------------------------===//
+/* End of Tester.cpp */

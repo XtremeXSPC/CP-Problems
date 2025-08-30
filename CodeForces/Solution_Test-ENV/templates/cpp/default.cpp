@@ -77,7 +77,7 @@ using namespace std;
 //===----------------------------------------------------------------------===//
 /* Data Types and Function Definitions */
 
-// Function to solve a single test case
+// Function to solve a single test case.
 void solve() {
   // Your solution here
 }
