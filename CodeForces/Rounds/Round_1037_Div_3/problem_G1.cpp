@@ -116,8 +116,8 @@ using PLD = std::pair<ld, ld>;
 template <class T, class U>
 using P = std::pair<T, U>;
 
-using vpii = VC<PII>;
-using vpll = VC<PLL>;
+using VPII = VC<PII>;
+using VPLL = VC<PLL>;
 template <class T, class U>
 using VP = VC<P<T, U>>;
 
@@ -155,32 +155,32 @@ constexpr F80 DEPS = 1e-12L;
 
 // Robust infinity system:
 template <class T>
-constexpr T infty = std::numeric_limits<T>::max() / 4;
+constexpr T infinity = std::numeric_limits<T>::max() / 4;
 
 template <>
-constexpr I32 infty<I32> = 1'010'000'000;
+constexpr I32 infinity<I32> = 1'010'000'000;
 template <>
-constexpr I64 infty<I64> = 2'020'000'000'000'000'000LL;
+constexpr I64 infinity<I64> = 2'020'000'000'000'000'000LL;
 template <>
-constexpr U32 infty<U32> = 2'020'000'000U;
+constexpr U32 infinity<U32> = 2'020'000'000U;
 template <>
-constexpr U64 infty<U64> = 4'040'000'000'000'000'000ULL;
+constexpr U64 infinity<U64> = 4'040'000'000'000'000'000ULL;
 template <>
-constexpr F64 infty<F64> = 1e18;
+constexpr F64 infinity<F64> = 1e18;
 template <>
-constexpr F80 infty<F80> = 1e18L;
+constexpr F80 infinity<F80> = 1e18L;
 
 #ifdef __SIZEOF_INT128__
 template <>
-constexpr I128 infty<I128> = I128(infty<I64>) * 2'000'000'000'000'000'000LL;
+constexpr I128 infinity<I128> = I128(infinity<I64>) * 2'000'000'000'000'000'000LL;
 #endif
 
-constexpr I32 INF32 = infty<I32>;
-constexpr I64 INF64 = infty<I64>;
-constexpr I64 LINF = INF64; // Legacy alias
+constexpr I32 INF32 = infinity<I32>;
+constexpr I64 INF64 = infinity<I64>;
+constexpr I64 LINF  = INF64; // Legacy alias
 
 // Modular arithmetic constants:
-constexpr I64 MOD = 1000000007;
+constexpr I64 MOD  = 1000000007;
 constexpr I64 MOD2 = 998244353;
 constexpr I64 MOD3 = 1000000009;
 
@@ -817,15 +817,13 @@ struct FastIOSetup {
 
 // Function to solve a single test case
 void solve() {
-  int n;
-  std::cin >> n;
-  std::vector<int> a(n);
-  int              min_val = 101; // Constraints are 1 <= a_i <= min(n, 100)
-  int              max_val = 0;
+  INT(n);
+  VEC(int, a, n);
+  int min_val = 101;
+  int max_val = 0;
 
   // Read input array and find global min and max values
   for (int i = 0; i < n; ++i) {
-    std::cin >> a[i];
     if (a[i] < min_val) {
       min_val = a[i];
     }
@@ -875,15 +873,13 @@ void solve() {
 /* Main function */
 
 auto main() -> int {
-  // Fast I/O
-  ios_base::sync_with_stdio(false);
-  cin.tie(nullptr);
+#ifdef LOCAL
+  Timer timer;
+  init_debug_log();
+#endif
 
-  int T = 1;
-  cin >> T;
-  for ([[maybe_unused]] auto _ : views::iota(0, T)) {
-    solve();
-  }
+  INT(T);
+  FOR(T) solve();
 
   return 0;
 }
