@@ -1,11 +1,11 @@
 //===----------------------------------------------------------------------===//
 /**
  * @file: practical_examples.cpp
- * @brief Esempi pratici del sistema moderno in azione
+ * @brief: Practical examples of using the modern debug system in C++23.
  * @author: Costantino Lombardi
  *
- * Questo file contiene esempi reali di come usare il nuovo sistema
- * per problemi tipici di competitive programming
+ * @details: This file demonstrates the usage of the modern debug C++23 system,
+ * including advanced data structures, algorithms, and debugging techniques.
  */
 //===----------------------------------------------------------------------===//
 
@@ -155,28 +155,28 @@ constexpr F80 DEPS = 1e-12L;
 
 // Robust infinity system:
 template <class T>
-constexpr T infty = std::numeric_limits<T>::max() / 4;
+constexpr T infinity = std::numeric_limits<T>::max() / 4;
 
 template <>
-constexpr I32 infty<I32> = 1'010'000'000;
+constexpr I32 infinity<I32> = 1'010'000'000;
 template <>
-constexpr I64 infty<I64> = 2'020'000'000'000'000'000LL;
+constexpr I64 infinity<I64> = 2'020'000'000'000'000'000LL;
 template <>
-constexpr U32 infty<U32> = 2'020'000'000U;
+constexpr U32 infinity<U32> = 2'020'000'000U;
 template <>
-constexpr U64 infty<U64> = 4'040'000'000'000'000'000ULL;
+constexpr U64 infinity<U64> = 4'040'000'000'000'000'000ULL;
 template <>
-constexpr F64 infty<F64> = 1e18;
+constexpr F64 infinity<F64> = 1e18;
 template <>
-constexpr F80 infty<F80> = 1e18L;
+constexpr F80 infinity<F80> = 1e18L;
 
 #ifdef __SIZEOF_INT128__
 template <>
-constexpr I128 infty<I128> = I128(infty<I64>) * 2'000'000'000'000'000'000LL;
+constexpr I128 infinity<I128> = I128(infinity<I64>) * 2'000'000'000'000'000'000LL;
 #endif
 
-constexpr I32 INF32 = infty<I32>;
-constexpr I64 INF64 = infty<I64>;
+constexpr I32 INF32 = infinity<I32>;
+constexpr I64 INF64 = infinity<I64>;
 constexpr I64 LINF = INF64; // Legacy alias
 
 // Modular arithmetic constants:
