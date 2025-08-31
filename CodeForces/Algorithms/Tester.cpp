@@ -1,19 +1,7 @@
-//===----------------------------------------------------------------------===//
-/**
- * @file: __FILE_NAME__
- * @brief Codeforces Round #XXX (Div. X) - Problem Y
- * @author: Costantino Lombardi
- *
- * @status: In Progress
- */
-//===----------------------------------------------------------------------===//
-/* Included library and Compiler Optimizations */
-
 #define NEED_CORE
 #define NEED_IO
-#define NEED_CONTAINERS
 
-#include "templates/base.hpp"
+#include "templates/Base.hpp"
 
 //===----------------------------------------------------------------------===//
 /* Main Solver Function */

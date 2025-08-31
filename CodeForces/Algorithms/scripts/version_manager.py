@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
+
 """
-Version Management System for Competitive Programming Template
+Version Management System for Competitive Programming Template.
 Manages versions, tracks changes, and provides rollback capabilities.
 """
 
@@ -15,6 +16,7 @@ import subprocess
 import difflib
 
 
+# ---------------------------- VERSION MANAGEMENT ---------------------------- #
 class VersionManager:
     def __init__(self, templates_dir: Path):
         self.templates_dir = templates_dir
@@ -234,7 +236,7 @@ int main() { return 0; }
         if not version2_id:
             version2_id = self.metadata["current"]
 
-        # Find versions
+        # Find versions.
         v1_dir = self.versions_dir / version1_id
         v2_dir = (
             self.versions_dir / version2_id
@@ -281,7 +283,7 @@ int main() { return 0; }
 
                     if diff:
                         print(f"\n~ {filename} (modified)")
-                        for line in diff[:50]:  # Show first 50 lines of diff
+                        for line in diff[:50]:  # Show first 50 lines of diff.
                             print(line)
                         if len(diff) > 50:
                             print(f"... and {len(diff) - 50} more lines")

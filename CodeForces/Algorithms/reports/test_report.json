@@ -1,0 +1,125 @@
+{
+  "timestamp": "2025-08-31T19:37:11.438082",
+  "templates_dir": "/Volumes/LCS.Data/CP-Problems/CodeForces/Algorithms/templates",
+  "compiler": "g++-15",
+  "compiler_flags": [
+    "-std=c++23",
+    "-Wall",
+    "-Wextra",
+    "-fsyntax-only"
+  ],
+  "test_results": [
+    {
+      "module": "Types.hpp",
+      "success": true,
+      "error": null,
+      "timestamp": "2025-08-31T19:36:37.079065"
+    },
+    {
+      "module": "Constants.hpp",
+      "success": true,
+      "error": null,
+      "timestamp": "2025-08-31T19:36:39.040502"
+    },
+    {
+      "module": "Macros.hpp",
+      "success": true,
+      "error": null,
+      "timestamp": "2025-08-31T19:36:41.041831"
+    },
+    {
+      "module": "Math.hpp",
+      "success": true,
+      "error": null,
+      "timestamp": "2025-08-31T19:36:43.040601"
+    },
+    {
+      "module": "Bit_Ops.hpp",
+      "success": true,
+      "error": null,
+      "timestamp": "2025-08-31T19:36:45.221522"
+    },
+    {
+      "module": "IO.hpp",
+      "success": true,
+      "error": null,
+      "timestamp": "2025-08-31T19:36:47.266138"
+    },
+    {
+      "module": "Mod_Int.hpp",
+      "success": true,
+      "error": null,
+      "timestamp": "2025-08-31T19:36:49.241068"
+    },
+    {
+      "module": "Containers.hpp",
+      "success": true,
+      "error": null,
+      "timestamp": "2025-08-31T19:36:51.272114"
+    },
+    {
+      "combination": "Basic I/O",
+      "modules": [
+        "NEED_CORE",
+        "NEED_IO"
+      ],
+      "success": true,
+      "error": null,
+      "timestamp": "2025-08-31T19:36:53.305148"
+    },
+    {
+      "combination": "Core + Bit Operations",
+      "modules": [
+        "NEED_CORE",
+        "NEED_BIT_OPS"
+      ],
+      "success": true,
+      "error": null,
+      "timestamp": "2025-08-31T19:36:55.291752"
+    },
+    {
+      "combination": "Core + ModInt",
+      "modules": [
+        "NEED_CORE",
+        "NEED_MOD_INT"
+      ],
+      "success": true,
+      "error": null,
+      "timestamp": "2025-08-31T19:36:57.260509"
+    },
+    {
+      "combination": "Core + Containers",
+      "modules": [
+        "NEED_CORE",
+        "NEED_CONTAINERS"
+      ],
+      "success": true,
+      "error": null,
+      "timestamp": "2025-08-31T19:36:59.279824"
+    },
+    {
+      "combination": "Core + I/O + Containers",
+      "modules": [
+        "NEED_CORE",
+        "NEED_IO",
+        "NEED_CONTAINERS"
+      ],
+      "success": true,
+      "error": null,
+      "timestamp": "2025-08-31T19:37:01.322938"
+    },
+    {
+      "combination": "All modules",
+      "modules": [
+        "NEED_CORE",
+        "NEED_IO",
+        "NEED_BIT_OPS",
+        "NEED_MOD_INT",
+        "NEED_CONTAINERS"
+      ],
+      "success": true,
+      "error": null,
+      "timestamp": "2025-08-31T19:37:03.394469"
+    }
+  ]
+}
