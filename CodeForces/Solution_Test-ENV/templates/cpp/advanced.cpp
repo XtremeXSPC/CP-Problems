@@ -7,7 +7,6 @@
  * @status: In Progress
  */
 //===----------------------------------------------------------------------===//
-/* Included library and Compiler Optimizations */
 
 // clang-format off
 // Compiler optimizations and target-specific features:
