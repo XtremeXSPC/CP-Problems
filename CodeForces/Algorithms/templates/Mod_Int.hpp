@@ -1,5 +1,4 @@
 #pragma once
-#include "Base.hpp"
 #include "Types.hpp"
 #include "Constants.hpp"
 

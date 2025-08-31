@@ -1,7 +1,5 @@
 #pragma once
-#include "Base.hpp"
-#include <ext/pb_ds/assoc_container.hpp>
-#include <ext/pb_ds/tree_policy.hpp>
+#include "Preamble.hpp"
 
 //===----------------------------------------------------------------------===//
 /* Advanced Type System and Aliases */

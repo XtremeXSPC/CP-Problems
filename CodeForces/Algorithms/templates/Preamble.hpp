@@ -1,4 +1,5 @@
 #pragma once
+
 // Compiler optimizations and target-specific features:
 #if defined(__GNUC__) && !defined(__clang__)
   #pragma GCC optimize("Ofast,unroll-loops,fast-math,O3,inline-functions")
