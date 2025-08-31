@@ -41,7 +41,7 @@
 
 // Debug utilities:
 #ifdef LOCAL
-  #include "../Algorithms/debug.h"
+  #include "../Algorithms/libs/debug.h"
 #else
   #define debug(...) 42
   #define debug_if(...) 42
