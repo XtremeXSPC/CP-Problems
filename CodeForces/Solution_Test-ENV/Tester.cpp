@@ -171,12 +171,21 @@ inline bool chmin(T& a, const S& b) {
 
 // Generic Binary Search.
 template <typename F>
-ll binary_search(F predicate, ll valid_bound, ll invalid_bound) {
-  while (abs(valid_bound - invalid_bound) > 1) {
-    auto mid                                       = (invalid_bound + valid_bound) / 2;
-    (predicate(mid) ? valid_bound : invalid_bound) = mid;
+ll binary_search(F&& predicate, ll left, ll right) {
+  while (std::abs(left - right) > 1) {
+    ll mid                          = left + (right - left) / 2; // Avoid overflow
+    (predicate(mid) ? left : right) = mid;
   }
-  return valid_bound;
+  return left;
+}
+
+template <typename F>
+double binary_search_real(F&& predicate, double left, double right, size_t iterations = 100) {
+  for ([[maybe_unused]] auto _ : views::iota(0u, iterations)) {
+    double mid                      = left + (right - left) / 2;
+    (predicate(mid) ? left : right) = mid;
+  }
+  return left + (right - left) / 2;
 }
 
 //===----------------------------------------------------------------------===//

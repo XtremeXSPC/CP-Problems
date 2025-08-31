@@ -11,7 +11,6 @@
 
 #define NEED_CORE
 #define NEED_IO
-#define NEED_BIT_OPS
 #define NEED_CONTAINERS
 
 #include "templates/base.hpp"
@@ -29,7 +28,7 @@ void solve() {
 auto main() -> int {
 #ifdef LOCAL
   Timer timer;
-  init_debug_log();
+  // init_debug_log();
 #endif
 
   INT(T);

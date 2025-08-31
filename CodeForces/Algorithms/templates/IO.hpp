@@ -1,6 +1,6 @@
 #pragma once
-#include "Base.hpp"
 #include "Types.hpp"
+#include "Macros.hpp"
 
 //===----------------------------------------------------------------------===//
 /* Optimized I/O System */
