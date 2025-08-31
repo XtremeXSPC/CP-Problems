@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Module Testing Framework for Competitive Programming Template
+Module Testing Framework for Competitive Programming Template.
 This script automatically tests each module for compilation and functionality.
 """
 
@@ -13,11 +13,12 @@ import json
 from datetime import datetime
 
 
+# ------------------------------ TEST FRAMEWORK ------------------------------ #
 class ModuleTester:
     def __init__(self, templates_dir: Path):
         self.templates_dir = templates_dir
         self.test_results = []
-        self.compiler = "g++"
+        self.compiler = "g++-15"
         self.compiler_flags = ["-std=c++23", "-Wall", "-Wextra", "-fsyntax-only"]
 
     def create_test_file(self, modules: List[str], test_code: str = "") -> str:
@@ -36,7 +37,7 @@ class ModuleTester:
         if "Containers.hpp" in modules or "NEED_CONTAINERS" in modules:
             content.append("#define NEED_CONTAINERS")
 
-        content.append('#include "templates/base.hpp"')
+        content.append('#include "templates/Base.hpp"')
         content.append("")
 
         # Add test code or default main.
@@ -170,7 +171,7 @@ class ModuleTester:
             print(f"{description:30} {status}")
 
             if not success and error:
-                print(f"  Error: {error[:200]}...")
+                print(f"  Error: {error}")
 
             self.test_results.append(
                 {
@@ -269,7 +270,7 @@ def main():
     success = tester.run_all_tests()
 
     # Generate report.
-    report_file = Path("test_report.json")
+    report_file = Path("reports/test_report.json")
     tester.generate_report(report_file)
 
     sys.exit(0 if success else 1)

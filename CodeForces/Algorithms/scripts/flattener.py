@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 import sys
 import re
 from pathlib import Path
@@ -111,7 +112,7 @@ def main():
                 continue
 
             # Replace the base.hpp include with our flattened content.
-            if stripped == '#include "templates/base.hpp"':
+            if stripped == '#include "templates/Base.hpp"':
                 # Remove trailing blank lines from the source file's header section.
                 while output_lines and not output_lines[-1].strip():
                     output_lines.pop()
