@@ -1,18 +1,28 @@
-// problem_A.cpp
-#define COMPETITIVE_TEMPLATE
-#include "algorithms/template.hpp"
+#define NEED_CORE
+#define NEED_IO
+
+#include "templates/Base.hpp"
+
+//===----------------------------------------------------------------------===//
+/* Main Solver Function */
 
 void solve() {
-  INT(n);
-  debug("Input:", n);
-
-  // La sua soluzione qui
-
-  OUT(answer);
+  // Otimized solution here
 }
+
+//===----------------------------------------------------------------------===//
+/* Main Function */
 
 auto main() -> int {
+#ifdef LOCAL
+  Timer timer;
+  // init_debug_log();
+#endif
+
   INT(T);
   FOR(T) solve();
+
   return 0;
 }
+
+//===----------------------------------------------------------------------===//

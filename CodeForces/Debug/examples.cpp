@@ -1,11 +1,12 @@
 //===----------------------------------------------------------------------===//
 /**
- * @file: practical_examples.cpp
- * @brief: Practical examples of using the modern debug system in C++23.
+ * @file: examples.cpp
+ * @brief: Practical examples of advanced debugging system in C++23. 
  * @author: Costantino Lombardi
  *
- * @details: This file demonstrates the usage of the modern debug C++23 system,
- * including advanced data structures, algorithms, and debugging techniques.
+ * @details: This file demonstrates the usage of the advanced debugging system
+ *           with practical examples, including a shortest path algorithm and
+ *           complex data structures with tree visualization.
  */
 //===----------------------------------------------------------------------===//
 

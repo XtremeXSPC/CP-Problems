@@ -44,7 +44,7 @@
 //===----------------------------------------------------------------------===//
 /* Type Aliases and Constants */
 
-// Type aliases
+// Type aliases:
 using ll       = long long;
 using ull      = unsigned long long;
 using ld       = long double;
@@ -65,7 +65,7 @@ using VT_iii   = std::vector<std::tuple<int, int, int>>;
 using Map_ll   = std::map<long long, long long>;
 using VUMap_il = std::vector<std::unordered_map<int, ll>>;
 
-// Mathematical constants
+// Mathematical constants:
 constexpr long double PI   = 3.141592653589793238462643383279502884L;
 constexpr long double E    = 2.718281828459045235360287471352662498L;
 constexpr long double EPS  = 1e-9L;
@@ -75,7 +75,7 @@ constexpr int         LIM  = 1000000 + 5;
 constexpr int         MOD  = 1000000007;
 constexpr int         MOD2 = 998244353;
 
-// Namespaces
+// Namespaces:
 using namespace std;
 using namespace __gnu_pbds;
 
