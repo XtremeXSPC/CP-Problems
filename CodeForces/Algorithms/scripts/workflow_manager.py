@@ -15,6 +15,7 @@ from typing import Dict, List, Optional, Tuple
 import argparse
 
 
+# ----------------------------- WORKFLOW MANAGER ----------------------------- #
 class WorkflowManager:
     def __init__(self, project_root: Path):
         self.project_root = project_root
@@ -95,7 +96,7 @@ class WorkflowManager:
                     "compile_time_impact": "medium",
                 },
                 "string": {
-                    "files": ["String_Algorithms.hpp"],
+                    "files": ["Strings.hpp"],
                     "dependencies": ["core"],
                     "description": "String processing and pattern matching",
                     "features": [
@@ -279,7 +280,7 @@ class WorkflowManager:
         """Get filename for a module."""
         mapping = {
             "graph": "Graph.hpp",
-            "string": "String_Algorithms.hpp",
+            "string": "Strings.hpp",
             "data_structures": "Data_Structures.hpp",
             "number_theory": "Number_Theory.hpp",
             "geometry": "Geometry.hpp",
