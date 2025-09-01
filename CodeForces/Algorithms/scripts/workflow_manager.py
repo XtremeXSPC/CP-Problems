@@ -14,6 +14,12 @@ from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 import argparse
 
+# Use environment variables from "competitive.sh"
+CP_WORKSPACE_ROOT = os.environ.get("CP_WORKSPACE_ROOT", "/Volumes/LCS.Data/CP-Problems")
+CP_ALGORITHMS_DIR = os.environ.get(
+    "CP_ALGORITHMS_DIR", "/Volumes/LCS.Data/CP-Problems/CodeForces/Algorithms"
+)
+
 
 # ----------------------------- WORKFLOW MANAGER ----------------------------- #
 class WorkflowManager:
@@ -72,7 +78,7 @@ class WorkflowManager:
         self.scripts_dir.mkdir(exist_ok=True)
 
         # Setup module registry.
-        self.module_registry_file = self.modules_dir / "registry.json"
+        self.module_registry_file = self.modules_dir / "data/registry.json"
         if not self.module_registry_file.exists():
             self.create_module_registry()
 
@@ -238,7 +244,7 @@ class WorkflowManager:
             lines.append(f"#define {macro}")
 
         lines.append("")
-        lines.append('#include "templates/base.hpp"')
+        lines.append('#include "templates/Base.hpp"')
 
         # Include advanced modules if needed
         for mod in advanced_modules:
