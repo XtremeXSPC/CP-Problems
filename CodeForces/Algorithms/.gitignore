@@ -1,6 +1,7 @@
 build/
 bin/
 lib/
+.template_versions/
 compile_commands.json
 *.DS_Store
 CMakeLists.txt

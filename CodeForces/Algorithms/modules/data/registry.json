@@ -1,0 +1,97 @@
+{
+  "modules": {
+    "graph": {
+      "files": [
+        "Graph.hpp"
+      ],
+      "dependencies": [
+        "core"
+      ],
+      "description": "Graph algorithms and data structures",
+      "features": [
+        "dijkstra",
+        "bellman_ford",
+        "dsu",
+        "lca",
+        "scc",
+        "bridges"
+      ],
+      "size_kb": 15.2,
+      "compile_time_impact": "medium"
+    },
+    "string": {
+      "files": [
+        "Strings.hpp"
+      ],
+      "dependencies": [
+        "core"
+      ],
+      "description": "String processing and pattern matching",
+      "features": [
+        "kmp",
+        "z_algorithm",
+        "manacher",
+        "suffix_array",
+        "rolling_hash",
+        "trie"
+      ],
+      "size_kb": 12.8,
+      "compile_time_impact": "medium"
+    },
+    "data_structures": {
+      "files": [
+        "Data_Structures.hpp"
+      ],
+      "dependencies": [
+        "core"
+      ],
+      "description": "Advanced data structures",
+      "features": [
+        "segment_tree",
+        "fenwick_tree",
+        "sparse_table",
+        "heap",
+        "treap"
+      ],
+      "size_kb": 18.5,
+      "compile_time_impact": "high"
+    },
+    "number_theory": {
+      "files": [
+        "Number_Theory.hpp"
+      ],
+      "dependencies": [
+        "core",
+        "mod_int"
+      ],
+      "description": "Number theory algorithms",
+      "features": [
+        "sieve",
+        "factorization",
+        "euler_phi",
+        "chinese_remainder",
+        "discrete_log"
+      ],
+      "size_kb": 10.3,
+      "compile_time_impact": "low"
+    },
+    "geometry": {
+      "files": [
+        "Geometry.hpp"
+      ],
+      "dependencies": [
+        "core"
+      ],
+      "description": "Computational geometry",
+      "features": [
+        "convex_hull",
+        "line_intersection",
+        "polygon_area",
+        "closest_pair"
+      ],
+      "size_kb": 14.7,
+      "compile_time_impact": "medium"
+    }
+  },
+  "updated": "2025-09-01T15:47:41.583014"
+}
