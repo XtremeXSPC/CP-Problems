@@ -1,22 +1,23 @@
 #pragma once
 #include "Types.hpp"
+#include <numeric>
 
 //===----------------------------------------------------------------------===//
 /* Mathematical Utilities */
 
 // Generic mathematical functions:
 template <typename T>
-[[gnu::always_inline]] constexpr T gcd(T a, T b) {
+[[gnu::always_inline]] constexpr T _gcd(T a, T b) {
   if constexpr (std::is_integral_v<T>) {
-    return b ? gcd(b, a % b) : a;
+    return b ? _gcd(b, a % b) : a;
   } else {
     return std::gcd(a, b);
   }
 }
 
 template <typename T>
-[[gnu::always_inline]] constexpr T lcm(T a, T b) {
-  return a / gcd(a, b) * b;
+[[gnu::always_inline]] constexpr T _lcm(T a, T b) {
+  return a / _gcd(a, b) * b;
 }
 
 // Advanced division operations:
@@ -43,7 +44,7 @@ template <typename T>
 
 // Fast modular exponentiation:
 template <typename T>
-[[gnu::always_inline]] constexpr T power(T base, T exp, T mod = 0) {
+[[gnu::always_inline]] constexpr T _power(T base, T exp, T mod = 0) {
   T result = 1;
   if (mod) base %= mod;
   while (exp > 0) {
@@ -56,12 +57,10 @@ template <typename T>
   return result;
 }
 
-// Min/Max update functions:
 template <class T, class S>
 [[gnu::always_inline]] inline bool chmax(T& a, const S& b) {
   return a < b ? (a = b, true) : false;
 }
-
 
 template <class T, class S>
 [[gnu::always_inline]] inline bool chmin(T& a, const S& b) {
@@ -70,17 +69,17 @@ template <class T, class S>
 
 // Variadic min/max:
 template <typename T>
-constexpr const T& min(const T& a, const T& b) { return (b < a) ? b : a; }
+constexpr const T& _min(const T& a, const T& b) { return (b < a) ? b : a; }
 
 template <typename T>
-constexpr const T& max(const T& a, const T& b) { return (a < b) ? b : a; }
+constexpr const T& _max(const T& a, const T& b) { return (a < b) ? b : a; }
 
 template <typename T, typename... Args>
-constexpr const T& min(const T& a, const T& b, const Args&... args) {
-  return min(a, min(b, args...));
+constexpr const T& _min(const T& a, const T& b, const Args&... args) {
+  return _min(a, _min(b, args...));
 }
 
 template <typename T, typename... Args>
-constexpr const T& max(const T& a, const T& b, const Args&... args) {
-  return max(a, max(b, args...));
+constexpr const T& _max(const T& a, const T& b, const Args&... args) {
+  return _max(a, _max(b, args...));
 }
