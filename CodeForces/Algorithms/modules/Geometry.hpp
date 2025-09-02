@@ -8,11 +8,11 @@
 //===----------------------------------------------------------------------===//
 //====================== Computational Geometry Module =======================//
 
-// 2D Point with common operations
+// 2D Point with common operations.
 template <typename T = F64>
 struct Point2D {
   T x, y;
-  
+
   Point2D(T x = 0, T y = 0) : x(x), y(y) {}
   
   Point2D operator+(const Point2D& p) const { return Point2D(x + p.x, y + p.y); }
@@ -46,14 +46,14 @@ T orientation(const Point2D<T>& a, const Point2D<T>& b, const Point2D<T>& c) {
   return (b - a).cross(c - a);
 }
 
-// Check if point p is on segment [a, b]
+// Check if point p is on segment [a, b].
 template <typename T>
 bool on_segment(const Point2D<T>& p, const Point2D<T>& a, const Point2D<T>& b) {
   return abs((b - a).cross(p - a)) < EPS && 
          (p - a).dot(p - b) <= EPS;
 }
 
-// Line representation: ax + by = c
+// Line representation: "ax + by = c".
 template <typename T = F64>
 struct Line2D {
   T a, b, c;
@@ -78,7 +78,7 @@ struct Line2D {
   }
 };
 
-// Segment intersection
+// Segment intersection.
 template <typename T>
 bool segment_intersect(const Point2D<T>& a, const Point2D<T>& b,
                        const Point2D<T>& c, const Point2D<T>& d,
@@ -116,7 +116,7 @@ bool segment_intersect(const Point2D<T>& a, const Point2D<T>& b,
   return false;
 }
 
-// Polygon (counterclockwise vertices)
+// Polygon (counterclockwise vertices).
 template <typename T = F64>
 struct Polygon {
   VC<Point2D<T>> vertices;
@@ -156,7 +156,7 @@ struct Polygon {
     return true;
   }
   
-  // Point in polygon test (ray casting)
+  // Point in polygon test (ray casting).
   bool contains(const Point2D<T>& p) const {
     I32 n = sz(vertices);
     I32 count = 0;
@@ -182,7 +182,7 @@ struct Polygon {
   }
 };
 
-// Convex Hull using Graham Scan
+// Convex Hull using Graham Scan.
 template <typename T>
 VC<Point2D<T>> convex_hull(VC<Point2D<T>> points) {
   I32 n = sz(points);
@@ -192,7 +192,7 @@ VC<Point2D<T>> convex_hull(VC<Point2D<T>> points) {
   
   VC<Point2D<T>> hull;
   
-  // Lower hull
+  // Lower hull.
   FOR(i, n) {
     while (sz(hull) >= 2 && 
            orientation(hull[sz(hull) - 2], hull.back(), points[i]) <= 0) {
@@ -201,7 +201,7 @@ VC<Point2D<T>> convex_hull(VC<Point2D<T>> points) {
     hull.pb(points[i]);
   }
   
-  // Upper hull
+  // Upper hull.
   I32 lower_size = sz(hull);
   FOR_R(i, n - 1) {
     while (sz(hull) > lower_size && 
@@ -211,11 +211,11 @@ VC<Point2D<T>> convex_hull(VC<Point2D<T>> points) {
     hull.pb(points[i]);
   }
   
-  hull.pop_back();  // Remove duplicate point
+  hull.pop_back();  // Remove duplicate point.
   return hull;
 }
 
-// Closest pair of points (divide and conquer)
+// Closest pair of points (divide and conquer).
 template <typename T>
 std::pair<Point2D<T>, Point2D<T>> closest_pair(VC<Point2D<T>> points) {
   I32 n = sz(points);
@@ -279,7 +279,7 @@ std::pair<Point2D<T>, Point2D<T>> closest_pair(VC<Point2D<T>> points) {
   return solve(0, n);
 }
 
-// Circle
+// Circle.
 template <typename T = F64>
 struct Circle {
   Point2D<T> center;
@@ -294,7 +294,7 @@ struct Circle {
     return (p - center).norm2() <= radius * radius + EPS;
   }
   
-  // Circle from 3 points
+  // Circle from 3 points.
   static Circle from_points(const Point2D<T>& a, const Point2D<T>& b, const Point2D<T>& c) {
     T d = 2 * (a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y));
     if (abs(d) < EPS) return Circle();  // Points are collinear
@@ -308,7 +308,7 @@ struct Circle {
   }
 };
 
-// 3D Point
+// 3D Point.
 template <typename T = F64>
 struct Point3D {
   T x, y, z;
@@ -338,7 +338,7 @@ struct Point3D {
   }
 };
 
-// Plane in 3D: ax + by + cz = d
+// Plane in 3D: "ax + by + cz = d".
 template <typename T = F64>
 struct Plane3D {
   T a, b, c, d;
@@ -361,7 +361,7 @@ struct Plane3D {
   }
 };
 
-// Rotating calipers for diameter of convex polygon
+// Rotating calipers for diameter of convex polygon.
 template <typename T>
 T convex_diameter(const VC<Point2D<T>>& hull) {
   I32 n = sz(hull);
@@ -382,10 +382,10 @@ T convex_diameter(const VC<Point2D<T>>& hull) {
   return max_dist;
 }
 
-// Half-plane intersection (for linear programming in 2D)
+// Half-plane intersection (for linear programming in 2D).
 template <typename T>
 struct HalfPlane {
-  Point2D<T> p1, p2;  // Half-plane to the left of p1->p2
+  Point2D<T> p1, p2;  // Half-plane to the left of p1->p2.
   
   HalfPlane(const Point2D<T>& a, const Point2D<T>& b) : p1(a), p2(b) {}
   

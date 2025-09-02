@@ -678,11 +678,14 @@ namespace modern_debug {
       
       std::cerr << colors::BRIGHT_BLUE << "╭─ " << title << " ─╮\n" << colors::RESET;
       print_node(root, "", true, verbose);
+      /*
       std::cerr << colors::BRIGHT_BLUE << "╰";
       for (size_t i = 0; i < title.length() + 6; ++i) {
         std::cerr << "─";
       }
       std::cerr << "╯\n" << colors::RESET;
+      */
+      std::cerr << "\n" << colors::RESET;
     }
     
     template<TreeNode T>
@@ -876,7 +879,7 @@ namespace modern_debug {
   #define debug_tree(root, ...) \
     do { \
       std::cerr << colors::YELLOW << "\n┌─[" << __FILE__ << ":" << __LINE__ \
-                << " (" << __func__ << ")]─╮\n" << colors::RESET; \
+                << " (" << __func__ << ")]\n" << colors::RESET; \
       modern_debug::TreeVisualizer::print_tree(root, false, #root); \
       std::cerr.flush(); \
     } while(0)
@@ -884,7 +887,7 @@ namespace modern_debug {
   #define debug_tree_verbose(root, ...) \
     do { \
       std::cerr << colors::BRIGHT_YELLOW << "\n┌─[" << __FILE__ << ":" << __LINE__ \
-                << " (" << __func__ << ")]─╮\n" << colors::RESET; \
+                << " (" << __func__ << ")]\n" << colors::RESET; \
       modern_debug::TreeVisualizer::print_tree(root, true, #root " (verbose)"); \
       std::cerr.flush(); \
     } while(0)
