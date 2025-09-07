@@ -7,7 +7,7 @@
 
 // Fast I/O
 namespace fast_io {
-  static constexpr U32 BUFFER_SIZE = 1 << 17; // 128KB buffer
+  static constexpr U32 BUFFER_SIZE = 1 << 17; // 128KB buffer.
   alignas(64) char input_buffer[BUFFER_SIZE];
   alignas(64) char output_buffer[BUFFER_SIZE];
   alignas(64) char number_buffer[128];

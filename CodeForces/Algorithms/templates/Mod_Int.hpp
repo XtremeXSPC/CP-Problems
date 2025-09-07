@@ -11,7 +11,7 @@ struct ModInt {
   U64 value;
 
   static constexpr I64  mod() { return MOD; }
-  static constexpr bool is_prime = true; // Assuming prime modulus for simplicity
+  static constexpr bool is_prime = true; // Assuming prime modulus for simplicity.
 
   constexpr ModInt() : value(0) {}
   constexpr ModInt(I64 x) : value(x >= 0 ? x % MOD : (x % MOD + MOD) % MOD) {}
@@ -59,7 +59,7 @@ struct ModInt {
     if constexpr (is_prime) {
       return pow(MOD - 2);
     } else {
-      // Extended Euclidean algorithm
+      // Extended Euclidean algorithm.
       I64 a = value, b = MOD, u = 1, v = 0;
       while (b > 0) {
         I64 t = a / b;
