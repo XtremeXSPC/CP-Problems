@@ -1,7 +1,7 @@
 //===----------------------------------------------------------------------===//
 /**
- * @file: problem_C.cpp
- * @brief Codeforces Round 1047 Div. 3 - Problem C
+ * @file: problem_D.cpp
+ * @brief Codeforces Round 1047 Div. 3 - Problem D
  * @author: Costantino Lombardi
  *
  * @status: PASSED
@@ -77,38 +77,85 @@ using namespace std;
 //===----------------------------------------------------------------------===//
 /* Data Types and Function Definitions */
 
+// Helper function to group indices by their occurrence values.
+inline auto groupIndicesByValue(const V_i& occurrences) -> VV_i {
+    const int arraySize = occurrences.size();
+    VV_i indexGroups(arraySize + 1);
+    
+    for (int idx = 0; idx < arraySize; ++idx) {
+        indexGroups[occurrences[idx]].push_back(idx);
+    }
+    
+    return indexGroups;
+}
+
+// Validates if the configuration is feasible based on divisibility constraints.
+inline auto isValidConfiguration(const VV_i& indexGroups) -> bool {
+    for (size_t value = 1; value < indexGroups.size(); ++value) {
+        if (!indexGroups[value].empty()) {
+            // Check divisibility constraint.
+            if (indexGroups[value].size() % value != 0) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+// Constructs the result array based on grouped indices and occurrence values.
+inline auto constructResultArray(const VV_i& indexGroups, int arraySize) -> V_i {
+    V_i result(arraySize, 0);
+    int currentLabel = 1;
+    
+    for (size_t occurrenceCount = 1; occurrenceCount < indexGroups.size(); ++occurrenceCount) {
+        if (indexGroups[occurrenceCount].empty()) continue;
+        
+        const auto& indices = indexGroups[occurrenceCount];
+        const int groupSize = static_cast<int>(indices.size());
+        
+        // Process chunks of size occurrenceCount.
+        for (int chunkStart = 0; chunkStart < groupSize; chunkStart += occurrenceCount) {
+            // Assign same label to chunk elements.
+            for (int offset = 0; offset < static_cast<int>(occurrenceCount); ++offset) {
+                result[indices[chunkStart + offset]] = currentLabel;
+            }
+            ++currentLabel;
+        }
+    }
+    
+    return result;
+}
+
 // Function to solve a single test case.
 void solve() {
-    ll initial_a, initial_b;
-    cin >> initial_a >> initial_b;
-
-    bool is_a_odd = initial_a % 2;
-    bool is_b_odd = initial_b % 2;
-
-    // First, check for impossible cases:
-    if ((!is_a_odd && is_b_odd) || (is_a_odd && !is_b_odd && (initial_b % 4 != 0))) {
-        cout << -1 << '\n';
+    int sequenceLength;
+    cin >> sequenceLength;
+    
+    V_i occurrenceArray(sequenceLength);
+    for (auto& elem : occurrenceArray) {
+        cin >> elem;
+    }
+    
+    // Group indices by their occurrence values.
+    auto indexGrouping = groupIndicesByValue(occurrenceArray);
+    
+    // Validate feasibility.
+    if (!isValidConfiguration(indexGrouping)) {
+        cout << "-1\n";
         return;
     }
-
-    // In all other cases, a solution exists.
-    ll sum_candidate_1, sum_candidate_2;
-
-    if (is_a_odd && is_b_odd) {
-        // a odd, b odd. Any odd divisor k works. Check k=1 and k=b.
-        sum_candidate_1 = initial_a + initial_b;
-        sum_candidate_2 = initial_a * initial_b + 1;
-    } else if (!is_a_odd && !is_b_odd) {
-        // a even, b even. Need b/k to be even. Check k=1 and k=b/2.
-        sum_candidate_1 = initial_a + initial_b;
-        sum_candidate_2 = initial_a * (initial_b / 2) + 2;
-    } else {
-        // Need a*k and b/k to be even. Check k=2 and k=b/2.
-        sum_candidate_1 = initial_a * 2 + initial_b / 2;
-        sum_candidate_2 = initial_a * (initial_b / 2) + 2;
+    
+    // Construct and output the result.
+    auto resultSequence = constructResultArray(indexGrouping, sequenceLength);
+    
+    // Output using modern formatting.
+    for (size_t pos = 0; pos < resultSequence.size(); ++pos) {
+        if (pos > 0) cout << ' ';
+        cout << resultSequence[pos];
     }
-
-    cout << max(sum_candidate_1, sum_candidate_2) << '\n';
+    cout << '\n';
+    
+    debug(occurrenceArray, resultSequence);
 }
 
 //===----------------------------------------------------------------------===//

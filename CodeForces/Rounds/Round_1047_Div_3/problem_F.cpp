@@ -1,7 +1,7 @@
 //===----------------------------------------------------------------------===//
 /**
- * @file: problem_C.cpp
- * @brief Codeforces Round 1047 Div. 3 - Problem C
+ * @file: problem_F.cpp
+ * @brief Codeforces Round 1047 Div. 3 - Problem F 
  * @author: Costantino Lombardi
  *
  * @status: PASSED
@@ -77,38 +77,80 @@ using namespace std;
 //===----------------------------------------------------------------------===//
 /* Data Types and Function Definitions */
 
+// Fenwick Tree for range maximum queries.
+struct FenwickMaxTree {
+    int capacity;
+    V_i tree;
+    
+    void initialize(int size) {
+        capacity = size;
+        tree.assign(capacity + 1, 0);
+    }
+    
+    void update(int pos, int val) {
+        for (; pos <= capacity; pos += pos & -pos) {
+            tree[pos] = max(tree[pos], val);
+        }
+    }
+    
+    int query(int pos) {
+        int result = 0;
+        for (; pos > 0; pos -= pos & -pos) {
+            result = max(result, tree[pos]);
+        }
+        return result;
+    }
+};
+
 // Function to solve a single test case.
 void solve() {
-    ll initial_a, initial_b;
-    cin >> initial_a >> initial_b;
-
-    bool is_a_odd = initial_a % 2;
-    bool is_b_odd = initial_b % 2;
-
-    // First, check for impossible cases:
-    if ((!is_a_odd && is_b_odd) || (is_a_odd && !is_b_odd && (initial_b % 4 != 0))) {
-        cout << -1 << '\n';
-        return;
+    int arrayLength;
+    cin >> arrayLength;
+    
+    V_i seqA(arrayLength + 1), seqB(arrayLength + 1);
+    
+    for (int idx = 1; idx <= arrayLength; ++idx) {
+        cin >> seqA[idx];
     }
-
-    // In all other cases, a solution exists.
-    ll sum_candidate_1, sum_candidate_2;
-
-    if (is_a_odd && is_b_odd) {
-        // a odd, b odd. Any odd divisor k works. Check k=1 and k=b.
-        sum_candidate_1 = initial_a + initial_b;
-        sum_candidate_2 = initial_a * initial_b + 1;
-    } else if (!is_a_odd && !is_b_odd) {
-        // a even, b even. Need b/k to be even. Check k=1 and k=b/2.
-        sum_candidate_1 = initial_a + initial_b;
-        sum_candidate_2 = initial_a * (initial_b / 2) + 2;
-    } else {
-        // Need a*k and b/k to be even. Check k=2 and k=b/2.
-        sum_candidate_1 = initial_a * 2 + initial_b / 2;
-        sum_candidate_2 = initial_a * (initial_b / 2) + 2;
+    
+    for (int idx = 1; idx <= arrayLength; ++idx) {
+        cin >> seqB[idx];
     }
-
-    cout << max(sum_candidate_1, sum_candidate_2) << '\n';
+    
+    int maxValue = 2 * arrayLength;
+    auto invertValue = [&](int val) { 
+        return maxValue - val + 1; 
+    };
+    
+    FenwickMaxTree fenwickTree;
+    fenwickTree.initialize(maxValue + 2);
+    
+    ll positiveContribution = 0;
+    ll negativeAdjustment = 0;
+    
+    for (int position = 1; position <= arrayLength; ++position) {
+        // Find last position with value >= a[position].
+        int lastGreaterEqualA = fenwickTree.query(invertValue(seqA[position]));
+        
+        // Update tree with current position for a[position].
+        fenwickTree.update(invertValue(seqA[position]), position);
+        
+        // Find last position with value >= b[position].
+        int lastGreaterEqualB = fenwickTree.query(invertValue(seqB[position]));
+        
+        // Weight is number of subarrays ending at or after position.
+        ll weight = static_cast<ll>(arrayLength - position + 1);
+        
+        // Add contribution for b[position].
+        positiveContribution += weight * static_cast<ll>(lastGreaterEqualB);
+        
+        // Subtract invalid cases when b[position] < a[position].
+        if (seqB[position] < seqA[position]) {
+            negativeAdjustment += weight * static_cast<ll>(position - lastGreaterEqualA);
+        }
+    }
+    
+    cout << (positiveContribution - negativeAdjustment) << '\n';
 }
 
 //===----------------------------------------------------------------------===//
