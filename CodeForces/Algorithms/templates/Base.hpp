@@ -29,7 +29,7 @@
   #include "Bit_Ops.hpp"
 #endif
 
-// Modular arithmetic
+// Modular arithmetic:
 #ifdef NEED_MOD_INT
   #ifndef NEED_CORE
     #include "Types.hpp"

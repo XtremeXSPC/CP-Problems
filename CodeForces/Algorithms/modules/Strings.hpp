@@ -1,5 +1,6 @@
 #pragma once
 #include "../templates/Types.hpp"
+#include "../templates/Math.hpp"
 #include "../templates/Macros.hpp"
 #include "../templates/Constants.hpp"
 #include <algorithm>
@@ -15,7 +16,7 @@ VC<I32> z_algorithm(const std::string& s) {
   
   I32 l = 0, r = 0;
   FOR(i, 1, n) {
-    if (i <= r) z[i] = _min(r - i + 1 , z[i - l]);
+    if (i <= r) z[i] = _min(static_cast<I32>(r - i + 1), z[i - l]);
     while (i + z[i] < n && s[z[i]] == s[i + z[i]]) z[i]++;
     if (i + z[i] - 1 > r) {
       l = i;
@@ -88,7 +89,7 @@ struct Manacher {
       I32 mirror = 2 * center - i;
       
       if (i < right) {
-        p[i] = _min(right - i, p[mirror]);
+        p[i] = _min(static_cast<I32>(right - i), p[mirror]);
       }
       
       // Expand around center 'i'.
