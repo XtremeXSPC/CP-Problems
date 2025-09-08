@@ -78,122 +78,104 @@ using namespace std;
 //===----------------------------------------------------------------------===//
 /* Data Types and Function Definitions */
 
-// Solver class encapsulating the logic for computing maximum beauty.
+// Maximum N size for the problem is 1000.
+const int MAX_NODES = 1001;
+
+// Class to encapsulate the tree and solve the problem.
 class TreeBeautySolver {
 private:
-  int n, num_zeros;
-  VV_i adj;
-  VVV_i dp_costs;
-
-  // Compute minimum costs using post-order DFS.
-  void compute_monochromatic_costs_dfs(int u, int target_beauty) {
-    // Base case: leaf node.
-    if (adj[u].empty()) {
-      dp_costs[u][0][0] = 0;
-      if (target_beauty >= 1) {
-        dp_costs[u][1][1] = 1;
-      }
-      return;
-    }
-
-    // Initialize for node u.
-    dp_costs[u][0][0] = 0;
-
-    // Recursively process children.
-    for (int v : adj[u]) {
-      compute_monochromatic_costs_dfs(v, target_beauty);
-    }
-
-    for (int len = 1; len <= target_beauty; ++len) {
-      // Calculate cost if 'u' is NOT labeled with target color.
-      ll cost_without_label = 0;
-      for (int v : adj[u]) {
-        cost_without_label += min(dp_costs[v][0][len], dp_costs[v][1][len]);
-      }
-      dp_costs[u][0][len] = min((ll)INF, cost_without_label);
-
-      // Calculate cost if 'u' IS labeled with target color.
-      ll cost_with_label = 1;
-      for (int v : adj[u]) {
-        cost_with_label += min(dp_costs[v][0][len - 1], dp_costs[v][1][len - 1]);
-      }
-      dp_costs[u][1][len] = min((ll)INF, cost_with_label);
-    }
-  }
-
-  // Check if given beauty is achievable.
-  bool is_beauty_achievable(int beauty) {
-    if (beauty == 0) return true;
-    if (beauty > n) return false;
-
-    // Initialize DP table.
-    dp_costs.assign(n + 1, VVV_i::value_type(2, V_i(beauty + 1, INF)));
-    compute_monochromatic_costs_dfs(1, beauty);
-
-    const auto& costs_at_root = dp_costs[1];
-    int num_ones = n - num_zeros;
-
-    // Try all possible distributions of zeros and ones.
-    for (int zeros_in_lcs = 0; zeros_in_lcs <= beauty; ++zeros_in_lcs) {
-      int ones_in_lcs = beauty - zeros_in_lcs;
-
-      // Scenario 1: root is labeled '0'.
-      ll cost_zeros = costs_at_root[1][zeros_in_lcs];
-      ll cost_ones = costs_at_root[0][ones_in_lcs];
-      if (cost_zeros <= num_zeros && cost_ones <= num_ones) {
-        return true;
-      }
-
-      // Scenario 2: root is labeled '1'.
-      cost_zeros = costs_at_root[0][zeros_in_lcs];
-      cost_ones = costs_at_root[1][ones_in_lcs];
-      if (cost_zeros <= num_zeros && cost_ones <= num_ones) {
-        return true;
-      }
-    }
-
-    return false;
-  }
+    int n, k;
+    VV_i adj;
 
 public:
-  TreeBeautySolver(int nodes, int zeros) : n(nodes), num_zeros(zeros), adj(nodes + 1) {}
+    TreeBeautySolver(int nodes, int zeros) : n(nodes), k(zeros), adj(nodes + 1) {}
 
-  // Build tree from input.
-  void build_tree() {
-    // Read parent of each node (2 to n).
-    for (int i = 2; i <= n; ++i) {
-      int parent;
-      cin >> parent;
-      adj[parent].push_back(i);
+    void read_tree_structure() {
+        for (int i = 2; i <= n; ++i) {
+            int parent;
+            cin >> parent;
+            adj[parent].push_back(i);
+        }
     }
-  }
 
-  // Binary search to find maximum beauty.
-  int find_maximum_beauty() {
-    // Binary search for maximum achievable beauty.
-    int low = 0, high = n, max_beauty = 0;
+    // Function to find the maximum beauty of the tree.
+    int find_maximum_beauty() {
+        // Step 1: Compute node depths and find the shallowest leaf.
+        V_i depths(n + 1, 0);
+        int min_leaf_depth = n;
 
-    while (low <= high) {
-      int mid_beauty = low + (high - low) / 2;
-      if (is_beauty_achievable(mid_beauty)) {
-        max_beauty = mid_beauty;
-        low = mid_beauty + 1;
-      } else {
-        high = mid_beauty - 1;
-      }
+        queue<int> q;
+        q.push(1);
+        depths[1] = 1;
+
+        int head = 0;
+        vector<int> bfs_q(n);
+        bfs_q[head++] = 1;
+
+        for (int i = 0; i < n; ++i) {
+            int u = bfs_q[i];
+            if (adj[u].empty()) { // Leaf node found.
+                min_leaf_depth = min(min_leaf_depth, depths[u]);
+            }
+            for (int v : adj[u]) {
+                depths[v] = depths[u] + 1;
+                bfs_q[head++] = v;
+            }
+        }
+
+        // Step 2: Collect costs of valid levels using a range pipeline.
+        map<int, int> nodes_per_level;
+        for (int i = 1; i <= n; ++i) {
+            if (depths[i] <= min_leaf_depth) {
+                nodes_per_level[depths[i]]++;
+            }
+        }
+        
+        // Extract level counts, convert to vector, and sort.
+        auto level_costs = nodes_per_level | views::values | ranges::to<V_i>();
+        ranges::sort(level_costs);
+
+        // Step 3: Solve Subset Sum DP using std::bitset.
+        bitset<MAX_NODES> possible_sums;
+        possible_sums[0] = 1; // Sum 0 is always achievable (by picking no levels).
+
+        int max_beauty = 0;
+        ll total_nodes_in_use = 0;
+
+        for (int beauty = 1; beauty <= ssize(level_costs); ++beauty) {
+            total_nodes_in_use += level_costs[beauty - 1];
+
+            // Update achievable sums using the new level's cost (Subset Sum DP transition).
+            possible_sums |= (possible_sums << level_costs[beauty - 1]);
+
+            // Step 4: Check if a valid partition of labels exists.
+            ll min_zeros_needed = max(0LL, total_nodes_in_use - (n - k));
+            ll max_zeros_possible = min((ll)k, total_nodes_in_use);
+
+            if (min_zeros_needed > max_zeros_possible) continue;
+            
+            // Check if any sum in the valid range is achievable.
+            auto valid_range = views::iota(static_cast<size_t>(min_zeros_needed), static_cast<size_t>(max_zeros_possible) + 1);
+            auto result = ranges::find_if(valid_range, [&](size_t i){
+                return i < possible_sums.size() && possible_sums.test(i);
+            });
+
+            if (result != valid_range.end()) {
+                max_beauty = beauty; // A valid partition was found.
+            }
+        }
+        return max_beauty;
     }
-    return max_beauty;
-  }
 };
 
-// Function to solve a single test case.
+// Function to solve each test case.
 void solve() {
-  int n, k;
-  cin >> n >> k;
+    int n, k;
+    cin >> n >> k;
 
-  TreeBeautySolver solver(n, k);
-  solver.build_tree();
-  cout << solver.find_maximum_beauty() << "\n";
+    TreeBeautySolver solver(n, k);
+    solver.read_tree_structure();
+    cout << solver.find_maximum_beauty() << "\n";
 }
 
 //===----------------------------------------------------------------------===//

@@ -77,125 +77,147 @@ using namespace std;
 //===----------------------------------------------------------------------===//
 /* Data Types and Function Definitions */
 
-// Fast exponentiation modulo MOD.
-ll power(ll base, ll exp) {
-    ll res = 1;
-    base %= MOD;
-    while (exp > 0) {
-        if (exp % 2 == 1) res = (res * base) % MOD;
-        base = (base * base) % MOD;
-        exp /= 2;
-    }
-    return res;
-}
+// Reads input and prepares data structures.
+void read_and_prepare_data(int n, int q, V_ll& init_d, 
+               vector<pair<int, ll>>& ops, 
+               map<ll, V_i>& ops_by_d, 
+               V_ll& unique_d) {
+  init_d.resize(n);
+  set<ll> unique_set;
 
-// Modular inverse using Fermat's Little Theorem.
-ll modInverse(ll n) {
-    return power(n, MOD - 2);
-}
-
-// Event structure for sorting initial values and operations.
-struct Event {
-  ll val;
-  int type; // 0: initial, 1: operation.
-  int index;
-
-  bool operator<(const Event& other) const {
-    if (val != other.val) return val < other.val;
-    return type < other.type;
+  for (int i = 0; i < n; ++i) {
+    ll pos;
+    cin >> pos;
+    init_d[i] = pos - (i + 1);
+    unique_set.insert(init_d[i]);
   }
-};
+
+  ops.resize(q);
+  for (int i = 0; i < q; ++i) {
+    cin >> ops[i].first >> ops[i].second;
+    ll d_val = ops[i].second - ops[i].first;
+    ops[i].second = d_val;
+    unique_set.insert(d_val);
+    ops_by_d[d_val].push_back(ops[i].first);
+  }
+
+  unique_d.assign(unique_set.begin(), unique_set.end());
+}
+
+// Precomputes modular inverses.
+V_ll precompute_mod_inverses(int max_val) {
+  V_ll inv(max_val + 1);
+  if (max_val > 0) inv[1] = 1;
+  for (int i = 2; i <= max_val; i++) {
+    inv[i] = MOD - (MOD / i) * inv[MOD % i] % MOD;
+  }
+  return inv;
+}
+
+// Sweep-line algorithm to find expected d-values.
+V_ll calculate_expected_d_values(int n, int q, const V_ll& init_d,
+                 const vector<pair<int, ll>>& ops,
+                 const map<ll, V_i>& ops_by_d,
+                 const V_ll& unique_d,
+                 const V_ll& inv) {
+  V_ll expected(n + 1, 0);
+
+  // Incremental state for sweep-line.
+  V_i ops_ge(n + 1, 0);
+  V_i ops_lt(n + 1, 0);
+  int total_lt = 0;
+
+  // Initialize state for first d-value.
+  if (!unique_d.empty()) {
+    ll v0 = unique_d[0];
+    for (const auto& op : ops) {
+      if (op.second >= v0) ops_ge[op.first]++;
+      else {
+        ops_lt[op.first]++;
+        total_lt++;
+      }
+    }
+  }
+
+  // Sweep through unique d-values.
+  for (size_t l = 0; l < unique_d.size(); ++l) {
+    ll v = unique_d[l];
+
+    if (l > 0) {
+      ll v_prev = unique_d[l - 1];
+      if (auto it = ops_by_d.find(v_prev); it != ops_by_d.end()) {
+        for (int idx : it->second) {
+          ops_ge[idx]--;
+          ops_lt[idx]++;
+          total_lt++;
+        }
+      }
+    }
+
+    int u_sum = 0, d_sum_lt = 0;
+    for (int j = 1; j <= n; ++j) {
+      u_sum += ops_ge[j];
+      int u = u_sum; // Up-ops with index <= j.
+      int d = total_lt - d_sum_lt; // Down-ops with index >= j.
+
+      ll prob_ge = 0;
+      if (u + d == 0) {
+        if (init_d[j - 1] >= v) prob_ge = 1;
+      } else {
+        prob_ge = (static_cast<ll>(u) * inv[u + d]) % MOD;
+      }
+
+      ll delta = (l == 0) ? v : v - unique_d[l - 1];
+      ll term = ((delta % MOD + MOD) % MOD * prob_ge) % MOD;
+      expected[j] = (expected[j] + term) % MOD;
+
+      d_sum_lt += ops_lt[j];
+    }
+  }
+  return expected;
+}
+
+// Calculates final sums and prints result.
+void calculate_and_print_final_sums(int n, int q, const V_ll& expected) {
+  ll q_fact = 1;
+  for (int i = 1; i <= q; ++i) {
+    q_fact = (q_fact * i) % MOD;
+  }
+
+  for (int j = 1; j <= n; ++j) {
+    ll total_d = (q_fact * expected[j]) % MOD;
+    ll pos_offset = (q_fact * j) % MOD;
+    ll final_ans = (total_d + pos_offset) % MOD;
+    cout << (final_ans + MOD) % MOD << (j == n ? "" : " ");
+  }
+  cout << "\n";
+}
 
 // Function to solve a single test case.
 void solve() {
-    int n;
-    ll m;
-    int q;
-    cin >> n >> m >> q;
+  int n;
+  ll m;
+  int q;
+  cin >> n >> m >> q;
 
-    V_ll initial_d(n);
-    V_ll W;
+  V_ll init_d, unique_d;
+  vector<pair<int, ll>> ops;
+  map<ll, V_i> ops_by_d;
+
+  read_and_prepare_data(n, q, init_d, ops, ops_by_d, unique_d);
+
+  if (q == 0) {
     for (int i = 0; i < n; ++i) {
-        ll val;
-        cin >> val;
-        initial_d[i] = val - (i + 1);
-        W.push_back(initial_d[i]);
-    }
-
-    vector<pair<int, ll>> ops(q);
-    for (int i = 0; i < q; ++i) {
-        cin >> ops[i].first >> ops[i].second;
-        ops[i].second -= ops[i].first;
-        W.push_back(ops[i].second);
-    }
-
-    sort(W.begin(), W.end());
-    W.erase(unique(W.begin(), W.end()), W.end());
-
-    V_ll fact(q + 1);
-    fact[0] = 1;
-    for (int i = 1; i <= q; ++i) {
-        fact[i] = (fact[i - 1] * i) % MOD;
-    }
-    ll fact_q = fact[q];
-
-    V_ll total_d_sum(n + 1, 0);
-    ll last_v = 0;
-
-    // Process each unique value in W.
-    for (ll V : W) {
-        ll diff = V - last_v;
-        // Avoid processing same value twice, allow first value.
-        if (diff == 0 && V != W[0]) continue;
-
-        int j0 = n + 1;
-        for (int i = 0; i < n; ++i) {
-            if (initial_d[i] >= V) {
-                j0 = i + 1;
-                break;
-            }
-        }
-
-        V_ll up_counts(n + 1, 0);
-        V_ll down_counts(n + 1, 0);
-        for (const auto& op : ops) {
-            if (op.second >= V) up_counts[op.first]++;
-            else down_counts[op.first]++;
-        }
-
-        V_ll up_prefix(n + 1, 0);
-        V_ll down_suffix(n + 2, 0);
-        for (int k = 1; k <= n; ++k) up_prefix[k] = up_prefix[k - 1] + up_counts[k];
-        for (int k = n; k >= 1; --k) down_suffix[k] = down_suffix[k + 1] + down_counts[k];
-
-        ll diff_mod = (diff % MOD + MOD) % MOD;
-
-        // Calculate contributions for each k.
-        for (int k = 1; k <= n; ++k) {
-            ll rel_u = up_prefix[k];
-            ll rel_d = down_suffix[k]; // Relevant down-ops are at indices >= k.
-            ll M = rel_u + rel_d;
-
-            ll num_perms = 0;
-            if (M == 0) {
-                if (j0 <= k) num_perms = fact_q;
-            } else {
-                num_perms = (((fact_q * rel_u) % MOD) * modInverse(M)) % MOD;
-            }
-
-            ll term = (diff_mod * num_perms) % MOD;
-            total_d_sum[k] = (total_d_sum[k] + term) % MOD;
-        }
-        last_v = V;
-    }
-
-    // Output final results.
-    for (int k = 1; k <= n; ++k) {
-        ll fact_q_k = (fact_q * k) % MOD;
-        ll final_pos_sum = (total_d_sum[k] + fact_q_k) % MOD;
-        cout << (final_pos_sum + MOD) % MOD << (k == n ? "" : " ");
+      ll final_pos = (init_d[i] + (i + 1));
+      cout << (final_pos % MOD + MOD) % MOD << (i == n - 1 ? "" : " ");
     }
     cout << "\n";
+    return;
+  }
+
+  V_ll inv = precompute_mod_inverses(q);
+  V_ll expected = calculate_expected_d_values(n, q, init_d, ops, ops_by_d, unique_d, inv);
+  calculate_and_print_final_sums(n, q, expected);
 }
 
 //===----------------------------------------------------------------------===//
