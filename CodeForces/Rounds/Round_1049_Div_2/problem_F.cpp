@@ -4,7 +4,7 @@
  * @brief Codeforces Round 1049 (Div. 2) - Problem F
  * @author: Costantino Lombardi
  *
- * @status: In Progress
+ * @status: PASSED
  */
 //===----------------------------------------------------------------------===//
 /* Included library */

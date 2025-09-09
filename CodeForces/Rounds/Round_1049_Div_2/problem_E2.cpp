@@ -4,7 +4,7 @@
  * @brief Codeforces Round 1049 (Div. 2) - Problem E2
  * @author: Costantino Lombardi
  *
- * @status: In Progress
+ * @status: PASSED
  */
 //===----------------------------------------------------------------------===//
 /* Included library */
