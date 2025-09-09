@@ -90,7 +90,7 @@ void solve() {
     if (std::lcm(first_num, second_num) == std::max(first_num, second_num)) {
       return 1;
     }
-    
+
     return 2;
   }();
 
