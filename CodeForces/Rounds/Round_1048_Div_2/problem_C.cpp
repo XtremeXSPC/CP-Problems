@@ -79,19 +79,19 @@ using namespace std;
 
 // Function to solve a single test case.
 void solve() {
-  ll k;
+  ll  k;
   ull target_chocola_count;
   cin >> k >> target_chocola_count;
 
   const ull balanced_state = 1ULL << k;
-  
+
   if (target_chocola_count == balanced_state) {
     cout << 0 << "\n\n";
     return;
   }
-  
+
   const ull total_cakes = 1ULL << (k + 1);
-  
+
   // Use deque to insert operations at front, avoiding reversal.
   deque<int> op_sequence;
 
@@ -109,13 +109,13 @@ void solve() {
   }
 
   cout << op_sequence.size() << "\n";
-  
+
   // Print space-separated sequence.
   if (!op_sequence.empty()) {
-      for (size_t i = 0; i < op_sequence.size(); ++i) {
-          if (i > 0) cout << " ";
-          cout << op_sequence[i];
-      }
+    for (size_t i = 0; i < op_sequence.size(); ++i) {
+      if (i > 0) cout << " ";
+      cout << op_sequence[i];
+    }
   }
   cout << "\n";
 }

@@ -94,12 +94,10 @@ void solve() {
   const ll collections_to_perform = min(oven_count, total_seconds);
 
   // Calculate contributions using modern range pipeline.
-  auto contributions_view = 
-    views::iota(0LL, collections_to_perform)
-    | views::transform([&](ll i) {
-        return production_rates[i] * (total_seconds - i);
-      });
-  
+  auto contributions_view = views::iota(0LL, collections_to_perform) | views::transform([&](ll i) {
+                              return production_rates[i] * (total_seconds - i);
+                            });
+
   // Sum all contributions.
   const ll max_cakes = ranges::fold_left(contributions_view, 0LL, plus<ll>());
 

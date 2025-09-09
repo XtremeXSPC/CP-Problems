@@ -82,16 +82,16 @@ using namespace std;
 // Generic Segment Tree for range operations.
 template <typename T, typename U>
 struct SegTree {
-  int n;
+  int       n;
   vector<T> tree;
+
   T neutral;
   U op;
 
-  SegTree(int size, T neutral_val, U merge_op)
-      : n(size), neutral(neutral_val), op(merge_op) {
+  SegTree(int size, T neutral_val, U merge_op) : n(size), neutral(neutral_val), op(merge_op) {
     tree.assign(4 * n, neutral);
   }
-  
+
   void update_recursive(int node, int start, int end, int idx, T val) {
     if (start == end) {
       tree[node] = op(tree[node], val);
@@ -115,13 +115,13 @@ struct SegTree {
       return tree[node];
     }
     int mid = start + (end - start) / 2;
-    T p1 = query_recursive(2 * node, start, mid, l, r);
-    T p2 = query_recursive(2 * node + 1, mid + 1, end, l, r);
+    T   p1  = query_recursive(2 * node, start, mid, l, r);
+    T   p2  = query_recursive(2 * node + 1, mid + 1, end, l, r);
     return op(p1, p2);
   }
 
   void update(int idx, T val) { update_recursive(1, 1, n, idx, val); }
-  T query(int l, int r) { return query_recursive(1, 1, n, l, r); }
+  T    query(int l, int r) { return query_recursive(1, 1, n, l, r); }
 };
 
 // Max operation for segment tree.
@@ -135,7 +135,7 @@ void solve() {
   for (int i = 1; i <= n; ++i) cin >> a[i];
 
   // Calculate L[j]: index of first element to the left > a[j].
-  V_i L(n + 1, 0);
+  V_i        L(n + 1, 0);
   stack<int> st;
   for (int i = 1; i <= n; ++i) {
     while (!st.empty() && a[st.top()] <= a[i]) {
@@ -149,6 +149,8 @@ void solve() {
 
   // Calculate start[k]: max start index of decreasing subsequence (i,j,k) ending at k.
   V_i start_indices(n + 1, 0);
+
+  // Build segment tree on L for fast queries.
   SegTree<int, decltype(max_op)> max_l_tree(n, 0, max_op);
   for (int k = 1; k <= n; ++k) {
     // Find max(L[j]) for all j < k with a[j] > a[k].
@@ -167,17 +169,17 @@ void solve() {
       max_start_tree.update(k, start_indices[k]);
     }
   }
-  
+
   // Answer queries.
   for (int i = 0; i < q; ++i) {
     int l, r;
     cin >> l >> r;
-    
+
     if (r - l < 2) {
       cout << "YES\n";
       continue;
     }
-    
+
     int max_start_in_range = max_start_tree.query(l + 2, r);
 
     if (max_start_in_range >= l) {

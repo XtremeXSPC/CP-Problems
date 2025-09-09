@@ -77,11 +77,13 @@ using namespace std;
 //===----------------------------------------------------------------------===//
 /* Data Types and Function Definitions */
 
+// clang-format off
 // Reads input and prepares data structures.
-void read_and_prepare_data(int n, int q, V_ll& init_d, 
-               vector<pair<int, ll>>& ops, 
-               map<ll, V_i>& ops_by_d, 
-               V_ll& unique_d) {
+void read_data(int n, int q, V_ll& init_d, 
+         vector<pair<int, ll>>& ops, 
+         map<ll, V_i>& ops_by_d, 
+         V_ll& unique_d) {
+  // clang-format on
   init_d.resize(n);
   set<ll> unique_set;
 
@@ -95,7 +97,7 @@ void read_and_prepare_data(int n, int q, V_ll& init_d,
   ops.resize(q);
   for (int i = 0; i < q; ++i) {
     cin >> ops[i].first >> ops[i].second;
-    ll d_val = ops[i].second - ops[i].first;
+    ll d_val      = ops[i].second - ops[i].first;
     ops[i].second = d_val;
     unique_set.insert(d_val);
     ops_by_d[d_val].push_back(ops[i].first);
@@ -105,7 +107,7 @@ void read_and_prepare_data(int n, int q, V_ll& init_d,
 }
 
 // Precomputes modular inverses.
-V_ll precompute_mod_inverses(int max_val) {
+V_ll precompute_mod_inverse(int max_val) {
   V_ll inv(max_val + 1);
   if (max_val > 0) inv[1] = 1;
   for (int i = 2; i <= max_val; i++) {
@@ -114,13 +116,15 @@ V_ll precompute_mod_inverses(int max_val) {
   return inv;
 }
 
+// clang-format off
 // Sweep-line algorithm to find expected d-values.
-V_ll calculate_expected_d_values(int n, int q, const V_ll& init_d,
-                 const vector<pair<int, ll>>& ops,
-                 const map<ll, V_i>& ops_by_d,
-                 const V_ll& unique_d,
-                 const V_ll& inv) {
+V_ll calc_expected(int n, int q, const V_ll& init_d,
+           const vector<pair<int, ll>>& ops,
+           const map<ll, V_i>& ops_by_d,
+           const V_ll& unique_d,
+           const V_ll& inv) {
   V_ll expected(n + 1, 0);
+  // clang-format on
 
   // Incremental state for sweep-line.
   V_i ops_ge(n + 1, 0);
@@ -131,7 +135,8 @@ V_ll calculate_expected_d_values(int n, int q, const V_ll& init_d,
   if (!unique_d.empty()) {
     ll v0 = unique_d[0];
     for (const auto& op : ops) {
-      if (op.second >= v0) ops_ge[op.first]++;
+      if (op.second >= v0)
+        ops_ge[op.first]++;
       else {
         ops_lt[op.first]++;
         total_lt++;
@@ -157,8 +162,8 @@ V_ll calculate_expected_d_values(int n, int q, const V_ll& init_d,
     int u_sum = 0, d_sum_lt = 0;
     for (int j = 1; j <= n; ++j) {
       u_sum += ops_ge[j];
-      int u = u_sum; // Up-ops with index <= j.
-      int d = total_lt - d_sum_lt; // Down-ops with index >= j.
+      int u = u_sum;                // Up-ops with index <= j.
+      int d = total_lt - d_sum_lt;  // Down-ops with index >= j.
 
       ll prob_ge = 0;
       if (u + d == 0) {
@@ -167,8 +172,8 @@ V_ll calculate_expected_d_values(int n, int q, const V_ll& init_d,
         prob_ge = (static_cast<ll>(u) * inv[u + d]) % MOD;
       }
 
-      ll delta = (l == 0) ? v : v - unique_d[l - 1];
-      ll term = ((delta % MOD + MOD) % MOD * prob_ge) % MOD;
+      ll delta    = (l == 0) ? v : v - unique_d[l - 1];
+      ll term     = ((delta % MOD + MOD) % MOD * prob_ge) % MOD;
       expected[j] = (expected[j] + term) % MOD;
 
       d_sum_lt += ops_lt[j];
@@ -178,16 +183,16 @@ V_ll calculate_expected_d_values(int n, int q, const V_ll& init_d,
 }
 
 // Calculates final sums and prints result.
-void calculate_and_print_final_sums(int n, int q, const V_ll& expected) {
+void print_result(int n, int q, const V_ll& expected) {
   ll q_fact = 1;
   for (int i = 1; i <= q; ++i) {
     q_fact = (q_fact * i) % MOD;
   }
 
   for (int j = 1; j <= n; ++j) {
-    ll total_d = (q_fact * expected[j]) % MOD;
+    ll total_d    = (q_fact * expected[j]) % MOD;
     ll pos_offset = (q_fact * j) % MOD;
-    ll final_ans = (total_d + pos_offset) % MOD;
+    ll final_ans  = (total_d + pos_offset) % MOD;
     cout << (final_ans + MOD) % MOD << (j == n ? "" : " ");
   }
   cout << "\n";
@@ -196,15 +201,15 @@ void calculate_and_print_final_sums(int n, int q, const V_ll& expected) {
 // Function to solve a single test case.
 void solve() {
   int n;
-  ll m;
+  ll  m;
   int q;
   cin >> n >> m >> q;
 
-  V_ll init_d, unique_d;
+  V_ll                  init_d, unique_d;
   vector<pair<int, ll>> ops;
-  map<ll, V_i> ops_by_d;
+  map<ll, V_i>          ops_by_d;
 
-  read_and_prepare_data(n, q, init_d, ops, ops_by_d, unique_d);
+  read_data(n, q, init_d, ops, ops_by_d, unique_d);
 
   if (q == 0) {
     for (int i = 0; i < n; ++i) {
@@ -215,9 +220,9 @@ void solve() {
     return;
   }
 
-  V_ll inv = precompute_mod_inverses(q);
-  V_ll expected = calculate_expected_d_values(n, q, init_d, ops, ops_by_d, unique_d, inv);
-  calculate_and_print_final_sums(n, q, expected);
+  V_ll inv      = precompute_mod_inverse(q);
+  V_ll expected = calc_expected(n, q, init_d, ops, ops_by_d, unique_d, inv);
+  print_result(n, q, expected);
 }
 
 //===----------------------------------------------------------------------===//
