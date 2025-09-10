@@ -223,7 +223,7 @@ namespace Math {
 /* Main function */
 
 auto main() -> int {
-  // Fast I/O
+  // Solution orchestrator.
   Math::Solution solution;
   solution.run();
   return 0;
