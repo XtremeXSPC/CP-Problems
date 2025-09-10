@@ -100,6 +100,15 @@ if(CP_ENABLE_TIMING)
   endif()
 endif()
 
+# ------------------- TBB for Parallel Algorithms Support -------------------- #
+# Find TBB to enable support for C++ parallel algorithms (std::execution::par).
+find_package(TBB QUIET)
+if(TBB_FOUND)
+    message(STATUS "${ANSI_COLOR_GREEN}Found TBB, parallel algorithms support enabled.${ANSI_COLOR_RESET}")
+else()
+    message(WARNING "${ANSI_COLOR_YELLOW}TBB not found. Linking with parallel execution policies may fail.${ANSI_COLOR_RESET}")
+endif()
+
 # ---------------------------- LTO Configuration ----------------------------- #
 option(CP_ENABLE_LTO "Enable Link Time Optimization (if supported)" OFF)
 
@@ -334,7 +343,6 @@ endif()
 
 function(cp_add_problem TARGET_NAME SOURCE_FILE)
     add_executable(${TARGET_NAME} ${SOURCE_FILE})
-    
     # Set C++23 standard for the target.
     set_target_properties(${TARGET_NAME} PROPERTIES
         CXX_STANDARD 23
@@ -351,6 +359,11 @@ function(cp_add_problem TARGET_NAME SOURCE_FILE)
         set(USE_PCH TRUE)
     endif()
 
+    # Link with TBB for parallel algorithm support, if found.
+    if(TBB_FOUND)
+        target_link_libraries(${TARGET_NAME} PRIVATE TBB::tbb)
+    endif()
+    
     # ----- Target-specific compiler definitions ----- #
     target_compile_definitions(${TARGET_NAME} PRIVATE
       # Define LOCAL for debug builds.

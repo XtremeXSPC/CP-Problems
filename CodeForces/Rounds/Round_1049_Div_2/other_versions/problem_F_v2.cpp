@@ -4,7 +4,7 @@
  * @brief Codeforces Round 1049 (Div. 2) - Problem F
  * @author: Costantino Lombardi
  *
- * @status: In Progress
+ * @status: Compilation Error.
  */
 //===----------------------------------------------------------------------===//
 /* Included library */
@@ -28,6 +28,7 @@
   #include "PCH.h"
 #else
   #include <bits/stdc++.h>
+  #include <execution>
 #endif
 
 // Debug macro:
@@ -113,6 +114,28 @@ namespace Math {
       return ranges::fold_left(elements, ValueType{0}, plus<>{});
     }
 
+    // Check modular consistency using ranges algorithms.
+    [[nodiscard]] constexpr auto check_modular_consistency(
+        span<const ValueType> sorted_elements, size_t k) const noexcept -> bool {
+      if (sorted_elements.size() < 2) return true;
+
+      const auto reference_remainder = sorted_elements[1] % k;
+
+      // Using ranges::all_of with projection.
+      return ranges::all_of(sorted_elements.subspan(1), [reference_remainder, k](const auto& elem) {
+        return elem % k == reference_remainder;
+      });
+    }
+
+    // Calculate residue for given k.
+    [[nodiscard]] constexpr auto calculate_residue(
+        span<const ValueType> sorted_elements, size_t k) const noexcept -> ValueType {
+      if (k == size) {
+        return sum % k;
+      }
+      return (sorted_elements[0] + (k - 1) * sorted_elements[1]) % k;
+    }
+
    public:
     // Constructor.
     template <ranges::input_range Range>
@@ -128,58 +151,69 @@ namespace Math {
     ArrayMinimizer(ArrayMinimizer&&)                 = default;
     ArrayMinimizer& operator=(ArrayMinimizer&&)      = default;
 
-    // Function to solve a single test case.
+    // Main solving function using modern return types.
     [[nodiscard]] auto solve() -> SolutionResult<ValueType> {
-      // Special case: single element array.
+      // Edge case: single element.
       if (size == 1) {
         return sum;
       }
 
-      // Sort the array for modular analysis.
-      ranges::sort(elements);
+      // Sort using parallel execution policy for large arrays.
+      if (size > 10000) {
+        sort(std::execution::par_unseq, elements.begin(), elements.end());
+      } else {
+        ranges::sort(elements);
+      }
+
+      // Create span for efficient access.
       span<const ValueType> sorted_span{elements};
 
-      // Phase 1: Check modular consistency with a hybrid approach.
-      const auto phase1_limit = min(size - 1, MAX_CHECK_LIMIT);
-      for (size_t k = 2; k <= phase1_limit; ++k) {
-        const auto reference_remainder = sorted_span[1] % k;
-        // Check all elements from second onwards.
-        if (ranges::any_of(sorted_span.subspan(1), [&](const auto& elem) {
-              return (elem % k) != reference_remainder;
-            })) {
+      // Phase 1: Check modular patterns using ranges.
+      const auto check_limit = min(size - 1, MAX_CHECK_LIMIT);
+
+      for (const auto k : views::iota(2UZ, check_limit + 1)) {
+        if (!check_modular_consistency(sorted_span, k)) {
           return unexpected(ReductionResult::InfiniteReduction);
         }
       }
 
       // Phase 2: Calculate and verify final residue.
       const ValueType base_residue = (sorted_span[0] + sorted_span[1]) % 2;
-      const auto      phase2_limit = min(size, MAX_CHECK_LIMIT);
-      for (size_t k = 2; k <= phase2_limit; ++k) {
-        const ValueType current_residue =
-            (k == size) ? (sum % k) : ((sorted_span[0] + (k - 1) * sorted_span[1]) % k);
+
+      // Using ranges::for_each with early termination.
+      optional<ReductionResult> error;
+
+      ranges::for_each(views::iota(2UZ, min(size, MAX_CHECK_LIMIT) + 1), [&](size_t k) {
+        if (error.has_value()) return;
+
+        const auto current_residue = calculate_residue(sorted_span, k);
         if (current_residue != base_residue) {
-          return unexpected(ReductionResult::InfiniteReduction);
+          error = ReductionResult::InfiniteReduction;
         }
+      });
+
+      if (error.has_value()) {
+        return unexpected(*error);
       }
 
       return sum - base_residue;
     }
   };
 
-  // Factory function for ArrayMinimizer.
+  // Factory function using deduction guides.
   template <ranges::input_range Range>
   auto make_minimizer(Range&& range) {
     using ValueType = ranges::range_value_t<Range>;
     return ArrayMinimizer<ValueType>(std::forward<Range>(range));
   }
 
-  // Solution orchestrator class.
+  // Solution wrapper using structured bindings and monadic operations.
   class Solution {
    private:
     size_t test_cases;
 
     // Process single test case using coroutine-like style.
-    void solve_test_case() {
+    void process_test_case() {
       size_t n;
       cin >> n;
 
@@ -213,7 +247,7 @@ namespace Math {
       cin >> test_cases;
 
       // Process all test cases in parallel.
-      ranges::for_each(views::iota(0UZ, test_cases), [this](auto) { solve_test_case(); });
+      ranges::for_each(views::iota(0UZ, test_cases), [this](auto) { process_test_case(); });
     }
   };
 

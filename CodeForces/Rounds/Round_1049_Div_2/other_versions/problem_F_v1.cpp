@@ -4,7 +4,7 @@
  * @brief Codeforces Round 1049 (Div. 2) - Problem F
  * @author: Costantino Lombardi
  *
- * @status: In Progress
+ * @status: PASSED
  */
 //===----------------------------------------------------------------------===//
 /* Included library */
@@ -79,37 +79,37 @@ using namespace std;
 
 namespace Math {
 
-  // Type aliases using concepts.
+  // Type aliases for clarity and consistency.
+  using I64   = int64_t;
+  using usize = size_t;
+
   template <integral T>
   using Vector = vector<T>;
 
   // Concepts for template constraints.
   template <typename T>
-  concept Arithmetic = is_arithmetic_v<T>;
-
-  template <typename T>
   concept IntegralType = integral<T> && !same_as<T, bool>;
 
   // Constants.
-  inline constexpr size_t MAX_CHECK_LIMIT    = 100;
-  inline constexpr auto   INFINITE_REDUCTION = -1LL;
+  inline constexpr usize MAX_CHECK_LIMIT    = 100;
+  inline constexpr I64   INFINITE_REDUCTION = -1;
 
-  // Result type using expected for error handling.
+  // Result type using expected for modern error handling.
   enum class ReductionResult : int8_t { FiniteReduction, InfiniteReduction };
 
   template <IntegralType T>
   using SolutionResult = expected<T, ReductionResult>;
 
   // Core algorithm implementation.
-  template <IntegralType ValueType = int64_t>
+  template <IntegralType ValueType = I64>
   class ArrayMinimizer {
    private:
     Vector<ValueType> elements;
-    ValueType         sum{0};
-    size_t            size{0};
+    ValueType         total_sum{0};
+    usize             n{0};
 
     // Helper function to calculate the sum.
-    [[nodiscard]] constexpr auto calculate_sum() const noexcept -> ValueType {
+    [[nodiscard]] auto compute_sum() const noexcept -> ValueType {
       return ranges::fold_left(elements, ValueType{0}, plus<>{});
     }
 
@@ -117,113 +117,113 @@ namespace Math {
     // Constructor.
     template <ranges::input_range Range>
       requires convertible_to<ranges::range_value_t<Range>, ValueType>
-    explicit ArrayMinimizer(Range&& input_range) :
-        elements(ranges::begin(input_range), ranges::end(input_range)), size(elements.size()) {
-      sum = calculate_sum();
+    explicit ArrayMinimizer(Range&& input) :
+        elements(ranges::begin(input), ranges::end(input)), n(elements.size()) {
+      total_sum = compute_sum();
     }
-
-    // Deleted copy, enabled move.
-    ArrayMinimizer(const ArrayMinimizer&)            = delete;
-    ArrayMinimizer& operator=(const ArrayMinimizer&) = delete;
-    ArrayMinimizer(ArrayMinimizer&&)                 = default;
-    ArrayMinimizer& operator=(ArrayMinimizer&&)      = default;
 
     // Function to solve a single test case.
     [[nodiscard]] auto solve() -> SolutionResult<ValueType> {
       // Special case: single element array.
-      if (size == 1) {
-        return sum;
+      if (n == 1) {
+        return total_sum;
       }
 
       // Sort the array for modular analysis.
       ranges::sort(elements);
-      span<const ValueType> sorted_span{elements};
 
-      // Phase 1: Check modular consistency with a hybrid approach.
-      const auto phase1_limit = min(size - 1, MAX_CHECK_LIMIT);
-      for (size_t k = 2; k <= phase1_limit; ++k) {
-        const auto reference_remainder = sorted_span[1] % k;
+      // Phase 1: Check modular consistency.
+      const usize phase1_limit = min(n - 1, MAX_CHECK_LIMIT);
+
+      for (usize k = 2; k < n && k <= MAX_CHECK_LIMIT; ++k) {
+        // Use second smallest element as reference (index 1).
+        const ValueType reference_mod = elements[1] % k;
+
         // Check all elements from second onwards.
-        if (ranges::any_of(sorted_span.subspan(1), [&](const auto& elem) {
-              return (elem % k) != reference_remainder;
-            })) {
-          return unexpected(ReductionResult::InfiniteReduction);
+        for (usize j = 1; j < n; ++j) {
+          if (static_cast<ValueType>(elements[j] % k) != reference_mod) {
+            // Different remainders indicate infinite reduction possible.
+            return unexpected(ReductionResult::InfiniteReduction);
+          }
         }
       }
 
-      // Phase 2: Calculate and verify final residue.
-      const ValueType base_residue = (sorted_span[0] + sorted_span[1]) % 2;
-      const auto      phase2_limit = min(size, MAX_CHECK_LIMIT);
-      for (size_t k = 2; k <= phase2_limit; ++k) {
-        const ValueType current_residue =
-            (k == size) ? (sum % k) : ((sorted_span[0] + (k - 1) * sorted_span[1]) % k);
+      // Phase 2: Calculate and verify the final residue.
+      const ValueType base_residue = (elements[0] + elements[1]) % 2;
+
+      // Verify consistency across different k values (now including k=n).
+      const usize phase2_limit = min(n, MAX_CHECK_LIMIT);
+
+      for (usize k = 2; k <= phase2_limit; ++k) {
+        ValueType current_residue;
+
+        if (k == n) {
+          // Special case: when k equals array size.
+          current_residue = total_sum % k;
+        } else {
+          // General formula using two smallest elements.
+          current_residue = (elements[0] + (k - 1) * elements[1]) % k;
+        }
+
         if (current_residue != base_residue) {
+          // Inconsistent residue indicates infinite reduction.
           return unexpected(ReductionResult::InfiniteReduction);
         }
       }
 
-      return sum - base_residue;
+      // Minimum achievable sum is total minus the base residue.
+      return total_sum - base_residue;
     }
   };
-
-  // Factory function for ArrayMinimizer.
-  template <ranges::input_range Range>
-  auto make_minimizer(Range&& range) {
-    using ValueType = ranges::range_value_t<Range>;
-    return ArrayMinimizer<ValueType>(std::forward<Range>(range));
-  }
 
   // Solution orchestrator class.
   class Solution {
    private:
-    size_t test_cases;
-
-    // Process single test case using coroutine-like style.
+    // Process a single test case.
     void solve_test_case() {
-      size_t n;
+      usize n;
       cin >> n;
 
       // Read array elements.
-      Vector<int64_t> values(n);
+      Vector<I64> values(n);
       for (auto& val : values) {
         cin >> val;
       }
 
-      // Create minimizer and solve.
-      auto minimizer = make_minimizer(values);
-      auto result    = minimizer.solve();
+      // Create minimizer and compute result.
+      ArrayMinimizer<I64> minimizer(values);
+      auto                result = minimizer.solve();
 
-      // Pattern matching on result using expected.
-      result
-          .transform([](auto value) {
-            cout << value << '\n';
-            return value;
-          })
-          .or_else([](auto) {
-            cout << INFINITE_REDUCTION << '\n';
-            return SolutionResult<int64_t>{INFINITE_REDUCTION};
-          });
+      // Output result using monadic operations.
+      if (result.has_value()) {
+        cout << result.value() << '\n';
+      } else {
+        cout << INFINITE_REDUCTION << '\n';
+      }
     }
 
    public:
     void run() {
+      // Fast I/O setup.
       ios_base::sync_with_stdio(false);
       cin.tie(nullptr);
 
-      cin >> test_cases;
+      usize test_count;
+      cin >> test_count;
 
-      // Process all test cases in parallel.
-      ranges::for_each(views::iota(0UZ, test_cases), [this](auto) { solve_test_case(); });
+      // Process each test case.
+      while (test_count--) {
+        solve_test_case();
+      }
     }
   };
-
 }  // namespace Math
 
 //===----------------------------------------------------------------------===//
 /* Main function */
 
 auto main() -> int {
-  // Solution orchestrator.
+  // Fast I/O
   Math::Solution solution;
   solution.run();
   return 0;

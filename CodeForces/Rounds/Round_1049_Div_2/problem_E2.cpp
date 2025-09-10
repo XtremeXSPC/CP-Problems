@@ -169,17 +169,17 @@ void solve() {
     return;
   }
 
-  // Precompute available moves for each pile size.
+  // Precompute valid moves per game size.
   VV_i moves_by_size(n + 1);
   for (int p = 1; p <= n; ++p) {
     for (int move : good_indices)
       if (move <= p) moves_by_size[p].push_back(move);
   }
 
-  // DP to determine winning/losing states.
-  V_c dp_prev_level = {0, 1};
+  // DP: dp[p][S] = Alice wins from size p with config S.
+  V_b dp_prev_level = {false, true};
   for (int p = 2; p <= n; ++p) {
-    V_c         dp_current_level(1u << p);
+    V_b         dp_current_level(1u << p);
     const bool  is_alice_turn   = ((n - p) % 2 == 0);
     const auto& available_moves = moves_by_size[p];
 
@@ -188,13 +188,15 @@ void solve() {
                              return (bool)dp_prev_level[get_next_mask(S, move)];
                            });
       if (is_alice_turn)
+        // Alice wins if ANY move leads to win.
         dp_current_level[S] = ranges::any_of(outcomes_view, identity{});
       else
+        // Alice wins only if ALL Bob's moves lead to win.
         dp_current_level[S] = ranges::all_of(outcomes_view, identity{});
     }
     dp_prev_level.swap(dp_current_level);
   }
-  const V_c& winning_masks = dp_prev_level;
+  const V_b& winning_masks = dp_prev_level;
 
   // Count winning masks by population count.
   V_ll winning_masks_by_popcount(n + 1, 0);
