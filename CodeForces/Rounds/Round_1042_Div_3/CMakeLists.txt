@@ -468,6 +468,47 @@ function(cp_add_problem TARGET_NAME SOURCE_FILE)
         # Strip symbols in release.
         $<$<CONFIG:Release>:-s>
     )
+        
+    # ----- Platform-specific linking for std::stacktrace ----- #
+    # Check for stacktrace support and required libraries
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND NOT APPLE)
+        # Test if stacktrace libraries are available
+        include(CheckCXXSourceCompiles)
+        set(CMAKE_REQUIRED_FLAGS "-std=c++22")
+        set(CMAKE_REQUIRED_LIBRARIES "stdc++_libbacktrace")
+        
+        check_cxx_source_compiles(
+            "#include <stacktrace>
+             int main() { 
+                 auto trace = std::stacktrace::current(); 
+                 return trace.size(); 
+             }" 
+            STACKTRACE_WORKS
+        )
+        
+        if(STACKTRACE_WORKS)
+            target_link_libraries(${TARGET_NAME} PRIVATE stdc++_libbacktrace)
+            message(STATUS "Stacktrace support enabled for ${TARGET_NAME}")
+        else()
+            target_compile_definitions(${TARGET_NAME} PRIVATE _GLIBCXX_STACKTRACE_DISABLED)
+            message(STATUS "Stacktrace support disabled for ${TARGET_NAME} (libraries not found)")
+        endif()
+        
+        # Reset CMAKE_REQUIRED_* variables
+        unset(CMAKE_REQUIRED_FLAGS)
+        unset(CMAKE_REQUIRED_LIBRARIES)
+    endif()
+    
+    # Additional linking for debug builds
+    if(CMAKE_BUILD_TYPE MATCHES "Debug|Sanitize")
+        if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND NOT APPLE)
+            # Try to link additional debug libraries if available
+            find_library(BACKTRACE_LIB backtrace)
+            if(BACKTRACE_LIB)
+                target_link_libraries(${TARGET_NAME} PRIVATE ${BACKTRACE_LIB})
+            endif()
+        endif()
+    endif()
     
     if(USE_PCH)
         set(PCH_STATUS "Yes")
