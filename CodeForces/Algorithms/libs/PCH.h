@@ -459,83 +459,86 @@
 //===----------------------------------------------------------------------===//
 //================== ENHANCED COMPETITIVE PROGRAMMING TYPES ==================//
 
-// Modern type aliases with explicit semantics.
-using I8  = std::int8_t;
-using I16 = std::int16_t;
-using I32 = std::int32_t;
-using I64 = std::int64_t;
-using U8  = std::uint8_t;
-using U16 = std::uint16_t;
-using U32 = std::uint32_t;
-using U64 = std::uint64_t;
+#ifndef __TYPES__
+#define __TYPES__
+  // Type aliases with explicit semantics.
+  using I8  = std::int8_t;
+  using I16 = std::int16_t;
+  using I32 = std::int32_t;
+  using I64 = std::int64_t;
+  using U8  = std::uint8_t;
+  using U16 = std::uint16_t;
+  using U32 = std::uint32_t;
+  using U64 = std::uint64_t;
 
-// Extended precision types.
-#ifdef __SIZEOF_INT128__
-    using I128 = __int128;
-    using U128 = unsigned __int128;
-    #define HAS_INT128 1
-#else
-    using I128 = I64;
-    using U128 = U64;
-    #define HAS_INT128 0
+  // Extended precision types.
+  #ifdef __SIZEOF_INT128__
+      using I128 = __int128;
+      using U128 = unsigned __int128;
+      #define HAS_INT128 1
+  #else
+      using I128 = I64;
+      using U128 = U64;
+      #define HAS_INT128 0
+  #endif
+
+  // Floating point types.
+  using F32 = float;
+  using F64 = double;
+  using F80 = long double;
+
+  #ifdef __FLOAT128__
+      using F128 = __float128;
+      #define HAS_FLOAT128 1
+  #else
+      using F128 = F80;
+      #define HAS_FLOAT128 0
+  #endif
+
+  // Legacy compatibility aliases.
+  using ll  = I64;
+  using ull = U64;
+  using ld  = F80;
+
+  // Container type aliases.
+  template<class T> using Vec = std::vector<T>;
+  template<class T> using Deque = std::deque<T>;
+  template<class T> using List = std::list<T>;
+  template<class T> using Set = std::set<T>;
+  template<class T> using MultiSet = std::multiset<T>;
+  template<class T> using UnorderedSet = std::unordered_set<T>;
+  template<class K, class V> using Map = std::map<K, V>;
+  template<class K, class V> using MultiMap = std::multimap<K, V>;
+  template<class K, class V> using UnorderedMap = std::unordered_map<K, V>;
+  template<class T> using Stack = std::stack<T, std::deque<T>>;
+  template<class T> using Queue = std::queue<T, std::deque<T>>;
+  template<class T> using PriorityQueue = std::priority_queue<T, std::vector<T>>;
+  template<class T> using MinPriorityQueue = std::priority_queue<T, std::vector<T>, std::greater<T>>;
+
+  // Pair and tuple aliases.
+  template<class T, class U> using Pair = std::pair<T, U>;
+  using PII = Pair<I32, I32>;
+  using PLL = Pair<I64, I64>;
+  using PLD = Pair<F80, F80>;
+
+  // Common vector types.
+  using VI  = Vec<I32>;
+  using VLL = Vec<I64>;
+  using VU8 = Vec<U8>;
+  using VF  = Vec<F64>;
+  using VS  = Vec<std::string>;
+  using VB  = Vec<bool>;
+
+  // 2D containers.
+  using VVI = Vec<VI>;
+  using VVLL = Vec<VLL>;
+  using VVVF = Vec<VF>;
+
+  // Vector of pairs.
+  using VPII = Vec<PII>;
+  using VPLL = Vec<PLL>;
 #endif
-
-// Floating point types.
-using F32 = float;
-using F64 = double;
-using F80 = long double;
-
-#ifdef __FLOAT128__
-    using F128 = __float128;
-    #define HAS_FLOAT128 1
-#else
-    using F128 = F80;
-    #define HAS_FLOAT128 0
-#endif
-
-// Legacy compatibility aliases.
-using ll  = I64;
-using ull = U64;
-using ld  = F80;
-
-// Container type aliases.
-template<class T> using Vec = std::vector<T>;
-template<class T> using Deque = std::deque<T>;
-template<class T> using List = std::list<T>;
-template<class T> using Set = std::set<T>;
-template<class T> using MultiSet = std::multiset<T>;
-template<class T> using UnorderedSet = std::unordered_set<T>;
-template<class K, class V> using Map = std::map<K, V>;
-template<class K, class V> using MultiMap = std::multimap<K, V>;
-template<class K, class V> using UnorderedMap = std::unordered_map<K, V>;
-template<class T> using Stack = std::stack<T, std::deque<T>>;
-template<class T> using Queue = std::queue<T, std::deque<T>>;
-template<class T> using PriorityQueue = std::priority_queue<T, std::vector<T>>;
-template<class T> using MinPriorityQueue = std::priority_queue<T, std::vector<T>, std::greater<T>>;
-
-// Pair and tuple aliases.
-template<class T, class U> using Pair = std::pair<T, U>;
-using PII = Pair<I32, I32>;
-using PLL = Pair<I64, I64>;
-using PLD = Pair<F80, F80>;
-
-// Common vector types.
-using VI  = Vec<I32>;
-using VLL = Vec<I64>;
-using VU8 = Vec<U8>;
-using VF  = Vec<F64>;
-using VS  = Vec<std::string>;
-using VB  = Vec<bool>;
-
-// 2D containers.
-using VVI = Vec<VI>;
-using VVLL = Vec<VLL>;
-using VVVF = Vec<VF>;
-
-// Vector of pairs.
-using VPII = Vec<PII>;
-using VPLL = Vec<PLL>;
-
+  
 //===----------------------------------------------------------------------===//
 //========================== MATHEMATICAL CONSTANTS ==========================//
 
@@ -569,34 +572,37 @@ using VPLL = Vec<PLL>;
     constexpr T PHI  = static_cast<T>(1.6180339887498948482045868343656381177203091798058L);
 #endif
 
-// Epsilon values for floating point comparisons.
-template<class T = F80>
-constexpr T EPS  = static_cast<T>(1e-9L);
-template<class T = F80>
-constexpr T DEPS = static_cast<T>(1e-12L);
+#ifndef __CONSTANTS__
+#define __CONSTANTS__
+  // Epsilon values for floating point comparisons.
+  template<class T = F80>
+  constexpr T EPS  = static_cast<T>(1e-9L);
+  template<class T = F80>
+  constexpr T DEPS = static_cast<T>(1e-12L);
 
-// Specialized infinity values.
-constexpr I32 INF32  = 1'010'000'000;
-constexpr I64 INF64  = 2'020'000'000'000'000'000LL;
-constexpr U32 UINF32 = 2'020'000'000U;
-constexpr U64 UINF64 = 4'040'000'000'000'000'000ULL;
+  // Specialized infinity values.
+  constexpr I32 INF32  = 1'010'000'000;
+  constexpr I64 INF64  = 2'020'000'000'000'000'000LL;
+  constexpr U32 UINF32 = 2'020'000'000U;
+  constexpr U64 UINF64 = 4'040'000'000'000'000'000ULL;
 
-#if HAS_INT128
-    constexpr I128 INF128 = static_cast<I128>(INF64) * 2'000'000'000'000'000'000LL;
+  #if HAS_INT128
+      constexpr I128 INF128 = static_cast<I128>(INF64) * 2'000'000'000'000'000'000LL;
+  #endif
+
+  // Infinity values with overflow protection.
+  template<class T>
+  constexpr T INF = std::numeric_limits<T>::max() / 4;
+
+  // Legacy aliases.
+  constexpr I64 LINF = INF64;
+
+  // Modular arithmetic constants.
+  constexpr I64 MOD  = 1000000007;
+  constexpr I64 MOD2 = 998244353;
+  constexpr I64 MOD3 = 1000000009;
 #endif
-
-// Infinity values with overflow protection.
-template<class T>
-constexpr T INF = std::numeric_limits<T>::max() / 4;
-
-// Legacy aliases.
-constexpr I64 LINF = INF64;
-
-// Modular arithmetic constants.
-constexpr I64 MOD  = 1000000007;
-constexpr I64 MOD2 = 998244353;
-constexpr I64 MOD3 = 1000000009;
-
+  
 //===----------------------------------------------------------------------===//
 //================== ENHANCED UTILITY FUNCTIONS AND MACROS ===================//
 
