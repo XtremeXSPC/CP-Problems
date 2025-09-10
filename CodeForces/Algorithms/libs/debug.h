@@ -30,8 +30,20 @@
     #define HAS_SOURCE_LOCATION
   #endif
   #if __has_include(<stacktrace>)
-    #include <stacktrace>
-    #define HAS_STACKTRACE
+    // Test if stacktrace is actually usable, not just available
+    #if !defined(_GLIBCXX_STACKTRACE_DISABLED) && defined(__GNUC__) && __GNUC__ >= 13
+      // Try to detect if libbacktrace support is available
+      #if defined(__has_attribute)
+        #if __has_attribute(__gnu_inline__) || defined(__linux__)
+          // Additional runtime check could be added here
+          #include <stacktrace>
+          #define HAS_STACKTRACE
+        #endif
+      #else
+        #include <stacktrace>
+        #define HAS_STACKTRACE
+      #endif
+    #endif
   #endif
 #endif
 
@@ -806,13 +818,15 @@ namespace modern_debug {
         std::cerr << colors::DIM << "  " << frame << colors::RESET << "\n";
       }
     } catch (...) {
-      // Fallback if stacktrace fails.
+      // Fallback if stacktrace fails at runtime.
       std::cerr << colors::BG_RED << colors::WHITE << " ASSERTION FAILED " << colors::RESET << "\n";
       std::cerr << colors::RED << "Condition: " << colors::YELLOW << condition << colors::RESET << "\n";
       std::cerr << colors::RED << "Location:  " << colors::CYAN << loc.file_name() << ":" << loc.line() 
                 << " in " << colors::MAGENTA << loc.function_name() << colors::RESET << "\n";
+      std::cerr << colors::YELLOW << "Note: Stacktrace unavailable (runtime error)" << colors::RESET << "\n";
     }
     #else
+    // Original fallback implementation.
     std::cerr << colors::BG_RED << colors::WHITE << " ASSERTION FAILED " << colors::RESET << "\n";
     std::cerr << colors::RED << "Condition: " << colors::YELLOW << condition << colors::RESET << "\n";
     std::cerr << colors::RED << "Location:  " << colors::CYAN << loc.file_name() << ":" << loc.line() 
