@@ -363,7 +363,7 @@ function(cp_add_problem TARGET_NAME SOURCE_FILE)
     if(TBB_FOUND)
         target_link_libraries(${TARGET_NAME} PRIVATE TBB::tbb)
     endif()
-    
+
     # ----- Target-specific compiler definitions ----- #
     target_compile_definitions(${TARGET_NAME} PRIVATE
       # Define LOCAL for debug builds.
@@ -377,6 +377,8 @@ function(cp_add_problem TARGET_NAME SOURCE_FILE)
       # Enable C++23 specific features.
       $<$<CXX_COMPILER_ID:GNU>:_GLIBCXX_ASSERTIONS>
       $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:${CMAKE_CXX_COMPILER_VERSION},13>>:_GLIBCXX_USE_CXX23_ABI>
+      # Disable std::stacktrace in <bits/stdc++.h> for GCC >= 13 to avoid linking issues.
+      $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:${CMAKE_CXX_COMPILER_VERSION},13>>:_GLIBCXX_STACKTRACE_DISABLED>
       # Use modern libc++ hardening mode for Clang/AppleClang.
       $<$<CXX_COMPILER_ID:Clang,AppleClang>:_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE>
     )
@@ -453,11 +455,16 @@ function(cp_add_problem TARGET_NAME SOURCE_FILE)
     # Add system include paths for better clangd support.
     if(COMPILER_SYSTEM_INCLUDE_PATHS)
         if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-            # For GCC, use nostdinc++ and add paths manually.
-            target_compile_options(${TARGET_NAME} PRIVATE -nostdinc++)
-            foreach(dir IN LISTS COMPILER_SYSTEM_INCLUDE_PATHS)
-                target_compile_options(${TARGET_NAME} PRIVATE "-isystem${dir}")
-            endforeach()
+            if(APPLE)
+                # For GCC on macOS, use nostdinc++ and add paths manually.
+                # This is reported to be necessary for clangd with Homebrew GCC.
+                target_compile_options(${TARGET_NAME} PRIVATE -nostdinc++)
+                foreach(dir IN LISTS COMPILER_SYSTEM_INCLUDE_PATHS)
+                    target_compile_options(${TARGET_NAME} PRIVATE "-isystem${dir}")
+                endforeach()
+            endif()
+            # On Linux, this logic is not applied as it causes linking errors with std::stacktrace.
+            # The compiler's default include paths are sufficient and more robust.
         elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang")
             # For Clang, just add as system includes without nostdinc++.
             foreach(dir IN LISTS COMPILER_SYSTEM_INCLUDE_PATHS)
