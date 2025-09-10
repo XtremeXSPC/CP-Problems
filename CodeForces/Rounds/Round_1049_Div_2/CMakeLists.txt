@@ -377,8 +377,6 @@ function(cp_add_problem TARGET_NAME SOURCE_FILE)
       # Enable C++23 specific features.
       $<$<CXX_COMPILER_ID:GNU>:_GLIBCXX_ASSERTIONS>
       $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:${CMAKE_CXX_COMPILER_VERSION},13>>:_GLIBCXX_USE_CXX23_ABI>
-      # Disable std::stacktrace in <bits/stdc++.h> for GCC >= 13 to avoid linking issues.
-      $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:${CMAKE_CXX_COMPILER_VERSION},13>>:_GLIBCXX_STACKTRACE_DISABLED>
       # Use modern libc++ hardening mode for Clang/AppleClang.
       $<$<CXX_COMPILER_ID:Clang,AppleClang>:_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE>
     )
@@ -463,8 +461,6 @@ function(cp_add_problem TARGET_NAME SOURCE_FILE)
                     target_compile_options(${TARGET_NAME} PRIVATE "-isystem${dir}")
                 endforeach()
             endif()
-            # On Linux, this logic is not applied as it causes linking errors with std::stacktrace.
-            # The compiler's default include paths are sufficient and more robust.
         elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang")
             # For Clang, just add as system includes without nostdinc++.
             foreach(dir IN LISTS COMPILER_SYSTEM_INCLUDE_PATHS)
@@ -488,6 +484,47 @@ function(cp_add_problem TARGET_NAME SOURCE_FILE)
         # Strip symbols in release.
         $<$<CONFIG:Release>:-s>
     )
+   
+    # ----- Platform-specific linking for std::stacktrace ----- #
+    # Check for stacktrace support and required libraries.
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND NOT APPLE)
+        # Test if stacktrace libraries are available.
+        include(CheckCXXSourceCompiles)
+        set(CMAKE_REQUIRED_FLAGS "-std=c++22")
+        set(CMAKE_REQUIRED_LIBRARIES "stdc++_libbacktrace")
+        
+        check_cxx_source_compiles(
+            "#include <stacktrace>
+             int main() { 
+                 auto trace = std::stacktrace::current(); 
+                 return trace.size(); 
+             }" 
+            STACKTRACE_WORKS
+        )
+        
+        if(STACKTRACE_WORKS)
+            target_link_libraries(${TARGET_NAME} PRIVATE stdc++_libbacktrace)
+            message(STATUS "Stacktrace support enabled for ${TARGET_NAME}")
+        else()
+            target_compile_definitions(${TARGET_NAME} PRIVATE _GLIBCXX_STACKTRACE_DISABLED)
+            message(STATUS "Stacktrace support disabled for ${TARGET_NAME} (libraries not found)")
+        endif()
+        
+        # Reset CMAKE_REQUIRED_* variables.
+        unset(CMAKE_REQUIRED_FLAGS)
+        unset(CMAKE_REQUIRED_LIBRARIES)
+    endif()
+    
+    # Additional linking for debug builds.
+    if(CMAKE_BUILD_TYPE MATCHES "Debug|Sanitize")
+        if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND NOT APPLE)
+            # Try to link additional debug libraries if available.
+            find_library(BACKTRACE_LIB backtrace)
+            if(BACKTRACE_LIB)
+                target_link_libraries(${TARGET_NAME} PRIVATE ${BACKTRACE_LIB})
+            endif()
+        endif()
+    endif()
     
     if(USE_PCH)
         set(PCH_STATUS "Yes")
