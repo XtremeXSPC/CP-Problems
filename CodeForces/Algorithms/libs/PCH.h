@@ -315,7 +315,7 @@
         #include <span>
         #define HAS_SPAN 1
     #endif
-    #if HAS_HEADER(<source_location>)
+    #if __has_include(<source_location>) && !defined(HAS_SOURCE_LOCATION)
         #include <source_location>
         #define HAS_SOURCE_LOCATION 1
     #endif
@@ -460,7 +460,6 @@
 //================== ENHANCED COMPETITIVE PROGRAMMING TYPES ==================//
 
 #ifndef __TYPES__
-#define __TYPES__
   // Type aliases with explicit semantics.
   using I8  = std::int8_t;
   using I16 = std::int16_t;
@@ -537,13 +536,15 @@
   // Vector of pairs.
   using VPII = Vec<PII>;
   using VPLL = Vec<PLL>;
+  #define __TYPES__
 #endif
   
 //===----------------------------------------------------------------------===//
 //========================== MATHEMATICAL CONSTANTS ==========================//
 
-// High precision mathematical constants.
-#ifdef HAS_NUMBERS
+#ifndef __CONSTANTS__
+  // High precision mathematical constants.
+  #ifdef HAS_NUMBERS
     using std::numbers::pi_v;
     using std::numbers::e_v;
     using std::numbers::log2e_v;
@@ -562,7 +563,7 @@
     constexpr T E    = e_v<T>;
     template<class T = F80>
     constexpr T PHI  = phi_v<T>;
-#else
+  #else
     // Fallback constants with high precision.
     template<class T = F80>
     constexpr T PI   = static_cast<T>(3.1415926535897932384626433832795028841971693993751L);
@@ -570,170 +571,171 @@
     constexpr T E    = static_cast<T>(2.7182818284590452353602874713526624977572470937000L);
     template<class T = F80>
     constexpr T PHI  = static_cast<T>(1.6180339887498948482045868343656381177203091798058L);
-#endif
-
-#ifndef __CONSTANTS__
-#define __CONSTANTS__
-  // Epsilon values for floating point comparisons.
-  template<class T = F80>
-  constexpr T EPS  = static_cast<T>(1e-9L);
-  template<class T = F80>
-  constexpr T DEPS = static_cast<T>(1e-12L);
-
-  // Specialized infinity values.
-  constexpr I32 INF32  = 1'010'000'000;
-  constexpr I64 INF64  = 2'020'000'000'000'000'000LL;
-  constexpr U32 UINF32 = 2'020'000'000U;
-  constexpr U64 UINF64 = 4'040'000'000'000'000'000ULL;
-
-  #if HAS_INT128
-      constexpr I128 INF128 = static_cast<I128>(INF64) * 2'000'000'000'000'000'000LL;
   #endif
+    // Epsilon values for floating point comparisons.
+    template<class T = F80>
+    constexpr T EPS  = static_cast<T>(1e-9L);
+    template<class T = F80>
+    constexpr T DEPS = static_cast<T>(1e-12L);
 
-  // Infinity values with overflow protection.
-  template<class T>
-  constexpr T INF = std::numeric_limits<T>::max() / 4;
+    // Specialized infinity values.
+    constexpr I32 INF32  = 1'010'000'000;
+    constexpr I64 INF64  = 2'020'000'000'000'000'000LL;
+    constexpr U32 UINF32 = 2'020'000'000U;
+    constexpr U64 UINF64 = 4'040'000'000'000'000'000ULL;
 
-  // Legacy aliases.
-  constexpr I64 LINF = INF64;
+    #if HAS_INT128
+        constexpr I128 INF128 = static_cast<I128>(INF64) * 2'000'000'000'000'000'000LL;
+    #endif
 
-  // Modular arithmetic constants.
-  constexpr I64 MOD  = 1000000007;
-  constexpr I64 MOD2 = 998244353;
-  constexpr I64 MOD3 = 1000000009;
+    // Infinity values with overflow protection.
+    template<class T>
+    constexpr T INF = std::numeric_limits<T>::max() / 4;
+
+    // Legacy aliases.
+    constexpr I64 LINF = INF64;
+
+    // Modular arithmetic constants.
+    constexpr I64 MOD  = 1000000007;
+    constexpr I64 MOD2 = 998244353;
+    constexpr I64 MOD3 = 1000000009;
+  #define __CONSTANTS__
 #endif
   
 //===----------------------------------------------------------------------===//
 //================== ENHANCED UTILITY FUNCTIONS AND MACROS ===================//
 
-// Bitwise operations with modern implementations.
-template<std::integral T>
-ALWAYS_INLINE constexpr I32 popcount(T x) noexcept {
-    #ifdef HAS_BIT_HEADER
-        return std::popcount(x);
-    #else
-        if constexpr (sizeof(T) <= sizeof(U32)) {
-            return __builtin_popcount(static_cast<U32>(x));
-        } else {
-            return __builtin_popcountll(static_cast<U64>(x));
-        }
-    #endif
-}
+#ifndef __UTILITY_FUNCTIONS__
+  // Bitwise operations with modern implementations.
+  template<std::integral T>
+  ALWAYS_INLINE constexpr I32 popcount(T x) noexcept {
+      #ifdef HAS_BIT_HEADER
+          return std::popcount(x);
+      #else
+          if constexpr (sizeof(T) <= sizeof(U32)) {
+              return __builtin_popcount(static_cast<U32>(x));
+          } else {
+              return __builtin_popcountll(static_cast<U64>(x));
+          }
+      #endif
+  }
 
-template<std::integral T>
-ALWAYS_INLINE constexpr I32 countl_zero(T x) noexcept {
-    #ifdef HAS_BIT_HEADER
-        return std::countl_zero(x);
-    #else
-        if (x == 0) return sizeof(T) * 8;
-        if constexpr (sizeof(T) <= sizeof(U32)) {
-            return __builtin_clz(static_cast<U32>(x)) - (32 - sizeof(T) * 8);
-        } else {
-            return __builtin_clzll(static_cast<U64>(x)) - (64 - sizeof(T) * 8);
-        }
-    #endif
-}
+  template<std::integral T>
+  ALWAYS_INLINE constexpr I32 countl_zero(T x) noexcept {
+      #ifdef HAS_BIT_HEADER
+          return std::countl_zero(x);
+      #else
+          if (x == 0) return sizeof(T) * 8;
+          if constexpr (sizeof(T) <= sizeof(U32)) {
+              return __builtin_clz(static_cast<U32>(x)) - (32 - sizeof(T) * 8);
+          } else {
+              return __builtin_clzll(static_cast<U64>(x)) - (64 - sizeof(T) * 8);
+          }
+      #endif
+  }
 
-template<std::integral T>
-ALWAYS_INLINE constexpr I32 countr_zero(T x) noexcept {
-    #ifdef HAS_BIT_HEADER
-        return std::countr_zero(x);
-    #else
-        if (x == 0) return sizeof(T) * 8;
-        if constexpr (sizeof(T) <= sizeof(U32)) {
-            return __builtin_ctz(static_cast<U32>(x));
-        } else {
-            return __builtin_ctzll(static_cast<U64>(x));
-        }
-    #endif
-}
+  template<std::integral T>
+  ALWAYS_INLINE constexpr I32 countr_zero(T x) noexcept {
+      #ifdef HAS_BIT_HEADER
+          return std::countr_zero(x);
+      #else
+          if (x == 0) return sizeof(T) * 8;
+          if constexpr (sizeof(T) <= sizeof(U32)) {
+              return __builtin_ctz(static_cast<U32>(x));
+          } else {
+              return __builtin_ctzll(static_cast<U64>(x));
+          }
+      #endif
+  }
 
-template<std::integral T>
-ALWAYS_INLINE constexpr I32 bit_width(T x) noexcept {
-    #ifdef HAS_BIT_HEADER
-        return std::bit_width(x);
-    #else
-        return sizeof(T) * 8 - countl_zero(x);
-    #endif
-}
+  template<std::integral T>
+  ALWAYS_INLINE constexpr I32 bit_width(T x) noexcept {
+      #ifdef HAS_BIT_HEADER
+          return std::bit_width(x);
+      #else
+          return sizeof(T) * 8 - countl_zero(x);
+      #endif
+  }
 
-// Legacy aliases for compatibility.
-template<std::integral T> constexpr I32 popcnt(T x) { return popcount(x); }
-template<std::integral T> constexpr I32 topbit(T x) { return bit_width(x) - 1; }
-template<std::integral T> constexpr I32 lowbit(T x) { return countr_zero(x); }
+  // Legacy aliases for compatibility.
+  template<std::integral T> constexpr I32 popcnt(T x) { return popcount(x); }
+  template<std::integral T> constexpr I32 topbit(T x) { return bit_width(x) - 1; }
+  template<std::integral T> constexpr I32 lowbit(T x) { return countr_zero(x); }
 
-// Mathematical utility functions.
-template<std::integral T>
-ALWAYS_INLINE constexpr T gcd(T a, T b) noexcept {
-    #if HAS_CPP20
-        return std::gcd(a, b);
-    #else
-        while (b != 0) {
-            T temp = b;
-            b = a % b;
-            a = temp;
-        }
-        return a;
-    #endif
-}
+  // Mathematical utility functions.
+  template<std::integral T>
+  ALWAYS_INLINE constexpr T gcd(T a, T b) noexcept {
+      #if HAS_CPP20
+          return std::gcd(a, b);
+      #else
+          while (b != 0) {
+              T temp = b;
+              b = a % b;
+              a = temp;
+          }
+          return a;
+      #endif
+  }
 
-template<std::integral T>
-ALWAYS_INLINE constexpr T lcm(T a, T b) noexcept {
-    #if HAS_CPP20
-        return std::lcm(a, b);
-    #else
-        return a / gcd(a, b) * b;
-    #endif
-}
+  template<std::integral T>
+  ALWAYS_INLINE constexpr T lcm(T a, T b) noexcept {
+      #if HAS_CPP20
+          return std::lcm(a, b);
+      #else
+          return a / gcd(a, b) * b;
+      #endif
+  }
 
-// Fast power function with modular arithmetic support.
-template<std::integral T>
-ALWAYS_INLINE constexpr T power(T base, T exp, T mod = 0) noexcept {
-    T result = 1;
-    if (mod) base %= mod;
-    
-    while (exp > 0) {
-        if (exp & 1) {
-            result = mod ? (result * base) % mod : result * base;
-        }
-        base = mod ? (base * base) % mod : base * base;
-        exp >>= 1;
-    }
-    return result;
-}
+  // Fast power function with modular arithmetic support.
+  template<std::integral T>
+  ALWAYS_INLINE constexpr T power(T base, T exp, T mod = 0) noexcept {
+      T result = 1;
+      if (mod) base %= mod;
+      
+      while (exp > 0) {
+          if (exp & 1) {
+              result = mod ? (result * base) % mod : result * base;
+          }
+          base = mod ? (base * base) % mod : base * base;
+          exp >>= 1;
+      }
+      return result;
+  }
 
-// Min/Max functions with variadic support.
-template<class T>
-ALWAYS_INLINE constexpr const T& min(const T& a, const T& b) noexcept {
-    return (b < a) ? b : a;
-}
+  // Min/Max functions with variadic support.
+  template<class T>
+  ALWAYS_INLINE constexpr const T& min(const T& a, const T& b) noexcept {
+      return (b < a) ? b : a;
+  }
 
-template<class T>
-ALWAYS_INLINE constexpr const T& max(const T& a, const T& b) noexcept {
-    return (a < b) ? b : a;
-}
+  template<class T>
+  ALWAYS_INLINE constexpr const T& max(const T& a, const T& b) noexcept {
+      return (a < b) ? b : a;
+  }
 
-template<class T, class... Args>
-ALWAYS_INLINE constexpr const T& min(const T& a, const T& b, const Args&... args) noexcept {
-    return min(a, min(b, args...));
-}
+  template<class T, class... Args>
+  ALWAYS_INLINE constexpr const T& min(const T& a, const T& b, const Args&... args) noexcept {
+      return min(a, min(b, args...));
+  }
 
-template<class T, class... Args>
-ALWAYS_INLINE constexpr const T& max(const T& a, const T& b, const Args&... args) noexcept {
-    return max(a, max(b, args...));
-}
+  template<class T, class... Args>
+  ALWAYS_INLINE constexpr const T& max(const T& a, const T& b, const Args&... args) noexcept {
+      return max(a, max(b, args...));
+  }
 
-// Efficient min/max update functions.
-template<class T, class S>
-ALWAYS_INLINE constexpr bool chmin(T& a, const S& b) noexcept {
-    return (a > b) ? (a = b, true) : false;
-}
+  // Efficient min/max update functions.
+  template<class T, class S>
+  ALWAYS_INLINE constexpr bool chmin(T& a, const S& b) noexcept {
+      return (a > b) ? (a = b, true) : false;
+  }
 
-template<class T, class S>
-ALWAYS_INLINE constexpr bool chmax(T& a, const S& b) noexcept {
-    return (a < b) ? (a = b, true) : false;
-}
-
+  template<class T, class S>
+  ALWAYS_INLINE constexpr bool chmax(T& a, const S& b) noexcept {
+      return (a < b) ? (a = b, true) : false;
+  }
+#define __UTILITY_FUNCTIONS__
+#endif
+  
 //===----------------------------------------------------------------------===//
 //======================== ADVANCED HASHING UTILITIES ========================//
 

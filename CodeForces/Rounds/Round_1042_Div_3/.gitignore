@@ -10,6 +10,7 @@ not_passed/
 .statistics/
 compile_commands.json
 .clangd
+.clang-format
 *.out
 *.exe
 *.dSYM/

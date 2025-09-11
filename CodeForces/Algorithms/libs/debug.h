@@ -27,15 +27,17 @@
   #endif
   #if __has_include(<source_location>)
     #include <source_location>
-    #define HAS_SOURCE_LOCATION
+    #ifndef HAS_SOURCE_LOCATION
+      #define HAS_SOURCE_LOCATION
+    #endif
   #endif
-  #if __has_include(<stacktrace>)
-    // Test if stacktrace is actually usable, not just available
+  #if __has_include(<stacktrace>) && !defined(HAS_STACKTRACE)
+    // Test if stacktrace is actually usable, not just available.
     #if !defined(_GLIBCXX_STACKTRACE_DISABLED) && defined(__GNUC__) && __GNUC__ >= 13
-      // Try to detect if libbacktrace support is available
+      // Try to detect if libbacktrace support is available.
       #if defined(__has_attribute)
         #if __has_attribute(__gnu_inline__) || defined(__linux__)
-          // Additional runtime check could be added here
+          // Additional runtime check could be added here.
           #include <stacktrace>
           #define HAS_STACKTRACE
         #endif
