@@ -27,15 +27,20 @@ endif()
 
 # ----------------------- macOS RPATH Handling Cleanup ----------------------- #
 if(APPLE)
+  # Set a modern deployment target for macOS to ensure compatibility.
+  set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0" CACHE STRING "macOS deployment target")
+
   # Modern RPATH handling for macOS.
-  set(CMAKE_MACOSX_RPATH ON)
-  set(CMAKE_SKIP_BUILD_RPATH FALSE)
-  set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
-  set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-  
-  # Disable automatic RPATH generation to avoid duplicates.
-  set(CMAKE_SKIP_RPATH FALSE)
-  set(CMAKE_SKIP_INSTALL_RPATH TRUE)
+  if(NOT DEFINED CMAKE_SKIP_BUILD_RPATH)
+    set(CMAKE_MACOSX_RPATH ON)
+    set(CMAKE_SKIP_BUILD_RPATH FALSE)
+    set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+    set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+    
+    # Disable automatic RPATH generation to avoid duplicates.
+    set(CMAKE_SKIP_RPATH FALSE)
+    set(CMAKE_SKIP_INSTALL_RPATH TRUE)
+  endif()
   
   # Get the LLVM/Clang library path if using Homebrew LLVM.
   if(CMAKE_CXX_COMPILER MATCHES "llvm")
@@ -321,87 +326,55 @@ option(CP_ENABLE_PCH "Enable precompiled headers for faster compilation" ON)
 option(CP_FORCE_PCH_REBUILD "Force PCH rebuild on next compilation" OFF)
 set(CP_PCH_TARGET_CONFIGS "Debug;Sanitize" CACHE STRING "Build configurations that use PCH")
 
-# PCH support detection.
-if(CP_ENABLE_PCH)
-    # Check if the compiler supports PCH.
-    include(CheckCXXCompilerFlag)
+# PCH support detection and implementation.
+if(CP_ENABLE_PCH AND CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
+    # CMake 3.16+ has native PCH support.
+    set(PCH_SUPPORTED TRUE)
     
-    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-        # GCC uses .gch files.
-        set(PCH_SUPPORTED TRUE)
-        set(PCH_EXTENSION ".gch")
-        message(STATUS "${ANSI_COLOR_CYAN}PCH: GCC precompiled headers supported${ANSI_COLOR_RESET}")
-        
-    elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang")
-        # Clang uses .pch files.
-        check_cxx_compiler_flag("-fpch-preprocess" HAS_PCH_PREPROCESS)
-        if(HAS_PCH_PREPROCESS OR CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "3.0")
-            set(PCH_SUPPORTED TRUE)
-            set(PCH_EXTENSION ".pch")
-            message(STATUS "${ANSI_COLOR_CYAN}PCH: Clang precompiled headers supported${ANSI_COLOR_RESET}")
-        else()
-            set(PCH_SUPPORTED FALSE)
-            message(WARNING "${ANSI_COLOR_YELLOW}PCH: Clang version too old for reliable PCH support${ANSI_COLOR_RESET}")
-        endif()
-        
-    elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-        # MSVC uses .pch files.
-        set(PCH_SUPPORTED TRUE)
-        set(PCH_EXTENSION ".pch")
-        message(STATUS "${ANSI_COLOR_CYAN}PCH: MSVC precompiled headers supported${ANSI_COLOR_RESET}")
-        
+    # Define the PCH header path based on compiler.
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang" OR USING_CLANG_FOR_SANITIZERS)
+        set(PCH_HEADER_PATH "${CMAKE_CURRENT_SOURCE_DIR}/algorithms/PCH.h")
+        set(PCH_TYPE "PCH.h")
     else()
+        # For GCC, we can use bits/stdc++.h directly as PCH.
+        set(PCH_HEADER_PATH "${CMAKE_CURRENT_SOURCE_DIR}/algorithms/PCH_Wrapper.h")
+        set(PCH_TYPE "bits/stdc++.h wrapper")
+        
+        # Ensure the wrapper file exists.         
+        if(NOT EXISTS "${PCH_HEADER_PATH}")
+          message(FATAL_ERROR "${ANSI_COLOR_RED}PCH: Wrapper file ${PCH_HEADER_PATH} not found${ANSI_COLOR_RESET}")
+        endif()
+    endif()
+    
+    # Verify PCH header exists.
+    if(NOT EXISTS "${PCH_HEADER_PATH}")
+        message(WARNING "${ANSI_COLOR_YELLOW}PCH: Header not found at ${PCH_HEADER_PATH}, disabling PCH${ANSI_COLOR_RESET}")
         set(PCH_SUPPORTED FALSE)
-        message(WARNING "${ANSI_COLOR_YELLOW}PCH: Unsupported compiler for PCH${ANSI_COLOR_RESET}")
+    else()
+        message(STATUS "${ANSI_COLOR_GREEN}PCH: Enabled using ${PCH_TYPE}${ANSI_COLOR_RESET}")
+        message(STATUS "${ANSI_COLOR_CYAN}PCH: Will be applied to configurations: ${CP_PCH_TARGET_CONFIGS}${ANSI_COLOR_RESET}")
     endif()
 else()
     set(PCH_SUPPORTED FALSE)
-    message(STATUS "${ANSI_COLOR_YELLOW}PCH: Precompiled headers disabled by user${ANSI_COLOR_RESET}")
-endif()
-
-# PCH implementation for supported compilers.
-if(PCH_SUPPORTED)
-    # Define the PCH header path.
-    set(PCH_HEADER_PATH "${CMAKE_CURRENT_SOURCE_DIR}/algorithms/PCH.h")
-    
-    # Verify PCH.h exists.
-    if(NOT EXISTS "${PCH_HEADER_PATH}")
-        message(WARNING "${ANSI_COLOR_YELLOW}PCH: PCH.h not found at ${PCH_HEADER_PATH}, disabling PCH${ANSI_COLOR_RESET}")
-        set(PCH_SUPPORTED FALSE)
-    else()
-        message(STATUS "${ANSI_COLOR_CYAN}PCH: Found PCH.h at ${PCH_HEADER_PATH}${ANSI_COLOR_RESET}")
-        
-        # Create a lightweight PCH target.
-        add_library(cp_pch_target INTERFACE)
-        
-        # Configure PCH for different build types.
-        foreach(config ${CP_PCH_TARGET_CONFIGS})
-            string(TOUPPER ${config} CONFIG_UPPER)
-            
-            # Set PCH for this configuration.
-            set_target_properties(cp_pch_target PROPERTIES
-                INTERFACE_PRECOMPILE_HEADERS_${CONFIG_UPPER} "${PCH_HEADER_PATH}"
-            )
-        endforeach()
-        
-        # Add PCH-specific compile definitions.
-        target_compile_definitions(cp_pch_target INTERFACE
-            $<$<CONFIG:Debug,Sanitize>:PCH_PRECOMPILED>
-            $<$<CONFIG:Debug,Sanitize>:USE_PCH>
-        )
-        
-        message(STATUS "${ANSI_COLOR_GREEN}PCH: Configured for build types: ${CP_PCH_TARGET_CONFIGS}${ANSI_COLOR_RESET}")
+    if(CP_ENABLE_PCH AND CMAKE_VERSION VERSION_LESS "3.16")
+        message(WARNING "${ANSI_COLOR_YELLOW}PCH: CMake 3.16+ required for PCH support (current: ${CMAKE_VERSION})${ANSI_COLOR_RESET}")
+    elseif(NOT CP_ENABLE_PCH)
+        message(STATUS "${ANSI_COLOR_YELLOW}PCH: Disabled by user${ANSI_COLOR_RESET}")
     endif()
 endif()
 
-# PCH rebuild utility.
+# PCH cache management.
 if(CP_FORCE_PCH_REBUILD AND PCH_SUPPORTED)
-    add_custom_target(pch_clean
-        COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_BINARY_DIR}/CMakeFiles"
-        COMMAND ${CMAKE_COMMAND} -E echo "PCH cache cleared - next build will regenerate PCH"
-        COMMENT "Cleaning PCH cache"
-        VERBATIM
+    # Force rebuild of PCH by touching the header file.
+    execute_process(
+        COMMAND ${CMAKE_COMMAND} -E touch "${PCH_HEADER_PATH}"
+        RESULT_VARIABLE touch_result
     )
+    if(touch_result EQUAL 0)
+        message(STATUS "${ANSI_COLOR_CYAN}PCH: Forced rebuild by updating timestamp of ${PCH_HEADER_PATH}${ANSI_COLOR_RESET}")
+    endif()
+    # Reset the flag.
+    set(CP_FORCE_PCH_REBUILD OFF CACHE BOOL "Force PCH rebuild on next compilation" FORCE)
 endif()
 
 # ----------------------------- Project Settings ----------------------------- #
@@ -432,6 +405,7 @@ endif()
 
 function(cp_add_problem TARGET_NAME SOURCE_FILE)
   add_executable(${TARGET_NAME} ${SOURCE_FILE})
+  
   # Set C++23 standard for the target.
   set_target_properties(${TARGET_NAME} PROPERTIES
     CXX_STANDARD 23
@@ -440,7 +414,7 @@ function(cp_add_problem TARGET_NAME SOURCE_FILE)
   )
 
   # ----- Precompiled Header Integration ----- #
-  set(USE_PCH_FOR_TARGET FALSE)
+set(USE_PCH_FOR_TARGET FALSE)
   set(PCH_REASON "")
   
   # Determine if this target should use PCH.
@@ -449,6 +423,33 @@ function(cp_add_problem TARGET_NAME SOURCE_FILE)
     if(CMAKE_BUILD_TYPE IN_LIST CP_PCH_TARGET_CONFIGS)
       set(USE_PCH_FOR_TARGET TRUE)
       set(PCH_REASON "PCH enabled for ${CMAKE_BUILD_TYPE}")
+      
+      # IMPORTANT: Apply PCH directly to the target using CMake's native support.
+      target_precompile_headers(${TARGET_NAME} 
+        PRIVATE 
+          "${PCH_HEADER_PATH}"
+      )
+      
+      # Add PCH-specific definitions.
+      target_compile_definitions(${TARGET_NAME} PRIVATE 
+        PCH_ENABLED
+        USE_PCH
+      )
+      
+      # PCH optimization flags (optional, CMake handles most of this automatically).
+      if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+        # GCC: Ensure PCH is used correctly.
+        # Note: -fpch-preprocess is automatically added by CMake when needed.
+        target_compile_options(${TARGET_NAME} PRIVATE 
+          -Winvalid-pch  # Warn if PCH is invalid/outdated.
+        )
+      elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang")
+        # Clang: Enable better PCH diagnostics.
+        target_compile_options(${TARGET_NAME} PRIVATE 
+          -Wno-pch-date-time  # Don't warn about PCH timestamp differences.
+        )
+      endif()
+      
     else()
       set(PCH_REASON "PCH not configured for ${CMAKE_BUILD_TYPE}")
     endif()
@@ -461,27 +462,8 @@ function(cp_add_problem TARGET_NAME SOURCE_FILE)
       set(PCH_REASON "Using bits/stdc++.h or manual includes")
     endif()
   endif()
-  
-  # Apply PCH to target if enabled.
-  if(USE_PCH_FOR_TARGET)
-    target_link_libraries(${TARGET_NAME} PRIVATE cp_pch_target)
-    target_compile_definitions(${TARGET_NAME} PRIVATE 
-      PCH_PRECOMPILED 
-      USE_PCH
-      # Inform template that PCH is actually precompiled.
-      PCH_AVAILABLE
-    )
-    
-    # Add PCH-specific optimization flags.
-    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-      # GCC PCH optimization.
-      target_compile_options(${TARGET_NAME} PRIVATE -fpch-preprocess)
-    elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang")
-      # Clang PCH optimization.
-      target_compile_options(${TARGET_NAME} PRIVATE -fpch-instantiate-templates)
-    endif()
-  endif()
 
+  # ----- TBB Integration ----- #
   # Link with TBB for parallel algorithm support, if found.
   if(TBB_FOUND)
     target_link_libraries(${TARGET_NAME} PRIVATE TBB::tbb)
@@ -567,8 +549,9 @@ function(cp_add_problem TARGET_NAME SOURCE_FILE)
     target_compile_options(${TARGET_NAME} PRIVATE -stdlib=libstdc++)
     target_link_options(${TARGET_NAME} PRIVATE -stdlib=libstdc++)
   elseif(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang")
-    # Use libc++ for Clang on macOS (default).
-    # No need to specify, it's the default.
+    # Use libc++ for Clang on macOS, being explicit to avoid linking issues.
+    target_compile_options(${TARGET_NAME} PRIVATE -stdlib=libc++)
+    target_link_options(${TARGET_NAME} PRIVATE -stdlib=libc++)
   endif()
 
   # Add system include paths for better clangd support.
@@ -647,9 +630,21 @@ function(cp_add_problem TARGET_NAME SOURCE_FILE)
     endif()
   endif()
   
+  if(USE_PCH_FOR_TARGET)
+    set(PCH_STATUS "Yes (Active)")
+    
+    # Optional: Print PCH file location for debugging.
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND CMAKE_VERBOSE_MAKEFILE)
+      get_target_property(pch_header ${TARGET_NAME} PRECOMPILE_HEADERS)
+      message(STATUS "  PCH Header: ${pch_header}")
+    endif()
+  else()
+    set(PCH_STATUS "No (${PCH_REASON})")
+  endif()
+  
   message(STATUS "Added problem: ${TARGET_NAME} "
-           "(Compiler: ${CMAKE_CXX_COMPILER_ID}, "
-           "PCH: ${PCH_REASON})")
+                 "[Compiler: ${CMAKE_CXX_COMPILER_ID}, "
+                 "PCH: ${PCH_STATUS}]")
 endfunction()
 
 # ============================================================================ #
@@ -774,4 +769,4 @@ endif()
 message(STATUS "${ANSI_COLOR_BLUE}╚═══------------------------------------------------------------------------═══╝${ANSI_COLOR_RESET}")
 
 # ============================================================================ #
-# End of CmakeLists.txt
+# End of CMakeLists.txt file.
