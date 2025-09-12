@@ -46,7 +46,7 @@ if(APPLE)
   if(CMAKE_CXX_COMPILER MATCHES "llvm")
     get_filename_component(LLVM_BIN_DIR ${CMAKE_CXX_COMPILER} DIRECTORY)
     get_filename_component(LLVM_ROOT_DIR ${LLVM_BIN_DIR} DIRECTORY)
-    set(LLVM_LIB_DIR "${LLVM_ROOT_DIR}/lib")
+    set(LLVM_LIB_DIR "${LLVM_ROOT_DIR}/lib/c++")
     
     if(EXISTS "${LLVM_LIB_DIR}")
       # Set a clean, single RPATH for LLVM.
