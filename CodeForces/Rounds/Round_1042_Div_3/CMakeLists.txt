@@ -27,15 +27,20 @@ endif()
 
 # ----------------------- macOS RPATH Handling Cleanup ----------------------- #
 if(APPLE)
+  # Set a modern deployment target for macOS to ensure compatibility.
+  set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0" CACHE STRING "macOS deployment target")
+
   # Modern RPATH handling for macOS.
-  set(CMAKE_MACOSX_RPATH ON)
-  set(CMAKE_SKIP_BUILD_RPATH FALSE)
-  set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
-  set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-  
-  # Disable automatic RPATH generation to avoid duplicates.
-  set(CMAKE_SKIP_RPATH FALSE)
-  set(CMAKE_SKIP_INSTALL_RPATH TRUE)
+  if(NOT DEFINED CMAKE_SKIP_BUILD_RPATH)
+    set(CMAKE_MACOSX_RPATH ON)
+    set(CMAKE_SKIP_BUILD_RPATH FALSE)
+    set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+    set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+    
+    # Disable automatic RPATH generation to avoid duplicates.
+    set(CMAKE_SKIP_RPATH FALSE)
+    set(CMAKE_SKIP_INSTALL_RPATH TRUE)
+  endif()
   
   # Get the LLVM/Clang library path if using Homebrew LLVM.
   if(CMAKE_CXX_COMPILER MATCHES "llvm")
@@ -544,8 +549,9 @@ set(USE_PCH_FOR_TARGET FALSE)
     target_compile_options(${TARGET_NAME} PRIVATE -stdlib=libstdc++)
     target_link_options(${TARGET_NAME} PRIVATE -stdlib=libstdc++)
   elseif(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang")
-    # Use libc++ for Clang on macOS (default).
-    # No need to specify, it's the default.
+    # Use libc++ for Clang on macOS, being explicit to avoid linking issues.
+    target_compile_options(${TARGET_NAME} PRIVATE -stdlib=libc++)
+    target_link_options(${TARGET_NAME} PRIVATE -stdlib=libc++)
   endif()
 
   # Add system include paths for better clangd support.
@@ -763,4 +769,4 @@ endif()
 message(STATUS "${ANSI_COLOR_BLUE}╚═══------------------------------------------------------------------------═══╝${ANSI_COLOR_RESET}")
 
 # ============================================================================ #
-# End of CmakeLists.txt
+# End of CMakeLists.txt file.
