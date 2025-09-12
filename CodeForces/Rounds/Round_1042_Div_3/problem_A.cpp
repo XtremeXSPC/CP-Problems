@@ -260,12 +260,32 @@
 using namespace std;
 // clang-format on
 
+// Fast modular exponentiation.
+template <typename T>
+#if defined(COMPILER_GCC)
+[[gnu::always_inline]]
+#elif defined(COMPILER_CLANG)
+[[clang::always_inline]]
+#endif
+constexpr T power(T base, T exp, T mod = 0) {
+  T result = 1;
+  if (mod) base %= mod;
+  while (exp > 0) {
+    if (exp & 1) {
+      result = mod ? (result * base) % mod : result * base;
+    }
+    base = mod ? (base * base) % mod : base * base;
+    exp >>= 1;
+  }
+  return result;
+}
+
 //===----------------------------------------------------------------------===//
 /* Data Types and Function Definitions */
 
 // Function to solve a single test case
 void solve() {
-  size_t n {0};
+  size_t n{0};
   cin >> n;
   VI a(n), b(n);
   ll total_excess = 0;
@@ -278,7 +298,7 @@ void solve() {
     cin >> b[i];
   }
 
-  FOR (i, n) {
+  FOR(i, n) {
     if (a[i] > b[i]) {
       total_excess += a[i] - b[i];
     }
@@ -294,15 +314,15 @@ auto main() -> int {
   // Fast I/O setup.
   setup_io();
 
-  #ifdef LOCAL
-    // Local testing setup.
-    debug("Running in LOCAL mode");
-  #endif
-  
+#ifdef LOCAL
+  // Local testing setup.
+  debug("Running in LOCAL mode");
+#endif
+
   // Read number of test cases.
   I32 T = 1;
   cin >> T;
-  
+
   // Process each test case.
   FOR(test_case, T) {
     debug_if(LOCAL, "Test case:", test_case + 1);
