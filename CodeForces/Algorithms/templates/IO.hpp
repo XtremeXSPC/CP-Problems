@@ -28,7 +28,7 @@ namespace fast_io {
   
   U32 input_pos = 0, input_end = 0, output_pos = 0;
   
-  [[gnu::always_inline]] inline void load_input() {
+  inline void load_input() {
     std::memmove(input_buffer, input_buffer + input_pos, input_end - input_pos);
     input_end = input_end - input_pos + 
                 std::fread(input_buffer + input_end - input_pos, 1, 
@@ -37,13 +37,13 @@ namespace fast_io {
     if (input_end < BUFFER_SIZE) input_buffer[input_end++] = '\n';
   }
   
-  [[gnu::always_inline]] inline void flush_output() {
+  inline void flush_output() {
     std::fwrite(output_buffer, 1, output_pos, stdout);
     output_pos = 0;
   }
   
   // Fast character reading:
-  [[gnu::always_inline]] inline void read_char(char& c) {
+  inline void read_char(char& c) {
     do {
       if (input_pos >= input_end) load_input();
       c = input_buffer[input_pos++];
@@ -52,7 +52,7 @@ namespace fast_io {
   
   // Optimized integer reading with SIMD potential:
   template <typename T>
-  [[gnu::always_inline]] inline void read_integer(T& x) {
+  inline void read_integer(T& x) {
     if (input_pos + 64 >= input_end) load_input();
     
     char c;
@@ -78,7 +78,7 @@ namespace fast_io {
   }
   
   // Fast string reading:
-  [[gnu::always_inline]] inline void read_string(std::string& s) {
+  inline void read_string(std::string& s) {
     s.clear();
     char c;
     do {
@@ -95,7 +95,7 @@ namespace fast_io {
   
   // Optimized integer writing:
   template <typename T>
-  [[gnu::always_inline]] inline void write_integer(T x) {
+  inline void write_integer(T x) {
     if (output_pos + 64 >= BUFFER_SIZE) flush_output();
     
     if (x < 0) {
@@ -116,12 +116,12 @@ namespace fast_io {
     }
   }
   
-  [[gnu::always_inline]] inline void write_char(char c) {
+  inline void write_char(char c) {
     if (output_pos >= BUFFER_SIZE) flush_output();
     output_buffer[output_pos++] = c;
   }
   
-  [[gnu::always_inline]] inline void write_string(const std::string& s) {
+  inline void write_string(const std::string& s) {
     for (char c : s) write_char(c);
   }
   

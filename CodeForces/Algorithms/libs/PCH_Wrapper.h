@@ -133,7 +133,6 @@ using namespace std;
   using Pair = std::pair<T, U>;
   template <class T, class U>
   using P = Pair<T, U>;
-
   using PII = Pair<I32, I32>;
   using PLL = Pair<I64, I64>;
   using PLD = Pair<F80, F80>;
@@ -170,13 +169,6 @@ using namespace std;
   #endif
 #endif
 
-// Utility Macros.
-#define SZ(x) static_cast<int>((x).size())
-#define MINMAX(a, b) (((a) < (b)) ? make_pair(a, b) : make_pair(b, a))
-#define IN_BOUNDS(i, j, n, m) ((i) >= 0 && (i) < (n) && (j) >= 0 && (j) < (m))
-#define ALL(v) (v).begin(), (v).end()
-#define RALL(v) (v).rbegin(), (v).rend()
-
 // Fast I/O and precision macros.
 #define FAST_IO() \
   ios_base::sync_with_stdio(false); \
@@ -191,34 +183,6 @@ using namespace std;
   #pragma GCC optimize("O3,unroll-loops")
   #pragma GCC target("avx2,bmi,bmi2,lzcnt,popcnt")
 #endif
-
-// Stable Utility Functions.
-template<typename T>
-inline T power(T base, T exp, T mod) {
-  T result = 1;
-  base %= mod;
-  while (exp > 0) {
-    if (exp & 1) result = (result * base) % mod;
-    base = (base * base) % mod;
-    exp >>= 1;
-  }
-  return result;
-}
-
-template<typename T>
-inline T gcd(T a, T b) {
-  #if __cplusplus >= 201703L
-    return __gcd(a, b);
-  #else
-    while (b) { T temp = b; b = a % b; a = temp; }
-    return a;
-  #endif
-}
-
-template<typename T>
-inline T lcm(T a, T b) {
-  return a / gcd(a, b) * b;
-}
 
 #endif // PCH_WRAPPER_HPP
 //===----------------------------------------------------------------------===//

@@ -90,7 +90,7 @@
 /* Type Aliases - Competitive Programming Style */
 
 #ifndef __TYPES__
-  // Fundamental types with explicit semantics.
+  // Fundamental type aliases with explicit sizes:
   using I8  = std::int8_t;
   using I16 = std::int16_t;
   using I32 = std::int32_t;
@@ -103,25 +103,30 @@
   using F64 = double;
   using F80 = long double;
   
-  // Legacy aliases for compatibility.
+  // Legacy aliases for compatibility:
   using ll  = I64;
   using ull = U64;
   using ld  = F80;
   
-  // Container type aliases.
+  // Container type aliases:
   template <class T>
-  using VC = std::vector<T>;
+  using VC = Vec<T>;
   template <class T>
   using VVC = VC<VC<T>>;
+  template <class T>
+  using VVVC = VC<VVC<T>>;
   
-  // Specialized container aliases.
-  using VI = VC<I64>;
-  using VVI = VVC<I64>;
-  using VB = VC<bool>;
-  using VS = VC<std::string>;
-  using VU8 = VC<U8>;
-  using VU32 = VC<U32>;
-  using VU64 = VC<U64>;
+  // Specialized container aliases:
+  using VI   = Vec<I32>;
+  using VLL  = Vec<I64>;
+  using VVI  = Vec<VI>;
+  using VVLL = Vec<VLL>;
+  using VB   = Vec<bool>;
+  using VS   = Vec<std::string>;
+  using VU8  = Vec<U8>;
+  using VU32 = Vec<U32>;
+  using VU64 = Vec<U64>;
+  using VF   = Vec<F64>;
   
   // Pair aliases.
   using PII = std::pair<I32, I32>;
@@ -187,9 +192,9 @@
   
   // Advanced FOR loop system
   #define FOR1(a) for (decltype(a) _ = 0; _ < (a); ++_)
-  #define FOR2(i, a) for (decltype(a) i = 0; i < (a); ++i)
-  #define FOR3(i, a, b) for (decltype(a) i = (a); i < (b); ++i)
-  #define FOR4(i, a, b, c) for (decltype(a) i = (a); i < (b); i += (c))
+  #define FOR2(i, a) for (decltype(a) _ = 0; _ < (a); ++_)
+  #define FOR3(i, a, b) for (decltype(a) _ = (a); i < (b); ++_)
+  #define FOR4(i, a, b, c) for (decltype(a) _ = (a); _ < (b); _ += (c))
   #define FOR1_R(a) for (auto i = (a) - 1; i >= 0; --i)
   #define FOR2_R(i, a) for (auto i = (a) - 1; i >= 0; --i)
   #define FOR3_R(i, a, b) for (auto i = (b) - 1; i >= (a); --i)
