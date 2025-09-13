@@ -260,26 +260,6 @@
 using namespace std;
 // clang-format on
 
-// Fast modular exponentiation.
-template <typename T>
-#if defined(COMPILER_GCC)
-[[gnu::always_inline]]
-#elif defined(COMPILER_CLANG)
-[[clang::always_inline]]
-#endif
-constexpr T power(T base, T exp, T mod = 0) {
-  T result = 1;
-  if (mod) base %= mod;
-  while (exp > 0) {
-    if (exp & 1) {
-      result = mod ? (result * base) % mod : result * base;
-    }
-    base = mod ? (base * base) % mod : base * base;
-    exp >>= 1;
-  }
-  return result;
-}
-
 //===----------------------------------------------------------------------===//
 /* Data Types and Function Definitions */
 
