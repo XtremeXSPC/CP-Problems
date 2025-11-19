@@ -89,9 +89,9 @@ endif()
 if(NOT CLANG_EXECUTABLE)
     message(FATAL_ERROR 
         "\n"
-        "//===----------------------------------------------------------------------===//\n"
+        "╔═══------------------------------------------------------------------------═══╗\n"
         "                          CLANG COMPILER NOT FOUND!                             \n"
-        "//===----------------------------------------------------------------------===//\n"
+        "╚═══------------------------------------------------------------------------═══╝\n"
         "\n"
         "Clang is required for sanitizer builds on this platform.\n"
         "\n"
@@ -104,7 +104,7 @@ if(NOT CLANG_EXECUTABLE)
             "    Homebrew LLVM: brew install llvm\n"
             "\n"
             "After installation, re-run 'cppconf Sanitize clang'.\n"
-            "//===----------------------------------------------------------------------===//\n")
+            "╬═══------------------------------------------------------------------------═══╬\n")
     else()
         message(FATAL_ERROR
             "  Linux:\n"
@@ -113,7 +113,7 @@ if(NOT CLANG_EXECUTABLE)
             "    Arch: sudo pacman -S clang\n"
             "\n"
             "After installation, re-run 'cppconf Sanitize clang'.\n"
-            "//===----------------------------------------------------------------------===//\n")
+            "╬═══------------------------------------------------------------------------═══╬\n")
     endif()
 endif()
 
@@ -183,16 +183,26 @@ if(NOT IS_APPLE_CLANG AND APPLE)
     # Get LLVM installation directory.
     get_filename_component(LLVM_BIN_DIR ${CLANG_EXECUTABLE} DIRECTORY)
     get_filename_component(LLVM_ROOT ${LLVM_BIN_DIR} DIRECTORY)
-    
-    # Set paths to LLVM's libc++.
+
+    # Set paths to LLVM's libc++ (avoiding duplicates).
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -nostdinc++" CACHE STRING "" FORCE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${LLVM_ROOT}/include/c++/v1" CACHE STRING "" FORCE)
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L${LLVM_ROOT}/lib -Wl,-rpath,${LLVM_ROOT}/lib" CACHE STRING "" FORCE)
-    
-    # Use LLVM's libc++ instead of system's.
+
+    # Configure RPATH and linking cleanly.
+    set(LLVM_LIB_DIR "${LLVM_ROOT}/lib/c++")
+
+    # Instead of appending to existing variables, completely reset.
+    set(CMAKE_EXE_LINKER_FLAGS "-L${LLVM_LIB_DIR} -Wl,-rpath,${LLVM_LIB_DIR}" CACHE STRING "" FORCE)
+
+    # Use LLVM's libc++ instead of system.
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++" CACHE STRING "" FORCE)
-    
-    message(STATUS "Using LLVM libc++ from: ${LLVM_ROOT}")
+
+    # Disable automatic RPATH handling in CMakeLists.txt for this case.
+    set(CMAKE_SKIP_BUILD_RPATH TRUE CACHE BOOL "" FORCE)
+    set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE CACHE BOOL "" FORCE)
+    set(CMAKE_INSTALL_RPATH "${LLVM_LIB_DIR}" CACHE STRING "" FORCE)
+  
+  message(STATUS "Using LLVM libc++ from: ${LLVM_LIB_DIR}")
 endif()
 
 # Set compiler IDs.
@@ -213,9 +223,9 @@ endif()
 
 # Success message.
 message(STATUS "")
-message(STATUS "//===----------------------------------------------------------------------===//")
-message(STATUS "                   Clang Toolchain Successfully Configured                      ")
-message(STATUS "//===----------------------------------------------------------------------===//")
+message(STATUS "╔═══------------------------------------------------------------------------═══╗")
+message(STATUS "                    Clang Toolchain Successfully Configured                     ")
+message(STATUS "╚═══------------------------------------------------------------------------═══╝")
 message(STATUS "  C++ compiler : ${CMAKE_CXX_COMPILER}")
 message(STATUS "  Clang version: ${CLANG_VERSION}")
 if(IS_APPLE_CLANG)
@@ -227,8 +237,8 @@ message(STATUS "  C compiler   : ${CMAKE_C_COMPILER}")
 message(STATUS "  Build type   : ${CMAKE_BUILD_TYPE}")
 message(STATUS "")
 message(STATUS "  Note: Using PCH.h instead of bits/stdc++.h for sanitizer builds")
-message(STATUS "//===----------------------------------------------------------------------===//")
+message(STATUS "╬═══------------------------------------------------------------------------═══╬")
 message(STATUS "")
 
 # ============================================================================ #
-# End of Clang Toolchain File.
+# End of Clang Toolchain File.  
