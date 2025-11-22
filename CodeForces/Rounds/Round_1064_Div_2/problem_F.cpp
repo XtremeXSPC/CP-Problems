@@ -1,176 +1,116 @@
-//===----------------------------------------------------------------------===//
-/**
- * @file: problem_F.cpp
- * @brief Codeforces Round 1064 Div. 2 - Problem F
- * @author: Costantino Lombardi
- *
- * @status: PASSED
- */
-//===----------------------------------------------------------------------===//
-/* Included library */
-
-// clang-format off
-// Compiler optimizations:
-#if defined(__GNUC__) && !defined(__clang__)
-  #pragma GCC optimize("Ofast,unroll-loops,fast-math,O3")
-  // Apple Silicon optimizations:
-  #ifdef __aarch64__
-    #pragma GCC target("+simd")
-  #endif
-#endif
-
-#ifdef __clang__
-  #pragma clang optimize on
-#endif
-
-// Sanitaze macro:
-#ifdef USE_CLANG_SANITIZE
-  #include "PCH.h"
-#else
-  #include <bits/stdc++.h>
-#endif
-
-// Debug macro:
-#ifdef LOCAL
-  #include "debug.h"
-#else
-  #define debug(...) 42
-#endif
-// clang-format on
-
-//===----------------------------------------------------------------------===//
-/* Type Aliases and Constants */
-
-// Type aliases:
-using ll       = long long;
-using ull      = unsigned long long;
-using ld       = long double;
-using P_ii     = std::pair<int, int>;
-using P_ll     = std::pair<long long, long long>;
-using V_b      = std::vector<bool>;
-using V_i      = std::vector<int>;
-using V_ui     = std::vector<unsigned int>;
-using V_ll     = std::vector<long long>;
-using VV_i     = std::vector<std::vector<int>>;
-using VV_ll    = std::vector<std::vector<long long>>;
-using V_s      = std::vector<std::string>;
-using VV_s     = std::vector<std::vector<std::string>>;
-using VP_ii    = std::vector<std::pair<int, int>>;
-using VVP_ii   = std::vector<std::vector<std::pair<int, int>>>;
-using VP_ll    = std::vector<std::pair<long long, long long>>;
-using VT_iii   = std::vector<std::tuple<int, int, int>>;
-using Map_ll   = std::map<long long, long long>;
-using VUMap_il = std::vector<std::unordered_map<int, ll>>;
-
-// Mathematical constants:
-constexpr long double PI   = 3.141592653589793238462643383279502884L;
-constexpr long double E    = 2.718281828459045235360287471352662498L;
-constexpr long double EPS  = 1e-9L;
-constexpr int         INF  = 0x3f3f3f3f;
-constexpr long long   LINF = 0x3f3f3f3f3f3f3f3fLL;
-constexpr int         LIM  = 1000000 + 5;
-constexpr int         MOD  = 1000000007;
-constexpr int         MOD2 = 998244353;
+#include <bits/stdc++.h>
 
 using namespace std;
 
-//===----------------------------------------------------------------------===//
-/* Data Types and Function Definitions */
-
-constexpr int MAXN = 1'000'000;
-
-int a[MAXN + 5];
-bool used_pos[MAXN + 5];
-vector<int> pos[2 * MAXN + 5];
-
-// Function to solve a single test case.
-int greedy_match(int n, const int arr[]) {
-    // Reset state.
-    fill(used_pos + 1, used_pos + n + 1, false);
-    for (int v = 1; v <= 2 * n; ++v) pos[v].clear();
-
-    // Group positions by value.
-    for (int i = 1; i <= n; ++i) {
-        pos[arr[i]].push_back(i);
-    }
-
-    int matched = 0;
-    vector<int> tmp;
-    tmp.reserve(n);
-
-    // Greedy matching over pairs of consecutive values v, v+1.
-    for (int v = 1; v < 2 * n; ++v) {
-        auto &cur = pos[v];
-        auto &nxt = pos[v + 1];
-
-        if (v & 1) {
-            // v treated as "left": match each index in cur to the earliest >= idx in nxt.
-            int p = 0;
-            int m = (int)nxt.size();
-            for (int idx : cur) {
-                while (p < m && nxt[p] < idx) ++p;
-                if (p < m) {
-                    used_pos[nxt[p]] = true;
-                    ++p;
-                }
-            }
-        } else {
-            // v treated as "right": match from right to left.
-            int p = (int)nxt.size();
-            for (int it = (int)cur.size() - 1; it >= 0; --it) {
-                int idx = cur[it];
-                while (p > 0 && nxt[p - 1] > idx) --p;
-                if (p > 0) {
-                    used_pos[nxt[p - 1]] = true;
-                    --p;
-                }
-            }
-        }
-
-        // Keep only unmatched positions of value v+1 for later steps.
-        tmp.clear();
-        for (int idx : nxt) {
-            if (used_pos[idx]) {
-                ++matched;
-            } else {
-                tmp.push_back(idx);
-            }
-        }
-        nxt.swap(tmp);
-    }
-
-    return matched;
+void fast_io() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
 }
 
+struct MatchingSolver {
+    int n;
+    int max_val;
+    vector<vector<int>> pos;
 
+    MatchingSolver(int n, const vector<int>& a) : n(n) {
+        max_val = 0;
+        for (int x : a) max_val = max(max_val, x);
+        // Resize to handle max_val + 2 safely
+        pos.resize(max_val + 2);
+        for (int i = 0; i < n; ++i) {
+            pos[a[i]].push_back(i + 1); // 1-based indexing
+        }
+    }
 
-//===----------------------------------------------------------------------===//
-/* Main function */
+    int solve(int start_val) {
+        int matches = 0;
+        vector<int> unmatched_prev_sinks;
 
-auto main() -> int {
-  // Fast I/O
-  ios_base::sync_with_stdio(false);
-  cin.tie(nullptr);
-
-  int T;
-    if (!(cin >> T)) return 0;
-    while (T--) {
-        int n;
-        cin >> n;
-        for (int i = 1; i <= n; ++i) {
-            cin >> a[i];
+        // Initialization Fix:
+        if (start_val - 1 >= 1 && start_val - 1 < pos.size()) {
+            unmatched_prev_sinks = pos[start_val - 1];
         }
 
-        int m1 = greedy_match(n, a);
+        for (int v = start_val; v <= max_val; v += 2) {
+            // Sources at current value v
+            set<int> sources(pos[v].begin(), pos[v].end());
 
-        reverse(a + 1, a + n + 1);
-        int m2 = greedy_match(n, a);
+            // Phase 1: Match Sources (v) with "Expired" Sinks (v-1).
+            if (!unmatched_prev_sinks.empty()) {
+                sort(unmatched_prev_sinks.rbegin(), unmatched_prev_sinks.rend());
 
-        int ans = n - (m1 + m2);
-        cout << ans << '\n';
-  }
+                for (int sink_idx : unmatched_prev_sinks) {
+                    if (sources.empty()) break;
 
-  return 0;
+                    // We need source_idx < sink_idx.
+                    auto it = sources.lower_bound(sink_idx);
+                    if (it != sources.begin()) {
+                        --it;
+                        sources.erase(it);
+                        matches++;
+                    }
+                }
+            }
+
+            // Phase 2: Match remaining Sources (v) with Next Sinks (v+1).
+            vector<int>& next_sinks_candidates = pos[v + 1];
+            vector<bool> is_matched(next_sinks_candidates.size(), false);
+
+            // next_sinks_candidates is already sorted ascending by construction
+            for (size_t i = 0; i < next_sinks_candidates.size(); ++i) {
+                int sink_idx = next_sinks_candidates[i];
+                if (sources.empty()) break;
+
+                auto it = sources.lower_bound(sink_idx);
+                if (it != sources.begin()) {
+                    --it;
+                    sources.erase(it);
+                    matches++;
+                    is_matched[i] = true;
+                }
+            }
+
+            // Carry over unmatched sinks to the next step (v+2)
+            unmatched_prev_sinks.clear();
+            for (size_t i = 0; i < next_sinks_candidates.size(); ++i) {
+                if (!is_matched[i]) {
+                    unmatched_prev_sinks.push_back(next_sinks_candidates[i]);
+                }
+            }
+        }
+        return matches;
+    }
+};
+
+void solve() {
+    int n;
+    if (!(cin >> n)) return;
+
+    vector<int> a(n);
+    for (int i = 0; i < n; ++i) {
+        cin >> a[i];
+    }
+
+    if (n == 0) {
+        cout << 0 << "\n";
+        return;
+    }
+
+    MatchingSolver solver(n, a);
+
+
+    int m1 = solver.solve(1);
+    int m2 = solver.solve(2);
+
+    cout << n - (m1 + m2) << "\n";
 }
 
-//===----------------------------------------------------------------------===//
+int main() {
+    fast_io();
+    int t;
+    cin >> t;
+    while (t--) {
+        solve();
+    }
+    return 0;
+}
