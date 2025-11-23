@@ -167,12 +167,10 @@ struct Solver {
     int n;
     VVI adj;
 
-    // best_d_for_k[k] = minimal inconvenience achievable using at least k colors
-    // for k in [1, n-1].
+    // best_d_for_k[k] = minimal inconvenience d achievable with at least k colors.
     VI best_d_for_k;
 
-    // K_of_d[d] = maximum number of colors achievable with inconvenience <= d.
-    // Used by get_max_cuts(d).
+    // K_of_d[d] = max number of colors k achievable with inconvenience <= d.
     VI K_of_d;
 
     // Run the leaf-peeling process once and fill best_d_for_k.
