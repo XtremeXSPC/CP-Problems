@@ -98,7 +98,7 @@
     #pragma GCC diagnostic ignored "-Wunused-result"
     #pragma GCC diagnostic ignored "-Wunused-variable"
     #pragma GCC diagnostic ignored "-Wunused-function"
-    
+
     // Architecture-specific optimizations.
     #if defined(__x86_64__) || defined(__i386__)
         #pragma GCC target("avx2,bmi,bmi2,lzcnt,popcnt,sse4.2,fma,f16c")
@@ -107,26 +107,26 @@
     #elif defined(__arm__)
         #pragma GCC target("+neon,+vfp4")
     #endif
-    
+
     // Branch prediction hints.
     #define LIKELY(x)   __builtin_expect(!!(x), 1)
     #define UNLIKELY(x) __builtin_expect(!!(x), 0)
     #define UNREACHABLE() __builtin_unreachable()
-    
+
     // Function attributes.
     #define ALWAYS_INLINE __attribute__((always_inline)) inline
     #define NEVER_INLINE __attribute__((noinline))
     #define PURE_FUNCTION __attribute__((const))
     #define HOT_FUNCTION __attribute__((hot))
     #define COLD_FUNCTION __attribute__((cold))
-    
+
 #elif defined(COMPILER_CLANG)
     #pragma clang optimize on
     #pragma clang diagnostic push
     #pragma clang diagnostic ignored "-Wunused-result"
     #pragma clang diagnostic ignored "-Wunused-variable"
     #pragma clang diagnostic ignored "-Wunused-function"
-    
+
     // Branch prediction hints.
     #define LIKELY(x)   __builtin_expect(!!(x), 1)
     #define UNLIKELY(x) __builtin_expect(!!(x), 0)
@@ -136,14 +136,14 @@
     #define PURE_FUNCTION __attribute__((const))
     #define HOT_FUNCTION __attribute__((hot))
     #define COLD_FUNCTION __attribute__((cold))
-    
+
     // Architecture-specific optimizations for Clang.
     #if defined(__x86_64__) || defined(__i386__)
         #define CLANG_TARGET_X86
     #elif defined(__aarch64__)
         #define CLANG_TARGET_ARM64
     #endif
-    
+
     // Architecture-specific function attributes.
     #ifdef CLANG_TARGET_X86
         #define TARGET_OPTIMIZED __attribute__((target("avx2,bmi,bmi2,lzcnt,popcnt,sse4.2,fma")))
@@ -152,11 +152,11 @@
     #else
         #define TARGET_OPTIMIZED
     #endif
-    
+
 #elif defined(COMPILER_MSVC)
     #pragma optimize("gt", on)
     #include <intrin.h>
-    
+
     // Branch prediction hints.
     #define LIKELY(x)   (x)
     #define UNLIKELY(x) (x)
@@ -166,7 +166,7 @@
     #define PURE_FUNCTION
     #define HOT_FUNCTION
     #define COLD_FUNCTION
-    
+
 #else
     // Fallback definitions for unknown compilers.
     #define LIKELY(x) (x)
@@ -331,7 +331,7 @@
         #include <numbers>
         #define HAS_NUMBERS 1
     #endif
-    
+
     // Thread support (conditional for competitive programming).
     #ifdef ENABLE_THREADING
         #if HAS_HEADER(<atomic>)
@@ -579,7 +579,7 @@
     using gp_hash_table = __gnu_pbds::gp_hash_table<K, V, std::hash<K>, std::equal_to<K>, direct_mask_range_hashing<>, linear_probe_fn<>, hash_standard_resize_policy<hash_exponential_size_policy<>, hash_load_check_resize_trigger<>, true>>;
   #endif
 #endif
-  
+
 //===----------------------------------------------------------------------===//
 //========================== MATHEMATICAL CONSTANTS ==========================//
 
@@ -598,7 +598,7 @@
     using std::numbers::inv_sqrt3_v;
     using std::numbers::egamma_v;
     using std::numbers::phi_v;
-    
+
     template<class T = F80>
     constexpr T PI   = pi_v<T>;
     template<class T = F80>
@@ -642,7 +642,7 @@
     constexpr I64 MOD2 = 998244353;
     constexpr I64 MOD3 = 1000000009;
 #endif
-  
+
 //===----------------------------------------------------------------------===//
 //================== ENHANCED UTILITY FUNCTIONS AND MACROS ===================//
 
@@ -733,7 +733,7 @@
   ALWAYS_INLINE constexpr T power(T base, T exp, T mod = 0) noexcept {
       T result = 1;
       if (mod) base %= mod;
-      
+
       while (exp > 0) {
           if (exp & 1) {
               result = mod ? (result * base) % mod : result * base;
@@ -776,7 +776,7 @@
       return (a < b) ? (a = b, true) : false;
   }
 #endif
-  
+
 //===----------------------------------------------------------------------===//
 //======================== ADVANCED HASHING UTILITIES ========================//
 
@@ -831,11 +831,11 @@ class RandomEngine {
 private:
     mutable std::mt19937 gen32;
     mutable std::mt19937_64 gen64;
-    
+
 public:
     RandomEngine() : gen32(std::chrono::steady_clock::now().time_since_epoch().count()),
                      gen64(std::chrono::steady_clock::now().time_since_epoch().count()) {}
-                     
+
     template<std::integral T>
     T randint(T min_val, T max_val) const {
         if constexpr (sizeof(T) <= 4) {
@@ -844,16 +844,16 @@ public:
             return std::uniform_int_distribution<T>(min_val, max_val)(gen64);
         }
     }
-    
+
     template<std::floating_point T>
     T randreal(T min_val, T max_val) const {
         return std::uniform_real_distribution<T>(min_val, max_val)(gen32);
     }
-    
+
     bool randbool() const {
         return std::bernoulli_distribution(0.5)(gen32);
     }
-    
+
     void seed(U64 s) {
         gen32.seed(static_cast<U32>(s));
         gen64.seed(s);
@@ -893,19 +893,19 @@ inline void set_random_seed(U64 seed) {
 struct IOOptimizer {
     IOOptimizer() {
         FAST_IO_SETUP();
-        
+
         #ifdef ONLINE_JUDGE
             // Additional optimizations for online judges.
             std::cin.rdbuf()->pubsetbuf(nullptr, 0);
             std::cout.rdbuf()->pubsetbuf(nullptr, 0);
         #endif
-        
+
         #ifdef HAS_ASAN
             // Disable I/O optimizations under AddressSanitizer for better debugging.
             std::ios_base::sync_with_stdio(true);
         #endif
     }
-    
+
     ~IOOptimizer() {
         std::cout.flush();
         std::cerr.flush();

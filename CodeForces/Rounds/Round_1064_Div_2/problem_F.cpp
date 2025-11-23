@@ -1,3 +1,14 @@
+//===----------------------------------------------------------------------===//
+/**
+ * @file: problem_F.cpp
+ * @brief Codeforces Round 1064 Div. 2 - Problem F
+ * @author: Costantino Lombardi - G.
+ *
+ * @status: PASSED
+ */
+//===----------------------------------------------------------------------===//
+/* Included library */
+
 #include <bits/stdc++.h>
 
 using namespace std;
@@ -82,6 +93,7 @@ struct MatchingSolver {
     }
 };
 
+// Function to solve a single test case.
 void solve() {
     int n;
     if (!(cin >> n)) return;
@@ -105,7 +117,10 @@ void solve() {
     cout << n - (m1 + m2) << "\n";
 }
 
-int main() {
+//===----------------------------------------------------------------------===//
+/* Main Function */
+
+auto main() -> int {
     fast_io();
     int t;
     cin >> t;
@@ -114,3 +129,5 @@ int main() {
     }
     return 0;
 }
+
+//===----------------------------------------------------------------------===//

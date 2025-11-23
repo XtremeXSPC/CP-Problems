@@ -3,6 +3,7 @@ bin/
 lib/
 algorithms/
 not_passed/
+other_solutions/
 !.vscode/
 .idea/
 .cache/*
