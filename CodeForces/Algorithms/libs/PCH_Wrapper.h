@@ -138,10 +138,12 @@ using namespace std;
   using PLD = Pair<F80, F80>;
 
   // Specialized container aliases:
-  using VI   = Vec<I32>;
-  using VLL  = Vec<I64>;
-  using VVI  = Vec<VI>;
-  using VVLL = Vec<VLL>;
+  using VI   = VC<I32>;
+  using VVI  = VVC<I32>;
+  using VVVI = VVVC<I32>;
+  using VL   = VC<I64>;
+  using VVL  = VVC<I64>;
+  using VVVL = VVVC<I64>;
   using VB   = Vec<bool>;
   using VS   = Vec<std::string>;
   using VU8  = Vec<U8>;

@@ -498,9 +498,9 @@
   #endif
 
   // Legacy aliases for backward compatibility:
-  using ll  = I64;
-  using ull = U64;
-  using ld  = F80;
+  using LL  = I64;
+  using ULL = U64;
+  using LD  = F80;
 
   // Container type aliases:
   template <class T>
@@ -549,10 +549,12 @@
   using PLD = Pair<F80, F80>;
 
   // Specialized container aliases:
-  using VI   = Vec<I32>;
-  using VLL  = Vec<I64>;
-  using VVI  = Vec<VI>;
-  using VVLL = Vec<VLL>;
+  using VI   = VC<I32>;
+  using VVI  = VVC<I32>;
+  using VVVI = VVVC<I32>;
+  using VL   = VC<I64>;
+  using VVL  = VVC<I64>;
+  using VVVL = VVVC<I64>;
   using VB   = Vec<bool>;
   using VS   = Vec<std::string>;
   using VU8  = Vec<U8>;
