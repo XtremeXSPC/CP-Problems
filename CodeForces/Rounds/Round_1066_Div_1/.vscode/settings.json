@@ -212,5 +212,6 @@
     "valarray": "cpp",
     "variant": "cpp",
     "queue": "cpp"
-  }
+  },
+  "sonarlint.pathToCompileCommands": "${workspaceFolder}/build/compile_commands.json"
 }
