@@ -205,16 +205,13 @@ if(NOT IS_APPLE_CLANG AND APPLE)
   message(STATUS "Using LLVM libc++ from: ${LLVM_LIB_DIR}")
 endif()
 
-# Set compiler IDs.
-set(CMAKE_C_COMPILER_ID "Clang" CACHE STRING "C compiler ID" FORCE)
-set(CMAKE_CXX_COMPILER_ID "Clang" CACHE STRING "C++ compiler ID" FORCE)
-
 # Ensure standard support.
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Set C++23 standard.
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++23" CACHE STRING "" FORCE)
+# Set C++23 standard through CMake standard variables.
+set(CMAKE_CXX_STANDARD 23 CACHE STRING "C++ standard" FORCE)
+set(CMAKE_CXX_EXTENSIONS OFF CACHE BOOL "Disable compiler extensions" FORCE)
 
 # Set default build type to Sanitize.
 if(NOT CMAKE_BUILD_TYPE)
