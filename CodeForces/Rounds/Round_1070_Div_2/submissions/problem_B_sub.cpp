@@ -412,7 +412,7 @@ namespace fast_io {
   alignas(64) inline char input_buffer[BUFFER_SIZE];
   alignas(64) inline char output_buffer[BUFFER_SIZE];
   alignas(64) inline char number_buffer[128];
-  
+
   // Precomputed number strings for fast output:
   struct NumberLookup {
     char digits[10000][4];
@@ -426,23 +426,23 @@ namespace fast_io {
     }
   };
   inline constexpr NumberLookup number_lookup;
-  
+
   inline U32 input_pos = 0, input_end = 0, output_pos = 0;
-  
+
   inline void load_input() {
     std::memmove(input_buffer, input_buffer + input_pos, input_end - input_pos);
-    input_end = input_end - input_pos + 
-                std::fread(input_buffer + input_end - input_pos, 1, 
+    input_end = input_end - input_pos +
+                std::fread(input_buffer + input_end - input_pos, 1,
                           BUFFER_SIZE - input_end + input_pos, stdin);
     input_pos = 0;
     if (input_end < BUFFER_SIZE) input_buffer[input_end++] = '\n';
   }
-  
+
   inline void flush_output() {
     std::fwrite(output_buffer, 1, output_pos, stdout);
     output_pos = 0;
   }
-  
+
   // Fast character reading:
   inline void read_char(char& c) {
     do {
@@ -450,15 +450,15 @@ namespace fast_io {
       c = input_buffer[input_pos++];
     } while (std::isspace(c));
   }
-  
+
   // Optimized integer reading with SIMD potential:
   template <typename T>
   inline void read_integer(T& x) {
     if (input_pos + 64 >= input_end) load_input();
-    
+
     char c;
     do { c = input_buffer[input_pos++]; } while (c < '-');
-    
+
     bool negative = false;
     if constexpr (std::is_signed_v<T>) {
       if (c == '-') {
@@ -466,18 +466,18 @@ namespace fast_io {
         c = input_buffer[input_pos++];
       }
     }
-    
+
     x = 0;
     while (c >= '0') {
       x = x * 10 + (c - '0');
       c = input_buffer[input_pos++];
     }
-    
+
     if constexpr (std::is_signed_v<T>) {
       if (negative) x = -x;
     }
   }
-  
+
   // Fast string reading:
   inline void read_string(std::string& s) {
     s.clear();
@@ -486,14 +486,14 @@ namespace fast_io {
       if (input_pos >= input_end) load_input();
       c = input_buffer[input_pos++];
     } while (std::isspace(c));
-    
+
     do {
       s.push_back(c);
       if (input_pos >= input_end) load_input();
       c = input_buffer[input_pos++];
     } while (!std::isspace(c));
   }
-  
+
   // Optimized integer writing:
   template <typename T>
   inline void write_integer(T x) {
@@ -520,22 +520,22 @@ namespace fast_io {
       number_buffer[digits++] = '0' + (temp % 10);
       temp /= 10;
     } while (temp > 0);
-    
+
     // Reverse and copy:
     for (I32 i = digits - 1; i >= 0; --i) {
       output_buffer[output_pos++] = number_buffer[i];
     }
   }
-  
+
   inline void write_char(char c) {
     if (output_pos >= BUFFER_SIZE) flush_output();
     output_buffer[output_pos++] = c;
   }
-  
+
   inline void write_string(const std::string& s) {
     for (char c : s) write_char(c);
   }
-  
+
   // Template-based readers:
   inline void read(I32& x) { read_integer(x); }
   inline void read(I64& x) { read_integer(x); }
@@ -543,20 +543,20 @@ namespace fast_io {
   inline void read(U64& x) { read_integer(x); }
   inline void read(char& x) { read_char(x); }
   inline void read(std::string& x) { read_string(x); }
-  
+
   template <class T, class U>
   void read(std::pair<T, U>& p) { read(p.first); read(p.second); }
-  
+
   template <class T>
   void read(VC<T>& v) { for (auto& x : v) read(x); }
-  
+
   // Variadic read:
   template <class Head, class... Tail>
   void read(Head& head, Tail&... tail) {
     read(head);
     if constexpr (sizeof...(tail) > 0) read(tail...);
   }
-  
+
   // Template-based writers:
   inline void write(I32 x) { write_integer(x); }
   inline void write(I64 x) { write_integer(x); }
@@ -565,12 +565,12 @@ namespace fast_io {
   inline void write(char x) { write_char(x); }
   inline void write(const std::string& x) { write_string(x); }
   inline void write(const char* x) { write_string(std::string(x)); }
-  
+
   template <class T, class U>
   void write(const std::pair<T, U>& p) {
     write(p.first); write(' '); write(p.second);
   }
-  
+
   template <class T>
   void write(const VC<T>& v) {
     for (I64 i = 0; i < sz(v); ++i) {
@@ -578,7 +578,7 @@ namespace fast_io {
       write(v[i]);
     }
   }
-  
+
   // Variadic write:
   template <class Head, class... Tail>
   void write(const Head& head, const Tail&... tail) {
@@ -588,15 +588,15 @@ namespace fast_io {
       write(tail...);
     }
   }
-  
+
   inline void writeln() { write_char('\n'); }
-  
+
   template <class... Args>
   void writeln(const Args&... args) {
     if constexpr (sizeof...(args) > 0) write(args...);
     write_char('\n');
   }
-  
+
   // Destructor for automatic flushing:
   struct IOFlusher {
     ~IOFlusher() { flush_output(); }
