@@ -1,662 +1,928 @@
 #!/usr/bin/env python3
 """
-Complete Workflow Automation System for Competitive Programming Template
-Integrates testing, versioning, and deployment into a seamless workflow.
+Workflow manager for Competitive Programming that orchestrates existing cpp-tools.
+
+Design goals:
+- single source of truth: delegate all workflow logic to `cpp*` shell functions
+- robust automation: structured subcommands + consistent error handling
+- safe execution: allowlisted function dispatch and strict argument validation
+- workflow coherence: paths/output contracts match contest layout used by cpp-tools
 """
 
-import os
-import sys
+from __future__ import annotations
+
+import argparse
 import json
+import os
+import re
 import shutil
 import subprocess
+import sys
+import time
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from datetime import datetime
-from typing import Dict, List, Optional, Tuple
-import argparse
+from typing import List, Optional, Sequence
 
-# Use environment variables from "competitive.sh".
-CP_WORKSPACE_ROOT = os.environ.get("CP_WORKSPACE_ROOT", "/Volumes/LCS.Data/CP-Problems")
-CP_ALGORITHMS_DIR = os.environ.get(
-    "CP_ALGORITHMS_DIR", "/Volumes/LCS.Data/CP-Problems/CodeForces/Algorithms"
+DEFAULT_WORKSPACE_ROOT = Path("/Volumes/LCS.Data/CP-Problems")
+DEFAULT_CP_TOOLS_SCRIPT = Path(
+    "/Users/lcs-dev/Dotfiles/cpp-tools/.config/cpp-tools/competitive.sh"
 )
 
+TEMPLATE_CHOICES = ("base", "default", "pbds", "advanced")
+BUILD_TYPE_CHOICES = ("Debug", "Release", "Sanitize")
+COMPILER_CHOICES = ("gcc", "clang", "auto")
+TOGGLE_CHOICES = ("on", "off")
+PCH_CHOICES = ("on", "off", "auto")
 
-# ----------------------------- WORKFLOW MANAGER ----------------------------- #
-class WorkflowManager:
-    def __init__(self, project_root: Path):
-        self.project_root = project_root
-        self.templates_dir = project_root / "templates"
-        self.modules_dir = project_root / "modules"
-        self.scripts_dir = project_root / "scripts"
-        self.config_file = project_root / ".template_config.json"
+TARGET_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
+CONTEST_SEGMENT_RE = re.compile(r"^[A-Za-z0-9._-]+$")
+ANSI_RE = re.compile(r"\x1B\[[0-9;]*[A-Za-z]")
 
-        # Load or create configuration.
-        self.config = self.load_config()
+ALLOWED_FUNCTIONS = {
+    "cpparchive",
+    "cppbatch",
+    "cppbuild",
+    "cppcheck",
+    "cppclean",
+    "cppconf",
+    "cppcontest",
+    "cppdeepclean",
+    "cppdelete",
+    "cppdiag",
+    "cppforcego",
+    "cppfull",
+    "cppgcc",
+    "cppgo",
+    "cpphelp",
+    "cppi",
+    "cppinfo",
+    "cppinit",
+    "cppjudge",
+    "cppnew",
+    "cpprun",
+    "cppstats",
+    "cppstress",
+    "cppsubmit",
+    "cpptestsubmit",
+    "cppwatch",
+    "cppclang",
+    "cppprof",
+}
 
-        # Initialize subcomponents.
-        self.init_components()
-        self.compiler = self.resolve_compiler()
 
-    def default_config(self) -> Dict:
-        """Build default workflow configuration."""
-        return {
-            "version": "1.0.0",
-            "compiler": "g++",
-            "compiler_flags": ["-std=c++23", "-Wall", "-Wextra"],
-            "modules": {
-                "core": ["Types.hpp", "Constants.hpp", "Macros.hpp", "Math.hpp"],
-                "io": ["IO.hpp"],
-                "bit_ops": ["Bit_Ops.hpp"],
-                "mod_int": ["Mod_Int.hpp"],
-                "containers": ["Containers.hpp"],
-                "graph": ["Graph.hpp"],
-                "string": ["Strings.hpp"],
-                "data_structures": ["Data_Structures.hpp"],
-                "number_theory": ["Number_Theory.hpp"],
-                "geometry": ["Geometry.hpp"],
-            },
-            "auto_version": True,
-            "auto_test": True,
-            "default_modules": ["core", "io"],
-            "created": datetime.now().isoformat(),
-        }
+class WorkflowError(RuntimeError):
+    """Logical error in workflow manager configuration/usage."""
 
-    def load_config(self) -> Dict:
-        """Load project configuration."""
-        default_config = self.default_config()
 
-        if self.config_file.exists():
-            try:
-                with open(self.config_file, "r", encoding="utf-8") as f:
-                    config = json.load(f)
+class WorkflowCommandError(WorkflowError):
+    """Raised when a delegated cpp-tools command fails."""
 
-                changed = False
-                for key, value in default_config.items():
-                    if key not in config:
-                        config[key] = value
-                        changed = True
+    def __init__(self, result: "CommandResult"):
+        self.result = result
+        super().__init__(
+            f"{result.function} failed with exit code {result.returncode}"
+        )
 
-                modules_cfg = config.get("modules", {})
-                if (
-                    isinstance(modules_cfg, dict)
-                    and modules_cfg.get("string") == ["String_Algorithms.hpp"]
-                ):
-                    modules_cfg["string"] = ["Strings.hpp"]
-                    changed = True
 
-                if changed:
-                    with open(self.config_file, "w", encoding="utf-8") as f:
-                        json.dump(config, f, indent=2)
+@dataclass
+class CommandResult:
+    function: str
+    args: List[str]
+    cwd: str
+    returncode: int
+    duration_ms: int
+    stdout: str
+    stderr: str
+    timed_out: bool = False
 
-                return config
-            except (json.JSONDecodeError, OSError) as e:
-                backup = self.config_file.with_suffix(
-                    f".corrupted.{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-                )
-                shutil.copy2(self.config_file, backup)
-                print(
-                    f"⚠ Invalid config file, using defaults. Backup saved to: {backup}"
-                )
-                print(f"  Details: {e}")
+    def to_dict(self, strip_ansi: bool = False) -> dict:
+        payload = asdict(self)
+        if strip_ansi:
+            payload["stdout"] = _strip_ansi(payload["stdout"])
+            payload["stderr"] = _strip_ansi(payload["stderr"])
+        return payload
 
-        with open(self.config_file, "w", encoding="utf-8") as f:
-            json.dump(default_config, f, indent=2)
 
-        return default_config
+def _strip_ansi(text: str) -> str:
+    return ANSI_RE.sub("", text)
 
-    def resolve_compiler(self) -> str:
-        """Resolve compiler with sensible CP-oriented fallbacks."""
-        configured = self.config.get("compiler")
-        candidates = []
 
-        if configured and configured not in {"g++", "c++"}:
-            candidates.append(configured)
-        candidates.extend(["g++-15", "g++-14", "g++-13"])
-        if configured:
-            candidates.append(configured)
-        candidates.extend(["g++", "c++"])
+def _is_under(path: Path, root: Path) -> bool:
+    try:
+        path.resolve().relative_to(root.resolve())
+        return True
+    except ValueError:
+        return False
 
-        seen = set()
-        for candidate in candidates:
-            if not candidate or candidate in seen:
-                continue
-            seen.add(candidate)
-            resolved = shutil.which(candidate)
-            if resolved:
-                return resolved
 
-        return configured or "g++"
+def _normalize_target(raw: str) -> str:
+    candidate = Path(raw).name
+    suffix = Path(candidate).suffix.lower()
+    if suffix in {".cpp", ".cc", ".cxx"}:
+        candidate = Path(candidate).stem
+    if not TARGET_RE.fullmatch(candidate):
+        raise argparse.ArgumentTypeError(
+            "invalid target name; expected [A-Za-z][A-Za-z0-9_]* (optionally with .cpp/.cc/.cxx)"
+        )
+    return candidate
 
-    def init_components(self):
-        """Initialize workflow components."""
-        # Create necessary directories.
-        self.templates_dir.mkdir(parents=True, exist_ok=True)
-        self.modules_dir.mkdir(parents=True, exist_ok=True)
-        self.scripts_dir.mkdir(parents=True, exist_ok=True)
 
-        # Setup module registry.
-        self.module_registry_file = self.modules_dir / "data" / "registry.json"
-        self.module_registry_file.parent.mkdir(parents=True, exist_ok=True)
-        if not self.module_registry_file.exists():
-            self.create_module_registry()
+def _normalize_input_name(raw: str) -> str:
+    name = Path(raw).name
+    if not name:
+        raise argparse.ArgumentTypeError("input filename cannot be empty")
+    return name
 
-    def create_module_registry(self):
-        """Create registry of available modules with metadata."""
-        registry = {
-            "modules": {
-                "graph": {
-                    "files": ["Graph.hpp"],
-                    "dependencies": ["core"],
-                    "description": "Graph algorithms and data structures",
-                    "features": [
-                        "dijkstra",
-                        "bellman_ford",
-                        "dsu",
-                        "lca",
-                        "scc",
-                        "bridges",
-                    ],
-                    "size_kb": 15.2,
-                    "compile_time_impact": "medium",
-                },
-                "string": {
-                    "files": ["Strings.hpp"],
-                    "dependencies": ["core"],
-                    "description": "String processing and pattern matching",
-                    "features": [
-                        "kmp",
-                        "z_algorithm",
-                        "manacher",
-                        "suffix_array",
-                        "rolling_hash",
-                        "trie",
-                    ],
-                    "size_kb": 12.8,
-                    "compile_time_impact": "medium",
-                },
-                "data_structures": {
-                    "files": ["Data_Structures.hpp"],
-                    "dependencies": ["core"],
-                    "description": "Advanced data structures",
-                    "features": [
-                        "segment_tree",
-                        "fenwick_tree",
-                        "sparse_table",
-                        "heap",
-                        "treap",
-                    ],
-                    "size_kb": 18.5,
-                    "compile_time_impact": "high",
-                },
-                "number_theory": {
-                    "files": ["Number_Theory.hpp"],
-                    "dependencies": ["core", "mod_int"],
-                    "description": "Number theory algorithms",
-                    "features": [
-                        "sieve",
-                        "factorization",
-                        "euler_phi",
-                        "chinese_remainder",
-                        "discrete_log",
-                    ],
-                    "size_kb": 10.3,
-                    "compile_time_impact": "low",
-                },
-                "geometry": {
-                    "files": ["Geometry.hpp"],
-                    "dependencies": ["core"],
-                    "description": "Computational geometry",
-                    "features": [
-                        "convex_hull",
-                        "line_intersection",
-                        "polygon_area",
-                        "closest_pair",
-                    ],
-                    "size_kb": 14.7,
-                    "compile_time_impact": "medium",
-                },
-            },
-            "updated": datetime.now().isoformat(),
-        }
 
-        with open(self.module_registry_file, "w") as f:
-            json.dump(registry, f, indent=2)
+def _normalize_contest_dir(raw: str) -> str:
+    p = Path(raw)
+    if p.is_absolute():
+        raise argparse.ArgumentTypeError("contest path must be workspace-relative")
+    if ".." in p.parts:
+        raise argparse.ArgumentTypeError("contest path cannot contain '..'")
+    if not p.parts:
+        raise argparse.ArgumentTypeError("contest path cannot be empty")
+    for seg in p.parts:
+        if seg in {".", ""}:
+            raise argparse.ArgumentTypeError("contest path contains invalid segment")
+        if not CONTEST_SEGMENT_RE.fullmatch(seg):
+            raise argparse.ArgumentTypeError(
+                f"invalid contest path segment '{seg}' (allowed: letters, digits, '.', '_' and '-')"
+            )
+    return str(p)
 
-    def new_solution(
+
+def _discover_cp_tools_script(explicit: Optional[Path]) -> Path:
+    candidates: List[Path] = []
+    if explicit is not None:
+        candidates.append(explicit.expanduser())
+
+    env_script = os.environ.get("CPP_TOOLS_SCRIPT")
+    if env_script:
+        candidates.append(Path(env_script).expanduser())
+
+    candidates.append(DEFAULT_CP_TOOLS_SCRIPT)
+    candidates.append(Path.home() / ".config/cpp-tools/competitive.sh")
+
+    seen = set()
+    for candidate in candidates:
+        key = str(candidate)
+        if key in seen:
+            continue
+        seen.add(key)
+        if candidate.is_file():
+            return candidate
+
+    searched = "\n  - ".join(str(c) for c in candidates)
+    raise WorkflowError(
+        "unable to locate cpp-tools entry script `competitive.sh`.\n"
+        f"Searched:\n  - {searched}\n"
+        "Use --cp-tools-script to specify it explicitly."
+    )
+
+
+class CppToolsRunner:
+    def __init__(
         self,
-        problem_name: str,
-        modules: List[str],
-        contest: Optional[str] = None,
-        force: bool = False,
-    ) -> Path:
-        """Create a new solution file with specified modules."""
-        # Determine file path.
-        if contest:
-            contest_dir = self.project_root / "contests" / contest
-            contest_dir.mkdir(parents=True, exist_ok=True)
-            solution_file = contest_dir / f"{problem_name}.cpp"
-        else:
-            solutions_dir = self.project_root / "solutions"
-            solutions_dir.mkdir(exist_ok=True)
-            solution_file = solutions_dir / f"{problem_name}.cpp"
+        cp_tools_script: Path,
+        cwd: Path,
+        default_timeout: int,
+        quiet_load: bool = True,
+    ):
+        if shutil.which("zsh") is None:
+            raise WorkflowError("zsh is required but was not found in PATH")
+        if not cp_tools_script.is_file():
+            raise WorkflowError(f"cpp-tools script not found: {cp_tools_script}")
+        if not cwd.exists() or not cwd.is_dir():
+            raise WorkflowError(f"invalid working directory: {cwd}")
 
-        if solution_file.exists() and not force:
-            raise FileExistsError(
-                f"Solution already exists: {solution_file} (use --force to overwrite)"
-            )
+        self.script_path = cp_tools_script.resolve()
+        self.cwd = cwd.resolve()
+        self.default_timeout = default_timeout
+        self.quiet_load = quiet_load
+        self._wrapper_script = self._build_wrapper_script()
 
-        # Generate solution template.
-        template = self.generate_solution_template(problem_name, modules, contest)
-
-        with open(solution_file, "w", encoding="utf-8") as f:
-            f.write(template)
-
-        print(f"✓ Created solution: {solution_file}")
-
-        # Auto-version if enabled
-        if self.config.get("auto_version"):
-            self.auto_version(f"Created solution: {problem_name}")
-
-        if self.config.get("auto_test"):
-            print("Running auto-test (compilation check)...")
-            if self.test_solution(solution_file):
-                print("✓ Auto-test passed")
-            else:
-                print("✗ Auto-test failed")
-
-        return solution_file
-
-    def generate_solution_template(
-        self, problem_name: str, modules: List[str], contest: Optional[str]
-    ) -> str:
-        """Generate solution template with specified modules."""
-        lines = []
-
-        # Header comment.
-        lines.append(
-            "//===----------------------------------------------------------------------===//"
+    @staticmethod
+    def _build_wrapper_script() -> str:
+        allowed_cases = "\n".join(
+            f"  {name}) ;;" for name in sorted(ALLOWED_FUNCTIONS)
         )
-        lines.append("/**")
-        lines.append(f" * @file: {problem_name}.cpp")
-        if contest:
-            lines.append(f" * @contest: {contest}")
-        lines.append(f" * @problem: {problem_name}")
-        lines.append(f" * @author: Costantino Lombardi")
-        lines.append(f" * @date: {datetime.now().strftime('%Y-%m-%d')}")
-        lines.append(" */")
-        lines.append(
-            "//===----------------------------------------------------------------------===//"
+        return (
+            "set -eo pipefail\n"
+            'export CP_QUIET_LOAD="${CP_QUIET_LOAD:-1}"\n'
+            'source "$1"\n'
+            "shift\n"
+            'func="$1"\n'
+            "shift\n"
+            "case \"$func\" in\n"
+            f"{allowed_cases}\n"
+            "  *)\n"
+            '    print -u2 -- "Unsupported cpp-tools function: $func"\n'
+            "    exit 64\n"
+            "    ;;\n"
+            "esac\n"
+            "if [[ \"$func\" == \"cppdeepclean\" && "
+            '"${CP_AUTO_CONFIRM_DEEPCLEAN:-0}" == "1" ]]; then\n'
+            "  printf 'y\\n' | cppdeepclean \"$@\"\n"
+            "else\n"
+            "  \"$func\" \"$@\"\n"
+            "fi\n"
         )
-        lines.append("")
 
-        # Module definitions.
-        need_macros = []
-        if "core" in modules or not modules:
-            need_macros.append("NEED_CORE")
-        if "io" in modules:
-            need_macros.append("NEED_IO")
-        if "bit_ops" in modules:
-            need_macros.append("NEED_BIT_OPS")
-        if "mod_int" in modules:
-            need_macros.append("NEED_MOD_INT")
-        if "containers" in modules:
-            need_macros.append("NEED_CONTAINERS")
+    def run(
+        self,
+        function: str,
+        args: Sequence[str] = (),
+        timeout: Optional[int] = None,
+        auto_confirm_deepclean: bool = False,
+    ) -> CommandResult:
+        if function not in ALLOWED_FUNCTIONS:
+            raise WorkflowError(f"function not allowlisted: {function}")
 
-        # Add advanced modules if present.
-        advanced_modules = [
-            "graph",
-            "string",
-            "data_structures",
-            "number_theory",
-            "geometry",
+        cmd = [
+            "zsh",
+            "-lc",
+            self._wrapper_script,
+            "workflow_manager",
+            str(self.script_path),
+            function,
+            *args,
         ]
-        for mod in advanced_modules:
-            if mod in modules:
-                need_macros.append(f"NEED_{mod.upper()}")
+        env = os.environ.copy()
+        env["CP_QUIET_LOAD"] = "1" if self.quiet_load else "0"
+        if auto_confirm_deepclean:
+            env["CP_AUTO_CONFIRM_DEEPCLEAN"] = "1"
 
-        for macro in need_macros:
-            lines.append(f"#define {macro}")
-
-        lines.append("")
-        lines.append('#include "templates/Base.hpp"')
-
-        # Include advanced modules if needed.
-        for mod in advanced_modules:
-            if mod in modules:
-                module_name = self.get_module_filename(mod)
-                lines.append(f'#include "modules/{module_name}"')
-
-        lines.append("")
-        lines.append(
-            "//===----------------------------------------------------------------------===//"
-        )
-        lines.append("/* Main Solver Function */")
-        lines.append("")
-        lines.append("void solve() {")
-        lines.append("  // Your solution here")
-        lines.append("  ")
-        lines.append("}")
-        lines.append("")
-        lines.append(
-            "//===----------------------------------------------------------------------===//"
-        )
-        lines.append("/* Main Function */")
-        lines.append("")
-        lines.append("auto main() -> int {")
-        lines.append("#ifdef LOCAL")
-        lines.append("  Timer timer;")
-        lines.append("#endif")
-        lines.append("")
-        if "io" in modules:
-            lines.append("  INT(T);")
-            lines.append("  FOR(T) solve();")
-        else:
-            lines.append("  I32 T = 1;")
-            lines.append("  while (T--) solve();")
-        lines.append("")
-        lines.append("  return 0;")
-        lines.append("}")
-        lines.append("")
-
-        return "\n".join(lines)
-
-    def get_module_filename(self, module_name: str) -> str:
-        """Get filename for a module."""
-        mapping = {
-            "graph": "Graph.hpp",
-            "string": "Strings.hpp",
-            "data_structures": "Data_Structures.hpp",
-            "number_theory": "Number_Theory.hpp",
-            "geometry": "Geometry.hpp",
-        }
-        return mapping.get(module_name, f"{module_name}.hpp")
-
-    def test_solution(
-        self, solution_file: Path, test_cases: Optional[Path] = None
-    ) -> bool:
-        """Test a solution with provided test cases."""
-        print(f"Testing solution: {solution_file}")
-
-        # Compile solution.
-        output_file = solution_file.with_suffix("")
-        compile_cmd = [
-            self.compiler,
-            *self.config.get("compiler_flags", ["-std=c++23", "-Wall", "-Wextra"]),
-            "-O2",
-            f"-I{self.project_root}",
-            f"-I{self.project_root / 'libs'}",
-            "-DLOCAL",
-            "-o",
-            str(output_file),
-            str(solution_file),
-        ]
-
+        start = time.perf_counter()
         try:
-            result = subprocess.run(
-                compile_cmd, capture_output=True, text=True, timeout=10
-            )
-            if result.returncode != 0:
-                print(f"✗ Compilation failed:")
-                print(result.stderr)
-                return False
-
-            print("✓ Compilation successful")
-
-            # Run test cases if provided
-            if test_cases and test_cases.exists():
-                with open(test_cases, "r") as f:
-                    test_data = json.load(f)
-
-                passed = 0
-                total = len(test_data.get("tests", []))
-
-                for i, test in enumerate(test_data.get("tests", [])):
-                    input_data = test["input"]
-                    expected_output = test["output"].strip()
-
-                    try:
-                        result = subprocess.run(
-                            [str(output_file)],
-                            input=input_data,
-                            capture_output=True,
-                            text=True,
-                            timeout=2,
-                        )
-                    except subprocess.TimeoutExpired:
-                        print(f"  Test {i+1}: ✗ TIMEOUT")
-                        continue
-
-                    if result.returncode != 0:
-                        print(f"  Test {i+1}: ✗ RUNTIME ERROR (code {result.returncode})")
-                        stderr = result.stderr.strip()
-                        if stderr:
-                            print(f"    Stderr: {stderr}")
-                        continue
-
-                    actual_output = result.stdout.strip()
-
-                    if actual_output == expected_output:
-                        print(f"  Test {i+1}: ✓ PASS")
-                        passed += 1
-                    else:
-                        print(f"  Test {i+1}: ✗ FAIL")
-                        print(f"    Expected: {expected_output}")
-                        print(f"    Got: {actual_output}")
-
-                print(f"\nResults: {passed}/{total} tests passed")
-                return passed == total
-
-            return True
-
-        except subprocess.TimeoutExpired:
-            print("✗ Compilation/execution timeout")
-            return False
-        except Exception as e:
-            print(f"✗ Error: {e}")
-            return False
-        finally:
-            # Clean up.
-            output_file.unlink(missing_ok=True)
-
-    def submit_solution(self, solution_file: Path) -> Optional[Path]:
-        """Prepare solution for submission."""
-        print(f"Preparing solution for submission: {solution_file}")
-
-        # Run flattener.
-        flattener_script = self.scripts_dir / "flattener.py"
-        output_file = solution_file.with_stem(f"{solution_file.stem}_submit")
-
-        try:
-            result = subprocess.run(
-                ["python3", str(flattener_script), str(solution_file)],
+            completed = subprocess.run(
+                cmd,
+                cwd=str(self.cwd),
+                env=env,
                 capture_output=True,
                 text=True,
+                timeout=timeout if timeout is not None else self.default_timeout,
+                check=False,
+            )
+            elapsed_ms = int((time.perf_counter() - start) * 1000)
+            return CommandResult(
+                function=function,
+                args=list(args),
+                cwd=str(self.cwd),
+                returncode=completed.returncode,
+                duration_ms=elapsed_ms,
+                stdout=completed.stdout,
+                stderr=completed.stderr,
+                timed_out=False,
+            )
+        except subprocess.TimeoutExpired as exc:
+            elapsed_ms = int((time.perf_counter() - start) * 1000)
+            return CommandResult(
+                function=function,
+                args=list(args),
+                cwd=str(self.cwd),
+                returncode=124,
+                duration_ms=elapsed_ms,
+                stdout=exc.stdout or "",
+                stderr=(exc.stderr or "") + "\nCommand timed out.",
+                timed_out=True,
             )
 
-            if result.returncode == 0:
-                with open(output_file, "w") as f:
-                    f.write(result.stdout)
 
-                # Get file statistics.
-                source_lines = sum(1 for _ in open(solution_file))
-                output_lines = sum(1 for _ in open(output_file))
-                output_size = output_file.stat().st_size / 1024
+class WorkflowManager:
+    def __init__(self, runner: CppToolsRunner, json_mode: bool, verbose: bool):
+        self.runner = runner
+        self.json_mode = json_mode
+        self.verbose = verbose
+        self.results: List[CommandResult] = []
+        self.notes: List[str] = []
 
-                print(f"✓ Created submission file: {output_file}")
-                print(f"  Source: {source_lines} lines")
-                print(f"  Output: {output_lines} lines ({output_size:.1f} KB)")
+        workspace_root = Path(
+            os.environ.get("CP_WORKSPACE_ROOT", str(DEFAULT_WORKSPACE_ROOT))
+        )
+        if not _is_under(self.runner.cwd, workspace_root):
+            self.notes.append(
+                f"warning: cwd '{self.runner.cwd}' is outside CP_WORKSPACE_ROOT '{workspace_root}'"
+            )
 
-                # Copy to clipboard if possible.
-                try:
-                    if sys.platform == "darwin":
-                        subprocess.run(["pbcopy"], input=result.stdout, text=True)
-                        print("✓ Copied to clipboard")
-                    elif sys.platform == "linux":
-                        subprocess.run(
-                            ["xclip", "-selection", "clipboard"],
-                            input=result.stdout,
-                            text=True,
-                        )
-                        print("✓ Copied to clipboard")
-                except:
-                    pass
+    def note(self, message: str) -> None:
+        self.notes.append(message)
+        if not self.json_mode:
+            print(message)
 
-                return output_file
-            else:
-                print(f"✗ Flattening failed: {result.stderr}")
-                return None
+    def run_cpp(
+        self,
+        function: str,
+        args: Sequence[str] = (),
+        check: bool = True,
+        timeout: Optional[int] = None,
+        auto_confirm_deepclean: bool = False,
+    ) -> CommandResult:
+        if self.verbose and not self.json_mode:
+            command_preview = " ".join([function, *args])
+            print(f"[workflow] -> {command_preview}")
 
-        except Exception as e:
-            print(f"✗ Error: {e}")
-            return None
+        result = self.runner.run(
+            function=function,
+            args=args,
+            timeout=timeout,
+            auto_confirm_deepclean=auto_confirm_deepclean,
+        )
+        self.results.append(result)
 
-    def auto_version(self, message: str):
-        """Automatically create a version if enabled."""
-        if not self.config.get("auto_version"):
+        if not self.json_mode:
+            if result.stdout:
+                print(result.stdout, end="")
+            if result.stderr:
+                print(result.stderr, end="", file=sys.stderr)
+
+        if check and result.returncode != 0:
+            raise WorkflowCommandError(result)
+        return result
+
+    def emit_json(self, status: str) -> None:
+        payload = {
+            "status": status,
+            "cwd": str(self.runner.cwd),
+            "cp_tools_script": str(self.runner.script_path),
+            "notes": self.notes,
+            "steps": [r.to_dict(strip_ansi=True) for r in self.results],
+        }
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+
+    def emit_summary(self) -> None:
+        if self.json_mode:
             return
+        if not self.results:
+            return
+        total_ms = sum(r.duration_ms for r in self.results)
+        failed = [r for r in self.results if r.returncode != 0]
+        status = "OK" if not failed else "FAILED"
+        print(
+            f"[workflow] {status} | steps={len(self.results)} | "
+            f"failed={len(failed)} | total={total_ms}ms"
+        )
 
-        try:
-            from pathlib import Path
 
-            # Import version manager.
-            sys.path.insert(0, str(self.scripts_dir))
-            from version_manager import VersionManager
+def _build_cppconf_args(ns: argparse.Namespace) -> List[str]:
+    args: List[str] = []
+    if ns.build_type:
+        args.append(ns.build_type)
+    if ns.compiler:
+        args.append(ns.compiler)
+    if ns.timing:
+        args.append(f"timing={ns.timing}")
+    if ns.pch:
+        args.append(f"pch={ns.pch}")
+    if ns.pch_rebuild:
+        args.append("pch-rebuild")
+    if ns.extra_conf_arg:
+        args.extend(ns.extra_conf_arg)
+    return args
 
-            vm = VersionManager(self.templates_dir)
-            if vm.auto_version():
-                print(f"✓ Auto-versioned: {message}")
-        except ImportError:
-            pass
 
-    def doctor(self) -> bool:
-        """Check system health and configuration."""
-        print("Running system diagnostics...")
-        print("=" * 60)
+def _run_step_with_policy(
+    manager: WorkflowManager,
+    ns: argparse.Namespace,
+    function: str,
+    args: Sequence[str] = (),
+    auto_confirm_deepclean: bool = False,
+) -> CommandResult:
+    check = not getattr(ns, "continue_on_error", False)
+    result = manager.run_cpp(
+        function=function,
+        args=args,
+        check=check,
+        auto_confirm_deepclean=auto_confirm_deepclean,
+    )
+    if not check and result.returncode != 0:
+        manager.note(
+            f"[workflow] step failed but continuing: {function} "
+            f"(exit {result.returncode})"
+        )
+    return result
 
-        checks_passed = True
 
-        # Check directories.
-        dirs_to_check = [
-            ("Templates", self.templates_dir),
-            ("Modules", self.modules_dir),
-            ("Scripts", self.scripts_dir),
-        ]
+def handle_init(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+    _run_step_with_policy(manager, ns, "cppinit")
 
-        for name, path in dirs_to_check:
-            if path.exists():
-                print(f"✓ {name} directory: {path}")
-            else:
-                print(f"✗ {name} directory missing: {path}")
-                checks_passed = False
 
-        # Check essential files.
-        essential_files = [
-            ("Base.hpp", self.templates_dir / "Base.hpp"),
-            ("Types.hpp", self.templates_dir / "Types.hpp"),
-            ("Flattener", self.scripts_dir / "flattener.py"),
-        ]
+def handle_contest(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+    _run_step_with_policy(manager, ns, "cppcontest", [ns.directory])
 
-        for name, path in essential_files:
-            if path.exists():
-                print(f"✓ {name}: {path}")
-            else:
-                print(f"✗ {name} missing: {path}")
-                checks_passed = False
 
-        # Check compiler.
-        try:
-            result = subprocess.run(
-                [self.compiler, "--version"], capture_output=True, timeout=5
+def handle_new(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+    target_file = manager.runner.cwd / f"{ns.name}.cpp"
+    if ns.if_missing and target_file.exists():
+        manager.note(f"[workflow] {target_file.name} already exists, skipping cppnew")
+        return
+    _run_step_with_policy(manager, ns, "cppnew", [ns.name, ns.template])
+
+
+def handle_batch(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+    _run_step_with_policy(manager, ns, "cppbatch", [str(ns.count), ns.template])
+
+
+def handle_delete(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+    args: List[str] = []
+    if ns.yes:
+        args.append("-y")
+    if ns.no_config:
+        args.append("--no-config")
+    args.extend(ns.names)
+    _run_step_with_policy(manager, ns, "cppdelete", args)
+
+
+def handle_conf(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+    args = _build_cppconf_args(ns)
+    _run_step_with_policy(manager, ns, "cppconf", args)
+
+
+def handle_build(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+    args = [ns.target] if ns.target else []
+    _run_step_with_policy(manager, ns, "cppbuild", args)
+
+
+def handle_run(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+    args = [ns.target] if ns.target else []
+    _run_step_with_policy(manager, ns, "cpprun", args)
+
+
+def handle_go(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+    args: List[str] = []
+    if ns.target:
+        args.append(ns.target)
+    if ns.input:
+        args.append(ns.input)
+    _run_step_with_policy(manager, ns, "cppgo", args)
+
+
+def handle_forcego(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+    args = [ns.target] if ns.target else []
+    _run_step_with_policy(manager, ns, "cppforcego", args)
+
+
+def handle_judge(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+    args = [ns.target] if ns.target else []
+    _run_step_with_policy(manager, ns, "cppjudge", args)
+
+
+def handle_stress(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+    args: List[str] = []
+    if ns.target:
+        args.append(ns.target)
+    if ns.iterations:
+        args.append(str(ns.iterations))
+    _run_step_with_policy(manager, ns, "cppstress", args)
+
+
+def handle_submit(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+    args = [ns.target] if ns.target else []
+    _run_step_with_policy(manager, ns, "cppsubmit", args)
+
+
+def handle_test_submit(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+    args: List[str] = []
+    if ns.no_generate:
+        args.append("--no-generate")
+    if ns.target:
+        args.append(ns.target)
+    if ns.input:
+        args.append(ns.input)
+    _run_step_with_policy(manager, ns, "cpptestsubmit", args)
+
+
+def handle_full(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+    args: List[str] = []
+    if ns.target:
+        args.append(ns.target)
+    if ns.input:
+        args.append(ns.input)
+    _run_step_with_policy(manager, ns, "cppfull", args)
+
+
+def handle_check(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+    _run_step_with_policy(manager, ns, "cppcheck")
+
+
+def handle_info(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+    _run_step_with_policy(manager, ns, "cppinfo")
+
+
+def handle_diag(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+    _run_step_with_policy(manager, ns, "cppdiag")
+
+
+def handle_help(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+    _run_step_with_policy(manager, ns, "cpphelp")
+
+
+def handle_clean(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+    _run_step_with_policy(manager, ns, "cppclean")
+
+
+def handle_deepclean(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+    if not ns.yes:
+        raise WorkflowError("deepclean is destructive; pass --yes to confirm")
+    _run_step_with_policy(
+        manager,
+        ns,
+        "cppdeepclean",
+        auto_confirm_deepclean=True,
+    )
+
+
+def handle_stats(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+    _run_step_with_policy(manager, ns, "cppstats")
+
+
+def handle_archive(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+    _run_step_with_policy(manager, ns, "cpparchive")
+
+
+def handle_watch(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+    args = [ns.target] if ns.target else []
+    _run_step_with_policy(manager, ns, "cppwatch", args)
+
+
+def handle_exec(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+    _run_step_with_policy(manager, ns, ns.function, ns.args)
+
+
+def handle_doctor(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+    manager.note(f"[workflow] cp-tools script: {manager.runner.script_path}")
+    manager.note(f"[workflow] cwd: {manager.runner.cwd}")
+    manager.note("[workflow] running diagnostics suite...")
+
+    _run_step_with_policy(manager, ns, "cpphelp")
+    _run_step_with_policy(manager, ns, "cppinfo")
+
+    # `cppdiag` can return non-zero even when most diagnostics are printed.
+    # Treat it as warning by default, and allow strict mode when desired.
+    diag_result = manager.run_cpp("cppdiag", check=False)
+    if diag_result.returncode != 0:
+        manager.note(
+            f"[workflow] warning: cppdiag exited with {diag_result.returncode}"
+        )
+        if ns.strict:
+            raise WorkflowCommandError(diag_result)
+        diag_result.returncode = 0
+
+    _run_step_with_policy(manager, ns, "cppcheck")
+
+
+def handle_cycle(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+    """
+    High-level contest loop:
+    - optional configure
+    - optional new
+    - optional go
+    - optional judge
+    - optional submit
+    - optional test-submit
+    """
+
+    input_name = ns.input
+
+    if ns.configure:
+        conf_args = _build_cppconf_args(ns)
+        _run_step_with_policy(manager, ns, "cppconf", conf_args)
+
+    if not ns.skip_new:
+        target_file = manager.runner.cwd / f"{ns.name}.cpp"
+        if ns.new_if_missing and target_file.exists():
+            manager.note(
+                f"[workflow] {target_file.name} already exists, skipping cppnew"
             )
-            if result.returncode == 0:
-                version_line = result.stdout.decode().split("\n")[0]
-                print(f"✓ Compiler: {version_line}")
-            else:
-                print(f"✗ Compiler check failed")
-                checks_passed = False
-        except:
-            print(f"✗ Compiler not found: {self.compiler}")
-            checks_passed = False
-
-        # Check Python modules.
-        required_modules = ["json", "pathlib", "subprocess", "difflib"]
-        for module in required_modules:
-            try:
-                __import__(module)
-                print(f"✓ Python module: {module}")
-            except ImportError:
-                print(f"✗ Python module missing: {module}")
-                checks_passed = False
-
-        print("=" * 60)
-        if checks_passed:
-            print("✓ All checks passed - system is ready!")
         else:
-            print("✗ Some checks failed - please fix issues above")
+            _run_step_with_policy(manager, ns, "cppnew", [ns.name, ns.template])
 
-        return checks_passed
+    if not ns.skip_go:
+        go_args = [ns.name]
+        if input_name:
+            go_args.append(input_name)
+        _run_step_with_policy(manager, ns, "cppgo", go_args)
+
+    if not ns.skip_judge:
+        _run_step_with_policy(manager, ns, "cppjudge", [ns.name])
+
+    if not ns.skip_submit:
+        _run_step_with_policy(manager, ns, "cppsubmit", [ns.name])
+        if not ns.skip_submit_test:
+            test_args = ["--no-generate", ns.name]
+            if input_name:
+                test_args.append(input_name)
+            _run_step_with_policy(manager, ns, "cpptestsubmit", test_args)
+    elif not ns.skip_submit_test:
+        # If submit is skipped but submission test is requested, let cpptestsubmit
+        # generate the submission itself.
+        test_args = [ns.name]
+        if input_name:
+            test_args.append(input_name)
+        _run_step_with_policy(manager, ns, "cpptestsubmit", test_args)
 
 
-# -------------------------------- MAIN LOGIC -------------------------------- #
+def _add_target_arg(
+    parser: argparse.ArgumentParser, required: bool = False, name: str = "target"
+) -> None:
+    parser.add_argument(
+        name,
+        nargs=None if required else "?",
+        type=_normalize_target,
+        help="target/problem name (e.g. problem_A or problem_A.cpp)",
+    )
 
 
-def main():
+def _add_conf_options(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--build-type", choices=BUILD_TYPE_CHOICES)
+    parser.add_argument("--compiler", choices=COMPILER_CHOICES)
+    parser.add_argument("--timing", choices=TOGGLE_CHOICES)
+    parser.add_argument("--pch", choices=PCH_CHOICES)
+    parser.add_argument("--pch-rebuild", action="store_true")
+    parser.add_argument(
+        "--extra-conf-arg",
+        action="append",
+        default=[],
+        help="extra raw argument forwarded to cppconf (repeatable)",
+    )
+
+
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Competitive Programming Workflow Manager"
+        description=(
+            "Competitive Programming workflow manager built on top of cpp-tools."
+        )
     )
-    parser.add_argument("--root", type=Path, help="Project root directory")
-
-    subparsers = parser.add_subparsers(dest="command", help="Commands")
-
-    # New solution.
-    new_parser = subparsers.add_parser("new", help="Create new solution")
-    new_parser.add_argument("name", help="Problem name")
-    new_parser.add_argument(
-        "--modules", nargs="+", default=["core", "io"], help="Modules to include"
+    parser.add_argument(
+        "--cwd",
+        type=Path,
+        default=Path.cwd(),
+        help="working directory where commands are executed",
     )
-    new_parser.add_argument("--contest", help="Contest name")
-    new_parser.add_argument(
-        "--force", action="store_true", help="Overwrite existing solution file"
+    parser.add_argument(
+        "--cp-tools-script",
+        type=Path,
+        default=None,
+        help="path to competitive.sh (cpp-tools entry script)",
+    )
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=600,
+        help="timeout in seconds for each delegated command",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="emit structured JSON output instead of plain text",
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="print delegated command names before execution",
+    )
+    parser.add_argument(
+        "--show-load-banner",
+        action="store_true",
+        help="do not suppress cpp-tools load banner",
+    )
+    parser.add_argument(
+        "--continue-on-error",
+        action="store_true",
+        help="continue executing subsequent steps even if one step fails",
     )
 
-    # Test solution.
-    test_parser = subparsers.add_parser("test", help="Test solution")
-    test_parser.add_argument("file", type=Path, help="Solution file")
-    test_parser.add_argument("--cases", type=Path, help="Test cases JSON file")
+    subparsers = parser.add_subparsers(dest="command", required=True)
 
-    # Submit solution.
-    submit_parser = subparsers.add_parser("submit", help="Prepare for submission")
-    submit_parser.add_argument("file", type=Path, help="Solution file")
+    # setup
+    p = subparsers.add_parser("init", help="run cppinit")
+    p.set_defaults(handler=handle_init)
 
-    # System doctor.
-    doctor_parser = subparsers.add_parser("doctor", help="Check system health")
+    p = subparsers.add_parser("contest", help="run cppcontest <dir>")
+    p.add_argument("directory", type=_normalize_contest_dir)
+    p.set_defaults(handler=handle_contest)
 
-    args = parser.parse_args()
+    p = subparsers.add_parser("new", help="run cppnew <name> [template]")
+    p.add_argument("name", type=_normalize_target)
+    p.add_argument("--template", choices=TEMPLATE_CHOICES, default="base")
+    p.add_argument(
+        "--if-missing",
+        action="store_true",
+        help="skip cppnew if <name>.cpp already exists",
+    )
+    p.set_defaults(handler=handle_new)
 
-    # Find project root.
-    if args.root:
-        project_root = args.root
+    p = subparsers.add_parser("batch", help="run cppbatch")
+    p.add_argument("count", type=int)
+    p.add_argument("--template", choices=TEMPLATE_CHOICES, default="base")
+    p.set_defaults(handler=handle_batch)
+
+    p = subparsers.add_parser("delete", help="run cppdelete for one or more problems")
+    p.add_argument("names", nargs="+", type=_normalize_target)
+    p.add_argument("-y", "--yes", action="store_true")
+    p.add_argument("--no-config", action="store_true")
+    p.set_defaults(handler=handle_delete)
+
+    p = subparsers.add_parser("conf", help="run cppconf")
+    _add_conf_options(p)
+    p.set_defaults(handler=handle_conf)
+
+    # build/run/test
+    p = subparsers.add_parser("build", help="run cppbuild")
+    _add_target_arg(p)
+    p.set_defaults(handler=handle_build)
+
+    p = subparsers.add_parser("run", help="run cpprun")
+    _add_target_arg(p)
+    p.set_defaults(handler=handle_run)
+
+    p = subparsers.add_parser("go", help="run cppgo")
+    _add_target_arg(p)
+    p.add_argument(
+        "--input",
+        type=_normalize_input_name,
+        help="input filename inside input_cases/",
+    )
+    p.set_defaults(handler=handle_go)
+
+    p = subparsers.add_parser("forcego", help="run cppforcego")
+    _add_target_arg(p)
+    p.set_defaults(handler=handle_forcego)
+
+    p = subparsers.add_parser("judge", help="run cppjudge")
+    _add_target_arg(p)
+    p.set_defaults(handler=handle_judge)
+
+    # compatibility alias: old manager used 'test'
+    p = subparsers.add_parser("test", help="alias of judge for compatibility")
+    _add_target_arg(p)
+    p.set_defaults(handler=handle_judge)
+
+    p = subparsers.add_parser("stress", help="run cppstress")
+    _add_target_arg(p)
+    p.add_argument("--iterations", type=int, default=None)
+    p.set_defaults(handler=handle_stress)
+
+    # submission
+    p = subparsers.add_parser("submit", help="run cppsubmit")
+    _add_target_arg(p)
+    p.set_defaults(handler=handle_submit)
+
+    p = subparsers.add_parser("test-submit", help="run cpptestsubmit")
+    _add_target_arg(p)
+    p.add_argument(
+        "--input",
+        type=_normalize_input_name,
+        help="input filename inside input_cases/",
+    )
+    p.add_argument("--no-generate", action="store_true")
+    p.set_defaults(handler=handle_test_submit)
+
+    p = subparsers.add_parser("full", help="run cppfull")
+    _add_target_arg(p)
+    p.add_argument(
+        "--input",
+        type=_normalize_input_name,
+        help="input filename inside input_cases/",
+    )
+    p.set_defaults(handler=handle_full)
+
+    # utilities
+    p = subparsers.add_parser("check", help="run cppcheck")
+    p.set_defaults(handler=handle_check)
+
+    p = subparsers.add_parser("info", help="run cppinfo")
+    p.set_defaults(handler=handle_info)
+
+    p = subparsers.add_parser("diag", help="run cppdiag")
+    p.set_defaults(handler=handle_diag)
+
+    p = subparsers.add_parser("help", help="run cpphelp")
+    p.set_defaults(handler=handle_help)
+
+    p = subparsers.add_parser("clean", help="run cppclean")
+    p.set_defaults(handler=handle_clean)
+
+    p = subparsers.add_parser("deepclean", help="run cppdeepclean (requires --yes)")
+    p.add_argument("--yes", action="store_true")
+    p.set_defaults(handler=handle_deepclean)
+
+    p = subparsers.add_parser("stats", help="run cppstats")
+    p.set_defaults(handler=handle_stats)
+
+    p = subparsers.add_parser("archive", help="run cpparchive")
+    p.set_defaults(handler=handle_archive)
+
+    p = subparsers.add_parser("watch", help="run cppwatch")
+    _add_target_arg(p)
+    p.set_defaults(handler=handle_watch)
+
+    # diagnosis/orchestration
+    p = subparsers.add_parser("doctor", help="run manager + cpp-tools diagnostics")
+    p.add_argument(
+        "--strict",
+        action="store_true",
+        help="treat cppdiag non-zero exit as fatal",
+    )
+    p.set_defaults(handler=handle_doctor)
+
+    p = subparsers.add_parser(
+        "cycle",
+        help="orchestrate a standard CP loop (new/go/judge/submit/test-submit)",
+    )
+    p.add_argument("name", type=_normalize_target)
+    p.add_argument("--template", choices=TEMPLATE_CHOICES, default="base")
+    p.add_argument(
+        "--input",
+        type=_normalize_input_name,
+        help="input filename inside input_cases/",
+    )
+    p.add_argument("--configure", action="store_true", help="run cppconf first")
+    _add_conf_options(p)
+    p.add_argument(
+        "--new-if-missing",
+        action="store_true",
+        help="skip cppnew if the target source already exists",
+    )
+    p.add_argument("--skip-new", action="store_true")
+    p.add_argument("--skip-go", action="store_true")
+    p.add_argument("--skip-judge", action="store_true")
+    p.add_argument("--skip-submit", action="store_true")
+    p.add_argument("--skip-submit-test", action="store_true")
+    p.set_defaults(handler=handle_cycle)
+
+    # expert escape hatch
+    p = subparsers.add_parser(
+        "exec",
+        help="execute a raw allowlisted cpp-tools function (expert mode)",
+    )
+    p.add_argument("function", choices=sorted(ALLOWED_FUNCTIONS))
+    p.add_argument("args", nargs=argparse.REMAINDER, default=[])
+    p.set_defaults(handler=handle_exec)
+
+    return parser
+
+
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    parser = build_parser()
+    ns = parser.parse_args(argv)
+
+    manager: Optional[WorkflowManager] = None
+    exit_code = 0
+
+    try:
+        cp_tools_script = _discover_cp_tools_script(ns.cp_tools_script)
+        runner = CppToolsRunner(
+            cp_tools_script=cp_tools_script,
+            cwd=ns.cwd,
+            default_timeout=ns.timeout,
+            quiet_load=not ns.show_load_banner,
+        )
+        manager = WorkflowManager(runner=runner, json_mode=ns.json, verbose=ns.verbose)
+        ns.handler(manager, ns)
+        if any(step.returncode != 0 for step in manager.results):
+            exit_code = 1
+    except WorkflowCommandError as exc:
+        exit_code = exc.result.returncode if exc.result.returncode != 0 else 1
+        if manager is None:
+            if ns.json:
+                print(
+                    json.dumps(
+                        {"status": "error", "error": str(exc)}, ensure_ascii=False, indent=2
+                    )
+                )
+            else:
+                print(f"Error: {exc}", file=sys.stderr)
+            return exit_code
+    except WorkflowError as exc:
+        exit_code = 1
+        if ns.json:
+            print(
+                json.dumps(
+                    {"status": "error", "error": str(exc)}, ensure_ascii=False, indent=2
+                )
+            )
+        else:
+            print(f"Error: {exc}", file=sys.stderr)
+        return exit_code
+    except KeyboardInterrupt:
+        exit_code = 130
+        if ns.json:
+            print(
+                json.dumps(
+                    {"status": "error", "error": "interrupted"}, ensure_ascii=False, indent=2
+                )
+            )
+        else:
+            print("Interrupted.", file=sys.stderr)
+        return exit_code
+
+    assert manager is not None
+    if ns.json:
+        manager.emit_json("ok" if exit_code == 0 else "error")
     else:
-        project_root = Path.cwd()
-
-    wm = WorkflowManager(project_root)
-
-    if args.command == "new":
-        try:
-            wm.new_solution(args.name, args.modules, args.contest, args.force)
-        except FileExistsError as e:
-            print(f"✗ {e}")
-            return 1
-    elif args.command == "test":
-        wm.test_solution(args.file, args.cases)
-    elif args.command == "submit":
-        wm.submit_solution(args.file)
-    elif args.command == "doctor":
-        wm.doctor()
-    else:
-        parser.print_help()
-        return 1
-    return 0
+        manager.emit_summary()
+    return exit_code
 
 
 if __name__ == "__main__":
