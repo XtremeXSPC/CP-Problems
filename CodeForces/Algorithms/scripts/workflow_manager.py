@@ -14,7 +14,7 @@ from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 import argparse
 
-# Use environment variables from "competitive.sh"
+# Use environment variables from "competitive.sh".
 CP_WORKSPACE_ROOT = os.environ.get("CP_WORKSPACE_ROOT", "/Volumes/LCS.Data/CP-Problems")
 CP_ALGORITHMS_DIR = os.environ.get(
     "CP_ALGORITHMS_DIR", "/Volumes/LCS.Data/CP-Problems/CodeForces/Algorithms"
@@ -289,7 +289,7 @@ class WorkflowManager:
         )
         lines.append("")
 
-        # Module definitions
+        # Module definitions.
         need_macros = []
         if "core" in modules or not modules:
             need_macros.append("NEED_CORE")
@@ -302,7 +302,7 @@ class WorkflowManager:
         if "containers" in modules:
             need_macros.append("NEED_CONTAINERS")
 
-        # Add advanced modules if present
+        # Add advanced modules if present.
         advanced_modules = [
             "graph",
             "string",
@@ -320,7 +320,7 @@ class WorkflowManager:
         lines.append("")
         lines.append('#include "templates/Base.hpp"')
 
-        # Include advanced modules if needed
+        # Include advanced modules if needed.
         for mod in advanced_modules:
             if mod in modules:
                 module_name = self.get_module_filename(mod)
@@ -377,7 +377,7 @@ class WorkflowManager:
         """Test a solution with provided test cases."""
         print(f"Testing solution: {solution_file}")
 
-        # Compile solution
+        # Compile solution.
         output_file = solution_file.with_suffix("")
         compile_cmd = [
             self.compiler,
@@ -462,7 +462,7 @@ class WorkflowManager:
         """Prepare solution for submission."""
         print(f"Preparing solution for submission: {solution_file}")
 
-        # Run flattener
+        # Run flattener.
         flattener_script = self.scripts_dir / "flattener.py"
         output_file = solution_file.with_stem(f"{solution_file.stem}_submit")
 
@@ -477,7 +477,7 @@ class WorkflowManager:
                 with open(output_file, "w") as f:
                     f.write(result.stdout)
 
-                # Get file statistics
+                # Get file statistics.
                 source_lines = sum(1 for _ in open(solution_file))
                 output_lines = sum(1 for _ in open(output_file))
                 output_size = output_file.stat().st_size / 1024
@@ -486,7 +486,7 @@ class WorkflowManager:
                 print(f"  Source: {source_lines} lines")
                 print(f"  Output: {output_lines} lines ({output_size:.1f} KB)")
 
-                # Copy to clipboard if possible
+                # Copy to clipboard if possible.
                 try:
                     if sys.platform == "darwin":
                         subprocess.run(["pbcopy"], input=result.stdout, text=True)
@@ -518,7 +518,7 @@ class WorkflowManager:
         try:
             from pathlib import Path
 
-            # Import version manager
+            # Import version manager.
             sys.path.insert(0, str(self.scripts_dir))
             from version_manager import VersionManager
 
@@ -535,7 +535,7 @@ class WorkflowManager:
 
         checks_passed = True
 
-        # Check directories
+        # Check directories.
         dirs_to_check = [
             ("Templates", self.templates_dir),
             ("Modules", self.modules_dir),
@@ -549,7 +549,7 @@ class WorkflowManager:
                 print(f"✗ {name} directory missing: {path}")
                 checks_passed = False
 
-        # Check essential files
+        # Check essential files.
         essential_files = [
             ("Base.hpp", self.templates_dir / "Base.hpp"),
             ("Types.hpp", self.templates_dir / "Types.hpp"),
@@ -563,7 +563,7 @@ class WorkflowManager:
                 print(f"✗ {name} missing: {path}")
                 checks_passed = False
 
-        # Check compiler
+        # Check compiler.
         try:
             result = subprocess.run(
                 [self.compiler, "--version"], capture_output=True, timeout=5
@@ -578,7 +578,7 @@ class WorkflowManager:
             print(f"✗ Compiler not found: {self.compiler}")
             checks_passed = False
 
-        # Check Python modules
+        # Check Python modules.
         required_modules = ["json", "pathlib", "subprocess", "difflib"]
         for module in required_modules:
             try:
