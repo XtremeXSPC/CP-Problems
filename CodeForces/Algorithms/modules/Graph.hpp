@@ -35,7 +35,7 @@ struct Graph {
   // Dijkstra's shortest path algorithm.
   VC<Weight> dijkstra(I32 source) const {
     VC<Weight> dist(n, infinity<Weight>);
-    PQ_min<P<Weight, I32>> pq;
+    MinPriorityQueue<P<Weight, I32>> pq;
     
     dist[source] = 0;
     pq.push({0, source});
@@ -162,32 +162,31 @@ struct Graph {
   // Find bridges in the graph
   VC<PII> find_bridges() const {
     VC<PII> bridges;
-    VC<I32> disc(n, -1), low(n, -1), parent(n, -1);
+    VC<I32> disc(n, -1), low(n, -1);
     I32 timer = 0;
-    
-    std::function<void(I32)> dfs = [&](I32 u) {
+
+    std::function<void(I32, I32)> dfs = [&](I32 u, I32 parent_edge) {
       disc[u] = low[u] = timer++;
-      
+
       for (const auto& e : adj[u]) {
         I32 v = e.to;
         if (disc[v] == -1) {
-          parent[v] = u;
-          dfs(v);
+          dfs(v, e.id);
           low[u] = std::min(low[u], low[v]);
-          
+
           if (low[v] > disc[u]) {
             bridges.pb({std::min(u, v), std::max(u, v)});
           }
-        } else if (v != parent[u]) {
+        } else if (e.id != parent_edge) {
           low[u] = std::min(low[u], disc[v]);
         }
       }
     };
-    
+
     FOR(i, n) {
-      if (disc[i] == -1) dfs(i);
+      if (disc[i] == -1) dfs(i, -1);
     }
-    
+
     return bridges;
   }
 };
@@ -285,12 +284,14 @@ struct LCA {
     
     parent.assign(log_n + 1, VI(n, -1));
     depth.assign(n, 0);
+    VB visited(n, false);
     
     // DFS to set up parent[0] and depth.
     std::function<void(I32, I32)> dfs = [&](I32 u, I32 p) {
+      visited[u] = true;
       parent[0][u] = p;
       for (const auto& e : g.adj[u]) {
-        if (e.to != p) {
+        if (e.to != p && !visited[e.to]) {
           depth[e.to] = depth[u] + 1;
           dfs(e.to, u);
         }

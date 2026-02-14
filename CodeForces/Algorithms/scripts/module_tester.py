@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import List, Dict, Tuple
 import json
 from datetime import datetime
+import shutil
 
 
 # ------------------------------ TEST FRAMEWORK ------------------------------ #
@@ -18,8 +19,68 @@ class ModuleTester:
     def __init__(self, templates_dir: Path):
         self.templates_dir = templates_dir
         self.test_results = []
-        self.compiler = "g++-15"
-        self.compiler_flags = ["-std=c++23", "-Wall", "-Wextra", "-fsyntax-only"]
+        self.config = self.load_config()
+        self.compiler = self.select_compiler()
+        self.compiler_flags = self.build_compiler_flags()
+
+    def load_config(self) -> Dict:
+        """Load project config if available."""
+        config_path = self.templates_dir.parent / ".template_config.json"
+        if not config_path.exists():
+            return {}
+
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError):
+            return {}
+
+    def build_compiler_flags(self) -> List[str]:
+        """Build compiler flags from config plus tester defaults."""
+        config_flags = list(self.config.get("compiler_flags", []))
+        if not any(flag.startswith("-std=") for flag in config_flags):
+            config_flags.insert(0, "-std=c++23")
+        if "-fsyntax-only" not in config_flags:
+            config_flags.append("-fsyntax-only")
+        return config_flags
+
+    def can_compile_std_headers(self, compiler: str) -> bool:
+        """Quick probe to ensure compiler supports the template header style."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".cpp", delete=False) as f:
+            f.write("#include <bits/stdc++.h>\nint main() { return 0; }\n")
+            temp_file = f.name
+
+        try:
+            result = subprocess.run(
+                [compiler, "-std=c++23", "-fsyntax-only", temp_file],
+                capture_output=True,
+                timeout=5,
+            )
+            return result.returncode == 0
+        except Exception:
+            return False
+        finally:
+            Path(temp_file).unlink(missing_ok=True)
+
+    def select_compiler(self) -> str:
+        """Pick the most suitable compiler for CP templates."""
+        configured = self.config.get("compiler")
+        candidates = [configured, "g++-15", "g++-14", "g++-13", "g++", "c++"]
+
+        seen = set()
+        for candidate in candidates:
+            if not candidate or candidate in seen:
+                continue
+            seen.add(candidate)
+
+            resolved = shutil.which(candidate)
+            if not resolved:
+                continue
+
+            if self.can_compile_std_headers(resolved):
+                return resolved
+
+        return configured or "g++"
 
     def create_test_file(self, modules: List[str], test_code: str = "") -> str:
         """Create a temporary test file with specified modules."""
@@ -78,7 +139,7 @@ class ModuleTester:
         print("-" * 50)
 
         modules = [
-            ("Types.hpp", "NEED_CORE", "using VI = VC<I64>; VI v;"),
+            ("Types.hpp", "NEED_CORE", "int main() { VI v; return (int)v.size(); }"),
             ("Constants.hpp", "NEED_CORE", "constexpr I64 x = INF64;"),
             ("Macros.hpp", "NEED_CORE", "int main() { FOR(i, 10) {} return 0; }"),
             (
@@ -210,10 +271,24 @@ class ModuleTester:
             test_content = self.create_test_file(modules)
 
             start_time = time.time()
-            success, _ = self.compile_test(test_content)
+            success, error = self.compile_test(test_content)
             elapsed = time.time() - start_time
 
-            print(f"{description:30} {elapsed:.3f}s")
+            status = "✓ PASS" if success else "✗ FAIL"
+            print(f"{description:30} {elapsed:.3f}s {status}")
+            if not success and error:
+                print(f"  Error: {error[:200]}...")
+
+            self.test_results.append(
+                {
+                    "benchmark": description,
+                    "modules": modules,
+                    "elapsed_seconds": elapsed,
+                    "success": success,
+                    "error": error if not success else None,
+                    "timestamp": datetime.now().isoformat(),
+                }
+            )
 
     def generate_report(self, output_file: Path):
         """Generate a JSON report of test results."""
@@ -270,7 +345,8 @@ def main():
     success = tester.run_all_tests()
 
     # Generate report.
-    report_file = Path("reports/test_report.json")
+    report_file = templates_dir.parent / "reports" / "test_report.json"
+    report_file.parent.mkdir(parents=True, exist_ok=True)
     tester.generate_report(report_file)
 
     sys.exit(0 if success else 1)

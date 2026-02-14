@@ -33,8 +33,18 @@ class VersionManager:
     def load_metadata(self) -> Dict:
         """Load version metadata from JSON file."""
         if self.metadata_file.exists():
-            with open(self.metadata_file, "r") as f:
-                return json.load(f)
+            try:
+                with open(self.metadata_file, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except (json.JSONDecodeError, OSError) as e:
+                backup = self.metadata_file.with_suffix(
+                    f".corrupted.{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                )
+                shutil.copy2(self.metadata_file, backup)
+                print(
+                    f"Warning: invalid metadata file. Backup saved to: {backup}\n"
+                    f"         Reinitializing metadata ({e})"
+                )
         return {"versions": [], "current": None, "created": datetime.now().isoformat()}
 
     def save_metadata(self):
@@ -109,17 +119,29 @@ class VersionManager:
 
     def collect_performance_metrics(self) -> Optional[Dict]:
         """Collect compilation and performance metrics."""
+        test_file = self.templates_dir.parent / "test_compile.cpp"
         try:
             metrics = {}
+            config_compiler = None
+            config_path = self.templates_dir.parent / ".template_config.json"
+            if config_path.exists():
+                try:
+                    with open(config_path, "r", encoding="utf-8") as f:
+                        config_compiler = json.load(f).get("compiler")
+                except (json.JSONDecodeError, OSError):
+                    config_compiler = None
+
+            compiler = (
+                shutil.which(config_compiler) if config_compiler else None
+            ) or shutil.which("g++-15") or shutil.which("g++") or shutil.which("c++") or "c++"
 
             # Test compilation time for basic template.
-            test_file = self.templates_dir.parent / "test_compile.cpp"
-            with open(test_file, "w") as f:
+            with open(test_file, "w", encoding="utf-8") as f:
                 f.write(
                     """
 #define NEED_CORE
 #define NEED_IO
-#include "templates/base.hpp"
+#include "templates/Base.hpp"
 int main() { return 0; }
 """
                 )
@@ -129,8 +151,9 @@ int main() { return 0; }
             start = time.time()
             result = subprocess.run(
                 [
-                    "g++",
+                    compiler,
                     "-std=c++23",
+                    "-DUSE_CLANG_SANITIZE",
                     "-fsyntax-only",
                     f"-I{self.templates_dir.parent}",
                     str(test_file),
@@ -142,6 +165,7 @@ int main() { return 0; }
 
             metrics["compile_time_basic"] = compile_time
             metrics["compile_success"] = result.returncode == 0
+            metrics["compiler"] = compiler
 
             # Count lines of code.
             total_lines = 0
@@ -152,12 +176,13 @@ int main() { return 0; }
             metrics["total_lines"] = total_lines
             metrics["file_count"] = len(list(self.templates_dir.glob("*.hpp")))
 
-            test_file.unlink(missing_ok=True)
             return metrics
 
         except Exception as e:
             print(f"Warning: Could not collect metrics: {e}")
             return None
+        finally:
+            test_file.unlink(missing_ok=True)
 
     def list_versions(self, detailed: bool = False):
         """List all available versions."""
@@ -180,12 +205,16 @@ int main() { return 0; }
 
             if detailed and "metrics" in version:
                 metrics = version["metrics"]
+                compile_time = metrics.get("compile_time_basic")
+                compile_time_str = (
+                    f"{compile_time:.3f}s"
+                    if isinstance(compile_time, (int, float))
+                    else "N/A"
+                )
                 print(f"  Metrics:")
                 print(f"    - Files: {metrics.get('file_count', 'N/A')}")
                 print(f"    - Lines: {metrics.get('total_lines', 'N/A')}")
-                print(
-                    f"    - Compile time: {metrics.get('compile_time_basic', 'N/A'):.3f}s"
-                )
+                print(f"    - Compile time: {compile_time_str}")
 
             print()
 
@@ -215,6 +244,12 @@ int main() { return 0; }
 
         for file_path in self.templates_dir.glob("*.hpp"):
             shutil.copy2(file_path, backup_dir / file_path.name)
+
+        # Remove stale files not present in target version.
+        target_files = {f.name for f in version_dir.glob("*.hpp")}
+        for file_path in self.templates_dir.glob("*.hpp"):
+            if file_path.name not in target_files:
+                file_path.unlink()
 
         # Restore version.
         for file_path in version_dir.glob("*.hpp"):

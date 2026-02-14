@@ -28,7 +28,11 @@ template <typename T>
 
 template <typename T>
 [[gnu::always_inline]] constexpr T div_ceil(T a, T b) {
-  return div_floor(a + b - 1, b);
+  if constexpr (std::is_signed_v<T>) {
+    return a / b + ((a % b != 0) && ((a ^ b) >= 0));
+  } else {
+    return a / b + (a % b != 0);
+  }
 }
 
 template <typename T>

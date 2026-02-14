@@ -8,9 +8,9 @@
 // Fast I/O
 namespace fast_io {
   static constexpr U32 BUFFER_SIZE = 1 << 17; // 128KB buffer.
-  alignas(64) char input_buffer[BUFFER_SIZE];
-  alignas(64) char output_buffer[BUFFER_SIZE];
-  alignas(64) char number_buffer[128];
+  alignas(64) inline char input_buffer[BUFFER_SIZE];
+  alignas(64) inline char output_buffer[BUFFER_SIZE];
+  alignas(64) inline char number_buffer[128];
   
   // Precomputed number strings for fast output:
   struct NumberLookup {
@@ -24,9 +24,9 @@ namespace fast_io {
       }
     }
   };
-  constexpr NumberLookup number_lookup;
+  inline constexpr NumberLookup number_lookup;
   
-  U32 input_pos = 0, input_end = 0, output_pos = 0;
+  inline U32 input_pos = 0, input_end = 0, output_pos = 0;
   
   inline void load_input() {
     std::memmove(input_buffer, input_buffer + input_pos, input_end - input_pos);
@@ -97,14 +97,24 @@ namespace fast_io {
   template <typename T>
   inline void write_integer(T x) {
     if (output_pos + 64 >= BUFFER_SIZE) flush_output();
-    
-    if (x < 0) {
-      output_buffer[output_pos++] = '-';
-      x = -x;
+
+    using UnsignedT = std::make_unsigned_t<T>;
+    UnsignedT ux;
+    if constexpr (std::is_signed_v<T>) {
+      if (x < 0) {
+        output_buffer[output_pos++] = '-';
+        // Avoid UB for minimum signed value.
+        ux = static_cast<UnsignedT>(-(x + 1));
+        ux += 1;
+      } else {
+        ux = static_cast<UnsignedT>(x);
+      }
+    } else {
+      ux = static_cast<UnsignedT>(x);
     }
-    
+
     I32 digits = 0;
-    T temp = x;
+    UnsignedT temp = ux;
     do {
       number_buffer[digits++] = '0' + (temp % 10);
       temp /= 10;
@@ -126,12 +136,12 @@ namespace fast_io {
   }
   
   // Template-based readers:
-  void read(I32& x) { read_integer(x); }
-  void read(I64& x) { read_integer(x); }
-  void read(U32& x) { read_integer(x); }
-  void read(U64& x) { read_integer(x); }
-  void read(char& x) { read_char(x); }
-  void read(std::string& x) { read_string(x); }
+  inline void read(I32& x) { read_integer(x); }
+  inline void read(I64& x) { read_integer(x); }
+  inline void read(U32& x) { read_integer(x); }
+  inline void read(U64& x) { read_integer(x); }
+  inline void read(char& x) { read_char(x); }
+  inline void read(std::string& x) { read_string(x); }
   
   template <class T, class U>
   void read(std::pair<T, U>& p) { read(p.first); read(p.second); }
@@ -147,13 +157,13 @@ namespace fast_io {
   }
   
   // Template-based writers:
-  void write(I32 x) { write_integer(x); }
-  void write(I64 x) { write_integer(x); }
-  void write(U32 x) { write_integer(x); }
-  void write(U64 x) { write_integer(x); }
-  void write(char x) { write_char(x); }
-  void write(const std::string& x) { write_string(x); }
-  void write(const char* x) { write_string(std::string(x)); }
+  inline void write(I32 x) { write_integer(x); }
+  inline void write(I64 x) { write_integer(x); }
+  inline void write(U32 x) { write_integer(x); }
+  inline void write(U64 x) { write_integer(x); }
+  inline void write(char x) { write_char(x); }
+  inline void write(const std::string& x) { write_string(x); }
+  inline void write(const char* x) { write_string(std::string(x)); }
   
   template <class T, class U>
   void write(const std::pair<T, U>& p) {
@@ -178,7 +188,7 @@ namespace fast_io {
     }
   }
   
-  void writeln() { write_char('\n'); }
+  inline void writeln() { write_char('\n'); }
   
   template <class... Args>
   void writeln(const Args&... args) {
@@ -189,7 +199,8 @@ namespace fast_io {
   // Destructor for automatic flushing:
   struct IOFlusher {
     ~IOFlusher() { flush_output(); }
-  } io_flusher;
+  };
+  inline IOFlusher io_flusher;
 }
 
 // Input/Output macros:
@@ -209,7 +220,7 @@ namespace fast_io {
 #define VV(type, name, h, w) VVC<type> name(h, VC<type>(w)); IN(name)
 
 // Answer macros:
-void YES(bool condition = true) { OUT(condition ? "YES" : "NO"); }
-void NO(bool condition = true) { YES(!condition); }
-void Yes(bool condition = true) { OUT(condition ? "Yes" : "No"); }
-void No(bool condition = true) { Yes(!condition); }
+inline void YES(bool condition = true) { OUT(condition ? "YES" : "NO"); }
+inline void NO(bool condition = true) { YES(!condition); }
+inline void Yes(bool condition = true) { OUT(condition ? "Yes" : "No"); }
+inline void No(bool condition = true) { Yes(!condition); }

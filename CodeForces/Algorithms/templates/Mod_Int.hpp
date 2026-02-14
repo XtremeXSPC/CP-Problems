@@ -11,7 +11,6 @@ struct ModInt {
   U64 value;
 
   static constexpr I64  mod() { return MOD; }
-  static constexpr bool is_prime = true; // Assuming prime modulus for simplicity.
 
   constexpr ModInt() : value(0) {}
   constexpr ModInt(I64 x) : value(x >= 0 ? x % MOD : (x % MOD + MOD) % MOD) {}
@@ -56,18 +55,16 @@ struct ModInt {
   }
 
   constexpr ModInt inverse() const {
-    if constexpr (is_prime) {
-      return pow(MOD - 2);
-    } else {
-      // Extended Euclidean algorithm.
-      I64 a = value, b = MOD, u = 1, v = 0;
-      while (b > 0) {
-        I64 t = a / b;
-        std::swap(a -= t * b, b);
-        std::swap(u -= t * v, v);
-      }
-      return ModInt(u);
+    // Extended Euclidean algorithm works for both prime and composite moduli.
+    I64 a = static_cast<I64>(value), b = MOD, u = 1, v = 0;
+    while (b > 0) {
+      I64 t = a / b;
+      std::swap(a -= t * b, b);
+      std::swap(u -= t * v, v);
     }
+    // If gcd(value, MOD) != 1, inverse does not exist.
+    if (a != 1) return ModInt(0);
+    return ModInt(u);
   }
 
   explicit             operator I64() const { return value; }

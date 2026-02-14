@@ -1,7 +1,7 @@
 {
-  "timestamp": "2025-08-31T19:37:11.438082",
+  "timestamp": "2026-02-14T18:06:41.091944",
   "templates_dir": "/Volumes/LCS.Data/CP-Problems/CodeForces/Algorithms/templates",
-  "compiler": "g++-15",
+  "compiler": "/opt/homebrew/bin/g++-15",
   "compiler_flags": [
     "-std=c++23",
     "-Wall",
@@ -13,49 +13,49 @@
       "module": "Types.hpp",
       "success": true,
       "error": null,
-      "timestamp": "2025-08-31T19:36:37.079065"
+      "timestamp": "2026-02-14T18:06:06.034380"
     },
     {
       "module": "Constants.hpp",
       "success": true,
       "error": null,
-      "timestamp": "2025-08-31T19:36:39.040502"
+      "timestamp": "2026-02-14T18:06:08.065350"
     },
     {
       "module": "Macros.hpp",
       "success": true,
       "error": null,
-      "timestamp": "2025-08-31T19:36:41.041831"
+      "timestamp": "2026-02-14T18:06:10.096699"
     },
     {
       "module": "Math.hpp",
       "success": true,
       "error": null,
-      "timestamp": "2025-08-31T19:36:43.040601"
+      "timestamp": "2026-02-14T18:06:12.165000"
     },
     {
       "module": "Bit_Ops.hpp",
       "success": true,
       "error": null,
-      "timestamp": "2025-08-31T19:36:45.221522"
+      "timestamp": "2026-02-14T18:06:14.199028"
     },
     {
       "module": "IO.hpp",
       "success": true,
       "error": null,
-      "timestamp": "2025-08-31T19:36:47.266138"
+      "timestamp": "2026-02-14T18:06:16.271323"
     },
     {
       "module": "Mod_Int.hpp",
       "success": true,
       "error": null,
-      "timestamp": "2025-08-31T19:36:49.241068"
+      "timestamp": "2026-02-14T18:06:18.288437"
     },
     {
       "module": "Containers.hpp",
       "success": true,
       "error": null,
-      "timestamp": "2025-08-31T19:36:51.272114"
+      "timestamp": "2026-02-14T18:06:20.357588"
     },
     {
       "combination": "Basic I/O",
@@ -65,7 +65,7 @@
       ],
       "success": true,
       "error": null,
-      "timestamp": "2025-08-31T19:36:53.305148"
+      "timestamp": "2026-02-14T18:06:22.439061"
     },
     {
       "combination": "Core + Bit Operations",
@@ -75,7 +75,7 @@
       ],
       "success": true,
       "error": null,
-      "timestamp": "2025-08-31T19:36:55.291752"
+      "timestamp": "2026-02-14T18:06:24.456272"
     },
     {
       "combination": "Core + ModInt",
@@ -85,7 +85,7 @@
       ],
       "success": true,
       "error": null,
-      "timestamp": "2025-08-31T19:36:57.260509"
+      "timestamp": "2026-02-14T18:06:26.489454"
     },
     {
       "combination": "Core + Containers",
@@ -95,7 +95,7 @@
       ],
       "success": true,
       "error": null,
-      "timestamp": "2025-08-31T19:36:59.279824"
+      "timestamp": "2026-02-14T18:06:28.560050"
     },
     {
       "combination": "Core + I/O + Containers",
@@ -106,7 +106,7 @@
       ],
       "success": true,
       "error": null,
-      "timestamp": "2025-08-31T19:37:01.322938"
+      "timestamp": "2026-02-14T18:06:30.642633"
     },
     {
       "combination": "All modules",
@@ -119,7 +119,54 @@
       ],
       "success": true,
       "error": null,
-      "timestamp": "2025-08-31T19:37:03.394469"
+      "timestamp": "2026-02-14T18:06:32.734929"
+    },
+    {
+      "benchmark": "Core only",
+      "modules": [
+        "NEED_CORE"
+      ],
+      "elapsed_seconds": 2.0385260581970215,
+      "success": true,
+      "error": null,
+      "timestamp": "2026-02-14T18:06:34.773816"
+    },
+    {
+      "benchmark": "Core + I/O",
+      "modules": [
+        "NEED_CORE",
+        "NEED_IO"
+      ],
+      "elapsed_seconds": 2.1082160472869873,
+      "success": true,
+      "error": null,
+      "timestamp": "2026-02-14T18:06:36.882384"
+    },
+    {
+      "benchmark": "Core + I/O + Containers",
+      "modules": [
+        "NEED_CORE",
+        "NEED_IO",
+        "NEED_CONTAINERS"
+      ],
+      "elapsed_seconds": 2.0792460441589355,
+      "success": true,
+      "error": null,
+      "timestamp": "2026-02-14T18:06:38.963095"
+    },
+    {
+      "benchmark": "All modules",
+      "modules": [
+        "NEED_CORE",
+        "NEED_IO",
+        "NEED_BIT_OPS",
+        "NEED_MOD_INT",
+        "NEED_CONTAINERS"
+      ],
+      "elapsed_seconds": 2.1281321048736572,
+      "success": true,
+      "error": null,
+      "timestamp": "2026-02-14T18:06:41.091567"
     }
   ]
 }

@@ -7,22 +7,33 @@
 // Enhanced bit manipulation with SIMD hints:
 template <typename T>
 [[gnu::always_inline]] constexpr I32 popcount(T x) {
-  if constexpr (sizeof(T) <= 4) return __builtin_popcount(x);
-  else return __builtin_popcountll(x);
+  using Raw = std::remove_cv_t<T>;
+  using U = std::conditional_t<std::is_same_v<Raw, bool>, U8, std::make_unsigned_t<Raw>>;
+  if constexpr (sizeof(T) <= 4) return __builtin_popcount(static_cast<U32>(static_cast<U>(x)));
+  else return __builtin_popcountll(static_cast<U64>(static_cast<U>(x)));
 }
 
 template <typename T>
 [[gnu::always_inline]] constexpr I32 leading_zeros(T x) {
-  if (x == 0) return sizeof(T) * 8;
-  if constexpr (sizeof(T) <= 4) return __builtin_clz(x);
-  else return __builtin_clzll(x);
+  using Raw = std::remove_cv_t<T>;
+  using U = std::conditional_t<std::is_same_v<Raw, bool>, U8, std::make_unsigned_t<Raw>>;
+  U ux = static_cast<U>(x);
+  if (ux == 0) return sizeof(T) * 8;
+  if constexpr (sizeof(T) <= 4) {
+    return __builtin_clz(static_cast<U32>(ux)) - (32 - static_cast<I32>(sizeof(T) * 8));
+  } else {
+    return __builtin_clzll(static_cast<U64>(ux)) - (64 - static_cast<I32>(sizeof(T) * 8));
+  }
 }
 
 template <typename T>
 [[gnu::always_inline]] constexpr I32 trailing_zeros(T x) {
-  if (x == 0) return sizeof(T) * 8;
-  if constexpr (sizeof(T) <= 4) return __builtin_ctz(x);
-  else return __builtin_ctzll(x);
+  using Raw = std::remove_cv_t<T>;
+  using U = std::conditional_t<std::is_same_v<Raw, bool>, U8, std::make_unsigned_t<Raw>>;
+  U ux = static_cast<U>(x);
+  if (ux == 0) return sizeof(T) * 8;
+  if constexpr (sizeof(T) <= 4) return __builtin_ctz(static_cast<U32>(ux));
+  else return __builtin_ctzll(static_cast<U64>(ux));
 }
 
 template <typename T>

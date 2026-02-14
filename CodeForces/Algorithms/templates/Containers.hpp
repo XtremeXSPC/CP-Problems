@@ -49,6 +49,7 @@ VC<T> rearrange(const VC<T>& v, const VC<I32>& indices) {
 template <typename T>
 VC<T> cumsum(const VC<T>& v, bool include_zero = true) {
   VC<T> result(sz(v) + (include_zero ? 1 : 0));
+  if (v.empty()) return result;
   if (include_zero) {
     FOR(i, sz(v)) result[i + 1] = result[i] + v[i];
   } else {
@@ -88,7 +89,7 @@ T POP(VC<T>& container) {
 }
 
 // String utilities:
-VC<I32> string_to_ints(const std::string& s, char base_char = 'a') {
+inline VC<I32> string_to_ints(const std::string& s, char base_char = 'a') {
   VC<I32> result(sz(s));
   FOR(i, sz(s)) {
     result[i] = s[i] == '?' ? -1 : s[i] - base_char;

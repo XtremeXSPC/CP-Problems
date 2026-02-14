@@ -59,5 +59,6 @@ struct FastIOSetup {
     std::cout.tie(nullptr);
     std::cout << std::fixed << std::setprecision(10);
   }
-} fast_io_setup;
+};
+inline FastIOSetup fast_io_setup;
 #endif

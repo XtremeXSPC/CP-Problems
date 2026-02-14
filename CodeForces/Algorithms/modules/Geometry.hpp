@@ -79,37 +79,42 @@ struct Line2D {
 };
 
 // Segment intersection.
-template <typename T>
+template <typename T, typename U>
 bool segment_intersect(const Point2D<T>& a, const Point2D<T>& b,
                        const Point2D<T>& c, const Point2D<T>& d,
-                       Point2D<T>& intersection) {
-  T d1 = orientation(c, d, a);
-  T d2 = orientation(c, d, b);
-  T d3 = orientation(a, b, c);
-  T d4 = orientation(a, b, d);
+                       Point2D<U>& intersection) {
+  static_assert(std::is_floating_point_v<U>, "intersection output type must be floating-point");
+  using Calc = std::common_type_t<T, U, F64>;
+  Calc d1 = static_cast<Calc>(orientation(c, d, a));
+  Calc d2 = static_cast<Calc>(orientation(c, d, b));
+  Calc d3 = static_cast<Calc>(orientation(a, b, c));
+  Calc d4 = static_cast<Calc>(orientation(a, b, d));
   
   if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &&
       ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))) {
-    T t = d1 / (d1 - d2);
-    intersection = a + (b - a) * t;
+    Calc t = d1 / (d1 - d2);
+    intersection = Point2D<U>(
+      static_cast<U>(a.x + (b.x - a.x) * t),
+      static_cast<U>(a.y + (b.y - a.y) * t)
+    );
     return true;
   }
   
   // Check for collinear cases
   if (abs(d1) < EPS && on_segment(a, c, d)) {
-    intersection = a;
+    intersection = Point2D<U>(static_cast<U>(a.x), static_cast<U>(a.y));
     return true;
   }
   if (abs(d2) < EPS && on_segment(b, c, d)) {
-    intersection = b;
+    intersection = Point2D<U>(static_cast<U>(b.x), static_cast<U>(b.y));
     return true;
   }
   if (abs(d3) < EPS && on_segment(c, a, b)) {
-    intersection = c;
+    intersection = Point2D<U>(static_cast<U>(c.x), static_cast<U>(c.y));
     return true;
   }
   if (abs(d4) < EPS && on_segment(d, a, b)) {
-    intersection = d;
+    intersection = Point2D<U>(static_cast<U>(d.x), static_cast<U>(d.y));
     return true;
   }
   
@@ -398,12 +403,67 @@ struct HalfPlane {
 
 template <typename T>
 Polygon<T> half_plane_intersection(VC<HalfPlane<T>> planes) {
+  static_assert(std::is_floating_point_v<T>, "half_plane_intersection requires floating-point coordinates");
   sort(all(planes), [](const HalfPlane<T>& a, const HalfPlane<T>& b) {
     return a.angle() < b.angle();
   });
-  
-  // Implementation of half-plane intersection algorithm:
-  // TODO: Complete this function.
-  
-  return Polygon<T>();
+
+  if (planes.empty()) return Polygon<T>();
+
+  auto intersect_segment_with_line = [](const Point2D<T>& a, const Point2D<T>& b,
+                                        const HalfPlane<T>& hp) -> Point2D<T> {
+    Point2D<T> ab = b - a;
+    Point2D<T> dir = hp.p2 - hp.p1;
+    T denom = ab.cross(dir);
+    if (abs(denom) < EPS) return a;
+    T t = (hp.p1 - a).cross(dir) / denom;
+    return a + ab * t;
+  };
+
+  auto nearly_equal = [](const Point2D<T>& a, const Point2D<T>& b) {
+    return abs(a.x - b.x) <= EPS && abs(a.y - b.y) <= EPS;
+  };
+
+  auto push_unique = [&](VC<Point2D<T>>& poly, const Point2D<T>& p) {
+    if (poly.empty() || !nearly_equal(poly.back(), p)) {
+      poly.pb(p);
+    }
+  };
+
+  const T BOUND = static_cast<T>(1e9);
+  VC<Point2D<T>> polygon = {
+    {-BOUND, -BOUND},
+    { BOUND, -BOUND},
+    { BOUND,  BOUND},
+    {-BOUND,  BOUND},
+  };
+
+  for (const auto& hp : planes) {
+    if (polygon.empty()) break;
+    VC<Point2D<T>> clipped;
+    I32 n = sz(polygon);
+
+    FOR(i, n) {
+      Point2D<T> curr = polygon[i];
+      Point2D<T> next = polygon[(i + 1) % n];
+      bool in_curr = hp.contains(curr);
+      bool in_next = hp.contains(next);
+
+      if (in_curr && in_next) {
+        push_unique(clipped, next);
+      } else if (in_curr && !in_next) {
+        push_unique(clipped, intersect_segment_with_line(curr, next, hp));
+      } else if (!in_curr && in_next) {
+        push_unique(clipped, intersect_segment_with_line(curr, next, hp));
+        push_unique(clipped, next);
+      }
+    }
+
+    if (!clipped.empty() && nearly_equal(clipped.front(), clipped.back())) {
+      clipped.pop_back();
+    }
+    polygon.swap(clipped);
+  }
+
+  return Polygon<T>(polygon);
 }

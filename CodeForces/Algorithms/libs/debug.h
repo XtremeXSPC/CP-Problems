@@ -345,7 +345,7 @@ namespace modern_debug {
   //======================= ADVANCED FORMATTING SYSTEM =======================//
 
   // Thread-local visited pointers for cycle detection.
-  thread_local std::unordered_set<const void*> visited_pointers;
+  inline thread_local std::unordered_set<const void*> visited_pointers;
 
   // RAII guard for cycle detection.
   class VisitGuard {
@@ -806,7 +806,7 @@ namespace modern_debug {
   //===--------------------------------------------------------------------===//
   //===================== ERROR HANDLING AND ASSERTIONS ======================//
 
-  void handle_assertion_failure(const char* condition, const source_location& loc) {
+  inline void handle_assertion_failure(const char* condition, const source_location& loc) {
     #if defined(HAS_STACKTRACE) && defined(__cpp_lib_stacktrace) && __cpp_lib_stacktrace >= 202011L
     try {
       auto trace = std::stacktrace::current();
@@ -848,19 +848,19 @@ namespace modern_debug {
 #if DEBUG_LEVEL >= 1
   #define debug(...) \
     modern_debug::debug_print(colors::YELLOW, #__VA_ARGS__, \
-                            modern_debug::source_location::current(), __VA_ARGS__)
+                            modern_debug::source_location::current() __VA_OPT__(,) __VA_ARGS__)
 
   #define debug_info(...) \
     modern_debug::debug_print(colors::BRIGHT_BLUE, #__VA_ARGS__, \
-                            modern_debug::source_location::current(), __VA_ARGS__)
+                            modern_debug::source_location::current() __VA_OPT__(,) __VA_ARGS__)
 
   #define debug_warn(...) \
     modern_debug::debug_print(colors::BRIGHT_YELLOW, #__VA_ARGS__, \
-                            modern_debug::source_location::current(), __VA_ARGS__)
+                            modern_debug::source_location::current() __VA_OPT__(,) __VA_ARGS__)
 
   #define debug_error(...) \
     modern_debug::debug_print(colors::BRIGHT_RED, #__VA_ARGS__, \
-                            modern_debug::source_location::current(), __VA_ARGS__)
+                            modern_debug::source_location::current() __VA_OPT__(,) __VA_ARGS__)
 #else
   #define debug(...) ((void)0)
   #define debug_info(...) ((void)0)
@@ -880,7 +880,7 @@ namespace modern_debug {
 #if DEBUG_LEVEL >= 2
   #define debug_verbose(...) \
     modern_debug::debug_print(colors::BRIGHT_CYAN, #__VA_ARGS__, \
-                            modern_debug::source_location::current(), __VA_ARGS__)
+                            modern_debug::source_location::current() __VA_OPT__(,) __VA_ARGS__)
 
   #define debug_trace() \
     std::cerr << colors::DIM << "TRACE: " << __FILE__ << ":" << __LINE__ \

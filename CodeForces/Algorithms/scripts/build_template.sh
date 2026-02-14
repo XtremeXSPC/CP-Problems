@@ -1,12 +1,14 @@
 #!/bin/bash
 # Build system for modular template.
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TEMPLATE_DIR="$SCRIPT_DIR/templates"
+TEMPLATE_DIR="$SCRIPT_DIR/../templates"
 
 # Function to generate the complete template.
 generate_template() {
     local output_file="${1:-template.hpp}"
+    [[ -d "$TEMPLATE_DIR" ]] || { echo "Template directory not found: $TEMPLATE_DIR" >&2; return 1; }
 
     cat >"$output_file" <<'EOF'
 //===----------------------------------------------------------------------===//
