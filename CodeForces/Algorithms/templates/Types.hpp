@@ -111,7 +111,7 @@ template <class T, class U>
 using VP = Vec<P<T, U>>;
 
 // Policy-based data structures:
-#ifdef PBDS_AVAILABLE
+#if defined(PBDS_AVAILABLE) && PBDS_AVAILABLE
   using namespace __gnu_pbds;
   template <typename T>
   using ordered_set = tree<T, null_type, std::less<T>, rb_tree_tag, tree_order_statistics_node_update>;

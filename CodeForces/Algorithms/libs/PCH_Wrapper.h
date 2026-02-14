@@ -13,7 +13,7 @@
 
 // GCC compiler check
 #if !defined(__GNUC__) || defined(__clang__)
-  // #error "This PCH wrapper is designed for GCC. Use PCH.h for Clang instead."
+  #error "This PCH wrapper is designed for GCC. Use PCH.h for Clang instead."
 #endif
 
 // C++20 version check.
@@ -158,7 +158,7 @@ using namespace std;
   using VP = Vec<P<T, U>>;
 
   // Policy-based data structures:
-  #ifdef PBDS_AVAILABLE
+  #if defined(PBDS_AVAILABLE) && PBDS_AVAILABLE
     using namespace __gnu_pbds;
     template <typename T>
     using ordered_set = tree<T, null_type, std::less<T>, rb_tree_tag, tree_order_statistics_node_update>;

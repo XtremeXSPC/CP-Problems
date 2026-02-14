@@ -9,9 +9,10 @@
 //========================= String Algorithms Module =========================//
 
 // Z-algorithm for pattern matching.
-VC<I32> z_algorithm(const std::string& s) {
+inline VC<I32> z_algorithm(const std::string& s) {
   I32 n = sz(s);
   VC<I32> z(n);
+  if (n == 0) return z;
   z[0] = n;
   
   I32 l = 0, r = 0;
@@ -49,6 +50,11 @@ struct KMP {
   VC<I32> search(const std::string& text) {
     VC<I32> matches;
     I32 n = sz(text), m = sz(pattern);
+    if (m == 0) {
+      matches.resize(n + 1);
+      std::iota(all(matches), 0);
+      return matches;
+    }
     I32 j = 0;
     
     FOR(i, n) {
@@ -131,8 +137,9 @@ struct SuffixArray {
     I32 n = sz(s);
     sa.resize(n);
     rank.resize(n);
-    lcp.resize(n - 1);
-    
+    lcp.resize(n > 0 ? n - 1 : 0);
+    if (n == 0) return;
+
     build_sa();
     build_lcp();
   }

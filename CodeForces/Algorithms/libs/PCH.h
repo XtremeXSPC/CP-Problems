@@ -569,7 +569,7 @@
   using VP = Vec<P<T, U>>;
 
   // Policy-based data structures:
-  #ifdef PBDS_AVAILABLE
+  #if defined(PBDS_AVAILABLE) && PBDS_AVAILABLE
     using namespace __gnu_pbds;
     template <typename T>
     using ordered_set = tree<T, null_type, std::less<T>, rb_tree_tag, tree_order_statistics_node_update>;
@@ -748,23 +748,23 @@
 
   // Min/Max functions with variadic support.
   template<class T>
-  ALWAYS_INLINE constexpr const T& min(const T& a, const T& b) noexcept {
+  ALWAYS_INLINE constexpr const T& cp_min(const T& a, const T& b) noexcept {
       return (b < a) ? b : a;
   }
 
   template<class T>
-  ALWAYS_INLINE constexpr const T& max(const T& a, const T& b) noexcept {
+  ALWAYS_INLINE constexpr const T& cp_max(const T& a, const T& b) noexcept {
       return (a < b) ? b : a;
   }
 
   template<class T, class... Args>
-  ALWAYS_INLINE constexpr const T& min(const T& a, const T& b, const Args&... args) noexcept {
-      return min(a, min(b, args...));
+  ALWAYS_INLINE constexpr const T& cp_min(const T& a, const T& b, const Args&... args) noexcept {
+      return cp_min(a, cp_min(b, args...));
   }
 
   template<class T, class... Args>
-  ALWAYS_INLINE constexpr const T& max(const T& a, const T& b, const Args&... args) noexcept {
-      return max(a, max(b, args...));
+  ALWAYS_INLINE constexpr const T& cp_max(const T& a, const T& b, const Args&... args) noexcept {
+      return cp_max(a, cp_max(b, args...));
   }
 
   // Efficient min/max update functions.
@@ -943,7 +943,7 @@ using namespace std;
 //===================== FEATURE SUMMARY AND DIAGNOSTICS ======================//
 
 // Compilation diagnostics in debug mode.
-#ifdef DEBUG_MODE
+#if DEBUG_MODE
     namespace {
         struct CompilationDiagnostics {
             CompilationDiagnostics() {

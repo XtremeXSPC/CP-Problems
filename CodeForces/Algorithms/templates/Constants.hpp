@@ -17,21 +17,21 @@ template <class T>
 constexpr T infinity = std::numeric_limits<T>::max() / 4;
 
 template <>
-constexpr I32 infinity<I32> = 1'010'000'000;
+inline constexpr I32 infinity<I32> = 1'010'000'000;
 template <>
-constexpr I64 infinity<I64> = 2'020'000'000'000'000'000LL;
+inline constexpr I64 infinity<I64> = 2'020'000'000'000'000'000LL;
 template <>
-constexpr U32 infinity<U32> = 2'020'000'000U;
+inline constexpr U32 infinity<U32> = 2'020'000'000U;
 template <>
-constexpr U64 infinity<U64> = 4'040'000'000'000'000'000ULL;
+inline constexpr U64 infinity<U64> = 4'040'000'000'000'000'000ULL;
 template <>
-constexpr F64 infinity<F64> = 1e18;
+inline constexpr F64 infinity<F64> = 1e18;
 template <>
-constexpr F80 infinity<F80> = 1e18L;
+inline constexpr F80 infinity<F80> = 1e18L;
 
 #ifdef __SIZEOF_INT128__
 template <>
-constexpr I128 infinity<I128> = I128(infinity<I64>) * 2'000'000'000'000'000'000LL;
+inline constexpr I128 infinity<I128> = I128(infinity<I64>) * 2'000'000'000'000'000'000LL;
 #endif
 
 constexpr I32 INF32 = infinity<I32>;

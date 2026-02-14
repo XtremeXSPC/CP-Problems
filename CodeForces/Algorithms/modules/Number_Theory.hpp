@@ -37,6 +37,22 @@ struct Sieve {
   
   VC<PII> factorize(I32 x) const {
     VC<PII> factors;
+    if (x <= 1) return factors;
+
+    if (x > n) {
+      for (I32 p = 2; (I64)p * p <= x; ++p) {
+        if (x % p != 0) continue;
+        I32 cnt = 0;
+        while (x % p == 0) {
+          x /= p;
+          cnt++;
+        }
+        factors.pb({p, cnt});
+      }
+      if (x > 1) factors.pb({x, 1});
+      return factors;
+    }
+
     while (x > 1) {
       I32 p = smallest_factor[x];
       I32 cnt = 0;
@@ -95,7 +111,7 @@ std::pair<T, T> chinese_remainder(const VC<T>& a, const VC<T>& m) {
 }
 
 // Euler's Totient Function (Phi).
-I64 euler_phi(I64 n) {
+inline I64 euler_phi(I64 n) {
   I64 result = n;
   for (I64 i = 2; i * i <= n; i++) {
     if (n % i == 0) {
@@ -108,7 +124,7 @@ I64 euler_phi(I64 n) {
 }
 
 // Compute Phi for all numbers up to 'n'.
-VC<I32> euler_phi_sieve(I32 n) {
+inline VC<I32> euler_phi_sieve(I32 n) {
   VC<I32> phi(n + 1);
   std::iota(all(phi), 0);
   
@@ -124,7 +140,7 @@ VC<I32> euler_phi_sieve(I32 n) {
 }
 
 // Miller-Rabin primality test.
-bool miller_rabin(I64 n) {
+inline bool miller_rabin(I64 n) {
   if (n < 2) return false;
   if (n == 2) return true;
   if (n % 2 == 0) return false;
@@ -159,7 +175,7 @@ bool miller_rabin(I64 n) {
 }
 
 // Pollard's Rho algorithm for integer factorization.
-I64 pollard_rho(I64 n) {
+inline I64 pollard_rho(I64 n) {
   if (n % 2 == 0) return 2;
   if (miller_rabin(n)) return n;
   
@@ -176,7 +192,7 @@ I64 pollard_rho(I64 n) {
 }
 
 // Complete factorization using Pollard's Rho.
-VC<I64> factorize(I64 n) {
+inline VC<I64> factorize(I64 n) {
   VC<I64> factors;
   
   std::function<void(I64)> factor = [&](I64 x) {
@@ -210,7 +226,7 @@ T mod_pow(T base, T exp, T mod) {
 }
 
 // Discrete logarithm (Baby-step Giant-step).
-I64 discrete_log(I64 a, I64 b, I64 m) {
+inline I64 discrete_log(I64 a, I64 b, I64 m) {
   I64 n = sqrt(m) + 1;
   
   std::unordered_map<I64, I64> values;
@@ -235,7 +251,7 @@ I64 discrete_log(I64 a, I64 b, I64 m) {
 }
 
 // Primitive root finder.
-I64 primitive_root(I64 p) {
+inline I64 primitive_root(I64 p) {
   if (p == 2) return 1;
   
   I64 phi = p - 1;

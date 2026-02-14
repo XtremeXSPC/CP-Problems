@@ -35,15 +35,11 @@ class WorkflowManager:
 
         # Initialize subcomponents.
         self.init_components()
+        self.compiler = self.resolve_compiler()
 
-    def load_config(self) -> Dict:
-        """Load project configuration."""
-        if self.config_file.exists():
-            with open(self.config_file, "r") as f:
-                return json.load(f)
-
-        # Default configuration.
-        default_config = {
+    def default_config(self) -> Dict:
+        """Build default workflow configuration."""
+        return {
             "version": "1.0.0",
             "compiler": "g++",
             "compiler_flags": ["-std=c++23", "-Wall", "-Wextra"],
@@ -54,7 +50,7 @@ class WorkflowManager:
                 "mod_int": ["Mod_Int.hpp"],
                 "containers": ["Containers.hpp"],
                 "graph": ["Graph.hpp"],
-                "string": ["String_Algorithms.hpp"],
+                "string": ["Strings.hpp"],
                 "data_structures": ["Data_Structures.hpp"],
                 "number_theory": ["Number_Theory.hpp"],
                 "geometry": ["Geometry.hpp"],
@@ -65,20 +61,82 @@ class WorkflowManager:
             "created": datetime.now().isoformat(),
         }
 
-        with open(self.config_file, "w") as f:
+    def load_config(self) -> Dict:
+        """Load project configuration."""
+        default_config = self.default_config()
+
+        if self.config_file.exists():
+            try:
+                with open(self.config_file, "r", encoding="utf-8") as f:
+                    config = json.load(f)
+
+                changed = False
+                for key, value in default_config.items():
+                    if key not in config:
+                        config[key] = value
+                        changed = True
+
+                modules_cfg = config.get("modules", {})
+                if (
+                    isinstance(modules_cfg, dict)
+                    and modules_cfg.get("string") == ["String_Algorithms.hpp"]
+                ):
+                    modules_cfg["string"] = ["Strings.hpp"]
+                    changed = True
+
+                if changed:
+                    with open(self.config_file, "w", encoding="utf-8") as f:
+                        json.dump(config, f, indent=2)
+
+                return config
+            except (json.JSONDecodeError, OSError) as e:
+                backup = self.config_file.with_suffix(
+                    f".corrupted.{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                )
+                shutil.copy2(self.config_file, backup)
+                print(
+                    f"⚠ Invalid config file, using defaults. Backup saved to: {backup}"
+                )
+                print(f"  Details: {e}")
+
+        with open(self.config_file, "w", encoding="utf-8") as f:
             json.dump(default_config, f, indent=2)
 
         return default_config
 
+    def resolve_compiler(self) -> str:
+        """Resolve compiler with sensible CP-oriented fallbacks."""
+        configured = self.config.get("compiler")
+        candidates = []
+
+        if configured and configured not in {"g++", "c++"}:
+            candidates.append(configured)
+        candidates.extend(["g++-15", "g++-14", "g++-13"])
+        if configured:
+            candidates.append(configured)
+        candidates.extend(["g++", "c++"])
+
+        seen = set()
+        for candidate in candidates:
+            if not candidate or candidate in seen:
+                continue
+            seen.add(candidate)
+            resolved = shutil.which(candidate)
+            if resolved:
+                return resolved
+
+        return configured or "g++"
+
     def init_components(self):
         """Initialize workflow components."""
         # Create necessary directories.
-        self.templates_dir.mkdir(exist_ok=True)
-        self.modules_dir.mkdir(exist_ok=True)
-        self.scripts_dir.mkdir(exist_ok=True)
+        self.templates_dir.mkdir(parents=True, exist_ok=True)
+        self.modules_dir.mkdir(parents=True, exist_ok=True)
+        self.scripts_dir.mkdir(parents=True, exist_ok=True)
 
         # Setup module registry.
-        self.module_registry_file = self.modules_dir / "data/registry.json"
+        self.module_registry_file = self.modules_dir / "data" / "registry.json"
+        self.module_registry_file.parent.mkdir(parents=True, exist_ok=True)
         if not self.module_registry_file.exists():
             self.create_module_registry()
 
@@ -165,7 +223,11 @@ class WorkflowManager:
             json.dump(registry, f, indent=2)
 
     def new_solution(
-        self, problem_name: str, modules: List[str], contest: Optional[str] = None
+        self,
+        problem_name: str,
+        modules: List[str],
+        contest: Optional[str] = None,
+        force: bool = False,
     ) -> Path:
         """Create a new solution file with specified modules."""
         # Determine file path.
@@ -178,10 +240,15 @@ class WorkflowManager:
             solutions_dir.mkdir(exist_ok=True)
             solution_file = solutions_dir / f"{problem_name}.cpp"
 
+        if solution_file.exists() and not force:
+            raise FileExistsError(
+                f"Solution already exists: {solution_file} (use --force to overwrite)"
+            )
+
         # Generate solution template.
         template = self.generate_solution_template(problem_name, modules, contest)
 
-        with open(solution_file, "w") as f:
+        with open(solution_file, "w", encoding="utf-8") as f:
             f.write(template)
 
         print(f"✓ Created solution: {solution_file}")
@@ -189,6 +256,13 @@ class WorkflowManager:
         # Auto-version if enabled
         if self.config.get("auto_version"):
             self.auto_version(f"Created solution: {problem_name}")
+
+        if self.config.get("auto_test"):
+            print("Running auto-test (compilation check)...")
+            if self.test_solution(solution_file):
+                print("✓ Auto-test passed")
+            else:
+                print("✗ Auto-test failed")
 
         return solution_file
 
@@ -256,7 +330,7 @@ class WorkflowManager:
         lines.append(
             "//===----------------------------------------------------------------------===//"
         )
-        lines.append("/* Solution */")
+        lines.append("/* Main Solver Function */")
         lines.append("")
         lines.append("void solve() {")
         lines.append("  // Your solution here")
@@ -266,15 +340,19 @@ class WorkflowManager:
         lines.append(
             "//===----------------------------------------------------------------------===//"
         )
-        lines.append("/* Main */")
+        lines.append("/* Main Function */")
         lines.append("")
         lines.append("auto main() -> int {")
         lines.append("#ifdef LOCAL")
         lines.append("  Timer timer;")
         lines.append("#endif")
         lines.append("")
-        lines.append("  INT(T);")
-        lines.append("  FOR(T) solve();")
+        if "io" in modules:
+            lines.append("  INT(T);")
+            lines.append("  FOR(T) solve();")
+        else:
+            lines.append("  I32 T = 1;")
+            lines.append("  while (T--) solve();")
         lines.append("")
         lines.append("  return 0;")
         lines.append("}")
@@ -302,10 +380,11 @@ class WorkflowManager:
         # Compile solution
         output_file = solution_file.with_suffix("")
         compile_cmd = [
-            self.config["compiler"],
-            "-std=c++23",
+            self.compiler,
+            *self.config.get("compiler_flags", ["-std=c++23", "-Wall", "-Wextra"]),
             "-O2",
             f"-I{self.project_root}",
+            f"-I{self.project_root / 'libs'}",
             "-DLOCAL",
             "-o",
             str(output_file),
@@ -335,13 +414,24 @@ class WorkflowManager:
                     input_data = test["input"]
                     expected_output = test["output"].strip()
 
-                    result = subprocess.run(
-                        [str(output_file)],
-                        input=input_data,
-                        capture_output=True,
-                        text=True,
-                        timeout=2,
-                    )
+                    try:
+                        result = subprocess.run(
+                            [str(output_file)],
+                            input=input_data,
+                            capture_output=True,
+                            text=True,
+                            timeout=2,
+                        )
+                    except subprocess.TimeoutExpired:
+                        print(f"  Test {i+1}: ✗ TIMEOUT")
+                        continue
+
+                    if result.returncode != 0:
+                        print(f"  Test {i+1}: ✗ RUNTIME ERROR (code {result.returncode})")
+                        stderr = result.stderr.strip()
+                        if stderr:
+                            print(f"    Stderr: {stderr}")
+                        continue
 
                     actual_output = result.stdout.strip()
 
@@ -476,7 +566,7 @@ class WorkflowManager:
         # Check compiler
         try:
             result = subprocess.run(
-                [self.config["compiler"], "--version"], capture_output=True, timeout=5
+                [self.compiler, "--version"], capture_output=True, timeout=5
             )
             if result.returncode == 0:
                 version_line = result.stdout.decode().split("\n")[0]
@@ -485,7 +575,7 @@ class WorkflowManager:
                 print(f"✗ Compiler check failed")
                 checks_passed = False
         except:
-            print(f"✗ Compiler not found: {self.config['compiler']}")
+            print(f"✗ Compiler not found: {self.compiler}")
             checks_passed = False
 
         # Check Python modules
@@ -525,6 +615,9 @@ def main():
         "--modules", nargs="+", default=["core", "io"], help="Modules to include"
     )
     new_parser.add_argument("--contest", help="Contest name")
+    new_parser.add_argument(
+        "--force", action="store_true", help="Overwrite existing solution file"
+    )
 
     # Test solution.
     test_parser = subparsers.add_parser("test", help="Test solution")
@@ -549,7 +642,11 @@ def main():
     wm = WorkflowManager(project_root)
 
     if args.command == "new":
-        wm.new_solution(args.name, args.modules, args.contest)
+        try:
+            wm.new_solution(args.name, args.modules, args.contest, args.force)
+        except FileExistsError as e:
+            print(f"✗ {e}")
+            return 1
     elif args.command == "test":
         wm.test_solution(args.file, args.cases)
     elif args.command == "submit":
@@ -558,7 +655,9 @@ def main():
         wm.doctor()
     else:
         parser.print_help()
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

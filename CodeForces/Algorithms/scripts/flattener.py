@@ -18,6 +18,22 @@ NEED_MAPPING = OrderedDict(
     ]
 )
 
+PROJECT_INCLUDE_RE = re.compile(r'^\s*#include\s+"([^"]+)"\s*$')
+INLINE_ROOT_PREFIXES = ("modules/", "templates/")
+
+
+def resolve_project_include(project_root, including_file, include_name):
+    """Resolve a quoted include within project_root, if it exists."""
+    include_target = (including_file.parent / include_name).resolve()
+    if not include_target.is_file():
+        include_target = (project_root / include_name).resolve()
+
+    if include_target.is_file() and (
+        include_target == project_root or project_root in include_target.parents
+    ):
+        return include_target
+    return None
+
 
 def process_file_content(filepath, *, preserve_includes=False):
     """Process a single file and return its content."""
@@ -37,6 +53,54 @@ def process_file_content(filepath, *, preserve_includes=False):
             content_lines.append(line)
 
     # Remove leading and trailing empty lines.
+    while content_lines and not content_lines[0].strip():
+        content_lines.pop(0)
+    while content_lines and not content_lines[-1].strip():
+        content_lines.pop()
+
+    return "".join(content_lines)
+
+
+def inline_local_header(project_root, header_path, inlined_headers):
+    """Inline project-local headers recursively and strip local includes/pragma once."""
+    resolved = header_path.resolve()
+    if not resolved.is_file():
+        return ""
+    if project_root not in resolved.parents:
+        return ""
+    if resolved in inlined_headers:
+        return ""
+
+    inlined_headers.add(resolved)
+    content_lines = []
+
+    with open(resolved, "r", encoding="utf-8") as f:
+        for line in f:
+            stripped = line.strip()
+            if stripped == "#pragma once":
+                continue
+
+            match = PROJECT_INCLUDE_RE.match(stripped)
+            if match:
+                include_target = resolve_project_include(
+                    project_root, resolved, match.group(1)
+                )
+                if include_target:
+                    rel_target = include_target.relative_to(project_root).as_posix()
+                    if rel_target.startswith(INLINE_ROOT_PREFIXES):
+                        nested_content = inline_local_header(
+                            project_root, include_target, inlined_headers
+                        )
+                        if nested_content:
+                            content_lines.append(nested_content)
+                            if not nested_content.endswith("\n"):
+                                content_lines.append("\n")
+                        continue
+                content_lines.append(line)
+                continue
+
+            content_lines.append(line)
+
     while content_lines and not content_lines[0].strip():
         content_lines.pop(0)
     while content_lines and not content_lines[-1].strip():
@@ -101,6 +165,8 @@ def main():
     # 5. Process the source file and replace the base.hpp include.
     output_lines = []
     skip_need_defines = False
+    # Prevent duplicated template bodies when NEED_* expanded sections are present.
+    inlined_headers = {filepath.resolve() for filepath in files_to_include}
 
     with open(source_file, "r", encoding="utf-8") as f:
         for line in f:
@@ -132,19 +198,39 @@ def main():
                     output_lines.append(section)
                     if section and not section.endswith("\n"):
                         output_lines.append("\n")
-            else:
-                # Add back the line if it's not a NEED_* define.
-                if (
-                    skip_need_defines
-                    and stripped
-                    and not stripped.startswith("#define NEED_")
-                ):
-                    skip_need_defines = False
-                    # Add a blank line before the next section if appropriate.
-                    if output_lines and output_lines[-1].strip():
-                        output_lines.append("\n")
+                continue
 
-                output_lines.append(line)
+            include_match = PROJECT_INCLUDE_RE.match(stripped)
+            if include_match:
+                include_target = resolve_project_include(
+                    project_root, source_file, include_match.group(1)
+                )
+                if include_target:
+                    rel = include_target.relative_to(project_root).as_posix()
+                    if rel.startswith(INLINE_ROOT_PREFIXES):
+                        inlined = inline_local_header(
+                            project_root, include_target, inlined_headers
+                        )
+                        if inlined:
+                            if output_lines and output_lines[-1].strip():
+                                output_lines.append("\n")
+                            output_lines.append(inlined)
+                            if not inlined.endswith("\n"):
+                                output_lines.append("\n")
+                        continue
+
+            # Add back the line if it's not a NEED_* define.
+            if (
+                skip_need_defines
+                and stripped
+                and not stripped.startswith("#define NEED_")
+            ):
+                skip_need_defines = False
+                # Add a blank line before the next section if appropriate.
+                if output_lines and output_lines[-1].strip():
+                    output_lines.append("\n")
+
+            output_lines.append(line)
 
     # Print the final output.
     print("".join(output_lines), end="")
