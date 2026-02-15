@@ -34,7 +34,7 @@ COMPILER_CHOICES = ("gcc", "clang", "auto")
 TOGGLE_CHOICES = ("on", "off")
 PCH_CHOICES = ("on", "off", "auto")
 
-TARGET_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
+TARGET_RE = re.compile(r"^[A-Za-z]\w*$")
 CONTEST_SEGMENT_RE = re.compile(r"^[A-Za-z0-9._-]+$")
 ANSI_RE = re.compile(r"\x1B\[[0-9;]*[A-Za-z]")
 
@@ -68,6 +68,8 @@ ALLOWED_FUNCTIONS = {
     "cppclang",
     "cppprof",
 }
+
+INPUT_FILE_HELP = "input filename inside input_cases/"
 
 
 class WorkflowError(RuntimeError):
@@ -723,7 +725,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    # setup
+    # Setup.
     p = subparsers.add_parser("init", help="run cppinit")
     p.set_defaults(handler=handle_init)
 
@@ -756,7 +758,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_conf_options(p)
     p.set_defaults(handler=handle_conf)
 
-    # build/run/test
+    # Build/run/test.
     p = subparsers.add_parser("build", help="run cppbuild")
     _add_target_arg(p)
     p.set_defaults(handler=handle_build)
@@ -775,7 +777,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--input",
         type=_normalize_input_name,
-        help="input filename inside input_cases/",
+        help=INPUT_FILE_HELP,
     )
     p.set_defaults(handler=handle_go)
 
@@ -787,7 +789,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_target_arg(p)
     p.set_defaults(handler=handle_judge)
 
-    # compatibility alias: old manager used 'test'
+    # Compatibility alias: old manager used 'test'.
     p = subparsers.add_parser("test", help="alias of judge for compatibility")
     _add_target_arg(p)
     p.set_defaults(handler=handle_judge)
@@ -797,7 +799,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--iterations", type=int, default=None)
     p.set_defaults(handler=handle_stress)
 
-    # submission
+    # Submission.
     p = subparsers.add_parser("submit", help="run cppsubmit")
     _add_target_arg(p)
     p.add_argument(
@@ -812,7 +814,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--input",
         type=_normalize_input_name,
-        help="input filename inside input_cases/",
+        help=INPUT_FILE_HELP,
     )
     p.add_argument(
         "--strict",
@@ -827,11 +829,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--input",
         type=_normalize_input_name,
-        help="input filename inside input_cases/",
+        help=INPUT_FILE_HELP,
     )
     p.set_defaults(handler=handle_full)
 
-    # utilities
+    # Utilities.
     p = subparsers.add_parser("check", help="run cppcheck")
     p.set_defaults(handler=handle_check)
 
@@ -861,7 +863,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_target_arg(p)
     p.set_defaults(handler=handle_watch)
 
-    # diagnosis/orchestration
+    # Diagnosis/orchestration.
     p = subparsers.add_parser("doctor", help="run manager + cpp-tools diagnostics")
     p.add_argument(
         "--strict",
@@ -879,7 +881,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--input",
         type=_normalize_input_name,
-        help="input filename inside input_cases/",
+        help=INPUT_FILE_HELP,
     )
     p.add_argument("--configure", action="store_true", help="run cppconf first")
     _add_conf_options(p)
@@ -900,7 +902,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.set_defaults(handler=handle_cycle)
 
-    # expert escape hatch
+    # Expert escape hatch.
     p = subparsers.add_parser(
         "exec",
         help="execute a raw allowlisted cpp-tools function (expert mode)",
