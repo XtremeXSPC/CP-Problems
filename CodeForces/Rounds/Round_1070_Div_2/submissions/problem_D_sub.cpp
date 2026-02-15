@@ -1,7 +1,7 @@
 //===----------------------------------------------------------------------===//
 /**
  * @file: problem_D_sub.cpp
- * @generated: 2026-02-14 23:20:36
+ * @generated: 2026-02-15 15:20:13
  * @source: problem_D.cpp
  * @author: Costantino Lombardi
  *
@@ -89,6 +89,19 @@
 
 // Debug utilities:
 #ifdef LOCAL
+  // Keep debug core always on; expensive debug subsystems are opt-in.
+  #ifndef CP_DEBUG_ENABLE_PERF
+    #define CP_DEBUG_ENABLE_PERF 0
+  #endif
+  #ifndef CP_DEBUG_ENABLE_MEMORY
+    #define CP_DEBUG_ENABLE_MEMORY 0
+  #endif
+  #ifndef CP_DEBUG_ENABLE_WATCH
+    #define CP_DEBUG_ENABLE_WATCH 0
+  #endif
+  #ifndef CP_DEBUG_ENABLE_TREE
+    #define CP_DEBUG_ENABLE_TREE 0
+  #endif
   #include "debug.h"
 #else
   #define debug(...)
@@ -140,10 +153,16 @@ using F80 = long double;
 #define HAS_FLOAT128 0
 #endif
 
-// Legacy aliases for backward compatibility:
-using ll  = I64;
-using ull = U64;
-using ld  = F80;
+// Legacy short aliases can be disabled for stricter style consistency.
+#ifndef CP_ENABLE_LEGACY_SHORT_ALIASES
+  #define CP_ENABLE_LEGACY_SHORT_ALIASES 0
+#endif
+
+#if CP_ENABLE_LEGACY_SHORT_ALIASES
+  using ll  = I64;
+  using ull = U64;
+  using ld  = F80;
+#endif
 
 // Container type aliases:
 template <class T>
@@ -173,13 +192,25 @@ using PriorityQueue = std::priority_queue<T, std::vector<T>>;
 template <class T>
 using MinPriorityQueue = std::priority_queue<T, std::vector<T>, std::greater<T>>;
 
-// Short aliases for competitive programming:
+// Canonical multidimensional aliases:
 template <class T>
-using VC = Vec<T>;
+using Vec2 = Vec<Vec<T>>;
 template <class T>
-using VVC = VC<VC<T>>;
-template <class T>
-using VVVC = VC<VVC<T>>;
+using Vec3 = Vec<Vec2<T>>;
+
+// Legacy container aliases can be disabled after migration.
+#ifndef CP_ENABLE_LEGACY_CONTAINER_ALIASES
+  #define CP_ENABLE_LEGACY_CONTAINER_ALIASES 0
+#endif
+
+#if CP_ENABLE_LEGACY_CONTAINER_ALIASES
+  template <class T>
+  using VC = Vec<T>;
+  template <class T>
+  using VVC = Vec2<T>;
+  template <class T>
+  using VVVC = Vec3<T>;
+#endif
 
 // Pair and tuple aliases:
 template <class T, class U>
@@ -225,56 +256,100 @@ using VP = Vec<P<T, U>>;
 //===----------------------------------------------------------------------===//
 /* Mathematical Constants and Infinity Values */
 
-// High-precision mathematical constants:
-constexpr F80 PI   = 3.1415926535897932384626433832795028841971693993751L;
-constexpr F80 E    = 2.7182818284590452353602874713526624977572470937000L;
-constexpr F80 PHI  = 1.6180339887498948482045868343656381177203091798058L;
-constexpr F80 LN2  = 0.6931471805599453094172321214581765680755001343602L;
-constexpr F80 EPS  = 1e-9L;
-constexpr F80 DEPS = 1e-12L;
+#ifndef __CONSTANTS__
+#define __CONSTANTS__
+  // High-precision mathematical constants:
+  constexpr F80 PI   = 3.1415926535897932384626433832795028841971693993751L;
+  constexpr F80 E    = 2.7182818284590452353602874713526624977572470937000L;
+  constexpr F80 PHI  = 1.6180339887498948482045868343656381177203091798058L;
+  constexpr F80 LN2  = 0.6931471805599453094172321214581765680755001343602L;
+  constexpr F80 EPS  = 1e-9L;
+  constexpr F80 DEPS = 1e-12L;
 
-// Robust infinity system:
-template <class T>
-constexpr T infinity = std::numeric_limits<T>::max() / 4;
+  // Robust infinity system:
+  template <class T>
+  constexpr T infinity = std::numeric_limits<T>::max() / 4;
 
-template <>
-inline constexpr I32 infinity<I32> = 1'010'000'000;
-template <>
-inline constexpr I64 infinity<I64> = 2'020'000'000'000'000'000LL;
-template <>
-inline constexpr U32 infinity<U32> = 2'020'000'000U;
-template <>
-inline constexpr U64 infinity<U64> = 4'040'000'000'000'000'000ULL;
-template <>
-inline constexpr F64 infinity<F64> = 1e18;
-template <>
-inline constexpr F80 infinity<F80> = 1e18L;
+  template <>
+  inline constexpr I32 infinity<I32> = 1'010'000'000;
+  template <>
+  inline constexpr I64 infinity<I64> = 2'020'000'000'000'000'000LL;
+  template <>
+  inline constexpr U32 infinity<U32> = 2'020'000'000U;
+  template <>
+  inline constexpr U64 infinity<U64> = 4'040'000'000'000'000'000ULL;
+  template <>
+  inline constexpr F64 infinity<F64> = 1e18;
+  template <>
+  inline constexpr F80 infinity<F80> = 1e18L;
 
-#ifdef __SIZEOF_INT128__
-template <>
-inline constexpr I128 infinity<I128> = I128(infinity<I64>) * 2'000'000'000'000'000'000LL;
+  #if HAS_INT128
+    static_assert(sizeof(I128) > sizeof(I64), "I128 must be true 128-bit when HAS_INT128 is enabled.");
+    template <>
+    inline constexpr I128 infinity<I128> = I128(infinity<I64>) * 2'000'000'000'000'000'000LL;
+  #endif
+
+  constexpr I32 INF32 = infinity<I32>;
+  constexpr I64 INF64 = infinity<I64>;
+  constexpr I64 LINF  = INF64; // Legacy alias
+
+  // Modular arithmetic constants:
+  constexpr I64 MOD  = 1000000007;
+  constexpr I64 MOD2 = 998244353;
+  constexpr I64 MOD3 = 1000000009;
 #endif
-
-constexpr I32 INF32 = infinity<I32>;
-constexpr I64 INF64 = infinity<I64>;
-constexpr I64 LINF  = INF64; // Legacy alias
-
-// Modular arithmetic constants:
-constexpr I64 MOD  = 1000000007;
-constexpr I64 MOD2 = 998244353;
-constexpr I64 MOD3 = 1000000009;
 
 //===----------------------------------------------------------------------===//
 /* Advanced Macro System */
 
+template <class T>
+auto make_nd_vec(std::size_t size) {
+  return Vec<T>(size);
+}
+
+template <class T>
+auto make_nd_vec(std::size_t size, const T& value) {
+  return Vec<T>(size, value);
+}
+
+template <class T>
+auto make_vec2(std::size_t n1, std::size_t n2) {
+  return Vec(n1, Vec<T>(n2));
+}
+
+template <class T>
+auto make_vec2(std::size_t n1, std::size_t n2, const T& value) {
+  return Vec(n1, Vec<T>(n2, value));
+}
+
+template <class T>
+auto make_vec3(std::size_t n1, std::size_t n2, std::size_t n3) {
+  return Vec(n1, Vec(n2, Vec<T>(n3)));
+}
+
+template <class T>
+auto make_vec3(std::size_t n1, std::size_t n2, std::size_t n3, const T& value) {
+  return Vec(n1, Vec(n2, Vec<T>(n3, value)));
+}
+
+template <class T>
+auto make_vec4(std::size_t n1, std::size_t n2, std::size_t n3, std::size_t n4) {
+  return Vec(n1, Vec(n2, Vec(n3, Vec<T>(n4))));
+}
+
+template <class T>
+auto make_vec4(std::size_t n1, std::size_t n2, std::size_t n3, std::size_t n4, const T& value) {
+  return Vec(n1, Vec(n2, Vec(n3, Vec<T>(n4, value))));
+}
+
 // Multi-dimensional vector creation macros:
-#define make_vec(type, name, ...) VC<type> name(__VA_ARGS__)
+#define make_vec(type, name, ...) Vec<type> name(__VA_ARGS__)
 #define vv(type, name, h, ...) \
-  VC<VC<type>> name(h, VC<type>(__VA_ARGS__))
+  auto name = make_vec2<type>(h, __VA_ARGS__)
 #define vvv(type, name, h, w, ...) \
-  VC<VC<VC<type>>> name(h, VC<VC<type>>(w, VC<type>(__VA_ARGS__)))
+  auto name = make_vec3<type>(h, w, __VA_ARGS__)
 #define vvvv(type, name, a, b, c, ...) \
-  VC<VC<VC<VC<type>>>> name(a, VC<VC<VC<type>>>(b, VC<VC<type>>(c, VC<type>(__VA_ARGS__))))
+  auto name = make_vec4<type>(a, b, c, __VA_ARGS__)
 
 // Advanced FOR loop system:
 #define FOR1(a) for (I64 _ = 0; _ < (a); ++_)
@@ -318,92 +393,6 @@ constexpr I64 MOD3 = 1000000009;
 #define MAX(x) *std::ranges::max_element(x)
 
 //===----------------------------------------------------------------------===//
-/* Mathematical Utilities */
-
-// Generic mathematical functions:
-template <typename T>
-[[gnu::always_inline]] constexpr T _gcd(T a, T b) {
-  if constexpr (std::is_integral_v<T>) {
-    return b ? _gcd(b, a % b) : a;
-  } else {
-    return std::gcd(a, b);
-  }
-}
-
-template <typename T>
-[[gnu::always_inline]] constexpr T _lcm(T a, T b) {
-  return a / _gcd(a, b) * b;
-}
-
-// Advanced division operations:
-template <typename T>
-[[gnu::always_inline]] constexpr T div_floor(T a, T b) {
-  return a / b - (a % b != 0 && (a ^ b) < 0);
-}
-
-template <typename T>
-[[gnu::always_inline]] constexpr T div_ceil(T a, T b) {
-  if constexpr (std::is_signed_v<T>) {
-    return a / b + ((a % b != 0) && ((a ^ b) >= 0));
-  } else {
-    return a / b + (a % b != 0);
-  }
-}
-
-template <typename T>
-[[gnu::always_inline]] constexpr T mod_floor(T a, T b) {
-  return a - b * div_floor(a, b);
-}
-
-template <typename T>
-[[gnu::always_inline]] constexpr std::pair<T, T> divmod(T a, T b) {
-  T q = div_floor(a, b);
-  return {q, a - q * b};
-}
-
-// Fast modular exponentiation:
-template <typename T>
-[[gnu::always_inline]] constexpr T _power(T base, T exp, T mod = 0) {
-  T result = 1;
-  if (mod) base %= mod;
-  while (exp > 0) {
-    if (exp & 1) {
-      result = mod ? (result * base) % mod : result * base;
-    }
-    base = mod ? (base * base) % mod : base * base;
-    exp >>= 1;
-  }
-  return result;
-}
-
-template <class T, class S>
-[[gnu::always_inline]] inline bool chmax(T& a, const S& b) {
-  return a < b ? (a = b, true) : false;
-}
-
-template <class T, class S>
-[[gnu::always_inline]] inline bool chmin(T& a, const S& b) {
-  return a > b ? (a = b, true) : false;
-}
-
-// Variadic min/max:
-template <typename T>
-constexpr const T& _min(const T& a, const T& b) { return (b < a) ? b : a; }
-
-template <typename T>
-constexpr const T& _max(const T& a, const T& b) { return (a < b) ? b : a; }
-
-template <typename T, typename... Args>
-constexpr const T& _min(const T& a, const T& b, const Args&... args) {
-  return _min(a, _min(b, args...));
-}
-
-template <typename T, typename... Args>
-constexpr const T& _max(const T& a, const T& b, const Args&... args) {
-  return _max(a, _max(b, args...));
-}
-
-//===----------------------------------------------------------------------===//
 /* Optimized I/O System */
 
 // Fast I/O
@@ -412,7 +401,7 @@ namespace fast_io {
   alignas(64) inline char input_buffer[BUFFER_SIZE];
   alignas(64) inline char output_buffer[BUFFER_SIZE];
   alignas(64) inline char number_buffer[128];
-
+  
   // Precomputed number strings for fast output:
   struct NumberLookup {
     char digits[10000][4];
@@ -426,23 +415,23 @@ namespace fast_io {
     }
   };
   inline constexpr NumberLookup number_lookup;
-
+  
   inline U32 input_pos = 0, input_end = 0, output_pos = 0;
-
+  
   inline void load_input() {
     std::memmove(input_buffer, input_buffer + input_pos, input_end - input_pos);
-    input_end = input_end - input_pos +
-                std::fread(input_buffer + input_end - input_pos, 1,
+    input_end = input_end - input_pos + 
+                std::fread(input_buffer + input_end - input_pos, 1, 
                           BUFFER_SIZE - input_end + input_pos, stdin);
     input_pos = 0;
     if (input_end < BUFFER_SIZE) input_buffer[input_end++] = '\n';
   }
-
+  
   inline void flush_output() {
     std::fwrite(output_buffer, 1, output_pos, stdout);
     output_pos = 0;
   }
-
+  
   // Fast character reading:
   inline void read_char(char& c) {
     do {
@@ -450,15 +439,15 @@ namespace fast_io {
       c = input_buffer[input_pos++];
     } while (std::isspace(c));
   }
-
+  
   // Optimized integer reading with SIMD potential:
   template <typename T>
   inline void read_integer(T& x) {
     if (input_pos + 64 >= input_end) load_input();
-
+    
     char c;
     do { c = input_buffer[input_pos++]; } while (c < '-');
-
+    
     bool negative = false;
     if constexpr (std::is_signed_v<T>) {
       if (c == '-') {
@@ -466,18 +455,18 @@ namespace fast_io {
         c = input_buffer[input_pos++];
       }
     }
-
+    
     x = 0;
     while (c >= '0') {
       x = x * 10 + (c - '0');
       c = input_buffer[input_pos++];
     }
-
+    
     if constexpr (std::is_signed_v<T>) {
       if (negative) x = -x;
     }
   }
-
+  
   // Fast string reading:
   inline void read_string(std::string& s) {
     s.clear();
@@ -486,14 +475,14 @@ namespace fast_io {
       if (input_pos >= input_end) load_input();
       c = input_buffer[input_pos++];
     } while (std::isspace(c));
-
+    
     do {
       s.push_back(c);
       if (input_pos >= input_end) load_input();
       c = input_buffer[input_pos++];
     } while (!std::isspace(c));
   }
-
+  
   // Optimized integer writing:
   template <typename T>
   inline void write_integer(T x) {
@@ -520,22 +509,22 @@ namespace fast_io {
       number_buffer[digits++] = '0' + (temp % 10);
       temp /= 10;
     } while (temp > 0);
-
+    
     // Reverse and copy:
     for (I32 i = digits - 1; i >= 0; --i) {
       output_buffer[output_pos++] = number_buffer[i];
     }
   }
-
+  
   inline void write_char(char c) {
     if (output_pos >= BUFFER_SIZE) flush_output();
     output_buffer[output_pos++] = c;
   }
-
+  
   inline void write_string(const std::string& s) {
     for (char c : s) write_char(c);
   }
-
+  
   // Template-based readers:
   inline void read(I32& x) { read_integer(x); }
   inline void read(I64& x) { read_integer(x); }
@@ -543,20 +532,20 @@ namespace fast_io {
   inline void read(U64& x) { read_integer(x); }
   inline void read(char& x) { read_char(x); }
   inline void read(std::string& x) { read_string(x); }
-
+  
   template <class T, class U>
   void read(std::pair<T, U>& p) { read(p.first); read(p.second); }
-
+  
   template <class T>
-  void read(VC<T>& v) { for (auto& x : v) read(x); }
-
+  void read(Vec<T>& v) { for (auto& x : v) read(x); }
+  
   // Variadic read:
   template <class Head, class... Tail>
   void read(Head& head, Tail&... tail) {
     read(head);
     if constexpr (sizeof...(tail) > 0) read(tail...);
   }
-
+  
   // Template-based writers:
   inline void write(I32 x) { write_integer(x); }
   inline void write(I64 x) { write_integer(x); }
@@ -565,20 +554,20 @@ namespace fast_io {
   inline void write(char x) { write_char(x); }
   inline void write(const std::string& x) { write_string(x); }
   inline void write(const char* x) { write_string(std::string(x)); }
-
+  
   template <class T, class U>
   void write(const std::pair<T, U>& p) {
     write(p.first); write(' '); write(p.second);
   }
-
+  
   template <class T>
-  void write(const VC<T>& v) {
+  void write(const Vec<T>& v) {
     for (I64 i = 0; i < sz(v); ++i) {
       if (i) write(' ');
       write(v[i]);
     }
   }
-
+  
   // Variadic write:
   template <class Head, class... Tail>
   void write(const Head& head, const Tail&... tail) {
@@ -588,15 +577,15 @@ namespace fast_io {
       write(tail...);
     }
   }
-
+  
   inline void writeln() { write_char('\n'); }
-
+  
   template <class... Args>
   void writeln(const Args&... args) {
     if constexpr (sizeof...(args) > 0) write(args...);
     write_char('\n');
   }
-
+  
   // Destructor for automatic flushing:
   struct IOFlusher {
     ~IOFlusher() { flush_output(); }
@@ -617,8 +606,8 @@ namespace fast_io {
 #define CHR(...) char __VA_ARGS__; IN(__VA_ARGS__)
 #define DBL(...) F64 __VA_ARGS__; IN(__VA_ARGS__)
 
-#define VEC(type, name, size) VC<type> name(size); IN(name)
-#define VV(type, name, h, w) VVC<type> name(h, VC<type>(w)); IN(name)
+#define VEC(type, name, size) Vec<type> name(size); IN(name)
+#define VV(type, name, h, w) Vec2<type> name(h, Vec<type>(w)); IN(name)
 
 // Answer macros:
 inline void YES(bool condition = true) { OUT(condition ? "YES" : "NO"); }
@@ -645,7 +634,7 @@ void solve() {
 
   Vec<std::unordered_map<I64, I64>> dp(n);
 
-  auto ext = [&](auto& self, I32 v, I64 need) -> I64 {
+  auto ext = [&dp, &adj, &a](auto& self, I32 v, I64 need) -> I64 {
     if (need > MAXVAL) return 0;
     auto it = dp[v].find(need);
     if (it != dp[v].end()) return it->second;
