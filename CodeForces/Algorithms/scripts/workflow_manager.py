@@ -450,6 +450,8 @@ def handle_run(manager: WorkflowManager, ns: argparse.Namespace) -> None:
 
 def handle_go(manager: WorkflowManager, ns: argparse.Namespace) -> None:
     args: List[str] = []
+    if ns.force:
+        args.append("--force")
     if ns.target:
         args.append(ns.target)
     if ns.input:
@@ -458,8 +460,10 @@ def handle_go(manager: WorkflowManager, ns: argparse.Namespace) -> None:
 
 
 def handle_forcego(manager: WorkflowManager, ns: argparse.Namespace) -> None:
-    args = [ns.target] if ns.target else []
-    _run_step_with_policy(manager, ns, "cppforcego", args)
+    args: List[str] = ["--force"]
+    if ns.target:
+        args.append(ns.target)
+    _run_step_with_policy(manager, ns, "cppgo", args)
 
 
 def handle_judge(manager: WorkflowManager, ns: argparse.Namespace) -> None:
@@ -477,12 +481,18 @@ def handle_stress(manager: WorkflowManager, ns: argparse.Namespace) -> None:
 
 
 def handle_submit(manager: WorkflowManager, ns: argparse.Namespace) -> None:
-    args = [ns.target] if ns.target else []
+    args: List[str] = []
+    if getattr(ns, "strict", False):
+        args.append("--strict")
+    if ns.target:
+        args.append(ns.target)
     _run_step_with_policy(manager, ns, "cppsubmit", args)
 
 
 def handle_test_submit(manager: WorkflowManager, ns: argparse.Namespace) -> None:
     args: List[str] = []
+    if ns.strict:
+        args.append("--strict")
     if ns.no_generate:
         args.append("--no-generate")
     if ns.target:
@@ -546,6 +556,11 @@ def handle_watch(manager: WorkflowManager, ns: argparse.Namespace) -> None:
 
 
 def handle_exec(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+    if not ns.allow_exec:
+        raise WorkflowError(
+            "exec command is disabled by default for safety. "
+            "Re-run with --allow-exec to enable it explicitly."
+        )
     _run_step_with_policy(manager, ns, ns.function, ns.args)
 
 
@@ -607,16 +622,25 @@ def handle_cycle(manager: WorkflowManager, ns: argparse.Namespace) -> None:
         _run_step_with_policy(manager, ns, "cppjudge", [ns.name])
 
     if not ns.skip_submit:
-        _run_step_with_policy(manager, ns, "cppsubmit", [ns.name])
+        submit_args = [ns.name]
+        if ns.strict_submit:
+            submit_args = ["--strict", ns.name]
+        _run_step_with_policy(manager, ns, "cppsubmit", submit_args)
         if not ns.skip_submit_test:
-            test_args = ["--no-generate", ns.name]
+            test_args = []
+            if ns.strict_submit:
+                test_args.append("--strict")
+            test_args.extend(["--no-generate", ns.name])
             if input_name:
                 test_args.append(input_name)
             _run_step_with_policy(manager, ns, "cpptestsubmit", test_args)
     elif not ns.skip_submit_test:
         # If submit is skipped but submission test is requested, let cpptestsubmit
         # generate the submission itself.
-        test_args = [ns.name]
+        test_args = []
+        if ns.strict_submit:
+            test_args.append("--strict")
+        test_args.append(ns.name)
         if input_name:
             test_args.append(input_name)
         _run_step_with_policy(manager, ns, "cpptestsubmit", test_args)
@@ -691,6 +715,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="continue executing subsequent steps even if one step fails",
     )
+    parser.add_argument(
+        "--allow-exec",
+        action="store_true",
+        help="allow the expert 'exec' subcommand (disabled by default for safety)",
+    )
 
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -739,6 +768,11 @@ def build_parser() -> argparse.ArgumentParser:
     p = subparsers.add_parser("go", help="run cppgo")
     _add_target_arg(p)
     p.add_argument(
+        "--force",
+        action="store_true",
+        help="force rebuild by touching the target source before build",
+    )
+    p.add_argument(
         "--input",
         type=_normalize_input_name,
         help="input filename inside input_cases/",
@@ -766,6 +800,11 @@ def build_parser() -> argparse.ArgumentParser:
     # submission
     p = subparsers.add_parser("submit", help="run cppsubmit")
     _add_target_arg(p)
+    p.add_argument(
+        "--strict",
+        action="store_true",
+        help="use judge-like strict submission compilation profile",
+    )
     p.set_defaults(handler=handle_submit)
 
     p = subparsers.add_parser("test-submit", help="run cpptestsubmit")
@@ -774,6 +813,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--input",
         type=_normalize_input_name,
         help="input filename inside input_cases/",
+    )
+    p.add_argument(
+        "--strict",
+        action="store_true",
+        help="use judge-like strict submission compilation profile",
     )
     p.add_argument("--no-generate", action="store_true")
     p.set_defaults(handler=handle_test_submit)
@@ -849,6 +893,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--skip-judge", action="store_true")
     p.add_argument("--skip-submit", action="store_true")
     p.add_argument("--skip-submit-test", action="store_true")
+    p.add_argument(
+        "--strict-submit",
+        action="store_true",
+        help="run submission and submission-test with judge-like strict profile",
+    )
     p.set_defaults(handler=handle_cycle)
 
     # expert escape hatch

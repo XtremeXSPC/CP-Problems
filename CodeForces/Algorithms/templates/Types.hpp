@@ -41,10 +41,16 @@ using F80 = long double;
 #define HAS_FLOAT128 0
 #endif
 
-// Legacy aliases for backward compatibility:
-using ll  = I64;
-using ull = U64;
-using ld  = F80;
+// Legacy short aliases can be disabled for stricter style consistency.
+#ifndef CP_ENABLE_LEGACY_SHORT_ALIASES
+  #define CP_ENABLE_LEGACY_SHORT_ALIASES 1
+#endif
+
+#if CP_ENABLE_LEGACY_SHORT_ALIASES
+  using ll  = I64;
+  using ull = U64;
+  using ld  = F80;
+#endif
 
 // Container type aliases:
 template <class T>
@@ -74,13 +80,19 @@ using PriorityQueue = std::priority_queue<T, std::vector<T>>;
 template <class T>
 using MinPriorityQueue = std::priority_queue<T, std::vector<T>, std::greater<T>>;
 
-// Short aliases for competitive programming:
-template <class T>
-using VC = Vec<T>;
-template <class T>
-using VVC = VC<VC<T>>;
-template <class T>
-using VVVC = VC<VVC<T>>;
+// Legacy container aliases can be disabled after migration.
+#ifndef CP_ENABLE_LEGACY_CONTAINER_ALIASES
+  #define CP_ENABLE_LEGACY_CONTAINER_ALIASES 1
+#endif
+
+#if CP_ENABLE_LEGACY_CONTAINER_ALIASES
+  template <class T>
+  using VC = Vec<T>;
+  template <class T>
+  using VVC = VC<VC<T>>;
+  template <class T>
+  using VVVC = VC<VVC<T>>;
+#endif
 
 // Pair and tuple aliases:
 template <class T, class U>

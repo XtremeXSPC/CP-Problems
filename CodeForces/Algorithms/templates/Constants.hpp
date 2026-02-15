@@ -29,7 +29,8 @@ inline constexpr F64 infinity<F64> = 1e18;
 template <>
 inline constexpr F80 infinity<F80> = 1e18L;
 
-#ifdef __SIZEOF_INT128__
+#if HAS_INT128
+static_assert(sizeof(I128) > sizeof(I64), "I128 must be true 128-bit when HAS_INT128 is enabled.");
 template <>
 inline constexpr I128 infinity<I128> = I128(infinity<I64>) * 2'000'000'000'000'000'000LL;
 #endif

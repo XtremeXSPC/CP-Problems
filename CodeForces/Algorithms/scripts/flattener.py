@@ -3,20 +3,9 @@
 import sys
 import re
 from pathlib import Path
-from collections import OrderedDict
+from need_resolver import extract_need_macros_from_source, load_need_mapping
 
 # ------------------------------ CONFIGURATION ------------------------------- #
-
-# Mapping from NEED_* macros to the list of template files to include.
-NEED_MAPPING = OrderedDict(
-    [
-        ("NEED_CORE", ["Types.hpp", "Constants.hpp", "Macros.hpp", "Math.hpp"]),
-        ("NEED_IO", ["IO.hpp"]),
-        ("NEED_BIT_OPS", ["Bit_Ops.hpp"]),
-        ("NEED_MOD_INT", ["Mod_Int.hpp"]),
-        ("NEED_CONTAINERS", ["Containers.hpp"]),
-    ]
-)
 
 PROJECT_INCLUDE_RE = re.compile(r'^\s*#include\s+"([^"]+)"\s*$')
 INLINE_ROOT_PREFIXES = ("modules/", "templates/")
@@ -125,26 +114,28 @@ def main():
     script_dir = Path(__file__).parent.resolve()
     project_root = script_dir.parent
     templates_dir = project_root / "templates"
+    base_template_path = templates_dir / "Base.hpp"
 
     with open(source_file, "r", encoding="utf-8") as f:
         source_content = f.read()
 
-    # 1. Find which templates are needed.
-    need_macros_found = {
-        m.group(1)
-        for m in re.finditer(r"#define\s+(NEED_\w+)", source_content)
-        if m.group(1) in NEED_MAPPING
-    }
+    need_mapping = load_need_mapping(base_template_path)
+    if not need_mapping:
+        sys.stderr.write(
+            f"Error: Unable to derive NEED_* mapping from {base_template_path}\n"
+        )
+        sys.exit(1)
 
-    # Always include NEED_CORE if any macro is found.
-    if need_macros_found and "NEED_CORE" not in need_macros_found:
-        need_macros_found.add("NEED_CORE")
+    # 1. Find which templates are needed.
+    need_macros_found = extract_need_macros_from_source(
+        source_content, need_mapping.keys()
+    )
 
     # 2. Build list of files to include (preserving order).
     files_to_include = []
     included_set = set()
 
-    for macro, files in NEED_MAPPING.items():
+    for macro, files in need_mapping.items():
         if macro in need_macros_found:
             for filename in files:
                 if filename not in included_set:

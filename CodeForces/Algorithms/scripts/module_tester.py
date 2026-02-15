@@ -1,34 +1,112 @@
 #!/usr/bin/env python3
 """
-Module Testing Framework for Competitive Programming Template.
-This script automatically tests each module for compilation and functionality.
+Module Testing Framework for Competitive Programming templates.
+
+This tool validates that configured NEED_* module combinations compile.
 """
 
-import subprocess
-import tempfile
-import sys
-from pathlib import Path
-from typing import List, Dict, Tuple
+from __future__ import annotations
+
+import argparse
 import json
-from datetime import datetime
 import shutil
+import subprocess
+import sys
+import tempfile
+import time
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Tuple
+
+from need_resolver import load_need_mapping
+
+DEFAULT_NEED_MACROS = [
+    "NEED_CORE",
+    "NEED_IO",
+    "NEED_BIT_OPS",
+    "NEED_MOD_INT",
+    "NEED_CONTAINERS",
+]
+
+INDIVIDUAL_TEST_SNIPPETS = {
+    "NEED_CORE": "int main() { VI v; return (int)v.size(); }",
+    "NEED_IO": "int main() { LL(n); OUT(n); return 0; }",
+    "NEED_BIT_OPS": "int main() { I32 x = popcount(15); return x == 4 ? 0 : 1; }",
+    "NEED_MOD_INT": "int main() { mint x(5), y(3); mint z = x * y; return (int)I64(z); }",
+    "NEED_CONTAINERS": "int main() { VI v = {3,1,2}; auto idx = argsort(v); return (int)idx.size(); }",
+}
+
+COMBINATION_CANDIDATES = [
+    (
+        ["NEED_CORE", "NEED_IO"],
+        "Core + I/O",
+        "int main() { LL(n); OUT(n); return 0; }",
+    ),
+    (
+        ["NEED_CORE", "NEED_BIT_OPS"],
+        "Core + Bit Operations",
+        "int main() { I64 x = 15; I32 cnt = popcount(x); return cnt == 4 ? 0 : 1; }",
+    ),
+    (
+        ["NEED_CORE", "NEED_MOD_INT"],
+        "Core + ModInt",
+        "int main() { mint a(5), b(3); mint c = a * b; return (int)I64(c); }",
+    ),
+    (
+        ["NEED_CORE", "NEED_CONTAINERS"],
+        "Core + Containers",
+        "int main() { VI v = {3,1,2}; auto idx = argsort(v); return (int)idx.size(); }",
+    ),
+    (
+        ["NEED_CORE", "NEED_IO", "NEED_CONTAINERS"],
+        "Core + I/O + Containers",
+        "int main() { VI v = {1,2,3}; OUT((I64)v.size()); return 0; }",
+    ),
+    (
+        [
+            "NEED_CORE",
+            "NEED_IO",
+            "NEED_BIT_OPS",
+            "NEED_MOD_INT",
+            "NEED_CONTAINERS",
+        ],
+        "All modules",
+        "int main() { mint x(5); I32 bits = popcount(15); VI v = {1,2}; OUT(bits); return (int)v.size(); }",
+    ),
+]
+
+BENCHMARK_CANDIDATES = [
+    (["NEED_CORE"], "Core only"),
+    (["NEED_CORE", "NEED_IO"], "Core + I/O"),
+    (["NEED_CORE", "NEED_IO", "NEED_CONTAINERS"], "Core + I/O + Containers"),
+    (
+        [
+            "NEED_CORE",
+            "NEED_IO",
+            "NEED_BIT_OPS",
+            "NEED_MOD_INT",
+            "NEED_CONTAINERS",
+        ],
+        "All modules",
+    ),
+]
 
 
-# ------------------------------ TEST FRAMEWORK ------------------------------ #
 class ModuleTester:
     def __init__(self, templates_dir: Path):
         self.templates_dir = templates_dir
-        self.test_results = []
+        self.test_results: List[Dict] = []
         self.config = self.load_config()
         self.compiler = self.select_compiler()
         self.compiler_flags = self.build_compiler_flags()
+        self.need_mapping = self.discover_need_mapping()
+        self.need_macros = list(self.need_mapping.keys())
 
     def load_config(self) -> Dict:
         """Load project config if available."""
         config_path = self.templates_dir.parent / ".template_config.json"
         if not config_path.exists():
             return {}
-
         try:
             with open(config_path, "r", encoding="utf-8") as f:
                 return json.load(f)
@@ -45,11 +123,10 @@ class ModuleTester:
         return config_flags
 
     def can_compile_std_headers(self, compiler: str) -> bool:
-        """Quick probe to ensure compiler supports the template header style."""
+        """Quick probe to ensure compiler supports template header style."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".cpp", delete=False) as f:
             f.write("#include <bits/stdc++.h>\nint main() { return 0; }\n")
             temp_file = f.name
-
         try:
             result = subprocess.run(
                 [compiler, "-std=c++23", "-fsyntax-only", temp_file],
@@ -66,47 +143,39 @@ class ModuleTester:
         """Pick the most suitable compiler for CP templates."""
         configured = self.config.get("compiler")
         candidates = [configured, "g++-15", "g++-14", "g++-13", "g++", "c++"]
-
         seen = set()
         for candidate in candidates:
             if not candidate or candidate in seen:
                 continue
             seen.add(candidate)
-
             resolved = shutil.which(candidate)
             if not resolved:
                 continue
-
             if self.can_compile_std_headers(resolved):
                 return resolved
-
         return configured or "g++"
 
-    def create_test_file(self, modules: List[str], test_code: str = "") -> str:
-        """Create a temporary test file with specified modules."""
-        content = []
+    def discover_need_mapping(self) -> Dict[str, List[str]]:
+        """Load NEED_* mapping from Base.hpp; fallback to known defaults."""
+        mapping = load_need_mapping(self.templates_dir / "Base.hpp")
+        if mapping:
+            return dict(mapping)
+        return {macro: [] for macro in DEFAULT_NEED_MACROS}
 
-        # Add necessary defines.
-        if "Types.hpp" in modules or "NEED_CORE" in modules:
-            content.append("#define NEED_CORE")
-        if "IO.hpp" in modules or "NEED_IO" in modules:
-            content.append("#define NEED_IO")
-        if "Bit_Ops.hpp" in modules or "NEED_BIT_OPS" in modules:
-            content.append("#define NEED_BIT_OPS")
-        if "Mod_Int.hpp" in modules or "NEED_MOD_INT" in modules:
-            content.append("#define NEED_MOD_INT")
-        if "Containers.hpp" in modules or "NEED_CONTAINERS" in modules:
-            content.append("#define NEED_CONTAINERS")
-
+    def create_test_file(self, macros: List[str], test_code: str = "") -> str:
+        """Create a temporary test file with specified NEED_* macros."""
+        content: List[str] = []
+        seen = set()
+        for macro in macros:
+            if not macro.startswith("NEED_"):
+                continue
+            if macro in seen:
+                continue
+            content.append(f"#define {macro}")
+            seen.add(macro)
         content.append('#include "templates/Base.hpp"')
         content.append("")
-
-        # Add test code or default main.
-        if test_code:
-            content.append(test_code)
-        else:
-            content.append("int main() { return 0; }")
-
+        content.append(test_code if test_code else "int main() { return 0; }")
         return "\n".join(content)
 
     def compile_test(self, test_content: str) -> Tuple[bool, str]:
@@ -114,18 +183,12 @@ class ModuleTester:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".cpp", delete=False) as f:
             f.write(test_content)
             temp_file = f.name
-
         try:
-            # Adjust include path to find templates.
             include_flag = f"-I{self.templates_dir.parent}"
             cmd = [self.compiler] + self.compiler_flags + [include_flag, temp_file]
-
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-
             success = result.returncode == 0
-            error_msg = result.stderr if not success else ""
-            return success, error_msg
-
+            return success, "" if success else result.stderr
         except subprocess.TimeoutExpired:
             return False, "Compilation timeout"
         except Exception as e:
@@ -133,160 +196,110 @@ class ModuleTester:
         finally:
             Path(temp_file).unlink(missing_ok=True)
 
+    def _record(self, payload: Dict) -> None:
+        payload["timestamp"] = datetime.now().isoformat()
+        self.test_results.append(payload)
+
+    def _available_candidates(self, candidates):
+        available = set(self.need_macros)
+        filtered = []
+        seen = set()
+        for entry in candidates:
+            macros = tuple(entry[0])
+            if not set(macros).issubset(available):
+                continue
+            if macros in seen:
+                continue
+            seen.add(macros)
+            filtered.append(entry)
+        return filtered
+
     def test_individual_modules(self):
-        """Test each module individually."""
+        """Test each discovered NEED_* macro individually."""
         print("Testing individual modules...")
         print("-" * 50)
-
-        modules = [
-            ("Types.hpp", "NEED_CORE", "int main() { VI v; return (int)v.size(); }"),
-            ("Constants.hpp", "NEED_CORE", "constexpr I64 x = INF64;"),
-            ("Macros.hpp", "NEED_CORE", "int main() { FOR(i, 10) {} return 0; }"),
-            (
-                "Math.hpp",
-                "NEED_CORE",
-                "int main() { I64 x = gcd(12LL, 8LL); return 0; }",
-            ),
-            (
-                "Bit_Ops.hpp",
-                "NEED_BIT_OPS",
-                "int main() { I32 x = popcount(15); return 0; }",
-            ),
-            ("IO.hpp", "NEED_IO", "int main() { return 0; }"),
-            ("Mod_Int.hpp", "NEED_MOD_INT", "int main() { mint x(5); return 0; }"),
-            (
-                "Containers.hpp",
-                "NEED_CONTAINERS",
-                "int main() { VI v = {1,2,3}; auto sorted = argsort(v); return 0; }",
-            ),
-        ]
-
-        for module_file, need_flag, test_code in modules:
-            test_content = self.create_test_file([need_flag], test_code)
+        for need_macro in self.need_macros:
+            test_code = INDIVIDUAL_TEST_SNIPPETS.get(need_macro, "int main() { return 0; }")
+            test_content = self.create_test_file([need_macro], test_code)
             success, error = self.compile_test(test_content)
 
-            status = "✓ PASS" if success else "✗ FAIL"
-            print(f"{module_file:20} {status}")
-
+            headers = self.need_mapping.get(need_macro, [])
+            label = f"{need_macro} ({', '.join(headers)})" if headers else need_macro
+            status = "PASS" if success else "FAIL"
+            print(f"{label:45} {status}")
             if not success and error:
                 print(f"  Error: {error[:200]}...")
 
-            self.test_results.append(
+            self._record(
                 {
-                    "module": module_file,
+                    "kind": "individual",
+                    "macro": need_macro,
+                    "headers": headers,
                     "success": success,
                     "error": error if not success else None,
-                    "timestamp": datetime.now().isoformat(),
                 }
             )
 
     def test_module_combinations(self):
-        """Test common combinations of modules."""
+        """Test common module combinations available in current templates."""
         print("\nTesting module combinations...")
         print("-" * 50)
 
-        combinations = [
-            (
-                ["NEED_CORE", "NEED_IO"],
-                "Basic I/O",
-                "int main() { LL(n); OUT(n); return 0; }",
-            ),
-            (
-                ["NEED_CORE", "NEED_BIT_OPS"],
-                "Core + Bit Operations",
-                "int main() { I64 x = 15; I32 cnt = popcount(x); return 0; }",
-            ),
-            (
-                ["NEED_CORE", "NEED_MOD_INT"],
-                "Core + ModInt",
-                "int main() { mint a(5), b(3); mint c = a * b; return 0; }",
-            ),
-            (
-                ["NEED_CORE", "NEED_CONTAINERS"],
-                "Core + Containers",
-                "int main() { VI v = {3,1,2}; auto idx = argsort(v); return 0; }",
-            ),
-            (
-                ["NEED_CORE", "NEED_IO", "NEED_CONTAINERS"],
-                "Core + I/O + Containers",
-                "int main() { VI v = {1,2,3}; return 0; }",
-            ),
-            (
-                [
-                    "NEED_CORE",
-                    "NEED_IO",
-                    "NEED_BIT_OPS",
-                    "NEED_MOD_INT",
-                    "NEED_CONTAINERS",
-                ],
-                "All modules",
-                "int main() { mint x(5); I32 bits = popcount(15); VI v = {1,2}; return 0; }",
-            ),
-        ]
+        combinations = self._available_candidates(COMBINATION_CANDIDATES)
+        if not combinations and len(self.need_macros) > 1:
+            combinations = [
+                (
+                    self.need_macros,
+                    "All discovered modules",
+                    "int main() { return 0; }",
+                )
+            ]
 
-        for modules, description, test_code in combinations:
-            test_content = self.create_test_file(modules, test_code)
+        for macros, description, test_code in combinations:
+            test_content = self.create_test_file(list(macros), test_code)
             success, error = self.compile_test(test_content)
-
-            status = "✓ PASS" if success else "✗ FAIL"
+            status = "PASS" if success else "FAIL"
             print(f"{description:30} {status}")
-
             if not success and error:
-                print(f"  Error: {error}")
+                print(f"  Error: {error[:200]}...")
 
-            self.test_results.append(
+            self._record(
                 {
-                    "combination": description,
-                    "modules": modules,
+                    "kind": "combination",
+                    "description": description,
+                    "macros": list(macros),
                     "success": success,
                     "error": error if not success else None,
-                    "timestamp": datetime.now().isoformat(),
                 }
             )
 
     def test_performance_benchmarks(self):
-        """Test compilation time for different module combinations."""
+        """Benchmark compilation time for available combinations."""
         print("\nBenchmarking compilation times...")
         print("-" * 50)
 
-        import time
+        benchmarks = self._available_candidates(BENCHMARK_CANDIDATES)
+        if not benchmarks:
+            benchmarks = [([self.need_macros[0]], "Single discovered macro")] if self.need_macros else []
 
-        benchmarks = [
-            (["NEED_CORE"], "Core only"),
-            (["NEED_CORE", "NEED_IO"], "Core + I/O"),
-            (["NEED_CORE", "NEED_IO", "NEED_CONTAINERS"], "Core + I/O + Containers"),
-            (
-                [
-                    "NEED_CORE",
-                    "NEED_IO",
-                    "NEED_BIT_OPS",
-                    "NEED_MOD_INT",
-                    "NEED_CONTAINERS",
-                ],
-                "All modules",
-            ),
-        ]
-
-        for modules, description in benchmarks:
-            test_content = self.create_test_file(modules)
-
+        for macros, description in benchmarks:
+            test_content = self.create_test_file(list(macros))
             start_time = time.time()
             success, error = self.compile_test(test_content)
             elapsed = time.time() - start_time
-
-            status = "✓ PASS" if success else "✗ FAIL"
+            status = "PASS" if success else "FAIL"
             print(f"{description:30} {elapsed:.3f}s {status}")
             if not success and error:
                 print(f"  Error: {error[:200]}...")
 
-            self.test_results.append(
+            self._record(
                 {
-                    "benchmark": description,
-                    "modules": modules,
+                    "kind": "benchmark",
+                    "description": description,
+                    "macros": list(macros),
                     "elapsed_seconds": elapsed,
                     "success": success,
                     "error": error if not success else None,
-                    "timestamp": datetime.now().isoformat(),
                 }
             )
 
@@ -297,15 +310,15 @@ class ModuleTester:
             "templates_dir": str(self.templates_dir),
             "compiler": self.compiler,
             "compiler_flags": self.compiler_flags,
+            "need_macros": self.need_macros,
             "test_results": self.test_results,
         }
-
-        with open(output_file, "w") as f:
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(output_file, "w", encoding="utf-8") as f:
             json.dump(report, f, indent=2)
-
         print(f"\nTest report saved to: {output_file}")
 
-    def run_all_tests(self):
+    def run_all_tests(self) -> bool:
         """Run all test suites."""
         print("=" * 50)
         print("MODULE TESTING FRAMEWORK")
@@ -315,25 +328,41 @@ class ModuleTester:
         self.test_module_combinations()
         self.test_performance_benchmarks()
 
-        # Summary.
         passed = sum(1 for r in self.test_results if r.get("success", False))
         total = len(self.test_results)
-
         print("\n" + "=" * 50)
         print(f"SUMMARY: {passed}/{total} tests passed")
         print("=" * 50)
-
         return passed == total
 
 
-# -------------------------------- MAIN LOGIC -------------------------------- #
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Compile-test CP template NEED_* modules."
+    )
+    parser.add_argument(
+        "templates_dir",
+        nargs="?",
+        type=Path,
+        default=None,
+        help="path to templates directory (default: auto-detect)",
+    )
+    parser.add_argument(
+        "--report",
+        type=Path,
+        default=None,
+        help="optional output path for JSON report",
+    )
+    return parser
 
 
-def main():
-    if len(sys.argv) > 1:
-        templates_dir = Path(sys.argv[1])
+def main() -> None:
+    parser = build_parser()
+    args = parser.parse_args()
+
+    if args.templates_dir is not None:
+        templates_dir = args.templates_dir
     else:
-        # Try to find templates directory.
         script_dir = Path(__file__).parent.resolve()
         templates_dir = script_dir.parent / "templates"
 
@@ -344,10 +373,8 @@ def main():
     tester = ModuleTester(templates_dir)
     success = tester.run_all_tests()
 
-    # Generate report.
-    report_file = templates_dir.parent / "reports" / "test_report.json"
-    report_file.parent.mkdir(parents=True, exist_ok=True)
-    tester.generate_report(report_file)
+    if args.report is not None:
+        tester.generate_report(args.report)
 
     sys.exit(0 if success else 1)
 

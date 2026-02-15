@@ -1,5 +1,6 @@
 #pragma once
 #include <queue>
+#include <utility>
 
 #include "Macros.hpp"
 #include "Types.hpp"
@@ -59,33 +60,58 @@ VC<T> cumsum(const VC<T>& v, bool include_zero = true) {
   return result;
 }
 
-// POP utilities for different containers:
+// pop_val utilities for different containers (move-aware):
 template <typename T>
-T POP(std::deque<T>& container) {
-  T element = container.front();
+T pop_val(std::deque<T>& container) {
+  my_assert(!container.empty());
+  T element = std::move(container.front());
   container.pop_front();
   return element;
 }
 
 template <typename T>
-T POP(MinPriorityQueue<T>& container) {
-  T element = container.top();
+T pop_val(MinPriorityQueue<T>& container) {
+  my_assert(!container.empty());
+  T element = std::move(container.top());
   container.pop();
   return element;
+}
+
+template <typename T>
+T pop_val(PriorityQueue<T>& container) {
+  my_assert(!container.empty());
+  T element = std::move(container.top());
+  container.pop();
+  return element;
+}
+
+template <typename T>
+T pop_val(VC<T>& container) {
+  my_assert(!container.empty());
+  T element = std::move(container.back());
+  container.pop_back();
+  return element;
+}
+
+// Legacy POP wrappers for backward compatibility:
+template <typename T>
+T POP(std::deque<T>& container) {
+  return pop_val(container);
+}
+
+template <typename T>
+T POP(MinPriorityQueue<T>& container) {
+  return pop_val(container);
 }
 
 template <typename T>
 T POP(PriorityQueue<T>& container) {
-  T element = container.top();
-  container.pop();
-  return element;
+  return pop_val(container);
 }
 
 template <typename T>
 T POP(VC<T>& container) {
-  T element = container.back();
-  container.pop_back();
-  return element;
+  return pop_val(container);
 }
 
 // String utilities:
