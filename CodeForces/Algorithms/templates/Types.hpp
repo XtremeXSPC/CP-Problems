@@ -43,7 +43,7 @@ using F80 = long double;
 
 // Legacy short aliases can be disabled for stricter style consistency.
 #ifndef CP_ENABLE_LEGACY_SHORT_ALIASES
-  #define CP_ENABLE_LEGACY_SHORT_ALIASES 1
+  #define CP_ENABLE_LEGACY_SHORT_ALIASES 0
 #endif
 
 #if CP_ENABLE_LEGACY_SHORT_ALIASES
@@ -80,18 +80,24 @@ using PriorityQueue = std::priority_queue<T, std::vector<T>>;
 template <class T>
 using MinPriorityQueue = std::priority_queue<T, std::vector<T>, std::greater<T>>;
 
+// Canonical multidimensional aliases:
+template <class T>
+using Vec2 = Vec<Vec<T>>;
+template <class T>
+using Vec3 = Vec<Vec2<T>>;
+
 // Legacy container aliases can be disabled after migration.
 #ifndef CP_ENABLE_LEGACY_CONTAINER_ALIASES
-  #define CP_ENABLE_LEGACY_CONTAINER_ALIASES 1
+  #define CP_ENABLE_LEGACY_CONTAINER_ALIASES 0
 #endif
 
 #if CP_ENABLE_LEGACY_CONTAINER_ALIASES
   template <class T>
   using VC = Vec<T>;
   template <class T>
-  using VVC = VC<VC<T>>;
+  using VVC = Vec2<T>;
   template <class T>
-  using VVVC = VC<VVC<T>>;
+  using VVVC = Vec3<T>;
 #endif
 
 // Pair and tuple aliases:

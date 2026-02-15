@@ -29,8 +29,8 @@ F64 binary_search_real(F&& predicate, F64 left, F64 right, I32 iterations = 100)
 
 // Container manipulation utilities:
 template <typename T>
-VC<I32> argsort(const VC<T>& v, bool reverse = false) {
-  VC<I32> indices(sz(v));
+Vec<I32> argsort(const Vec<T>& v, bool reverse = false) {
+  Vec<I32> indices(sz(v));
   std::iota(all(indices), 0);
   if (reverse) {
     std::ranges::sort(indices, [&](I32 i, I32 j) { return v[i] == v[j] ? i < j : v[i] > v[j]; });
@@ -41,15 +41,15 @@ VC<I32> argsort(const VC<T>& v, bool reverse = false) {
 }
 
 template <typename T>
-VC<T> rearrange(const VC<T>& v, const VC<I32>& indices) {
-  VC<T> result(sz(indices));
+Vec<T> rearrange(const Vec<T>& v, const Vec<I32>& indices) {
+  Vec<T> result(sz(indices));
   FOR(i, sz(indices)) result[i] = v[indices[i]];
   return result;
 }
 
 template <typename T>
-VC<T> cumsum(const VC<T>& v, bool include_zero = true) {
-  VC<T> result(sz(v) + (include_zero ? 1 : 0));
+Vec<T> cumsum(const Vec<T>& v, bool include_zero = true) {
+  Vec<T> result(sz(v) + (include_zero ? 1 : 0));
   if (v.empty()) return result;
   if (include_zero) {
     FOR(i, sz(v)) result[i + 1] = result[i] + v[i];
@@ -86,7 +86,7 @@ T pop_val(PriorityQueue<T>& container) {
 }
 
 template <typename T>
-T pop_val(VC<T>& container) {
+T pop_val(Vec<T>& container) {
   my_assert(!container.empty());
   T element = std::move(container.back());
   container.pop_back();
@@ -110,13 +110,13 @@ T POP(PriorityQueue<T>& container) {
 }
 
 template <typename T>
-T POP(VC<T>& container) {
+T POP(Vec<T>& container) {
   return pop_val(container);
 }
 
 // String utilities:
-inline VC<I32> string_to_ints(const std::string& s, char base_char = 'a') {
-  VC<I32> result(sz(s));
+inline Vec<I32> string_to_ints(const std::string& s, char base_char = 'a') {
+  Vec<I32> result(sz(s));
   FOR(i, sz(s)) {
     result[i] = s[i] == '?' ? -1 : s[i] - base_char;
   }

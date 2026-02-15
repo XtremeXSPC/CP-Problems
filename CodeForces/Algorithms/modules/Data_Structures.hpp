@@ -12,7 +12,7 @@
 template <typename T, typename F = std::plus<T>>
 struct SegmentTree {
   I32 n;
-  VC<T> tree;
+  Vec<T> tree;
   F op;
   T identity;
   
@@ -22,7 +22,7 @@ struct SegmentTree {
     tree.assign(2 * n, identity);
   }
   
-  SegmentTree(const VC<T>& v, T id = T{}, F func = F{}) 
+  SegmentTree(const Vec<T>& v, T id = T{}, F func = F{}) 
     : SegmentTree(sz(v), id, func) {
     FOR(i, sz(v)) tree[n + i] = v[i];
     FOR_R(i, 1, n) tree[i] = op(tree[2*i], tree[2*i + 1]);
@@ -55,8 +55,8 @@ struct SegmentTree {
 template <typename T, typename U>
 struct LazySegTree {
   I32 n;
-  VC<T> tree;
-  VC<U> lazy;
+  Vec<T> tree;
+  Vec<U> lazy;
   
   LazySegTree(I32 size) : n(1) {
     while (n < size) n *= 2;
@@ -105,7 +105,7 @@ struct LazySegTree {
 template <typename T>
 struct FenwickTree {
   I32 n;
-  VC<T> tree;
+  Vec<T> tree;
   
   FenwickTree(I32 size) : n(size), tree(size + 1, T{}) {}
   
@@ -153,9 +153,9 @@ struct FenwickTree {
 template <typename T>
 struct FenwickTree2D {
   I32 n, m;
-  VVC<T> tree;
+  Vec2<T> tree;
   
-  FenwickTree2D(I32 rows, I32 cols) : n(rows), m(cols), tree(n + 1, VC<T>(m + 1)) {}
+  FenwickTree2D(I32 rows, I32 cols) : n(rows), m(cols), tree(n + 1, Vec<T>(m + 1)) {}
   
   void add(I32 x, I32 y, T val) {
     x++; y++;
@@ -185,16 +185,16 @@ struct FenwickTree2D {
 // Sparse Table for O(1) range minimum/maximum queries.
 template <typename T, typename F = std::function<T(const T&, const T&)>>
 struct SparseTable {
-  VVC<T> table;
-  VC<I32> lg;
+  Vec2<T> table;
+  Vec<I32> lg;
   F op;
   
-  SparseTable(const VC<T>& v, F func = [](const T& a, const T& b) { return _min(a, b); }) : op(func) {
+  SparseTable(const Vec<T>& v, F func = [](const T& a, const T& b) { return _min(a, b); }) : op(func) {
     I32 n = sz(v);
     I32 max_log = 0;
     while ((1 << max_log) <= n) max_log++;
     
-    table.assign(max_log, VC<T>(n));
+    table.assign(max_log, Vec<T>(n));
     lg.assign(n + 1, 0);
     
     FOR(i, 2, n + 1) lg[i] = lg[i / 2] + 1;
@@ -222,8 +222,8 @@ struct PersistentSegTree {
     Node(I64 v = 0) : val(v), left(-1), right(-1) {}
   };
   
-  VC<Node> nodes;
-  VC<I32> roots;
+  Vec<Node> nodes;
+  Vec<I32> roots;
   I32 n;
   
   PersistentSegTree(I32 size) : n(1) {
@@ -287,7 +287,7 @@ struct Treap {
     Node(I64 k) : key(k), priority(rand()), left(-1), right(-1), size(1), sum(k) {}
   };
   
-  VC<Node> nodes;
+  Vec<Node> nodes;
   I32 root;
   
   Treap() : root(-1) { nodes.reserve(200000); }
@@ -374,7 +374,7 @@ struct LinkCutTree {
                        value(v), sum(v), reversed(false) {}
   };
   
-  VC<Node> nodes;
+  Vec<Node> nodes;
   
   LinkCutTree(I32 n) : nodes(n) {
     FOR(i, n) nodes[i] = Node(0);
