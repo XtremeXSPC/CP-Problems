@@ -25,7 +25,7 @@ inline Vec<I32> z_algorithm(const std::string& s) {
   Vec<I32> z(n);
   if (n == 0) return z;
   z[0] = n;
-  
+
   I32 l = 0, r = 0;
   FOR(i, 1, n) {
     if (i <= r) z[i] = _min(static_cast<I32>(r - i + 1), z[i - l]);
@@ -35,7 +35,7 @@ inline Vec<I32> z_algorithm(const std::string& s) {
       r = i + z[i] - 1;
     }
   }
-  
+
   return z;
 }
 
@@ -45,14 +45,14 @@ inline Vec<I32> z_algorithm(const std::string& s) {
 struct KMP {
   std::string pattern;
   Vec<I32> failure;
-  
+
   /**
    * @brief Builds prefix-function table for a pattern.
    */
   KMP(const std::string& p) : pattern(p) {
     I32 m = sz(pattern);
     failure.assign(m, 0);
-    
+
     FOR(i, 1, m) {
       I32 j = failure[i - 1];
       while (j > 0 && pattern[i] != pattern[j]) {
@@ -62,7 +62,7 @@ struct KMP {
       failure[i] = j;
     }
   }
-  
+
   /**
    * @brief Finds all pattern occurrences in text.
    * @param text Text to search.
@@ -79,19 +79,19 @@ struct KMP {
       return matches;
     }
     I32 j = 0;
-    
+
     FOR(i, n) {
       while (j > 0 && text[i] != pattern[j]) {
         j = failure[j - 1];
       }
       if (text[i] == pattern[j]) j++;
-      
+
       if (j == m) {
         matches.pb(i - m + 1);
         j = failure[j - 1];
       }
     }
-    
+
     return matches;
   }
 };
@@ -102,7 +102,7 @@ struct KMP {
 struct Manacher {
   std::string s;
   Vec<I32> p;  // p[i] = radius of palindrome centered at 'i'.
-  
+
   /**
    * @brief Builds transformed string and palindrome radii.
    */
@@ -114,23 +114,23 @@ struct Manacher {
       s += c;
     }
     s += "#$";
-    
+
     I32 n = sz(s);
     p.assign(n, 0);
-    
+
     I32 center = 0, right = 0;
     FOR(i, 1, n - 1) {
       I32 mirror = 2 * center - i;
-      
+
       if (i < right) {
         p[i] = _min(static_cast<I32>(right - i), p[mirror]);
       }
-      
+
       // Expand around center 'i'.
       while (s[i + p[i] + 1] == s[i - p[i] - 1]) {
         p[i]++;
       }
-      
+
       // Update center and right.
       if (i + p[i] > right) {
         center = i;
@@ -138,7 +138,7 @@ struct Manacher {
       }
     }
   }
-  
+
   /**
    * @brief Checks if substring [l, r) of original string is palindrome.
    */
@@ -147,14 +147,14 @@ struct Manacher {
     I32 radius = r - l;
     return p[center] >= radius;
   }
-  
+
   /**
    * @brief Radius of longest odd palindrome centered at i.
    */
   I32 odd_palindrome_at(I32 i) {
     return p[2 * i + 2] / 2;
   }
-  
+
   /**
    * @brief Radius of longest even palindrome centered between i and i+1.
    */
@@ -171,7 +171,7 @@ struct Manacher {
 struct SuffixArray {
   std::string s;
   Vec<I32> sa, rank, lcp;
-  
+
   /**
    * @brief Builds suffix array for input string.
    */
@@ -185,7 +185,7 @@ struct SuffixArray {
     build_sa();
     build_lcp();
   }
-  
+
 private:
   /**
    * @brief Builds suffix array using rank-doubling.
@@ -193,13 +193,13 @@ private:
   void build_sa() {
     I32 n = sz(s);
     Vec<I32> cnt(256), pos(n), tmp(n);
-    
+
     // Initial ranking based on first character.
     FOR(i, n) {
       rank[i] = s[i];
       sa[i] = i;
     }
-    
+
     // Doubling algorithm.
     for (I32 gap = 1; ; gap *= 2) {
       auto cmp = [&](I32 i, I32 j) {
@@ -208,32 +208,32 @@ private:
         j += gap;
         return (i < n && j < n) ? rank[i] < rank[j] : i > j;
       };
-      
+
       std::sort(all(sa), cmp);
-      
+
       tmp[sa[0]] = 0;
       FOR(i, 1, n) {
         tmp[sa[i]] = tmp[sa[i - 1]] + cmp(sa[i - 1], sa[i]);
       }
-      
+
       rank = tmp;
       if (rank[sa[n - 1]] == n - 1) break;
     }
   }
-  
+
   /**
    * @brief Builds LCP array between adjacent suffixes in SA order.
    */
   void build_lcp() {
     I32 n = sz(s);
     I32 k = 0;
-    
+
     FOR(i, n) {
       if (rank[i] == n - 1) {
         k = 0;
         continue;
       }
-      
+
       I32 j = sa[rank[i] + 1];
       while (i + k < n && j + k < n && s[i + k] == s[j + k]) k++;
       lcp[rank[i]] = k;
@@ -260,7 +260,7 @@ private:
     if (i == m) return 0;
     return -1;
   }
-  
+
 public:
   /**
    * @brief Finds all occurrences of pattern using binary search on SA.
@@ -272,7 +272,7 @@ public:
   Vec<I32> find_pattern(const std::string& pattern) {
     I32 n = sz(s), m = sz(pattern);
     Vec<I32> result;
-    
+
     // Binary search for first occurrence.
     I32 left = 0, right = n;
     while (left < right) {
@@ -283,13 +283,13 @@ public:
         right = mid;
       }
     }
-    
+
     // Collect all occurrences.
     while (left < n && compare_suffix(sa[left], pattern) == 0) {
       result.pb(sa[left]);
       left++;
     }
-    
+
     return result;
   }
 };
@@ -302,10 +302,10 @@ struct RollingHash {
   static constexpr I64 MOD2 = 1e9 + 9;
   static constexpr I64 BASE1 = 31;
   static constexpr I64 BASE2 = 37;
-  
+
   std::string s;
   Vec<I64> hash1, hash2, pow1, pow2;
-  
+
   /**
    * @brief Precomputes prefix hashes and powers.
    */
@@ -315,7 +315,7 @@ struct RollingHash {
     hash2.resize(n + 1);
     pow1.resize(n + 1);
     pow2.resize(n + 1);
-    
+
     pow1[0] = pow2[0] = 1;
     FOR(i, n) {
       hash1[i + 1] = (hash1[i] * BASE1 + s[i]) % MOD1;
@@ -324,7 +324,7 @@ struct RollingHash {
       pow2[i + 1] = (pow2[i] * BASE2) % MOD2;
     }
   }
-  
+
   /**
    * @brief Returns pair hash of substring [l, r).
    */
@@ -333,14 +333,14 @@ struct RollingHash {
     I64 h2 = (hash2[r] - hash2[l] * pow2[r - l] % MOD2 + MOD2) % MOD2;
     return {h1, h2};
   }
-  
+
   /**
    * @brief Checks equality of two substrings in O(1).
    */
   bool equal(I32 l1, I32 r1, I32 l2, I32 r2) {
     return get_hash(l1, r1) == get_hash(l2, r2);
   }
-  
+
   /**
    * @brief Longest common prefix of suffixes starting at i and j.
    */
@@ -371,16 +371,16 @@ struct Trie {
     I32 count = 0;  // Number of words ending at this node.
     I32 prefix_count = 0;  // Number of words with this prefix.
   };
-  
+
   Vec<Node> nodes;
-  
+
   /**
    * @brief Initializes trie with one root node.
    */
   Trie() {
     nodes.eb();  // Root node.
   }
-  
+
   /**
    * @brief Inserts one word occurrence.
    */
@@ -398,7 +398,7 @@ struct Trie {
     nodes[current].is_end = true;
     nodes[current].count++;
   }
-  
+
   /**
    * @brief Checks exact word existence.
    */
@@ -410,7 +410,7 @@ struct Trie {
     }
     return nodes[current].is_end;
   }
-  
+
   /**
    * @brief Counts inserted words sharing given prefix.
    */
@@ -422,7 +422,7 @@ struct Trie {
     }
     return nodes[current].prefix_count;
   }
-  
+
   /**
    * @brief Enumerates all stored words with given prefix.
    * @return Words repeated according to multiplicity.
@@ -430,12 +430,12 @@ struct Trie {
   Vec<std::string> find_with_prefix(const std::string& prefix) {
     Vec<std::string> result;
     I32 current = 0;
-    
+
     for (char c : prefix) {
       if (!nodes[current].children.count(c)) return result;
       current = nodes[current].children[c];
     }
-    
+
     std::function<void(I32, std::string)> dfs = [&](I32 node, std::string word) {
       if (nodes[node].is_end) {
         FOR(nodes[node].count) result.pb(word);
@@ -444,7 +444,7 @@ struct Trie {
         dfs(child, word + c);
       }
     };
-    
+
     dfs(current, prefix);
     return result;
   }
