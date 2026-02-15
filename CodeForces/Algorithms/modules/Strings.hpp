@@ -5,10 +5,21 @@
 #include "../templates/Constants.hpp"
 #include <algorithm>
 
+/**
+ * @file Strings.hpp
+ * @brief String algorithms and data structures for CP.
+ */
+
 //===----------------------------------------------------------------------===//
 //========================= String Algorithms Module =========================//
 
-// Z-algorithm for pattern matching.
+/**
+ * @brief Computes Z-array where z[i] is LCP(s, s[i..]).
+ * @param s Input string.
+ * @return Z-function values.
+ *
+ * Complexity: O(n).
+ */
 inline Vec<I32> z_algorithm(const std::string& s) {
   I32 n = sz(s);
   Vec<I32> z(n);
@@ -28,11 +39,16 @@ inline Vec<I32> z_algorithm(const std::string& s) {
   return z;
 }
 
-// KMP (Knuth-Morris-Pratt) pattern searching.
+/**
+ * @brief KMP matcher with linear-time preprocessing and matching.
+ */
 struct KMP {
   std::string pattern;
   Vec<I32> failure;
   
+  /**
+   * @brief Builds prefix-function table for a pattern.
+   */
   KMP(const std::string& p) : pattern(p) {
     I32 m = sz(pattern);
     failure.assign(m, 0);
@@ -47,6 +63,13 @@ struct KMP {
     }
   }
   
+  /**
+   * @brief Finds all pattern occurrences in text.
+   * @param text Text to search.
+   * @return Start indices of all matches.
+   *
+   * Complexity: O(|text| + |pattern|).
+   */
   Vec<I32> search(const std::string& text) {
     Vec<I32> matches;
     I32 n = sz(text), m = sz(pattern);
@@ -73,11 +96,16 @@ struct KMP {
   }
 };
 
-// Manacher's algorithm for palindrome detection.
+/**
+ * @brief Manacher algorithm for palindromic substrings in linear time.
+ */
 struct Manacher {
   std::string s;
   Vec<I32> p;  // p[i] = radius of palindrome centered at 'i'.
   
+  /**
+   * @brief Builds transformed string and palindrome radii.
+   */
   Manacher(const std::string& str) {
     // Transform string: "abc" -> "^#a#b#c#$".
     s = "^";
@@ -111,28 +139,42 @@ struct Manacher {
     }
   }
   
-  // Check if substring [l, r) is palindrome.
+  /**
+   * @brief Checks if substring [l, r) of original string is palindrome.
+   */
   bool is_palindrome(I32 l, I32 r) {
     I32 center = l + r + 1;  // Center in transformed string.
     I32 radius = r - l;
     return p[center] >= radius;
   }
   
-  // Get longest palindrome length centered at position 'i' (0-indexed).
+  /**
+   * @brief Radius of longest odd palindrome centered at i.
+   */
   I32 odd_palindrome_at(I32 i) {
     return p[2 * i + 2] / 2;
   }
   
+  /**
+   * @brief Radius of longest even palindrome centered between i and i+1.
+   */
   I32 even_palindrome_at(I32 i) {
     return (p[2 * i + 3] - 1) / 2;
   }
 };
 
-// Suffix Array construction using O(n log n) algorithm.
+/**
+ * @brief Suffix array + LCP construction and pattern lookup.
+ *
+ * Construction uses O(n log n) doubling; LCP uses Kasai-style pass.
+ */
 struct SuffixArray {
   std::string s;
   Vec<I32> sa, rank, lcp;
   
+  /**
+   * @brief Builds suffix array for input string.
+   */
   SuffixArray(const std::string& str) : s(str) {
     I32 n = sz(s);
     sa.resize(n);
@@ -145,6 +187,9 @@ struct SuffixArray {
   }
   
 private:
+  /**
+   * @brief Builds suffix array using rank-doubling.
+   */
   void build_sa() {
     I32 n = sz(s);
     Vec<I32> cnt(256), pos(n), tmp(n);
@@ -176,6 +221,9 @@ private:
     }
   }
   
+  /**
+   * @brief Builds LCP array between adjacent suffixes in SA order.
+   */
   void build_lcp() {
     I32 n = sz(s);
     I32 k = 0;
@@ -192,9 +240,35 @@ private:
       if (k) k--;
     }
   }
+
+  /**
+   * @brief Lexicographically compares suffix with pattern.
+   * @return -1 if suffix < pattern, 0 if pattern is prefix of suffix, +1 otherwise.
+   */
+  I32 compare_suffix(I32 suffix_pos, const std::string& pattern) const {
+    I32 i = 0;
+    const I32 n = sz(s);
+    const I32 m = sz(pattern);
+
+    while (suffix_pos + i < n && i < m) {
+      char a = s[suffix_pos + i];
+      char b = pattern[i];
+      if (a != b) return a < b ? -1 : 1;
+      ++i;
+    }
+
+    if (i == m) return 0;
+    return -1;
+  }
   
 public:
-  // Find all occurrences of pattern in O(m log n).
+  /**
+   * @brief Finds all occurrences of pattern using binary search on SA.
+   * @param pattern Pattern to match.
+   * @return Sorted list of start positions.
+   *
+   * Complexity: O(m log n + occ * m_cmp_tail), with no substring allocations.
+   */
   Vec<I32> find_pattern(const std::string& pattern) {
     I32 n = sz(s), m = sz(pattern);
     Vec<I32> result;
@@ -203,7 +277,7 @@ public:
     I32 left = 0, right = n;
     while (left < right) {
       I32 mid = (left + right) / 2;
-      if (s.substr(sa[mid], std::min(m, n - sa[mid])) < pattern) {
+      if (compare_suffix(sa[mid], pattern) < 0) {
         left = mid + 1;
       } else {
         right = mid;
@@ -211,7 +285,7 @@ public:
     }
     
     // Collect all occurrences.
-    while (left < n && s.substr(sa[left], std::min(m, n - sa[left])) == pattern) {
+    while (left < n && compare_suffix(sa[left], pattern) == 0) {
       result.pb(sa[left]);
       left++;
     }
@@ -220,7 +294,9 @@ public:
   }
 };
 
-// Rolling Hash for string matching.
+/**
+ * @brief Double rolling hash utility for substring hashing/LCP.
+ */
 struct RollingHash {
   static constexpr I64 MOD1 = 1e9 + 7;
   static constexpr I64 MOD2 = 1e9 + 9;
@@ -230,6 +306,9 @@ struct RollingHash {
   std::string s;
   Vec<I64> hash1, hash2, pow1, pow2;
   
+  /**
+   * @brief Precomputes prefix hashes and powers.
+   */
   RollingHash(const std::string& str) : s(str) {
     I32 n = sz(s);
     hash1.resize(n + 1);
@@ -246,19 +325,25 @@ struct RollingHash {
     }
   }
   
-  // Get hash of substring [l, r).
+  /**
+   * @brief Returns pair hash of substring [l, r).
+   */
   PLL get_hash(I32 l, I32 r) {
     I64 h1 = (hash1[r] - hash1[l] * pow1[r - l] % MOD1 + MOD1) % MOD1;
     I64 h2 = (hash2[r] - hash2[l] * pow2[r - l] % MOD2 + MOD2) % MOD2;
     return {h1, h2};
   }
   
-  // Check if two substrings are equal in O(1).
+  /**
+   * @brief Checks equality of two substrings in O(1).
+   */
   bool equal(I32 l1, I32 r1, I32 l2, I32 r2) {
     return get_hash(l1, r1) == get_hash(l2, r2);
   }
   
-  // Find longest common prefix of two suffixes.
+  /**
+   * @brief Longest common prefix of suffixes starting at i and j.
+   */
   I32 lcp(I32 i, I32 j) {
     I32 left = 0, right = std::min(sz(s) - i, sz(s) - j) + 1;
     while (right - left > 1) {
@@ -273,8 +358,13 @@ struct RollingHash {
   }
 };
 
-// Trie data structure for efficient string operations.
+/**
+ * @brief Trie with multiplicity and prefix-frequency support.
+ */
 struct Trie {
+  /**
+   * @brief Trie node keyed by character transitions.
+   */
   struct Node {
     std::unordered_map<char, I32> children;
     bool is_end = false;
@@ -284,10 +374,16 @@ struct Trie {
   
   Vec<Node> nodes;
   
+  /**
+   * @brief Initializes trie with one root node.
+   */
   Trie() {
     nodes.eb();  // Root node.
   }
   
+  /**
+   * @brief Inserts one word occurrence.
+   */
   void insert(const std::string& word) {
     I32 current = 0;
     for (char c : word) {
@@ -303,6 +399,9 @@ struct Trie {
     nodes[current].count++;
   }
   
+  /**
+   * @brief Checks exact word existence.
+   */
   bool search(const std::string& word) {
     I32 current = 0;
     for (char c : word) {
@@ -312,6 +411,9 @@ struct Trie {
     return nodes[current].is_end;
   }
   
+  /**
+   * @brief Counts inserted words sharing given prefix.
+   */
   I32 count_prefix(const std::string& prefix) {
     I32 current = 0;
     for (char c : prefix) {
@@ -321,7 +423,10 @@ struct Trie {
     return nodes[current].prefix_count;
   }
   
-  // Find all words with given prefix.
+  /**
+   * @brief Enumerates all stored words with given prefix.
+   * @return Words repeated according to multiplicity.
+   */
   Vec<std::string> find_with_prefix(const std::string& prefix) {
     Vec<std::string> result;
     I32 current = 0;
@@ -341,6 +446,122 @@ struct Trie {
     };
     
     dfs(current, prefix);
+    return result;
+  }
+};
+
+/**
+ * @brief Aho-Corasick automaton for multi-pattern matching.
+ *
+ * Current alphabet is fixed to lowercase ['a'..'z'].
+ */
+struct AhoCorasick {
+  static constexpr I32 ALPHABET = 26;
+  static constexpr char BASE = 'a';
+
+  /**
+   * @brief Automaton node with goto transitions, suffix link and output list.
+   */
+  struct Node {
+    std::array<I32, ALPHABET> next;
+    I32 link;
+    Vec<I32> out;
+
+    Node() : link(0) {
+      next.fill(-1);
+    }
+  };
+
+  Vec<Node> nodes;
+
+  /**
+   * @brief Initializes empty automaton with root node.
+   */
+  AhoCorasick() {
+    nodes.eb();
+  }
+
+  /**
+   * @brief Adds one pattern to trie backbone.
+   * @param pattern Lowercase pattern.
+   * @param id External pattern identifier.
+   */
+  void add_pattern(const std::string& pattern, I32 id) {
+    I32 v = 0;
+    for (char ch : pattern) {
+      I32 c = ch - BASE;
+      if (c < 0 || c >= ALPHABET) {
+        my_assert(false && "AhoCorasick supports lowercase ['a'..'z'] patterns.");
+        return;
+      }
+      if (nodes[v].next[c] == -1) {
+        nodes[v].next[c] = sz(nodes);
+        nodes.eb();
+      }
+      v = nodes[v].next[c];
+    }
+    nodes[v].out.pb(id);
+  }
+
+  /**
+   * @brief Builds full automaton from a pattern set.
+   * @param patterns Lowercase patterns.
+   */
+  void build(const Vec<std::string>& patterns) {
+    nodes.assign(1, Node{});
+    FOR(i, sz(patterns)) add_pattern(patterns[i], i);
+
+    Queue<I32> q;
+    FOR(c, ALPHABET) {
+      I32 to = nodes[0].next[c];
+      if (to != -1) {
+        nodes[to].link = 0;
+        q.push(to);
+      } else {
+        nodes[0].next[c] = 0;
+      }
+    }
+
+    while (!q.empty()) {
+      I32 v = q.front();
+      q.pop();
+
+      FOR(c, ALPHABET) {
+        I32 to = nodes[v].next[c];
+        if (to != -1) {
+          nodes[to].link = nodes[nodes[v].link].next[c];
+          const auto& fail_out = nodes[nodes[to].link].out;
+          nodes[to].out.insert(nodes[to].out.end(), all(fail_out));
+          q.push(to);
+        } else {
+          nodes[v].next[c] = nodes[nodes[v].link].next[c];
+        }
+      }
+    }
+  }
+
+  /**
+   * @brief Matches text and returns output ids at each end position.
+   * @param text Query text.
+   * @return result[i] contains ids of patterns ending at text index i.
+   */
+  Vec<Vec<I32>> match(const std::string& text) const {
+    Vec<Vec<I32>> result(sz(text));
+    I32 v = 0;
+
+    FOR(i, sz(text)) {
+      char ch = text[i];
+      I32 c = ch - BASE;
+      if (c < 0 || c >= ALPHABET) {
+        v = 0;
+        continue;
+      }
+      v = nodes[v].next[c];
+      for (I32 id : nodes[v].out) {
+        result[i].pb(id);
+      }
+    }
+
     return result;
   }
 };

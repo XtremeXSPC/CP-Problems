@@ -4,6 +4,7 @@
 //===----------------------------------------------------------------------===//
 /* Advanced Macro System */
 
+#ifdef NEED_NDVEC
 template <class T>
 auto make_nd_vec(std::size_t size) {
   return Vec<T>(size);
@@ -52,6 +53,7 @@ auto make_vec4(std::size_t n1, std::size_t n2, std::size_t n3, std::size_t n4, c
   auto name = make_vec3<type>(h, w, __VA_ARGS__)
 #define vvvv(type, name, a, b, c, ...) \
   auto name = make_vec4<type>(a, b, c, __VA_ARGS__)
+#endif
 
 // Advanced FOR loop system:
 #define FOR1(a) for (I64 _ = 0; _ < (a); ++_)
@@ -68,8 +70,8 @@ auto make_vec4(std::size_t n1, std::size_t n2, std::size_t n3, std::size_t n4, c
 #define FOR_R(...) overload3(__VA_ARGS__, FOR3_R, FOR2_R, FOR1_R)(__VA_ARGS__)
 
 // Range-based iteration:
-#define REP(i, n) for (I64 i : std::views::iota(0LL, (I64)(n)))
-#define RREP(i, n) for (I64 i : std::views::iota(0LL, (I64)(n)) | std::views::reverse)
+#define REP(i, n) for (I64 i = 0, _rep_n = static_cast<I64>(n); i < _rep_n; ++i)
+#define RREP(i, n) for (I64 i = static_cast<I64>(n) - 1; i >= 0; --i)
 #define ALL(x) std::ranges::begin(x), std::ranges::end(x)
 #define RALL(x) std::ranges::rbegin(x), std::ranges::rend(x)
 

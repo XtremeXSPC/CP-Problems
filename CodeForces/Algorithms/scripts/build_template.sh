@@ -27,6 +27,9 @@ EOF
     echo '#line 1 "Types.hpp"' >>"$output_file"
     cat "$TEMPLATE_DIR/Types.hpp" >>"$output_file"
 
+    echo '#line 1 "PBDS.hpp"' >>"$output_file"
+    cat "$TEMPLATE_DIR/PBDS.hpp" >>"$output_file"
+
     echo '#line 1 "Constants.hpp"' >>"$output_file"
     cat "$TEMPLATE_DIR/Constants.hpp" >>"$output_file"
 
@@ -35,6 +38,9 @@ EOF
 
     echo '#line 1 "IO.hpp"' >>"$output_file"
     cat "$TEMPLATE_DIR/IO.hpp" >>"$output_file"
+
+    echo '#line 1 "Fast_IO.hpp"' >>"$output_file"
+    cat "$TEMPLATE_DIR/Fast_IO.hpp" >>"$output_file"
 
     echo '#line 1 "Bit_Ops.hpp"' >>"$output_file"
     cat "$TEMPLATE_DIR/Bit_Ops.hpp" >>"$output_file"

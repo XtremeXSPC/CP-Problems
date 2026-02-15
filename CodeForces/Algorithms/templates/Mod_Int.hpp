@@ -55,15 +55,17 @@ struct ModInt {
   }
 
   constexpr ModInt inverse() const {
-    // Extended Euclidean algorithm works for both prime and composite moduli.
+    // Extended Euclidean algorithm; inverse exists iff gcd(value, MOD) == 1.
     I64 a = static_cast<I64>(value), b = MOD, u = 1, v = 0;
     while (b > 0) {
       I64 t = a / b;
       std::swap(a -= t * b, b);
       std::swap(u -= t * v, v);
     }
-    // If gcd(value, MOD) != 1, inverse does not exist.
-    if (a != 1) return ModInt(0);
+    if (a != 1) {
+      my_assert(false && "ModInt inverse does not exist when gcd(value, MOD) != 1.");
+      return ModInt(0);
+    }
     return ModInt(u);
   }
 

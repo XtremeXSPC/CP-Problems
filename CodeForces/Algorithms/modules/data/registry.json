@@ -9,12 +9,17 @@
       ],
       "description": "Graph algorithms and data structures",
       "features": [
+        "bfs",
         "dijkstra",
         "bellman_ford",
+        "dinic",
         "dsu",
+        "hld",
+        "centroid_decomposition",
         "lca",
         "scc",
-        "bridges"
+        "bridges",
+        "articulation_points"
       ],
       "size_kb": 15.2,
       "compile_time_impact": "medium"
@@ -33,7 +38,8 @@
         "manacher",
         "suffix_array",
         "rolling_hash",
-        "trie"
+        "trie",
+        "aho_corasick"
       ],
       "size_kb": 12.8,
       "compile_time_impact": "medium"

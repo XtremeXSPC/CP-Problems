@@ -1,214 +1,115 @@
 #pragma once
 #include "Types.hpp"
-#include "Macros.hpp"
 
 //===----------------------------------------------------------------------===//
-/* Optimized I/O System */
+/* Lightweight I/O Utilities */
 
-// Fast I/O
-namespace fast_io {
-  static constexpr U32 BUFFER_SIZE = 1 << 17; // 128KB buffer.
-  alignas(64) inline char input_buffer[BUFFER_SIZE];
-  alignas(64) inline char output_buffer[BUFFER_SIZE];
-  alignas(64) inline char number_buffer[128];
-  
-  // Precomputed number strings for fast output:
-  struct NumberLookup {
-    char digits[10000][4];
-    constexpr NumberLookup() : digits{} {
-      for (I32 i = 0; i < 10000; ++i) {
-        digits[i][3] = '0' + (i % 10);
-        digits[i][2] = '0' + ((i / 10) % 10);
-        digits[i][1] = '0' + ((i / 100) % 10);
-        digits[i][0] = '0' + (i / 1000);
-      }
-    }
-  };
-  inline constexpr NumberLookup number_lookup;
-  
-  inline U32 input_pos = 0, input_end = 0, output_pos = 0;
-  
-  inline void load_input() {
-    std::memmove(input_buffer, input_buffer + input_pos, input_end - input_pos);
-    input_end = input_end - input_pos + 
-                std::fread(input_buffer + input_end - input_pos, 1, 
-                          BUFFER_SIZE - input_end + input_pos, stdin);
-    input_pos = 0;
-    if (input_end < BUFFER_SIZE) input_buffer[input_end++] = '\n';
-  }
-  
-  inline void flush_output() {
-    std::fwrite(output_buffer, 1, output_pos, stdout);
-    output_pos = 0;
-  }
-  
-  // Fast character reading:
-  inline void read_char(char& c) {
-    do {
-      if (input_pos >= input_end) load_input();
-      c = input_buffer[input_pos++];
-    } while (std::isspace(c));
-  }
-  
-  // Optimized integer reading with SIMD potential:
-  template <typename T>
-  inline void read_integer(T& x) {
-    if (input_pos + 64 >= input_end) load_input();
-    
-    char c;
-    do { c = input_buffer[input_pos++]; } while (c < '-');
-    
-    bool negative = false;
-    if constexpr (std::is_signed_v<T>) {
-      if (c == '-') {
-        negative = true;
-        c = input_buffer[input_pos++];
-      }
-    }
-    
-    x = 0;
-    while (c >= '0') {
-      x = x * 10 + (c - '0');
-      c = input_buffer[input_pos++];
-    }
-    
-    if constexpr (std::is_signed_v<T>) {
-      if (negative) x = -x;
-    }
-  }
-  
-  // Fast string reading:
-  inline void read_string(std::string& s) {
-    s.clear();
-    char c;
-    do {
-      if (input_pos >= input_end) load_input();
-      c = input_buffer[input_pos++];
-    } while (std::isspace(c));
-    
-    do {
-      s.push_back(c);
-      if (input_pos >= input_end) load_input();
-      c = input_buffer[input_pos++];
-    } while (!std::isspace(c));
-  }
-  
-  // Optimized integer writing:
-  template <typename T>
-  inline void write_integer(T x) {
-    if (output_pos + 64 >= BUFFER_SIZE) flush_output();
+namespace cp_io {
 
-    using UnsignedT = std::make_unsigned_t<T>;
-    UnsignedT ux;
-    if constexpr (std::is_signed_v<T>) {
-      if (x < 0) {
-        output_buffer[output_pos++] = '-';
-        // Avoid UB for minimum signed value.
-        ux = static_cast<UnsignedT>(-(x + 1));
-        ux += 1;
-      } else {
-        ux = static_cast<UnsignedT>(x);
-      }
-    } else {
-      ux = static_cast<UnsignedT>(x);
-    }
-
-    I32 digits = 0;
-    UnsignedT temp = ux;
-    do {
-      number_buffer[digits++] = '0' + (temp % 10);
-      temp /= 10;
-    } while (temp > 0);
-    
-    // Reverse and copy:
-    for (I32 i = digits - 1; i >= 0; --i) {
-      output_buffer[output_pos++] = number_buffer[i];
-    }
-  }
-  
-  inline void write_char(char c) {
-    if (output_pos >= BUFFER_SIZE) flush_output();
-    output_buffer[output_pos++] = c;
-  }
-  
-  inline void write_string(const std::string& s) {
-    for (char c : s) write_char(c);
-  }
-  
-  // Template-based readers:
-  inline void read(I32& x) { read_integer(x); }
-  inline void read(I64& x) { read_integer(x); }
-  inline void read(U32& x) { read_integer(x); }
-  inline void read(U64& x) { read_integer(x); }
-  inline void read(char& x) { read_char(x); }
-  inline void read(std::string& x) { read_string(x); }
-  
-  template <class T, class U>
-  void read(std::pair<T, U>& p) { read(p.first); read(p.second); }
-  
-  template <class T>
-  void read(Vec<T>& v) { for (auto& x : v) read(x); }
-  
-  // Variadic read:
-  template <class Head, class... Tail>
-  void read(Head& head, Tail&... tail) {
-    read(head);
-    if constexpr (sizeof...(tail) > 0) read(tail...);
-  }
-  
-  // Template-based writers:
-  inline void write(I32 x) { write_integer(x); }
-  inline void write(I64 x) { write_integer(x); }
-  inline void write(U32 x) { write_integer(x); }
-  inline void write(U64 x) { write_integer(x); }
-  inline void write(char x) { write_char(x); }
-  inline void write(const std::string& x) { write_string(x); }
-  inline void write(const char* x) { write_string(std::string(x)); }
-  
-  template <class T, class U>
-  void write(const std::pair<T, U>& p) {
-    write(p.first); write(' '); write(p.second);
-  }
-  
-  template <class T>
-  void write(const Vec<T>& v) {
-    for (I64 i = 0; i < sz(v); ++i) {
-      if (i) write(' ');
-      write(v[i]);
-    }
-  }
-  
-  // Variadic write:
-  template <class Head, class... Tail>
-  void write(const Head& head, const Tail&... tail) {
-    write(head);
-    if constexpr (sizeof...(tail) > 0) {
-      write(' ');
-      write(tail...);
-    }
-  }
-  
-  inline void writeln() { write_char('\n'); }
-  
-  template <class... Args>
-  void writeln(const Args&... args) {
-    if constexpr (sizeof...(args) > 0) write(args...);
-    write_char('\n');
-  }
-  
-  // Destructor for automatic flushing:
-  struct IOFlusher {
-    ~IOFlusher() { flush_output(); }
-  };
-  inline IOFlusher io_flusher;
+inline void setup() {
+  std::ios_base::sync_with_stdio(false);
+  std::cin.tie(nullptr);
+  std::cout.tie(nullptr);
+  std::cout << std::fixed << std::setprecision(10);
 }
 
-// Input/Output macros:
-#define IN(...) fast_io::read(__VA_ARGS__)
-#define OUT(...) fast_io::writeln(__VA_ARGS__)
-#define FLUSH() fast_io::flush_output()
+struct IOSetup {
+  IOSetup() { setup(); }
+};
+inline IOSetup io_setup;
 
-// Convenient input macros:
+template <class T>
+void read(T& x) {
+  std::cin >> x;
+}
+
+template <class T, class U>
+void read(std::pair<T, U>& p) {
+  read(p.first);
+  read(p.second);
+}
+
+template <class T>
+void read(Vec<T>& v) {
+  for (auto& x : v) read(x);
+}
+
+template <class Head, class... Tail>
+void read(Head& head, Tail&... tail) {
+  read(head);
+  if constexpr (sizeof...(tail) > 0) read(tail...);
+}
+
+template <class T>
+void write_one(const T& x) {
+  std::cout << x;
+}
+
+template <class T, class U>
+void write_one(const std::pair<T, U>& p) {
+  write_one(p.first);
+  std::cout << ' ';
+  write_one(p.second);
+}
+
+template <class T>
+void write_one(const Vec<T>& v) {
+  for (std::size_t i = 0; i < v.size(); ++i) {
+    if (i) std::cout << ' ';
+    write_one(v[i]);
+  }
+}
+
+template <class Head, class... Tail>
+void write(const Head& head, const Tail&... tail) {
+  write_one(head);
+  ((std::cout << ' ', write_one(tail)), ...);
+}
+
+inline void writeln() {
+  std::cout << '\n';
+}
+
+template <class... Args>
+void writeln(const Args&... args) {
+  if constexpr (sizeof...(args) > 0) write(args...);
+  std::cout << '\n';
+}
+
+} // namespace cp_io
+
+#if !defined(CP_FAST_IO_NAMESPACE_DEFINED)
+namespace fast_io {
+template <class T>
+inline void read_integer(T& x) { cp_io::read(x); }
+
+template <class T>
+inline void write_integer(T x) { cp_io::write_one(x); }
+
+inline void read_char(char& x) { cp_io::read(x); }
+inline void read_string(std::string& x) { cp_io::read(x); }
+inline void write_char(char c) { std::cout.put(c); }
+inline void write_string(const std::string& s) { cp_io::write_one(s); }
+inline void flush_output() { std::cout.flush(); }
+
+using cp_io::read;
+using cp_io::write;
+using cp_io::writeln;
+} // namespace fast_io
+#endif
+
+// Input/Output macros.
+#ifndef IN
+  #define IN(...) cp_io::read(__VA_ARGS__)
+#endif
+#ifndef OUT
+  #define OUT(...) cp_io::writeln(__VA_ARGS__)
+#endif
+#ifndef FLUSH
+  #define FLUSH() std::cout.flush()
+#endif
+
+// Convenient input macros.
 #define INT(...) I32 __VA_ARGS__; IN(__VA_ARGS__)
 #define LL(...) I64 __VA_ARGS__; IN(__VA_ARGS__)
 #define ULL(...) U64 __VA_ARGS__; IN(__VA_ARGS__)
@@ -216,10 +117,16 @@ namespace fast_io {
 #define CHR(...) char __VA_ARGS__; IN(__VA_ARGS__)
 #define DBL(...) F64 __VA_ARGS__; IN(__VA_ARGS__)
 
-#define VEC(type, name, size) Vec<type> name(size); IN(name)
-#define VV(type, name, h, w) Vec2<type> name(h, Vec<type>(w)); IN(name)
+#ifndef CP_ENABLE_LEGACY_IO_VEC_MACROS
+  #define CP_ENABLE_LEGACY_IO_VEC_MACROS 1
+#endif
 
-// Answer macros:
+#if CP_ENABLE_LEGACY_IO_VEC_MACROS
+  #define VEC(type, name, size) Vec<type> name(size); IN(name)
+  #define VV(type, name, h, w) Vec2<type> name(h, Vec<type>(w)); IN(name)
+#endif
+
+// Answer macros.
 inline void YES(bool condition = true) { OUT(condition ? "YES" : "NO"); }
 inline void NO(bool condition = true) { YES(!condition); }
 inline void Yes(bool condition = true) { OUT(condition ? "Yes" : "No"); }
