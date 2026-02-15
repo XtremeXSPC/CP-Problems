@@ -61,6 +61,18 @@ Vec<T> cumsum(const Vec<T>& v, bool include_zero = true) {
   return result;
 }
 
+// Variadic vector concatenation:
+template <typename T, typename... Containers>
+void concat(Vec<T>& dest, const Containers&... sources) {
+  (dest.insert(dest.end(), sources.begin(), sources.end()), ...);
+}
+
+// Typed accumulation (for ModInt, double, or custom types):
+template <typename ReturnT, typename Container>
+ReturnT sum_as(const Container& c) {
+  return std::accumulate(c.begin(), c.end(), ReturnT{});
+}
+
 // pop_val utilities for different containers (move-aware):
 template <typename T>
 T pop_val(std::deque<T>& container) {
@@ -94,23 +106,35 @@ T pop_val(Vec<T>& container) {
   return element;
 }
 
-// Legacy POP wrappers for backward compatibility:
 template <typename T>
+T pop_val(Queue<T>& container) {
+  my_assert(!container.empty());
+  T element = std::move(container.front());
+  container.pop();
+  return element;
+}
+
+// Legacy POP wrappers (deprecated -- use pop_val instead):
+template <typename T>
+[[deprecated("use pop_val() instead")]]
 T POP(std::deque<T>& container) {
   return pop_val(container);
 }
 
 template <typename T>
+[[deprecated("use pop_val() instead")]]
 T POP(MinPriorityQueue<T>& container) {
   return pop_val(container);
 }
 
 template <typename T>
+[[deprecated("use pop_val() instead")]]
 T POP(PriorityQueue<T>& container) {
   return pop_val(container);
 }
 
 template <typename T>
+[[deprecated("use pop_val() instead")]]
 T POP(Vec<T>& container) {
   return pop_val(container);
 }

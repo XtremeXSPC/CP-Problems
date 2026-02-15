@@ -41,16 +41,10 @@ using F80 = long double;
 #define HAS_FLOAT128 0
 #endif
 
-// Legacy short aliases can be disabled for stricter style consistency.
-#ifndef CP_ENABLE_LEGACY_SHORT_ALIASES
-  #define CP_ENABLE_LEGACY_SHORT_ALIASES 0
-#endif
-
-#if CP_ENABLE_LEGACY_SHORT_ALIASES
-  using ll  = I64;
-  using ull = U64;
-  using ld  = F80;
-#endif
+// Legacy short aliases (deprecated -- use I64, U64, F80 instead):
+using ll  [[deprecated("use I64 instead")]] = I64;
+using ull [[deprecated("use U64 instead")]] = U64;
+using ld  [[deprecated("use F80 instead")]] = F80;
 
 // Container type aliases:
 template <class T>
@@ -86,19 +80,13 @@ using Vec2 = Vec<Vec<T>>;
 template <class T>
 using Vec3 = Vec<Vec2<T>>;
 
-// Legacy container aliases can be disabled after migration.
-#ifndef CP_ENABLE_LEGACY_CONTAINER_ALIASES
-  #define CP_ENABLE_LEGACY_CONTAINER_ALIASES 0
-#endif
-
-#if CP_ENABLE_LEGACY_CONTAINER_ALIASES
-  template <class T>
-  using VC = Vec<T>;
-  template <class T>
-  using VVC = Vec2<T>;
-  template <class T>
-  using VVVC = Vec3<T>;
-#endif
+// Legacy container aliases (deprecated -- use Vec, Vec2, Vec3 instead):
+template <class T>
+using VC [[deprecated("use Vec<T> instead")]] = Vec<T>;
+template <class T>
+using VVC [[deprecated("use Vec2<T> instead")]] = Vec2<T>;
+template <class T>
+using VVVC [[deprecated("use Vec3<T> instead")]] = Vec3<T>;
 
 // Pair and tuple aliases:
 template <class T, class U>

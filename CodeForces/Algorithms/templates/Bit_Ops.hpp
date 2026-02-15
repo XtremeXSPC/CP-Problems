@@ -53,10 +53,22 @@ template <typename T>
   return T(1) << bit_width(x - 1);
 }
 
-// Legacy aliases:
-template <typename T> constexpr I32 popcnt(T x) { return popcount(x); }
-template <typename T> constexpr I32 topbit(T x) { return bit_width(x) - 1; }
-template <typename T> constexpr I32 lowbit(T x) { return trailing_zeros(x); }
+// Parity sign: returns (-1)^popcount(x), useful for inclusion-exclusion:
+template <typename T>
+[[gnu::always_inline]] constexpr I32 parity_sign(T x) {
+  return (popcount(x) & 1) ? -1 : 1;
+}
+
+// Legacy aliases (deprecated -- use popcount, bit_width, trailing_zeros instead):
+template <typename T>
+[[deprecated("use popcount() instead")]]
+constexpr I32 popcnt(T x) { return popcount(x); }
+template <typename T>
+[[deprecated("use bit_width() - 1 instead")]]
+constexpr I32 topbit(T x) { return bit_width(x) - 1; }
+template <typename T>
+[[deprecated("use trailing_zeros() instead")]]
+constexpr I32 lowbit(T x) { return trailing_zeros(x); }
 
 // Bit iteration utilities:
 template <typename T>
