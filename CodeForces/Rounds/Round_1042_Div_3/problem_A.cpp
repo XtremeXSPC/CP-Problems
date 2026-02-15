@@ -268,7 +268,7 @@ void solve() {
   size_t n{0};
   cin >> n;
   VI a(n), b(n);
-  ll total_excess = 0;
+  I64 total_excess = 0;
 
   FOR(i, n) {
     cin >> a[i];

@@ -61,6 +61,7 @@ template <typename T>
   return result;
 }
 
+#ifndef __UTILITY_FUNCTIONS__
 template <class T, class S>
 [[gnu::always_inline]] inline bool chmax(T& a, const S& b) {
   return a < b ? (a = b, true) : false;
@@ -70,6 +71,7 @@ template <class T, class S>
 [[gnu::always_inline]] inline bool chmin(T& a, const S& b) {
   return a > b ? (a = b, true) : false;
 }
+#endif
 
 // Variadic min/max:
 template <typename T>
