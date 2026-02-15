@@ -105,10 +105,27 @@
 #endif
 
 // Feature toggles.
+#ifndef CP_DEBUG_ENABLE_PERF
+  #define CP_DEBUG_ENABLE_PERF 0
+#endif
+#ifndef CP_DEBUG_ENABLE_MEMORY
+  #define CP_DEBUG_ENABLE_MEMORY 0
+#endif
+#ifndef CP_DEBUG_ENABLE_WATCH
+  #define CP_DEBUG_ENABLE_WATCH 0
+#endif
+#ifndef CP_DEBUG_ENABLE_TREE
+  #define CP_DEBUG_ENABLE_TREE 0
+#endif
+
 #if DEBUG_LEVEL > 0
   #define ENABLE_DEBUG_COLORS
-  #define ENABLE_PERFORMANCE_TRACKING
-  #define ENABLE_MEMORY_TRACKING
+  #if CP_DEBUG_ENABLE_PERF
+    #define ENABLE_PERFORMANCE_TRACKING
+  #endif
+  #if CP_DEBUG_ENABLE_MEMORY
+    #define ENABLE_MEMORY_TRACKING
+  #endif
   #if DEBUG_LEVEL >= 2
     #define ENABLE_VERBOSE_DEBUG
     #define ENABLE_CALL_TRACING
@@ -383,6 +400,7 @@ namespace modern_debug {
   //===--------------------------------------------------------------------===//
   //========================== WATCHPOINT SYSTEM =============================//
 
+  #if CP_DEBUG_ENABLE_WATCH
   class WatchpointRegistry {
   private:
     struct WatchEntry {
@@ -438,6 +456,7 @@ namespace modern_debug {
     static WatchpointRegistry registry;
     return registry;
   }
+  #endif
 
   //===--------------------------------------------------------------------===//
   //======================= ADVANCED FORMATTING SYSTEM =======================//
@@ -837,6 +856,12 @@ namespace modern_debug {
     }
   };
 
+  inline ModernFormatter& get_thread_local_formatter() {
+    static thread_local ModernFormatter formatter;
+    formatter.clear();
+    return formatter;
+  }
+
   //===--------------------------------------------------------------------===//
   //=================== 1-INDEXED CONTAINER FORMATTING ======================//
 
@@ -849,7 +874,7 @@ namespace modern_debug {
     for (const auto& element : container) {
       if (idx > 1) std::cerr << colors::DIM << ", " << colors::RESET;
       std::cerr << colors::DIM << "[" << idx << "]=" << colors::RESET;
-      ModernFormatter fmt;
+      auto& fmt = get_thread_local_formatter();
       fmt.format_value(element);
       std::cerr << fmt.str();
       if (idx >= 100) {
@@ -875,7 +900,7 @@ namespace modern_debug {
     std::cerr << colors::BLUE << "{" << colors::RESET;
     for (size_t i = lo; i <= hi; i++) {
       if (i > lo) std::cerr << colors::DIM << ", " << colors::RESET;
-      ModernFormatter fmt;
+      auto& fmt = get_thread_local_formatter();
       fmt.format_value(container[i]);
       std::cerr << fmt.str();
     }
@@ -924,7 +949,7 @@ namespace modern_debug {
     size_t max_width = 1;
     for (size_t r = 0; r < rows && r < 100; r++) {
       for (size_t c = 0; c < cols && c < 100; c++) {
-        ModernFormatter fmt;
+        auto& fmt = get_thread_local_formatter();
         fmt.format_value(grid[r][c]);
         // Strip ANSI codes for width calculation.
         std::string raw = fmt.str();
@@ -954,7 +979,7 @@ namespace modern_debug {
     for (size_t r = 0; r < rows && r < 100; r++) {
       std::cerr << colors::DIM << std::right << std::setw(4) << r << " " << colors::RESET;
       for (size_t c = 0; c < cols && c < 100; c++) {
-        ModernFormatter fmt;
+        auto& fmt = get_thread_local_formatter();
         fmt.format_value(grid[r][c]);
         // Compute visible width for alignment.
         std::string raw = fmt.str();
@@ -1004,7 +1029,7 @@ namespace modern_debug {
         size_t count = 0;
         for (const auto& neighbor : adj[i]) {
           if (count > 0) std::cerr << colors::DIM << ", " << colors::RESET;
-          ModernFormatter fmt;
+          auto& fmt = get_thread_local_formatter();
           fmt.format_value(neighbor);
           std::cerr << fmt.str();
           count++;
@@ -1024,6 +1049,7 @@ namespace modern_debug {
   //===--------------------------------------------------------------------===//
   //======================= TREE VISUALIZATION SYSTEM ========================//
 
+  #if CP_DEBUG_ENABLE_TREE
   template<typename T>
   concept BinaryTreeNode = requires(T node) {
     node.left;
@@ -1101,7 +1127,7 @@ namespace modern_debug {
         std::cerr << colors::DIM << "[" << node << "] " << colors::RESET;
       }
 
-      ModernFormatter formatter;
+      auto& formatter = get_thread_local_formatter();
       formatter.format_value(get_node_value(*node));
       std::cerr << formatter.str() << "\n";
 
@@ -1128,6 +1154,7 @@ namespace modern_debug {
       }
     }
   };
+  #endif
 
   //===--------------------------------------------------------------------===//
   //=================== EXPRESSION NAME SPLITTING ===========================//
@@ -1197,7 +1224,7 @@ namespace modern_debug {
     } else if constexpr (sizeof...(args) == 1) {
       std::cerr << level_color << "│ " << colors::RESET
                 << colors::MAGENTA << expression << colors::CYAN << " = " << colors::RESET;
-      ModernFormatter formatter;
+      auto& formatter = get_thread_local_formatter();
       (formatter.format_value(args), ...);
       std::cerr << formatter.str();
     } else {
@@ -1210,7 +1237,7 @@ namespace modern_debug {
         if (idx < names.size()) {
           std::cerr << colors::MAGENTA << names[idx] << colors::CYAN << " = " << colors::RESET;
         }
-        ModernFormatter formatter;
+        auto& formatter = get_thread_local_formatter();
         formatter.format_value(arg);
         std::cerr << formatter.str();
         idx++;
@@ -1282,7 +1309,7 @@ namespace modern_debug {
         if (idx < names.size()) {
           std::cerr << colors::MAGENTA << names[idx] << colors::CYAN << " = " << colors::RESET;
         }
-        ModernFormatter formatter;
+        auto& formatter = get_thread_local_formatter();
         formatter.format_value(arg);
         std::cerr << formatter.str();
         idx++;
@@ -1357,7 +1384,7 @@ namespace modern_debug {
 #endif
 
 // Enhanced tree visualization macros.
-#if DEBUG_LEVEL >= 1
+#if DEBUG_LEVEL >= 1 && CP_DEBUG_ENABLE_TREE
   #define debug_tree(root, ...) \
     do { \
       std::cerr << colors::YELLOW << "\n┌─[" << __FILE__ << ":" << __LINE__ \
@@ -1549,7 +1576,7 @@ namespace modern_debug {
 #endif
 
 // Watchpoint macro: debug_watch(variable) - tracks changes across calls.
-#if DEBUG_LEVEL >= 1
+#if DEBUG_LEVEL >= 1 && CP_DEBUG_ENABLE_WATCH
   #define debug_watch(var) \
     do { \
       modern_debug::ModernFormatter _wfmt; \

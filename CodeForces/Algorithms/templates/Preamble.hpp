@@ -79,6 +79,19 @@
 
 // Debug utilities:
 #ifdef LOCAL
+  // Keep debug core always on; expensive debug subsystems are opt-in.
+  #ifndef CP_DEBUG_ENABLE_PERF
+    #define CP_DEBUG_ENABLE_PERF 0
+  #endif
+  #ifndef CP_DEBUG_ENABLE_MEMORY
+    #define CP_DEBUG_ENABLE_MEMORY 0
+  #endif
+  #ifndef CP_DEBUG_ENABLE_WATCH
+    #define CP_DEBUG_ENABLE_WATCH 0
+  #endif
+  #ifndef CP_DEBUG_ENABLE_TREE
+    #define CP_DEBUG_ENABLE_TREE 0
+  #endif
   #include "debug.h"
 #else
   #define debug(...)
