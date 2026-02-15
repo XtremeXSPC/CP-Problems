@@ -11,7 +11,8 @@
 // Enhanced binary search:
 template <typename F>
 I64 binary_search(F&& predicate, I64 left, I64 right) {
-  while (std::abs(left - right) > 1) {
+  my_assert(left < right);
+  while (left + 1 < right) {
     I64 mid                         = left + (right - left) / 2;  // Avoid overflow.
     (predicate(mid) ? left : right) = mid;
   }

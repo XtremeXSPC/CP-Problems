@@ -4,7 +4,7 @@
 //===----------------------------------------------------------------------===//
 /* Modular Inclusions Based on Requirements */
 
-// Core Modules - Fundamental types and utilities:
+// Core modules: fundamental types and utilities.
 #ifdef NEED_CORE
   #include "Types.hpp"
   #include "Constants.hpp"
@@ -12,7 +12,25 @@
   #include "Math.hpp"
 #endif
 
-// I/O System:
+// Policy-based data structures (optional).
+#ifdef NEED_PBDS
+  #ifndef NEED_CORE
+    #include "Types.hpp"
+  #endif
+  #include "PBDS.hpp"
+#endif
+
+// High-performance buffered I/O (opt-in).
+#ifdef NEED_FAST_IO
+  #ifndef NEED_CORE
+    #include "Types.hpp"
+    #include "Macros.hpp"
+  #endif
+  #include "Fast_IO.hpp"
+  #include "IO.hpp"
+#endif
+
+// I/O system (lightweight by default).
 #ifdef NEED_IO
   #ifndef NEED_CORE
     #include "Types.hpp"
@@ -21,7 +39,7 @@
   #include "IO.hpp"
 #endif
 
-// Bitwise Operations:
+// Bitwise operations.
 #ifdef NEED_BIT_OPS
   #ifndef NEED_CORE
     #include "Types.hpp"
@@ -29,7 +47,7 @@
   #include "Bit_Ops.hpp"
 #endif
 
-// Modular arithmetic:
+// Modular arithmetic.
 #ifdef NEED_MOD_INT
   #ifndef NEED_CORE
     #include "Types.hpp"
@@ -38,7 +56,7 @@
   #include "Mod_Int.hpp"
 #endif
 
-// Container Utilities:
+// Container utilities.
 #ifdef NEED_CONTAINERS
   #ifndef NEED_CORE
     #include "Types.hpp"
@@ -47,18 +65,5 @@
   #include "Containers.hpp"
 #endif
 
-// Namespace usage and global setup:
+// Namespace usage.
 using namespace std;
-
-// Fast I/O setup (only if IO is included):
-#ifdef NEED_IO
-struct FastIOSetup {
-  FastIOSetup() {
-    std::ios_base::sync_with_stdio(false);
-    std::cin.tie(nullptr);
-    std::cout.tie(nullptr);
-    std::cout << std::fixed << std::setprecision(10);
-  }
-};
-inline FastIOSetup fast_io_setup;
-#endif

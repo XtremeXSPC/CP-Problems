@@ -25,6 +25,8 @@ CONSTANTS_HPP = "Constants.hpp"
 MACROS_HPP = "Macros.hpp"
 MATH_HPP = "Math.hpp"
 IO_HPP = "IO.hpp"
+FAST_IO_HPP = "Fast_IO.hpp"
+PBDS_HPP = "PBDS.hpp"
 BIT_OPS_HPP = "Bit_Ops.hpp"
 CONTAINERS_HPP = "Containers.hpp"
 MOD_INT_HPP = "Mod_Int.hpp"
@@ -71,6 +73,8 @@ HEADER_DEPENDENCIES = {
     MACROS_HPP: {TYPES_HPP},
     MATH_HPP: {TYPES_HPP},
     IO_HPP: {TYPES_HPP, MACROS_HPP},
+    FAST_IO_HPP: {IO_HPP, TYPES_HPP},
+    PBDS_HPP: {TYPES_HPP},
     BIT_OPS_HPP: {TYPES_HPP},
     CONTAINERS_HPP: {TYPES_HPP, MACROS_HPP},
     MOD_INT_HPP: {TYPES_HPP, CONSTANTS_HPP},

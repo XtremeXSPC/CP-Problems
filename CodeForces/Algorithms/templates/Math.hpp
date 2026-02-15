@@ -8,11 +8,8 @@
 // Generic mathematical functions:
 template <typename T>
 [[gnu::always_inline]] constexpr T _gcd(T a, T b) {
-  if constexpr (std::is_integral_v<T>) {
-    return b ? _gcd(b, a % b) : a;
-  } else {
-    return std::gcd(a, b);
-  }
+  static_assert(std::is_integral_v<T>, "_gcd requires an integral type.");
+  return b ? _gcd(b, a % b) : a;
 }
 
 template <typename T>
