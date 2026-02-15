@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Thin CLI entrypoint for the competitive programming workflow manager."""
+"""Thin CLI entrypoint for the 'Competitive Programming' workflow manager."""
 
 from __future__ import annotations
 

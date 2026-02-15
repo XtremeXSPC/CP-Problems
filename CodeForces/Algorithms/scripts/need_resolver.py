@@ -83,4 +83,3 @@ def extract_need_macros_from_source(
         found.add("NEED_CORE")
 
     return found
-

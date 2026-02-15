@@ -4,7 +4,7 @@
 #
 # Description:
 #   Main entry point orchestrating build system phases:
-#   1) CPRoundConfig   - Compiler and build configuration.
+#   1) CPRoundConfig   - Core configuration + feature modules.
 #   2) CPRoundTargets  - Target definitions and problem detection.
 #   3) CPRoundSummary  - Configuration summary and diagnostics.
 #
