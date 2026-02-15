@@ -4,9 +4,31 @@
 function(cp_detect_compiler_system_includes OUTPUT_VARIABLE)
   # Check cache first.
   if(DEFINED CACHE{COMPILER_SYSTEM_INCLUDES_CACHED})
-    set(${OUTPUT_VARIABLE} "${COMPILER_SYSTEM_INCLUDES_CACHED}" PARENT_SCOPE)
-    message(STATUS "Clangd Assist: Using cached compiler include paths")
-    return()
+    set(CACHED_PATHS "${COMPILER_SYSTEM_INCLUDES_CACHED}")
+    set(CACHE_VALID TRUE)
+
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND APPLE)
+      # Guard against stale macOS GCC cache entries (e.g. darwin24 vs darwin25).
+      set(CACHED_HAS_BITS FALSE)
+      foreach(path IN LISTS CACHED_PATHS)
+        if(EXISTS "${path}/bits/stdc++.h")
+          set(CACHED_HAS_BITS TRUE)
+          break()
+        endif()
+      endforeach()
+
+      if(NOT CACHED_HAS_BITS)
+        set(CACHE_VALID FALSE)
+        unset(COMPILER_SYSTEM_INCLUDES_CACHED CACHE)
+        message(STATUS "Clangd Assist: cached GCC include paths are stale, recomputing.")
+      endif()
+    endif()
+
+    if(CACHE_VALID)
+      set(${OUTPUT_VARIABLE} "${CACHED_PATHS}" PARENT_SCOPE)
+      message(STATUS "Clangd Assist: Using cached compiler include paths")
+      return()
+    endif()
   endif()
 
   set(DETECTED_PATHS "")
@@ -68,11 +90,61 @@ function(cp_detect_compiler_system_includes OUTPUT_VARIABLE)
           "${BREW_PREFIX}/lib/gcc/${GCC_VERSION}/include-fixed"
         )
 
+        # Discover target-specific subdirs directly from filesystem to avoid
+        # relying only on -dumpmachine (which can drift from Homebrew layout).
+        file(GLOB GCC_TARGET_SUBDIRS
+          "${BREW_PREFIX}/opt/gcc/include/c++/${GCC_VERSION}/*-apple-darwin*"
+          "${BREW_PREFIX}/include/c++/${GCC_VERSION}/*-apple-darwin*"
+        )
+        foreach(p IN LISTS GCC_TARGET_SUBDIRS)
+          if(IS_DIRECTORY "${p}")
+            list(APPEND GCC_INCLUDE_PATHS "${p}")
+          endif()
+        endforeach()
+
         foreach(p IN LISTS GCC_INCLUDE_PATHS)
           if(IS_DIRECTORY "${p}")
             list(APPEND DETECTED_PATHS "${p}")
           endif()
         endforeach()
+
+        # Fallback: parse compiler-reported include list if bits/stdc++.h is
+        # still not reachable from discovered directories.
+        set(HAS_BITS_HEADER FALSE)
+        foreach(p IN LISTS DETECTED_PATHS)
+          if(EXISTS "${p}/bits/stdc++.h")
+            set(HAS_BITS_HEADER TRUE)
+            break()
+          endif()
+        endforeach()
+
+        if(NOT HAS_BITS_HEADER)
+          execute_process(
+            COMMAND ${CMAKE_CXX_COMPILER} -E -x c++ -v /dev/null
+            OUTPUT_VARIABLE GCC_VERBOSE_OUTPUT
+            ERROR_VARIABLE GCC_VERBOSE_OUTPUT
+            RESULT_VARIABLE EXIT_CODE
+            TIMEOUT 5
+          )
+
+          if(EXIT_CODE EQUAL 0)
+            string(REPLACE "\n" ";" OUTPUT_LINES "${GCC_VERBOSE_OUTPUT}")
+            set(IS_PARSING_INCLUDES FALSE)
+
+            foreach(line ${OUTPUT_LINES})
+              if(line MATCHES "^#include <...> search starts here:")
+                set(IS_PARSING_INCLUDES TRUE)
+              elseif(line MATCHES "^End of search list.")
+                break()
+              elseif(IS_PARSING_INCLUDES)
+                string(STRIP "${line}" path)
+                if(IS_DIRECTORY "${path}")
+                  list(APPEND DETECTED_PATHS "${path}")
+                endif()
+              endif()
+            endforeach()
+          endif()
+        endif()
       endif()
     else()
       # Generic GCC path detection for Linux.
@@ -146,4 +218,3 @@ function(cp_detect_compiler_system_includes OUTPUT_VARIABLE)
     set(${OUTPUT_VARIABLE} "" PARENT_SCOPE)
   endif()
 endfunction()
-
