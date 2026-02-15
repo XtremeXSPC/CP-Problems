@@ -110,6 +110,8 @@
   
   // Container type aliases:
   template <class T>
+  using Vec = std::vector<T>;
+  template <class T>
   using VC = Vec<T>;
   template <class T>
   using VVC = VC<VC<T>>;
