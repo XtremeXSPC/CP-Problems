@@ -1,14 +1,122 @@
 #!/usr/bin/env python3
 
-import sys
+from __future__ import annotations
+
+import os
 import re
+import sys
 from pathlib import Path
+
 from need_resolver import extract_need_macros_from_source, load_need_mapping
 
 # ------------------------------ CONFIGURATION ------------------------------- #
 
 PROJECT_INCLUDE_RE = re.compile(r'^\s*#include\s+"([^"]+)"\s*$')
 INLINE_ROOT_PREFIXES = ("modules/", "templates/")
+IDENTIFIER_RE = re.compile(r"\b[A-Za-z_]\w*\b")
+STRING_LITERAL_RE = re.compile(r'"(?:\\.|[^"\\])*"')
+CHAR_LITERAL_RE = re.compile(r"'(?:\\.|[^'\\])*'")
+BLOCK_COMMENT_RE = re.compile(r"/\*.*?\*/", re.DOTALL)
+LINE_COMMENT_RE = re.compile(r"//[^\n]*")
+
+# Header file name constants
+TYPES_HPP = "Types.hpp"
+CONSTANTS_HPP = "Constants.hpp"
+MACROS_HPP = "Macros.hpp"
+MATH_HPP = "Math.hpp"
+IO_HPP = "IO.hpp"
+BIT_OPS_HPP = "Bit_Ops.hpp"
+CONTAINERS_HPP = "Containers.hpp"
+MOD_INT_HPP = "Mod_Int.hpp"
+
+# Keep this token map compact: black tends to explode huge literal sets vertically.
+# fmt: off
+OPTIONAL_HEADER_TRIGGER_TOKENS = {
+    TYPES_HPP: {
+        "I8", "I16", "I32", "I64", "U8", "U16", "U32", "U64", "I128", "U128",
+        "F32", "F64", "F80", "F128", "ll", "ull", "ld", "Vec", "Vec2", "Vec3",
+        "Deque", "List", "Set", "MultiSet", "UnorderedSet", "Map", "MultiMap",
+        "UnorderedMap", "Stack", "Queue", "PriorityQueue", "MinPriorityQueue",
+        "VC", "VVC", "VVVC", "Pair", "P", "PII", "PLL", "PLD", "VI", "VLL",
+        "VVI", "VVLL", "VB", "VS", "VU8", "VU32", "VU64", "VF", "VPII", "VPLL",
+        "VP", "ordered_set", "ordered_multiset", "ordered_map", "gp_hash_table",
+        "HAS_INT128", "HAS_FLOAT128",
+        "PBDS_AVAILABLE",
+    },
+    CONSTANTS_HPP: {
+        "PI", "E", "PHI", "LN2", "EPS", "DEPS", "infinity", "INF32", "INF64",
+        "LINF", "MOD", "MOD2",
+        "MOD3",
+    },
+    MACROS_HPP: {
+        "make_nd_vec", "make_vec2", "make_vec3", "make_vec4", "make_vec", "vv",
+        "vvv", "vvvv", "FOR", "FOR_R", "REP", "RREP", "ALL", "RALL", "all",
+        "rall", "sz", "len", "pb", "eb", "mp", "mt", "fi", "se", "elif",
+        "UNIQUE", "LB", "UB", "SUM", "MIN",
+        "MAX",
+    },
+    MATH_HPP: {
+        "_gcd", "_lcm", "div_floor", "div_ceil", "mod_floor", "divmod", "_power",
+        "chmax", "chmin", "_min", "_max",
+    },
+    IO_HPP: {
+        "fast_io", "IN", "OUT", "FLUSH", "INT", "LL", "ULL", "STR", "CHR",
+        "DBL", "VEC", "VV", "YES", "NO", "Yes", "No",
+    },
+}
+# fmt: on
+
+HEADER_DEPENDENCIES = {
+    CONSTANTS_HPP: {TYPES_HPP},
+    MACROS_HPP: {TYPES_HPP},
+    MATH_HPP: {TYPES_HPP},
+    IO_HPP: {TYPES_HPP, MACROS_HPP},
+    BIT_OPS_HPP: {TYPES_HPP},
+    CONTAINERS_HPP: {TYPES_HPP, MACROS_HPP},
+    MOD_INT_HPP: {TYPES_HPP, CONSTANTS_HPP},
+}
+
+
+def _strip_non_code(text: str) -> str:
+    text = STRING_LITERAL_RE.sub('""', text)
+    text = CHAR_LITERAL_RE.sub("''", text)
+    text = BLOCK_COMMENT_RE.sub(" ", text)
+    text = LINE_COMMENT_RE.sub("", text)
+    return text
+
+
+def _extract_identifiers(text: str) -> set[str]:
+    return set(IDENTIFIER_RE.findall(_strip_non_code(text)))
+
+
+def _prune_template_headers(files_to_include, source_content):
+    """
+    Conservative tree-shaking for template headers.
+    Keeps only headers whose symbols/macros appear in user code, while honoring
+    hard dependencies between template headers.
+    """
+    if os.environ.get("CP_FLATTENER_DISABLE_PRUNING", "") == "1":
+        return files_to_include
+
+    used_identifiers = _extract_identifiers(source_content)
+    file_lookup = {path.name: path for path in files_to_include}
+    selected_names = set(file_lookup.keys())
+
+    for header, trigger_tokens in OPTIONAL_HEADER_TRIGGER_TOKENS.items():
+        if header in selected_names and not (used_identifiers & trigger_tokens):
+            selected_names.remove(header)
+
+    # Enforce syntactic dependencies so kept headers remain self-consistent.
+    changed = True
+    while changed:
+        changed = False
+        for header in tuple(selected_names):
+            for dep in HEADER_DEPENDENCIES.get(header, ()):
+                if dep in file_lookup and dep not in selected_names:
+                    selected_names.add(dep)
+                    changed = True
+
+    return [path for path in files_to_include if path.name in selected_names]
 
 
 def resolve_project_include(project_root, including_file, include_name):
@@ -141,6 +249,8 @@ def main():
                 if filename not in included_set:
                     files_to_include.append(templates_dir / filename)
                     included_set.add(filename)
+
+    files_to_include = _prune_template_headers(files_to_include, source_content)
 
     # 3. Process each template file.
     template_sections = []
