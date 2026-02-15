@@ -15,7 +15,7 @@
 #include <iostream>
 #include <string>
 
-// #include "../../Algorithms/debug.h"
+// #include "../../Algorithms/libs/debug.h"
 
 //===---------------------------------------------------------------------===//
 /* Definitions of Structures and Classes */
