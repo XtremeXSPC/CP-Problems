@@ -7,4 +7,4 @@ compile_commands.json
 CMakeLists.txt
 clang-toolchain.cmake
 gcc-toolchain.cmake
-reports/
+reports/Audits/
