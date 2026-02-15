@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Iterable, List, Optional
@@ -238,6 +239,15 @@ def _handle_doctor(manager: WorkflowManager, ns: argparse.Namespace) -> None:
     manager.note(f"[workflow] cp-tools script: {manager.runner.script_path}")
     manager.note(f"[workflow] cwd: {manager.runner.cwd}")
     manager.note("[workflow] running diagnostics suite...")
+
+    timeout_tool = shutil.which("timeout") or shutil.which("gtimeout")
+    if timeout_tool:
+        manager.note(f"[workflow] timeout tool: {timeout_tool}")
+    else:
+        manager.note(
+            "[workflow] warning: neither timeout nor gtimeout found in PATH "
+            "(install coreutils if needed)."
+        )
 
     run_step_with_policy(manager, ns, "cpphelp")
     run_step_with_policy(manager, ns, "cppinfo")

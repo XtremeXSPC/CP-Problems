@@ -76,7 +76,16 @@ python3 /Volumes/LCS.Data/CP-Problems/CodeForces/Algorithms/scripts/workflow_man
   preset-build --preset cp-build-debug-gcc
 ```
 
+## PCH Benchmarking
+
+- Reproducible benchmark script:
+  `CodeForces/Algorithms/scripts/benchmark_pch.py`
+- Latest recorded result:
+  `CodeForces/Algorithms/cmake/PCHBenchmarkResult.json`
+- Notes and operational guidance:
+  `CodeForces/Algorithms/cmake/PCHBenchmark.md`
+
 ## Next Phase (recommended)
 
 - Update `cpp-tools` template generation so new rounds are created directly with the thin `CMakeLists.txt`.
-- Add a reproducible benchmark script for first-build vs incremental-build impact (`PCH on/off`) to guide default preset tuning.
+- Reduce first-build-after-reconfigure latency (item 7.1) without sacrificing Debug incremental speed.
