@@ -5,10 +5,14 @@ This directory is the single source of truth for round-level CMake logic.
 ## Phase 1 Layout
 
 - `CPRoundBootstrap.cmake`: entrypoint included by each round `CMakeLists.txt`.
-- `CPRoundConfig.cmake`: global build configuration (compiler checks, RPATH, PCH, LTO, timing, clangd include discovery).
+- `CPRoundConfig.cmake`: global build configuration entrypoint (RPATH, TBB, clangd include discovery, project/cache setup).
 - `CPRoundTargets.cmake`: target definitions (`cp_add_problem`), auto-discovery, utility targets (`symlink_clangd`, `all_problems`, `rebuild`).
 - `CPRoundSummary.cmake`: configure-time summary output.
 - `ClangdAssist.cmake`: compiler include-path detection helpers.
+- `CPRoundFeatureTiming.cmake`: optional compilation-timing flags.
+- `CPRoundFeatureLTO.cmake`: optional Link-Time Optimization configuration.
+- `CPRoundFeatureSanitizers.cmake`: sanitizer compiler checks/policy.
+- `CPRoundFeaturePCH.cmake`: PCH detection and rebuild policy.
 
 ## Round Integration
 
@@ -75,4 +79,4 @@ python3 /Volumes/LCS.Data/CP-Problems/CodeForces/Algorithms/scripts/workflow_man
 ## Next Phase (recommended)
 
 - Update `cpp-tools` template generation so new rounds are created directly with the thin `CMakeLists.txt`.
-- Split `CPRoundConfig.cmake` further into smaller modules (`RPath`, `Compiler`, `PCH`, `Features`) once this baseline stabilizes.
+- Add a reproducible benchmark script for first-build vs incremental-build impact (`PCH on/off`) to guide default preset tuning.
