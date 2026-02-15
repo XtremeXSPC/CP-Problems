@@ -1,9 +1,19 @@
-# Centralized CP round configuration summary (Phase 1).
+# ============================================================================ #
+# ------------ CP ROUND CONFIGURATION SUMMARY (Phase 3: Summary) ------------- #
+# ============================================================================ #
+#
+# Description:
+#   Displays build environment summary with compiler settings, detected problems,
+#   active features (PCH, sanitizers, ccache), and context-sensitive tips.
+#
+# Usage:
+#   Automatically included via CPRoundBootstrap.cmake
+#
+# ============================================================================ #
+
 include_guard(GLOBAL)
 
-# ============================================================================ #
 # -------------------------- Configuration Summary --------------------------- #
-# ============================================================================ #
 
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release;Sanitize" CACHE STRING "Supported build types" FORCE)
 
@@ -81,3 +91,5 @@ endif()
 
 message(STATUS "${ANSI_COLOR_BLUE}╚═══────────────────────────────────────────────────────────────────────────═══╝${ANSI_COLOR_RESET}")
 
+# ============================================================================ #
+# End of CP Round Summary Module.

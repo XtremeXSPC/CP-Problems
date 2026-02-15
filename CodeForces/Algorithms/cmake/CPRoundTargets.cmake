@@ -1,4 +1,26 @@
-# Centralized CP round target definitions (Phase 1).
+# ============================================================================ #
+# ---------------- CP ROUND CONFIGURATION (Phase 2: Targets) ----------------- #
+# ============================================================================ #
+#
+# Description:
+#   Target creation for competitive programming problems with automatic
+#   detection, PCH management, TBB integration, and sanitizer configuration.
+#
+# Compiler Flags:
+#   Debug:    -g2 -O0 -fstack-protector-strong
+#   Release:  -O2 -funroll-loops -ftree-vectorize -march=native
+#   Sanitize: -g -O1 -fsanitize=address,undefined,leak
+#
+# Functions:
+#   cp_add_problem(TARGET_NAME SOURCE_FILE) - Creates configured target
+#
+# Utility Targets:
+#   symlink_clangd - Creates compile_commands.json symlinks.
+#   all_problems   - Builds all detected problems.
+#   rebuild        - Clean rebuild.
+#
+# ============================================================================ #
+
 include_guard(GLOBAL)
 
 # ============================================================================ #
@@ -293,3 +315,6 @@ add_custom_target(rebuild
     COMMENT "Clean rebuild of all targets"
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
+
+# ============================================================================ #
+# End of CP Round Targets Module.

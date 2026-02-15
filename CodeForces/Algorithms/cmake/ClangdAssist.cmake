@@ -1,5 +1,16 @@
-# ------------------- Compiler Include Path Auto-Detection ------------------- #
-# Shared logic for compiler system include path detection.
+# ============================================================================ #
+# ------------------- COMPILER INCLUDE PATH AUTO-DETECTION ------------------- #
+# ============================================================================ #
+#
+# Description:
+#   Detects and caches compiler system include paths for GCC and Clang.
+#   Ensures proper IDE support (clangd) with special handling for Homebrew GCC
+#   on macOS and automatic fallback mechanisms.
+#
+# Usage:
+#   cp_detect_compiler_system_includes(COMPILER_SYSTEM_INCLUDE_PATHS)
+#
+# ============================================================================ #
 
 function(cp_detect_compiler_system_includes OUTPUT_VARIABLE)
   # Check cache first.

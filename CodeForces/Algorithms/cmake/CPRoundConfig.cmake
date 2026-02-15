@@ -1,4 +1,25 @@
-# Centralized CP round build configuration (Phase 1).
+# ============================================================================ #
+# -------------- CP ROUND BUILD CONFIGURATION (Phase 1: Config) -------------- #
+# ============================================================================ #
+#
+# Description:
+#   Core configuration for competitive programming builds.
+#   Handles compiler setup, PCH management, TBB integration, RPATH fixing,
+#   and build-type specific optimizations.
+#
+# Build Types:
+#   Debug    - Debug symbols, no optimization, stack protection
+#   Release  - Full optimization, vectorization, -march=native
+#   Sanitize - ASan/UBSan/LSan (Clang preferred on macOS)
+#
+# Options:
+#   CP_ENABLE_PCH        - Enable precompiled headers (default: ON).
+#   CP_FORCE_PCH_REBUILD - Force PCH rebuild.
+#   CP_ENABLE_TIMING     - Enable compilation timing reports.
+#   CP_ENABLE_LTO        - Enable Link-Time Optimization.
+#
+# ============================================================================ #
+
 include_guard(GLOBAL)
 
 # ----------------------------- ANSI Color Codes ----------------------------- #
@@ -247,3 +268,6 @@ if(CCACHE_PROGRAM)
     set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE_PROGRAM})
     message(STATUS "Found ccache: ${CCACHE_PROGRAM} - builds will be faster!")
 endif()
+
+# ============================================================================ #
+# End of CP Round Config Module.
