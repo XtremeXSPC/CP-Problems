@@ -28,6 +28,8 @@ DEFAULT_NEED_MACROS = [
     "NEED_CONTAINERS",
 ]
 
+DEFAULT_EMPTY_MAIN = "int main() { return 0; }"
+
 INDIVIDUAL_TEST_SNIPPETS = {
     "NEED_CORE": "int main() { VI v; return (int)v.size(); }",
     "NEED_IO": "int main() { LL(n); OUT(n); return 0; }",
@@ -175,7 +177,7 @@ class ModuleTester:
             seen.add(macro)
         content.append('#include "templates/Base.hpp"')
         content.append("")
-        content.append(test_code if test_code else "int main() { return 0; }")
+        content.append(test_code if test_code else DEFAULT_EMPTY_MAIN)
         return "\n".join(content)
 
     def compile_test(self, test_content: str) -> Tuple[bool, str]:
@@ -219,7 +221,7 @@ class ModuleTester:
         print("Testing individual modules...")
         print("-" * 50)
         for need_macro in self.need_macros:
-            test_code = INDIVIDUAL_TEST_SNIPPETS.get(need_macro, "int main() { return 0; }")
+            test_code = INDIVIDUAL_TEST_SNIPPETS.get(need_macro, DEFAULT_EMPTY_MAIN)
             test_content = self.create_test_file([need_macro], test_code)
             success, error = self.compile_test(test_content)
 
@@ -251,7 +253,7 @@ class ModuleTester:
                 (
                     self.need_macros,
                     "All discovered modules",
-                    "int main() { return 0; }",
+                    DEFAULT_EMPTY_MAIN,
                 )
             ]
 
