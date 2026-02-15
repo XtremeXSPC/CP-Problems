@@ -23,9 +23,7 @@
 
 include_guard(GLOBAL)
 
-# ============================================================================ #
 # --------------------- Helper Function to Add a Problem --------------------- #
-# ============================================================================ #
 
 function(cp_add_problem TARGET_NAME SOURCE_FILE)
   add_executable(${TARGET_NAME} ${SOURCE_FILE})
@@ -271,9 +269,7 @@ set(USE_PCH_FOR_TARGET FALSE)
                  "PCH: ${PCH_STATUS}]")
 endfunction()
 
-# ============================================================================ #
 # ----------------------- Automatic Problem Detection ------------------------ #
-# ============================================================================ #
 
 file(GLOB PROBLEM_SOURCES LIST_DIRECTORIES false "*.cpp" "*.cc" "*.cxx")
 list(SORT PROBLEM_SOURCES)
@@ -288,9 +284,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/main.cpp")
     set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT main)
 endif()
 
-# ============================================================================ #
 # ----------------------------- Utility Targets ------------------------------ #
-# ============================================================================ #
 
 add_custom_target(symlink_clangd
     COMMAND ${CMAKE_COMMAND} -E create_symlink

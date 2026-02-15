@@ -358,5 +358,6 @@ $RECYCLE.BIN/
 # Custom Additions
 Guides/*
 Codeforces/Problems/*
+AGENTS.md
 
 # End of https://www.toptal.com/developers/gitignore/api/c,c++,python,cmake,visualstudiocode,macos,linux,windows
