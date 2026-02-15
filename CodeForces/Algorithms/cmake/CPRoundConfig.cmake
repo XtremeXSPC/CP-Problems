@@ -262,11 +262,58 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
 file(MAKE_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 file(MAKE_DIRECTORY ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY})
 
-# Enable ccache if available.
+# Enable ccache if available and usable.
 find_program(CCACHE_PROGRAM ccache)
+set(CP_CCACHE_ENABLED FALSE)
 if(CCACHE_PROGRAM)
-    set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE_PROGRAM})
-    message(STATUS "Found ccache: ${CCACHE_PROGRAM} - builds will be faster!")
+    set(CP_CCACHE_DISABLE_ENV "$ENV{CCACHE_DISABLE}")
+    if(CP_CCACHE_DISABLE_ENV AND NOT CP_CCACHE_DISABLE_ENV STREQUAL "0")
+        message(STATUS "ccache disabled via CCACHE_DISABLE=${CP_CCACHE_DISABLE_ENV}")
+    else()
+        set(CP_CCACHE_PROBE_OK TRUE)
+        set(CP_CCACHE_DIR "$ENV{CCACHE_DIR}")
+        if(NOT CP_CCACHE_DIR)
+            if(DEFINED ENV{HOME} AND NOT "$ENV{HOME}" STREQUAL "")
+                set(CP_CCACHE_DIR "$ENV{HOME}/.cache/ccache")
+            endif()
+        endif()
+
+        if(CP_CCACHE_DIR)
+            execute_process(
+                COMMAND ${CMAKE_COMMAND} -E make_directory "${CP_CCACHE_DIR}/tmp"
+                RESULT_VARIABLE CP_CCACHE_MKDIR_RESULT
+                ERROR_VARIABLE CP_CCACHE_MKDIR_ERROR
+            )
+            if(NOT CP_CCACHE_MKDIR_RESULT EQUAL 0)
+                set(CP_CCACHE_PROBE_OK FALSE)
+            else()
+                set(CP_CCACHE_PROBE_FILE "${CP_CCACHE_DIR}/tmp/.cp_ccache_probe")
+                execute_process(
+                    COMMAND ${CMAKE_COMMAND} -E touch "${CP_CCACHE_PROBE_FILE}"
+                    RESULT_VARIABLE CP_CCACHE_TOUCH_RESULT
+                    ERROR_VARIABLE CP_CCACHE_TOUCH_ERROR
+                )
+                if(NOT CP_CCACHE_TOUCH_RESULT EQUAL 0)
+                    set(CP_CCACHE_PROBE_OK FALSE)
+                else()
+                    execute_process(
+                        COMMAND ${CMAKE_COMMAND} -E rm -f "${CP_CCACHE_PROBE_FILE}"
+                    )
+                endif()
+            endif()
+        endif()
+
+        if(CP_CCACHE_PROBE_OK)
+            set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE_PROGRAM})
+            set(CP_CCACHE_ENABLED TRUE)
+            message(STATUS "Found ccache: ${CCACHE_PROGRAM} - builds will be faster!")
+        else()
+            message(WARNING
+                "ccache found but cache directory is not writable. "
+                "Build will continue without ccache."
+            )
+        endif()
+    endif()
 endif()
 
 # ============================================================================ #
