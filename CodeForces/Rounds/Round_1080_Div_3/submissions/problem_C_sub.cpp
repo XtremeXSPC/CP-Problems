@@ -1,11 +1,11 @@
 //===----------------------------------------------------------------------===//
 /**
- * @file: problem_B_sub.cpp
- * @generated: 2026-02-15 16:03:14
- * @source: problem_B.cpp
+ * @file: problem_C_sub.cpp
+ * @generated: 2026-02-15 16:03:17
+ * @source: problem_C.cpp
  * @author: Costantino Lombardi
  *
- * @brief: Codeforces Round 1080 (Div. 3) - Problem B
+ * @brief: Codeforces Round 1080 (Div. 3) - Problem C
  */
 //===----------------------------------------------------------------------===//
 /* Included library and Compiler Optimizations */
@@ -572,24 +572,33 @@ inline void No(bool condition = true) { Yes(!condition); }
 //===----------------------------------------------------------------------===//
 /* Main Solver Function */
 
-auto odd_part(I32 x) -> I32 {
-  while ((x & 1) == 0) x >>= 1;
-  return x;
-}
-
 void solve() {
   INT(n);
   VEC(I32, a, n);
 
-  bool ok = true;
-  FOR(i, n) {
-    if (odd_part(i + 1) != odd_part(a[i])) {
-      ok = false;
-      break;
+  constexpr I32 INF = std::numeric_limits<I32>::max() / 4;
+  std::array<I32, 7> dp{};
+  std::array<I32, 7> ndp{};
+
+  FOR(v, 1, 7) dp[v] = (a[0] != v);
+
+  FOR(i, 1, n) {
+    FOR(v, 1, 7) ndp[v] = INF;
+
+    FOR(cur, 1, 7) {
+      const I32 cost = (a[i] != cur);
+      FOR(prev, 1, 7) {
+        if (cur == prev || cur == 7 - prev) continue;
+        ndp[cur] = std::min(ndp[cur], dp[prev] + cost);
+      }
     }
+
+    dp = ndp;
   }
 
-  YES(ok);
+  I32 ans = INF;
+  FOR(v, 1, 7) ans = std::min(ans, dp[v]);
+  OUT(ans);
 }
 
 //===----------------------------------------------------------------------===//

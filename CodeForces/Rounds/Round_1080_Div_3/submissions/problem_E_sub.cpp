@@ -1,11 +1,11 @@
 //===----------------------------------------------------------------------===//
 /**
- * @file: problem_B_sub.cpp
- * @generated: 2026-02-15 16:03:14
- * @source: problem_B.cpp
+ * @file: problem_E_sub.cpp
+ * @generated: 2026-02-15 16:14:24
+ * @source: problem_E.cpp
  * @author: Costantino Lombardi
  *
- * @brief: Codeforces Round 1080 (Div. 3) - Problem B
+ * @brief: Codeforces Round 1080 (Div. 3) - Problem E
  */
 //===----------------------------------------------------------------------===//
 /* Included library and Compiler Optimizations */
@@ -251,6 +251,52 @@ using VP = Vec<P<T, U>>;
   using ordered_map = tree<K, V, std::less<K>, rb_tree_tag, tree_order_statistics_node_update>;
   template <typename K, typename V>
   using gp_hash_table = __gnu_pbds::gp_hash_table<K, V, std::hash<K>, std::equal_to<K>, direct_mask_range_hashing<>, linear_probe_fn<>, hash_standard_resize_policy<hash_exponential_size_policy<>, hash_load_check_resize_trigger<>, true>>;
+#endif
+
+//===----------------------------------------------------------------------===//
+/* Mathematical Constants and Infinity Values */
+
+#ifndef __CONSTANTS__
+#define __CONSTANTS__
+  // High-precision mathematical constants:
+  constexpr F80 PI   = 3.1415926535897932384626433832795028841971693993751L;
+  constexpr F80 E    = 2.7182818284590452353602874713526624977572470937000L;
+  constexpr F80 PHI  = 1.6180339887498948482045868343656381177203091798058L;
+  constexpr F80 LN2  = 0.6931471805599453094172321214581765680755001343602L;
+  constexpr F80 EPS  = 1e-9L;
+  constexpr F80 DEPS = 1e-12L;
+
+  // Robust infinity system:
+  template <class T>
+  constexpr T infinity = std::numeric_limits<T>::max() / 4;
+
+  template <>
+  inline constexpr I32 infinity<I32> = 1'010'000'000;
+  template <>
+  inline constexpr I64 infinity<I64> = 2'020'000'000'000'000'000LL;
+  template <>
+  inline constexpr U32 infinity<U32> = 2'020'000'000U;
+  template <>
+  inline constexpr U64 infinity<U64> = 4'040'000'000'000'000'000ULL;
+  template <>
+  inline constexpr F64 infinity<F64> = 1e18;
+  template <>
+  inline constexpr F80 infinity<F80> = 1e18L;
+
+  #if HAS_INT128
+    static_assert(sizeof(I128) > sizeof(I64), "I128 must be true 128-bit when HAS_INT128 is enabled.");
+    template <>
+    inline constexpr I128 infinity<I128> = I128(infinity<I64>) * 2'000'000'000'000'000'000LL;
+  #endif
+
+  constexpr I32 INF32 = infinity<I32>;
+  constexpr I64 INF64 = infinity<I64>;
+  constexpr I64 LINF  = INF64; // Legacy alias
+
+  // Modular arithmetic constants:
+  constexpr I64 MOD  = 1000000007;
+  constexpr I64 MOD2 = 998244353;
+  constexpr I64 MOD3 = 1000000009;
 #endif
 
 //===----------------------------------------------------------------------===//
@@ -572,24 +618,58 @@ inline void No(bool condition = true) { Yes(!condition); }
 //===----------------------------------------------------------------------===//
 /* Main Solver Function */
 
-auto odd_part(I32 x) -> I32 {
-  while ((x & 1) == 0) x >>= 1;
-  return x;
-}
-
 void solve() {
   INT(n);
-  VEC(I32, a, n);
 
-  bool ok = true;
-  FOR(i, n) {
-    if (odd_part(i + 1) != odd_part(a[i])) {
-      ok = false;
-      break;
+  Vec<I32> l(n + 1), r(n + 1);
+  FOR(i, 1, n + 1) {
+    IN(l[i], r[i]);
+  }
+
+  Vec<I32> order;
+  order.reserve(n);
+  Vec<I32> st;
+  st.reserve(n);
+  st.pb(1);
+  while (!st.empty()) {
+    const I32 v = st.back();
+    st.pop_back();
+    order.pb(v);
+    if (l[v] != 0) st.pb(l[v]);
+    if (r[v] != 0) st.pb(r[v]);
+  }
+
+  Vec<I64> up(n + 1, 0), tau(n + 1, 0);
+
+  FOR_R(i, sz(order)) {
+    const I32 v = order[i];
+    if (l[v] == 0) {
+      up[v] = 1;
+    } else {
+      up[v] = (up[l[v]] + up[r[v]] + 3) % MOD;
     }
   }
 
-  YES(ok);
+  tau[1] = up[1];
+  st.clear();
+  st.pb(1);
+  while (!st.empty()) {
+    const I32 v = st.back();
+    st.pop_back();
+
+    if (l[v] != 0) {
+      tau[l[v]] = (tau[v] + up[l[v]]) % MOD;
+      st.pb(l[v]);
+    }
+    if (r[v] != 0) {
+      tau[r[v]] = (tau[v] + up[r[v]]) % MOD;
+      st.pb(r[v]);
+    }
+  }
+
+  Vec<I64> ans(n);
+  FOR(i, n) ans[i] = tau[i + 1];
+  OUT(ans);
 }
 
 //===----------------------------------------------------------------------===//
@@ -600,7 +680,6 @@ auto main() -> int {
   Timer timer;
   // init_debug_log();
 #endif
-
   INT(T);
   FOR(T) solve();
 

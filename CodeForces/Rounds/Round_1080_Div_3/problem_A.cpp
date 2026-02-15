@@ -7,9 +7,13 @@
 /* Main Solver Function */
 
 void solve() {
-  I64 a, b;
-  std::cin >> a >> b;
-  std::cout << (a + b) << '\n';
+  INT(n);
+  bool ok = false;
+  FOR(n) {
+    INT(x);
+    if (x == 67) ok = true;
+  }
+  YES(ok);
 }
 
 //===----------------------------------------------------------------------===//
@@ -21,9 +25,8 @@ auto main() -> int {
   // init_debug_log();
 #endif
 
-  int T;
-  std::cin >> T;
-  while (T--) solve();
+  INT(T);
+  FOR(T) solve();
 
   return 0;
 }
