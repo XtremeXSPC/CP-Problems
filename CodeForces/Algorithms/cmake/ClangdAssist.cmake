@@ -229,3 +229,6 @@ function(cp_detect_compiler_system_includes OUTPUT_VARIABLE)
     set(${OUTPUT_VARIABLE} "" PARENT_SCOPE)
   endif()
 endfunction()
+
+# ============================================================================ #
+# End of Clangd Assist Moduele.
