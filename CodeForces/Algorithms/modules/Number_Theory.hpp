@@ -11,9 +11,9 @@
 // Sieve of Eratosthenes with optimizations.
 struct Sieve {
   I32 n;
-  VC<bool> is_prime;
-  VC<I32> primes;
-  VC<I32> smallest_factor;
+  Vec<bool> is_prime;
+  Vec<I32> primes;
+  Vec<I32> smallest_factor;
   
   Sieve(I32 size) : n(size), is_prime(size + 1, true), smallest_factor(size + 1) {
     is_prime[0] = is_prime[1] = false;
@@ -35,8 +35,8 @@ struct Sieve {
     return x >= 2 && x <= n && is_prime[x];
   }
   
-  VC<PII> factorize(I32 x) const {
-    VC<PII> factors;
+  Vec<PII> factorize(I32 x) const {
+    Vec<PII> factors;
     if (x <= 1) return factors;
 
     if (x > n) {
@@ -95,7 +95,7 @@ T mod_inverse(T a, T m) {
 
 // Chinese Remainder Theorem.
 template <typename T>
-std::pair<T, T> chinese_remainder(const VC<T>& a, const VC<T>& m) {
+std::pair<T, T> chinese_remainder(const Vec<T>& a, const Vec<T>& m) {
   T x = 0, M = 1;
   
   FOR(i, sz(a)) {
@@ -124,8 +124,8 @@ inline I64 euler_phi(I64 n) {
 }
 
 // Compute Phi for all numbers up to 'n'.
-inline VC<I32> euler_phi_sieve(I32 n) {
-  VC<I32> phi(n + 1);
+inline Vec<I32> euler_phi_sieve(I32 n) {
+  Vec<I32> phi(n + 1);
   std::iota(all(phi), 0);
   
   FOR(i, 2, n + 1) {
@@ -146,7 +146,7 @@ inline bool miller_rabin(I64 n) {
   if (n % 2 == 0) return false;
   
   // Witnesses for deterministic test up to 2^64.
-  const VC<I64> witnesses = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37};
+  const Vec<I64> witnesses = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37};
   
   I64 d = n - 1;
   I32 r = 0;
@@ -192,8 +192,8 @@ inline I64 pollard_rho(I64 n) {
 }
 
 // Complete factorization using Pollard's Rho.
-inline VC<I64> factorize(I64 n) {
-  VC<I64> factors;
+inline Vec<I64> factorize(I64 n) {
+  Vec<I64> factors;
   
   std::function<void(I64)> factor = [&](I64 x) {
     if (x == 1) return;
@@ -275,7 +275,7 @@ inline I64 primitive_root(I64 p) {
 // Lucas theorem for nCr mod p (p is prime).
 struct Lucas {
   I64 p;
-  VC<I64> fact, inv_fact;
+  Vec<I64> fact, inv_fact;
   
   Lucas(I64 prime) : p(prime), fact(p), inv_fact(p) {
     fact[0] = 1;
@@ -306,7 +306,7 @@ struct NTT {
   static constexpr I64 MOD = 998244353;  // 2^23 * 119 + 1
   static constexpr I64 ROOT = 3;  // Primitive root of MOD.
   
-  static void ntt(VC<I64>& a, bool inverse) {
+  static void ntt(Vec<I64>& a, bool inverse) {
     I32 n = sz(a);
     if (n == 1) return;
     
@@ -346,7 +346,7 @@ struct NTT {
     }
   }
   
-  static VC<I64> multiply(VC<I64> a, VC<I64> b) {
+  static Vec<I64> multiply(Vec<I64> a, Vec<I64> b) {
     I32 result_size = sz(a) + sz(b) - 1;
     I32 n = 1;
     while (n < result_size) n <<= 1;
@@ -368,13 +368,13 @@ struct NTT {
 
 // Mobius function and inversion
 struct Mobius {
-  VC<I32> mu;
+  Vec<I32> mu;
   I32 n;
   
   Mobius(I32 size) : mu(size + 1), n(size) {
     mu[1] = 1;
-    VC<bool> is_prime(n + 1, true);
-    VC<I32> primes;
+    Vec<bool> is_prime(n + 1, true);
+    Vec<I32> primes;
     
     FOR(i, 2, n + 1) {
       if (is_prime[i]) {
@@ -395,8 +395,8 @@ struct Mobius {
   }
   
   // Mobius inversion: g(n) = sum_{d|n} f(d) => f(n) = sum_{d|n} mu(n/d) * g(d)
-  VC<I64> invert(const VC<I64>& g) {
-    VC<I64> f(sz(g));
+  Vec<I64> invert(const Vec<I64>& g) {
+    Vec<I64> f(sz(g));
     FOR(i, 1, sz(g)) {
       for (I32 j = i; j < sz(g); j += i) {
         f[j] += mu[i] * g[j / i];

@@ -147,7 +147,7 @@ namespace fast_io {
   void read(std::pair<T, U>& p) { read(p.first); read(p.second); }
   
   template <class T>
-  void read(VC<T>& v) { for (auto& x : v) read(x); }
+  void read(Vec<T>& v) { for (auto& x : v) read(x); }
   
   // Variadic read:
   template <class Head, class... Tail>
@@ -171,7 +171,7 @@ namespace fast_io {
   }
   
   template <class T>
-  void write(const VC<T>& v) {
+  void write(const Vec<T>& v) {
     for (I64 i = 0; i < sz(v); ++i) {
       if (i) write(' ');
       write(v[i]);
@@ -216,8 +216,8 @@ namespace fast_io {
 #define CHR(...) char __VA_ARGS__; IN(__VA_ARGS__)
 #define DBL(...) F64 __VA_ARGS__; IN(__VA_ARGS__)
 
-#define VEC(type, name, size) VC<type> name(size); IN(name)
-#define VV(type, name, h, w) VVC<type> name(h, VC<type>(w)); IN(name)
+#define VEC(type, name, size) Vec<type> name(size); IN(name)
+#define VV(type, name, h, w) Vec2<type> name(h, Vec<type>(w)); IN(name)
 
 // Answer macros:
 inline void YES(bool condition = true) { OUT(condition ? "YES" : "NO"); }

@@ -9,9 +9,9 @@
 //========================= String Algorithms Module =========================//
 
 // Z-algorithm for pattern matching.
-inline VC<I32> z_algorithm(const std::string& s) {
+inline Vec<I32> z_algorithm(const std::string& s) {
   I32 n = sz(s);
-  VC<I32> z(n);
+  Vec<I32> z(n);
   if (n == 0) return z;
   z[0] = n;
   
@@ -31,7 +31,7 @@ inline VC<I32> z_algorithm(const std::string& s) {
 // KMP (Knuth-Morris-Pratt) pattern searching.
 struct KMP {
   std::string pattern;
-  VC<I32> failure;
+  Vec<I32> failure;
   
   KMP(const std::string& p) : pattern(p) {
     I32 m = sz(pattern);
@@ -47,8 +47,8 @@ struct KMP {
     }
   }
   
-  VC<I32> search(const std::string& text) {
-    VC<I32> matches;
+  Vec<I32> search(const std::string& text) {
+    Vec<I32> matches;
     I32 n = sz(text), m = sz(pattern);
     if (m == 0) {
       matches.resize(n + 1);
@@ -76,7 +76,7 @@ struct KMP {
 // Manacher's algorithm for palindrome detection.
 struct Manacher {
   std::string s;
-  VC<I32> p;  // p[i] = radius of palindrome centered at 'i'.
+  Vec<I32> p;  // p[i] = radius of palindrome centered at 'i'.
   
   Manacher(const std::string& str) {
     // Transform string: "abc" -> "^#a#b#c#$".
@@ -131,7 +131,7 @@ struct Manacher {
 // Suffix Array construction using O(n log n) algorithm.
 struct SuffixArray {
   std::string s;
-  VC<I32> sa, rank, lcp;
+  Vec<I32> sa, rank, lcp;
   
   SuffixArray(const std::string& str) : s(str) {
     I32 n = sz(s);
@@ -147,7 +147,7 @@ struct SuffixArray {
 private:
   void build_sa() {
     I32 n = sz(s);
-    VC<I32> cnt(256), pos(n), tmp(n);
+    Vec<I32> cnt(256), pos(n), tmp(n);
     
     // Initial ranking based on first character.
     FOR(i, n) {
@@ -195,9 +195,9 @@ private:
   
 public:
   // Find all occurrences of pattern in O(m log n).
-  VC<I32> find_pattern(const std::string& pattern) {
+  Vec<I32> find_pattern(const std::string& pattern) {
     I32 n = sz(s), m = sz(pattern);
-    VC<I32> result;
+    Vec<I32> result;
     
     // Binary search for first occurrence.
     I32 left = 0, right = n;
@@ -228,7 +228,7 @@ struct RollingHash {
   static constexpr I64 BASE2 = 37;
   
   std::string s;
-  VC<I64> hash1, hash2, pow1, pow2;
+  Vec<I64> hash1, hash2, pow1, pow2;
   
   RollingHash(const std::string& str) : s(str) {
     I32 n = sz(s);
@@ -282,7 +282,7 @@ struct Trie {
     I32 prefix_count = 0;  // Number of words with this prefix.
   };
   
-  VC<Node> nodes;
+  Vec<Node> nodes;
   
   Trie() {
     nodes.eb();  // Root node.
@@ -322,8 +322,8 @@ struct Trie {
   }
   
   // Find all words with given prefix.
-  VC<std::string> find_with_prefix(const std::string& prefix) {
-    VC<std::string> result;
+  Vec<std::string> find_with_prefix(const std::string& prefix) {
+    Vec<std::string> result;
     I32 current = 0;
     
     for (char c : prefix) {

@@ -8,7 +8,7 @@
 
 void solve() {
   INT(n);
-  VC<I32> a(n);
+  Vec<I32> a(n);
   IN(a);
 
   I32 pref_max = a[0];

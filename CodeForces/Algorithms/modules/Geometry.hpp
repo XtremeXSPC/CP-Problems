@@ -124,10 +124,10 @@ bool segment_intersect(const Point2D<T>& a, const Point2D<T>& b,
 // Polygon (counterclockwise vertices).
 template <typename T = F64>
 struct Polygon {
-  VC<Point2D<T>> vertices;
+  Vec<Point2D<T>> vertices;
   
   Polygon() {}
-  Polygon(const VC<Point2D<T>>& v) : vertices(v) {}
+  Polygon(const Vec<Point2D<T>>& v) : vertices(v) {}
   
   T area() const {
     T result = 0;
@@ -189,13 +189,13 @@ struct Polygon {
 
 // Convex Hull using Graham Scan.
 template <typename T>
-VC<Point2D<T>> convex_hull(VC<Point2D<T>> points) {
+Vec<Point2D<T>> convex_hull(Vec<Point2D<T>> points) {
   I32 n = sz(points);
   if (n <= 3) return points;
   
   sort(all(points));
   
-  VC<Point2D<T>> hull;
+  Vec<Point2D<T>> hull;
   
   // Lower hull.
   FOR(i, n) {
@@ -222,7 +222,7 @@ VC<Point2D<T>> convex_hull(VC<Point2D<T>> points) {
 
 // Closest pair of points (divide and conquer).
 template <typename T>
-std::pair<Point2D<T>, Point2D<T>> closest_pair(VC<Point2D<T>> points) {
+std::pair<Point2D<T>, Point2D<T>> closest_pair(Vec<Point2D<T>> points) {
   I32 n = sz(points);
   sort(all(points));
   
@@ -256,7 +256,7 @@ std::pair<Point2D<T>, Point2D<T>> closest_pair(VC<Point2D<T>> points) {
     T d = min(d_left, d_right);
     auto best_pair = (d_left < d_right) ? left_pair : right_pair;
     
-    VC<Point2D<T>> strip;
+    Vec<Point2D<T>> strip;
     FOR(i, l, r) {
       if (abs(points[i].x - midx) < d) {
         strip.pb(points[i]);
@@ -368,7 +368,7 @@ struct Plane3D {
 
 // Rotating calipers for diameter of convex polygon.
 template <typename T>
-T convex_diameter(const VC<Point2D<T>>& hull) {
+T convex_diameter(const Vec<Point2D<T>>& hull) {
   I32 n = sz(hull);
   if (n <= 1) return 0;
   if (n == 2) return (hull[1] - hull[0]).norm();
@@ -402,7 +402,7 @@ struct HalfPlane {
 };
 
 template <typename T>
-Polygon<T> half_plane_intersection(VC<HalfPlane<T>> planes) {
+Polygon<T> half_plane_intersection(Vec<HalfPlane<T>> planes) {
   static_assert(std::is_floating_point_v<T>, "half_plane_intersection requires floating-point coordinates");
   sort(all(planes), [](const HalfPlane<T>& a, const HalfPlane<T>& b) {
     return a.angle() < b.angle();
@@ -424,14 +424,14 @@ Polygon<T> half_plane_intersection(VC<HalfPlane<T>> planes) {
     return abs(a.x - b.x) <= EPS && abs(a.y - b.y) <= EPS;
   };
 
-  auto push_unique = [&](VC<Point2D<T>>& poly, const Point2D<T>& p) {
+  auto push_unique = [&](Vec<Point2D<T>>& poly, const Point2D<T>& p) {
     if (poly.empty() || !nearly_equal(poly.back(), p)) {
       poly.pb(p);
     }
   };
 
   const T BOUND = static_cast<T>(1e9);
-  VC<Point2D<T>> polygon = {
+  Vec<Point2D<T>> polygon = {
     {-BOUND, -BOUND},
     { BOUND, -BOUND},
     { BOUND,  BOUND},
@@ -440,7 +440,7 @@ Polygon<T> half_plane_intersection(VC<HalfPlane<T>> planes) {
 
   for (const auto& hp : planes) {
     if (polygon.empty()) break;
-    VC<Point2D<T>> clipped;
+    Vec<Point2D<T>> clipped;
     I32 n = sz(polygon);
 
     FOR(i, n) {

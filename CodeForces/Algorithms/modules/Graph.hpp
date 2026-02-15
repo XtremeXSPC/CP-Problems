@@ -19,8 +19,8 @@ struct Graph {
   };
   
   I32 n, m;
-  VC<VC<Edge>> adj;
-  VC<Edge> edges;
+  Vec<Vec<Edge>> adj;
+  Vec<Edge> edges;
   bool directed;
   
   Graph(I32 n, bool directed = false) : n(n), m(0), adj(n), directed(directed) {}
@@ -33,8 +33,8 @@ struct Graph {
   }
   
   // Dijkstra's shortest path algorithm.
-  VC<Weight> dijkstra(I32 source) const {
-    VC<Weight> dist(n, infinity<Weight>);
+  Vec<Weight> dijkstra(I32 source) const {
+    Vec<Weight> dist(n, infinity<Weight>);
     MinPriorityQueue<P<Weight, I32>> pq;
     
     dist[source] = 0;
@@ -59,8 +59,8 @@ struct Graph {
   }
   
   // Bellman-Ford algorithm for detecting negative cycles.
-  P<bool, VC<Weight>> bellman_ford(I32 source) const {
-    VC<Weight> dist(n, infinity<Weight>);
+  P<bool, Vec<Weight>> bellman_ford(I32 source) const {
+    Vec<Weight> dist(n, infinity<Weight>);
     dist[source] = 0;
     
     // Relax edges n-1 times.
@@ -92,9 +92,9 @@ struct Graph {
   }
   
   // Topological sort using DFS (for DAGs).
-  VC<I32> topological_sort() const {
-    VC<I32> result;
-    VC<bool> visited(n, false);
+  Vec<I32> topological_sort() const {
+    Vec<I32> result;
+    Vec<bool> visited(n, false);
     
     std::function<void(I32)> dfs = [&](I32 u) {
       visited[u] = true;
@@ -113,9 +113,9 @@ struct Graph {
   }
   
   // Find strongly connected components using Kosaraju's algorithm.
-  VC<I32> find_scc() const {
-    VC<I32> order;
-    VC<bool> visited(n, false);
+  Vec<I32> find_scc() const {
+    Vec<I32> order;
+    Vec<bool> visited(n, false);
     
     // First DFS to find finish times.
     std::function<void(I32)> dfs1 = [&](I32 u) {
@@ -131,7 +131,7 @@ struct Graph {
     }
     
     // Build reverse graph.
-    VC<VC<I32>> rev_adj(n);
+    Vec<Vec<I32>> rev_adj(n);
     FOR(u, n) {
       for (const auto& e : adj[u]) {
         rev_adj[e.to].pb(u);
@@ -139,7 +139,7 @@ struct Graph {
     }
     
     // Second DFS on reverse graph.
-    VC<I32> component(n, -1);
+    Vec<I32> component(n, -1);
     I32 comp_count = 0;
     
     std::function<void(I32, I32)> dfs2 = [&](I32 u, I32 comp) {
@@ -160,9 +160,9 @@ struct Graph {
   }
   
   // Find bridges in the graph
-  VC<PII> find_bridges() const {
-    VC<PII> bridges;
-    VC<I32> disc(n, -1), low(n, -1);
+  Vec<PII> find_bridges() const {
+    Vec<PII> bridges;
+    Vec<I32> disc(n, -1), low(n, -1);
     I32 timer = 0;
 
     std::function<void(I32, I32)> dfs = [&](I32 u, I32 parent_edge) {
@@ -193,7 +193,7 @@ struct Graph {
 
 // Disjoint Set Union (DSU) / Union-Find.
 struct DSU {
-  VC<I32> parent, rank, size;
+  Vec<I32> parent, rank, size;
   I32 components;
   
   DSU(I32 n) : parent(n), rank(n, 0), size(n, 1), components(n) {
@@ -228,14 +228,14 @@ struct DSU {
 
 // Kruskal's minimum Spanning Tree.
 template <typename Weight = I64>
-P<Weight, VC<I32>> kruskal_mst(I32 n, VC<std::tuple<I32, I32, Weight>>& edges) {
+P<Weight, Vec<I32>> kruskal_mst(I32 n, Vec<std::tuple<I32, I32, Weight>>& edges) {
   std::sort(all(edges), [](const auto& a, const auto& b) {
     return std::get<2>(a) < std::get<2>(b);
   });
   
   DSU dsu(n);
   Weight total_weight = 0;
-  VC<I32> mst_edges;
+  Vec<I32> mst_edges;
   
   FOR(i, sz(edges)) {
     auto [u, v, w] = edges[i];
@@ -250,8 +250,8 @@ P<Weight, VC<I32>> kruskal_mst(I32 n, VC<std::tuple<I32, I32, Weight>>& edges) {
 
 // Floyd-Warshall all-pairs shortest path.
 template <typename Weight = I64>
-VVC<Weight> floyd_warshall(I32 n, const VC<std::tuple<I32, I32, Weight>>& edges) {
-  VVC<Weight> dist(n, VC<Weight>(n, infinity<Weight>));
+Vec2<Weight> floyd_warshall(I32 n, const Vec<std::tuple<I32, I32, Weight>>& edges) {
+  Vec2<Weight> dist(n, Vec<Weight>(n, infinity<Weight>));
   
   FOR(i, n) dist[i][i] = 0;
   

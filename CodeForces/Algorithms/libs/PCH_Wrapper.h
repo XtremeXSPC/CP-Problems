@@ -87,10 +87,16 @@ using namespace std;
     #define HAS_FLOAT128 0
   #endif
 
-  // Legacy aliases for backward compatibility:
-  using ll  = I64;
-  using ull = U64;
-  using ld  = F80;
+  // Legacy short aliases are opt-in for style consistency.
+  #ifndef CP_ENABLE_LEGACY_SHORT_ALIASES
+    #define CP_ENABLE_LEGACY_SHORT_ALIASES 0
+  #endif
+
+  #if CP_ENABLE_LEGACY_SHORT_ALIASES
+    using ll  = I64;
+    using ull = U64;
+    using ld  = F80;
+  #endif
 
   // Container type aliases:
   template <class T>
@@ -120,13 +126,25 @@ using namespace std;
   template <class T>
   using MinPriorityQueue = std::priority_queue<T, std::vector<T>, std::greater<T>>;
 
-  // Short aliases for competitive programming:
+  // Canonical multidimensional aliases:
   template <class T>
-  using VC = Vec<T>;
+  using Vec2 = Vec<Vec<T>>;
   template <class T>
-  using VVC = VC<VC<T>>;
-  template <class T>
-  using VVVC = VC<VVC<T>>;
+  using Vec3 = Vec<Vec2<T>>;
+
+  // Legacy container aliases are opt-in after migration.
+  #ifndef CP_ENABLE_LEGACY_CONTAINER_ALIASES
+    #define CP_ENABLE_LEGACY_CONTAINER_ALIASES 0
+  #endif
+
+  #if CP_ENABLE_LEGACY_CONTAINER_ALIASES
+    template <class T>
+    using VC = Vec<T>;
+    template <class T>
+    using VVC = Vec2<T>;
+    template <class T>
+    using VVVC = Vec3<T>;
+  #endif
 
   // Pair and tuple aliases:
   template <class T, class U>
@@ -138,12 +156,12 @@ using namespace std;
   using PLD = Pair<F80, F80>;
 
   // Specialized container aliases:
-  using VI   = VC<I32>;
-  using VVI  = VVC<I32>;
-  using VVVI = VVVC<I32>;
-  using VL   = VC<I64>;
-  using VVL  = VVC<I64>;
-  using VVVL = VVVC<I64>;
+  using VI   = Vec<I32>;
+  using VVI  = Vec2<I32>;
+  using VVVI = Vec3<I32>;
+  using VL   = Vec<I64>;
+  using VVL  = Vec2<I64>;
+  using VVVL = Vec3<I64>;
   using VB   = Vec<bool>;
   using VS   = Vec<std::string>;
   using VU8  = Vec<U8>;
