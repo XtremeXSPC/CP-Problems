@@ -1,7 +1,7 @@
 //===----------------------------------------------------------------------===//
 /**
  * @file: problem_A_sub.cpp
- * @generated: 2026-02-15 15:25:26
+ * @generated: 2026-02-15 16:03:10
  * @source: problem_A.cpp
  * @author: Costantino Lombardi
  *
@@ -254,12 +254,332 @@ using VP = Vec<P<T, U>>;
 #endif
 
 //===----------------------------------------------------------------------===//
+/* Advanced Macro System */
+
+template <class T>
+auto make_nd_vec(std::size_t size) {
+  return Vec<T>(size);
+}
+
+template <class T>
+auto make_nd_vec(std::size_t size, const T& value) {
+  return Vec<T>(size, value);
+}
+
+template <class T>
+auto make_vec2(std::size_t n1, std::size_t n2) {
+  return Vec(n1, Vec<T>(n2));
+}
+
+template <class T>
+auto make_vec2(std::size_t n1, std::size_t n2, const T& value) {
+  return Vec(n1, Vec<T>(n2, value));
+}
+
+template <class T>
+auto make_vec3(std::size_t n1, std::size_t n2, std::size_t n3) {
+  return Vec(n1, Vec(n2, Vec<T>(n3)));
+}
+
+template <class T>
+auto make_vec3(std::size_t n1, std::size_t n2, std::size_t n3, const T& value) {
+  return Vec(n1, Vec(n2, Vec<T>(n3, value)));
+}
+
+template <class T>
+auto make_vec4(std::size_t n1, std::size_t n2, std::size_t n3, std::size_t n4) {
+  return Vec(n1, Vec(n2, Vec(n3, Vec<T>(n4))));
+}
+
+template <class T>
+auto make_vec4(std::size_t n1, std::size_t n2, std::size_t n3, std::size_t n4, const T& value) {
+  return Vec(n1, Vec(n2, Vec(n3, Vec<T>(n4, value))));
+}
+
+// Multi-dimensional vector creation macros:
+#define make_vec(type, name, ...) Vec<type> name(__VA_ARGS__)
+#define vv(type, name, h, ...) \
+  auto name = make_vec2<type>(h, __VA_ARGS__)
+#define vvv(type, name, h, w, ...) \
+  auto name = make_vec3<type>(h, w, __VA_ARGS__)
+#define vvvv(type, name, a, b, c, ...) \
+  auto name = make_vec4<type>(a, b, c, __VA_ARGS__)
+
+// Advanced FOR loop system:
+#define FOR1(a) for (I64 _ = 0; _ < (a); ++_)
+#define FOR2(i, a) for (I64 i = 0; i < (a); ++i)
+#define FOR3(i, a, b) for (I64 i = (a); i < (b); ++i)
+#define FOR4(i, a, b, c) for (I64 i = (a); i < (b); i += (c))
+#define FOR1_R(a) for (I64 i = (a) - 1; i >= 0; --i)
+#define FOR2_R(i, a) for (I64 i = (a) - 1; i >= 0; --i)
+#define FOR3_R(i, a, b) for (I64 i = (b) - 1; i >= (a); --i)
+
+#define overload4(a, b, c, d, e, ...) e
+#define overload3(a, b, c, d, ...) d
+#define FOR(...) overload4(__VA_ARGS__, FOR4, FOR3, FOR2, FOR1)(__VA_ARGS__)
+#define FOR_R(...) overload3(__VA_ARGS__, FOR3_R, FOR2_R, FOR1_R)(__VA_ARGS__)
+
+// Range-based iteration:
+#define REP(i, n) for (I64 i : std::views::iota(0LL, (I64)(n)))
+#define RREP(i, n) for (I64 i : std::views::iota(0LL, (I64)(n)) | std::views::reverse)
+#define ALL(x) std::ranges::begin(x), std::ranges::end(x)
+#define RALL(x) std::ranges::rbegin(x), std::ranges::rend(x)
+
+// Container utility macros:
+#define all(x) (x).begin(), (x).end()
+#define rall(x) (x).rbegin(), (x).rend()
+#define sz(x) (I64)(x).size()
+#define len(x) sz(x)
+#define pb push_back
+#define eb emplace_back
+#define mp make_pair
+#define mt make_tuple
+#define fi first
+#define se second
+#define elif else if
+
+// Advanced container operations:
+#define UNIQUE(x) (std::ranges::sort(x), x.erase(std::ranges::unique(x).begin(), x.end()), x.shrink_to_fit())
+#define LB(c, x) (I64)std::distance((c).begin(), std::ranges::lower_bound(c, x))
+#define UB(c, x) (I64)std::distance((c).begin(), std::ranges::upper_bound(c, x))
+#define SUM(x) std::accumulate(all(x), 0LL)
+#define MIN(x) *std::ranges::min_element(x)
+#define MAX(x) *std::ranges::max_element(x)
+
+//===----------------------------------------------------------------------===//
+/* Optimized I/O System */
+
+// Fast I/O
+namespace fast_io {
+  static constexpr U32 BUFFER_SIZE = 1 << 17; // 128KB buffer.
+  alignas(64) inline char input_buffer[BUFFER_SIZE];
+  alignas(64) inline char output_buffer[BUFFER_SIZE];
+  alignas(64) inline char number_buffer[128];
+
+  // Precomputed number strings for fast output:
+  struct NumberLookup {
+    char digits[10000][4];
+    constexpr NumberLookup() : digits{} {
+      for (I32 i = 0; i < 10000; ++i) {
+        digits[i][3] = '0' + (i % 10);
+        digits[i][2] = '0' + ((i / 10) % 10);
+        digits[i][1] = '0' + ((i / 100) % 10);
+        digits[i][0] = '0' + (i / 1000);
+      }
+    }
+  };
+  inline constexpr NumberLookup number_lookup;
+
+  inline U32 input_pos = 0, input_end = 0, output_pos = 0;
+
+  inline void load_input() {
+    std::memmove(input_buffer, input_buffer + input_pos, input_end - input_pos);
+    input_end = input_end - input_pos +
+                std::fread(input_buffer + input_end - input_pos, 1,
+                          BUFFER_SIZE - input_end + input_pos, stdin);
+    input_pos = 0;
+    if (input_end < BUFFER_SIZE) input_buffer[input_end++] = '\n';
+  }
+
+  inline void flush_output() {
+    std::fwrite(output_buffer, 1, output_pos, stdout);
+    output_pos = 0;
+  }
+
+  // Fast character reading:
+  inline void read_char(char& c) {
+    do {
+      if (input_pos >= input_end) load_input();
+      c = input_buffer[input_pos++];
+    } while (std::isspace(c));
+  }
+
+  // Optimized integer reading with SIMD potential:
+  template <typename T>
+  inline void read_integer(T& x) {
+    if (input_pos + 64 >= input_end) load_input();
+
+    char c;
+    do { c = input_buffer[input_pos++]; } while (c < '-');
+
+    bool negative = false;
+    if constexpr (std::is_signed_v<T>) {
+      if (c == '-') {
+        negative = true;
+        c = input_buffer[input_pos++];
+      }
+    }
+
+    x = 0;
+    while (c >= '0') {
+      x = x * 10 + (c - '0');
+      c = input_buffer[input_pos++];
+    }
+
+    if constexpr (std::is_signed_v<T>) {
+      if (negative) x = -x;
+    }
+  }
+
+  // Fast string reading:
+  inline void read_string(std::string& s) {
+    s.clear();
+    char c;
+    do {
+      if (input_pos >= input_end) load_input();
+      c = input_buffer[input_pos++];
+    } while (std::isspace(c));
+
+    do {
+      s.push_back(c);
+      if (input_pos >= input_end) load_input();
+      c = input_buffer[input_pos++];
+    } while (!std::isspace(c));
+  }
+
+  // Optimized integer writing:
+  template <typename T>
+  inline void write_integer(T x) {
+    if (output_pos + 64 >= BUFFER_SIZE) flush_output();
+
+    using UnsignedT = std::make_unsigned_t<T>;
+    UnsignedT ux;
+    if constexpr (std::is_signed_v<T>) {
+      if (x < 0) {
+        output_buffer[output_pos++] = '-';
+        // Avoid UB for minimum signed value.
+        ux = static_cast<UnsignedT>(-(x + 1));
+        ux += 1;
+      } else {
+        ux = static_cast<UnsignedT>(x);
+      }
+    } else {
+      ux = static_cast<UnsignedT>(x);
+    }
+
+    I32 digits = 0;
+    UnsignedT temp = ux;
+    do {
+      number_buffer[digits++] = '0' + (temp % 10);
+      temp /= 10;
+    } while (temp > 0);
+
+    // Reverse and copy:
+    for (I32 i = digits - 1; i >= 0; --i) {
+      output_buffer[output_pos++] = number_buffer[i];
+    }
+  }
+
+  inline void write_char(char c) {
+    if (output_pos >= BUFFER_SIZE) flush_output();
+    output_buffer[output_pos++] = c;
+  }
+
+  inline void write_string(const std::string& s) {
+    for (char c : s) write_char(c);
+  }
+
+  // Template-based readers:
+  inline void read(I32& x) { read_integer(x); }
+  inline void read(I64& x) { read_integer(x); }
+  inline void read(U32& x) { read_integer(x); }
+  inline void read(U64& x) { read_integer(x); }
+  inline void read(char& x) { read_char(x); }
+  inline void read(std::string& x) { read_string(x); }
+
+  template <class T, class U>
+  void read(std::pair<T, U>& p) { read(p.first); read(p.second); }
+
+  template <class T>
+  void read(Vec<T>& v) { for (auto& x : v) read(x); }
+
+  // Variadic read:
+  template <class Head, class... Tail>
+  void read(Head& head, Tail&... tail) {
+    read(head);
+    if constexpr (sizeof...(tail) > 0) read(tail...);
+  }
+
+  // Template-based writers:
+  inline void write(I32 x) { write_integer(x); }
+  inline void write(I64 x) { write_integer(x); }
+  inline void write(U32 x) { write_integer(x); }
+  inline void write(U64 x) { write_integer(x); }
+  inline void write(char x) { write_char(x); }
+  inline void write(const std::string& x) { write_string(x); }
+  inline void write(const char* x) { write_string(std::string(x)); }
+
+  template <class T, class U>
+  void write(const std::pair<T, U>& p) {
+    write(p.first); write(' '); write(p.second);
+  }
+
+  template <class T>
+  void write(const Vec<T>& v) {
+    for (I64 i = 0; i < sz(v); ++i) {
+      if (i) write(' ');
+      write(v[i]);
+    }
+  }
+
+  // Variadic write:
+  template <class Head, class... Tail>
+  void write(const Head& head, const Tail&... tail) {
+    write(head);
+    if constexpr (sizeof...(tail) > 0) {
+      write(' ');
+      write(tail...);
+    }
+  }
+
+  inline void writeln() { write_char('\n'); }
+
+  template <class... Args>
+  void writeln(const Args&... args) {
+    if constexpr (sizeof...(args) > 0) write(args...);
+    write_char('\n');
+  }
+
+  // Destructor for automatic flushing:
+  struct IOFlusher {
+    ~IOFlusher() { flush_output(); }
+  };
+  inline IOFlusher io_flusher;
+}
+
+// Input/Output macros:
+#define IN(...) fast_io::read(__VA_ARGS__)
+#define OUT(...) fast_io::writeln(__VA_ARGS__)
+#define FLUSH() fast_io::flush_output()
+
+// Convenient input macros:
+#define INT(...) I32 __VA_ARGS__; IN(__VA_ARGS__)
+#define LL(...) I64 __VA_ARGS__; IN(__VA_ARGS__)
+#define ULL(...) U64 __VA_ARGS__; IN(__VA_ARGS__)
+#define STR(...) std::string __VA_ARGS__; IN(__VA_ARGS__)
+#define CHR(...) char __VA_ARGS__; IN(__VA_ARGS__)
+#define DBL(...) F64 __VA_ARGS__; IN(__VA_ARGS__)
+
+#define VEC(type, name, size) Vec<type> name(size); IN(name)
+#define VV(type, name, h, w) Vec2<type> name(h, Vec<type>(w)); IN(name)
+
+// Answer macros:
+inline void YES(bool condition = true) { OUT(condition ? "YES" : "NO"); }
+inline void NO(bool condition = true) { YES(!condition); }
+inline void Yes(bool condition = true) { OUT(condition ? "Yes" : "No"); }
+inline void No(bool condition = true) { Yes(!condition); }
+
+//===----------------------------------------------------------------------===//
 /* Main Solver Function */
 
 void solve() {
-  I64 a, b;
-  std::cin >> a >> b;
-  std::cout << (a + b) << '\n';
+  INT(n);
+  bool ok = false;
+  FOR(n) {
+    INT(x);
+    if (x == 67) ok = true;
+  }
+  YES(ok);
 }
 
 //===----------------------------------------------------------------------===//
@@ -271,9 +591,8 @@ auto main() -> int {
   // init_debug_log();
 #endif
 
-  int T;
-  std::cin >> T;
-  while (T--) solve();
+  INT(T);
+  FOR(T) solve();
 
   return 0;
 }
