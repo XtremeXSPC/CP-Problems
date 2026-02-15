@@ -33,6 +33,22 @@ BUILD_TYPE_CHOICES = ("Debug", "Release", "Sanitize")
 COMPILER_CHOICES = ("gcc", "clang", "auto")
 TOGGLE_CHOICES = ("on", "off")
 PCH_CHOICES = ("on", "off", "auto")
+CMAKE_CONFIG_PRESET_CHOICES = (
+    "cp-debug-gcc",
+    "cp-release-gcc",
+    "cp-sanitize-gcc",
+    "cp-debug-clang",
+    "cp-release-clang",
+    "cp-sanitize-clang",
+)
+CMAKE_BUILD_PRESET_CHOICES = (
+    "cp-build-debug-gcc",
+    "cp-build-release-gcc",
+    "cp-build-sanitize-gcc",
+    "cp-build-debug-clang",
+    "cp-build-release-clang",
+    "cp-build-sanitize-clang",
+)
 
 TARGET_RE = re.compile(r"^[A-Za-z]\w*$")
 CONTEST_SEGMENT_RE = re.compile(r"^[A-Za-z0-9._-]+$")
@@ -180,6 +196,34 @@ def _discover_cp_tools_script(explicit: Optional[Path]) -> Path:
         "unable to locate cpp-tools entry script `competitive.sh`.\n"
         f"Searched:\n  - {searched}\n"
         "Use --cp-tools-script to specify it explicitly."
+    )
+
+
+def _discover_algorithms_dir(explicit: Optional[Path]) -> Path:
+    candidates: List[Path] = []
+    if explicit is not None:
+        candidates.append(explicit.expanduser())
+
+    env_algorithms = os.environ.get("CP_ALGORITHMS_DIR")
+    if env_algorithms:
+        candidates.append(Path(env_algorithms).expanduser())
+
+    candidates.append(Path(__file__).resolve().parents[1])
+
+    seen = set()
+    for candidate in candidates:
+        key = str(candidate)
+        if key in seen:
+            continue
+        seen.add(key)
+        if candidate.is_dir() and (candidate / "gcc-toolchain.cmake").is_file():
+            return candidate.resolve()
+
+    searched = "\n  - ".join(str(c) for c in candidates)
+    raise WorkflowError(
+        "unable to locate centralized Algorithms directory with toolchains.\n"
+        f"Searched:\n  - {searched}\n"
+        "Use --algorithms-dir to specify it explicitly."
     )
 
 
@@ -342,6 +386,71 @@ class WorkflowManager:
             raise WorkflowCommandError(result)
         return result
 
+    def run_external(
+        self,
+        argv: Sequence[str],
+        check: bool = True,
+        timeout: Optional[int] = None,
+        env_overrides: Optional[dict] = None,
+    ) -> CommandResult:
+        if not argv:
+            raise WorkflowError("run_external requires a non-empty command")
+
+        if self.verbose and not self.json_mode:
+            command_preview = " ".join(argv)
+            print(f"[workflow] -> {command_preview}")
+
+        env = os.environ.copy()
+        if env_overrides:
+            env.update(env_overrides)
+
+        start = time.perf_counter()
+        try:
+            completed = subprocess.run(
+                list(argv),
+                cwd=str(self.runner.cwd),
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=timeout if timeout is not None else self.runner.default_timeout,
+                check=False,
+            )
+            elapsed_ms = int((time.perf_counter() - start) * 1000)
+            result = CommandResult(
+                function=argv[0],
+                args=list(argv[1:]),
+                cwd=str(self.runner.cwd),
+                returncode=completed.returncode,
+                duration_ms=elapsed_ms,
+                stdout=completed.stdout,
+                stderr=completed.stderr,
+                timed_out=False,
+            )
+        except subprocess.TimeoutExpired as exc:
+            elapsed_ms = int((time.perf_counter() - start) * 1000)
+            result = CommandResult(
+                function=argv[0],
+                args=list(argv[1:]),
+                cwd=str(self.runner.cwd),
+                returncode=124,
+                duration_ms=elapsed_ms,
+                stdout=exc.stdout or "",
+                stderr=(exc.stderr or "") + "\nCommand timed out.",
+                timed_out=True,
+            )
+
+        self.results.append(result)
+
+        if not self.json_mode:
+            if result.stdout:
+                print(result.stdout, end="")
+            if result.stderr:
+                print(result.stderr, end="", file=sys.stderr)
+
+        if check and result.returncode != 0:
+            raise WorkflowCommandError(result)
+        return result
+
     def emit_json(self, status: str) -> None:
         payload = {
             "status": status,
@@ -405,6 +514,26 @@ def _run_step_with_policy(
     return result
 
 
+def _run_external_step_with_policy(
+    manager: WorkflowManager,
+    ns: argparse.Namespace,
+    argv: Sequence[str],
+    env_overrides: Optional[dict] = None,
+) -> CommandResult:
+    check = not getattr(ns, "continue_on_error", False)
+    result = manager.run_external(
+        argv=argv,
+        check=check,
+        env_overrides=env_overrides,
+    )
+    if not check and result.returncode != 0:
+        manager.note(
+            f"[workflow] step failed but continuing: {' '.join(argv)} "
+            f"(exit {result.returncode})"
+        )
+    return result
+
+
 def handle_init(manager: WorkflowManager, ns: argparse.Namespace) -> None:
     _run_step_with_policy(manager, ns, "cppinit")
 
@@ -438,6 +567,30 @@ def handle_delete(manager: WorkflowManager, ns: argparse.Namespace) -> None:
 def handle_conf(manager: WorkflowManager, ns: argparse.Namespace) -> None:
     args = _build_cppconf_args(ns)
     _run_step_with_policy(manager, ns, "cppconf", args)
+
+
+def handle_preset_conf(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+    algorithms_dir = _discover_algorithms_dir(ns.algorithms_dir)
+    env = {"CP_ALGORITHMS_DIR": str(algorithms_dir)}
+
+    argv: List[str] = ["cmake", "--preset", ns.preset]
+    if ns.fresh:
+        argv.append("--fresh")
+
+    _run_external_step_with_policy(manager, ns, argv, env_overrides=env)
+
+
+def handle_preset_build(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+    if ns.jobs is not None and ns.jobs <= 0:
+        raise WorkflowError("--jobs must be a positive integer")
+
+    argv: List[str] = ["cmake", "--build", "--preset", ns.preset]
+    if ns.target:
+        argv.extend(["--target", ns.target])
+    if ns.jobs:
+        argv.extend(["-j", str(ns.jobs)])
+
+    _run_external_step_with_policy(manager, ns, argv)
 
 
 def handle_build(manager: WorkflowManager, ns: argparse.Namespace) -> None:
@@ -673,6 +826,15 @@ def _add_conf_options(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def _add_algorithms_dir_option(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--algorithms-dir",
+        type=Path,
+        default=None,
+        help="override centralized Algorithms directory path",
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
@@ -757,6 +919,45 @@ def build_parser() -> argparse.ArgumentParser:
     p = subparsers.add_parser("conf", help="run cppconf")
     _add_conf_options(p)
     p.set_defaults(handler=handle_conf)
+
+    p = subparsers.add_parser(
+        "preset-conf",
+        help="configure with centralized CMake presets (cmake --preset ...)",
+    )
+    p.add_argument(
+        "--preset",
+        choices=CMAKE_CONFIG_PRESET_CHOICES,
+        default="cp-debug-gcc",
+    )
+    p.add_argument(
+        "--fresh",
+        action="store_true",
+        help="pass --fresh to cmake preset configure",
+    )
+    _add_algorithms_dir_option(p)
+    p.set_defaults(handler=handle_preset_conf)
+
+    p = subparsers.add_parser(
+        "preset-build",
+        help="build with centralized CMake build presets (cmake --build --preset ...)",
+    )
+    p.add_argument(
+        "--preset",
+        choices=CMAKE_BUILD_PRESET_CHOICES,
+        default="cp-build-debug-gcc",
+    )
+    p.add_argument(
+        "--target",
+        default=None,
+        help="optional build target name",
+    )
+    p.add_argument(
+        "--jobs",
+        type=int,
+        default=None,
+        help="parallel build jobs",
+    )
+    p.set_defaults(handler=handle_preset_build)
 
     # Build/run/test.
     p = subparsers.add_parser("build", help="run cppbuild")

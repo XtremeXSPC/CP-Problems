@@ -1,0 +1,117 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 20,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "cp-base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS": "-std=c++23",
+        "CP_ENABLE_TIMING": "OFF",
+        "CP_FORCE_PCH_REBUILD": "OFF"
+      }
+    },
+    {
+      "name": "cp-gcc-base",
+      "hidden": true,
+      "inherits": "cp-base",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "$env{CP_ALGORITHMS_DIR}/gcc-toolchain.cmake"
+      }
+    },
+    {
+      "name": "cp-clang-base",
+      "hidden": true,
+      "inherits": "cp-base",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "$env{CP_ALGORITHMS_DIR}/clang-toolchain.cmake"
+      }
+    },
+    {
+      "name": "cp-debug-gcc",
+      "inherits": "cp-gcc-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CP_ENABLE_PCH": "ON"
+      }
+    },
+    {
+      "name": "cp-release-gcc",
+      "inherits": "cp-gcc-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CP_ENABLE_PCH": "OFF"
+      }
+    },
+    {
+      "name": "cp-sanitize-gcc",
+      "inherits": "cp-gcc-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Sanitize",
+        "CP_ENABLE_PCH": "OFF"
+      }
+    },
+    {
+      "name": "cp-debug-clang",
+      "inherits": "cp-clang-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CP_ENABLE_PCH": "ON"
+      }
+    },
+    {
+      "name": "cp-release-clang",
+      "inherits": "cp-clang-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CP_ENABLE_PCH": "OFF",
+        "CP_ENABLE_LTO": "ON"
+      }
+    },
+    {
+      "name": "cp-sanitize-clang",
+      "inherits": "cp-clang-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Sanitize",
+        "CP_ENABLE_PCH": "OFF"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "cp-build-debug-gcc",
+      "configurePreset": "cp-debug-gcc",
+      "jobs": 0
+    },
+    {
+      "name": "cp-build-release-gcc",
+      "configurePreset": "cp-release-gcc",
+      "jobs": 0
+    },
+    {
+      "name": "cp-build-sanitize-gcc",
+      "configurePreset": "cp-sanitize-gcc",
+      "jobs": 0
+    },
+    {
+      "name": "cp-build-debug-clang",
+      "configurePreset": "cp-debug-clang",
+      "jobs": 0
+    },
+    {
+      "name": "cp-build-release-clang",
+      "configurePreset": "cp-release-clang",
+      "jobs": 0
+    },
+    {
+      "name": "cp-build-sanitize-clang",
+      "configurePreset": "cp-sanitize-clang",
+      "jobs": 0
+    }
+  ]
+}
