@@ -22,7 +22,7 @@ void solve() {
 
   Vec<std::unordered_map<I64, I64>> dp(n);
 
-  auto ext = [&](auto& self, I32 v, I64 need) -> I64 {
+  auto ext = [&dp, &adj, &a](auto& self, I32 v, I64 need) -> I64 {
     if (need > MAXVAL) return 0;
     auto it = dp[v].find(need);
     if (it != dp[v].end()) return it->second;

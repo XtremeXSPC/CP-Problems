@@ -10,7 +10,8 @@ void solve() {
   LL(n);
   VEC(I64, a, n);
 
-  VLL odds, evens;
+  VLL odds;
+  VLL evens;
   for (auto x : a) {
     if (x & 1) odds.pb(x);
     else evens.pb(x);
@@ -18,7 +19,8 @@ void solve() {
 
   sort(rall(evens));
 
-  I64 m = sz(odds), p = sz(evens);
+  auto m = sz(odds);
+  auto p = sz(evens);
   I64 max_odd = m > 0 ? *max_element(all(odds)) : 0;
 
   // Prefix sums of even coins (sorted descending).
