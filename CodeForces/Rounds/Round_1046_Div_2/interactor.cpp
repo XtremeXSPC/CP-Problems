@@ -8,8 +8,8 @@
 //===----------------------------------------------------------------------===//
 /* Included library */
 
-#include "../../Algorithms/PCH.h"
-#include "../../Algorithms/testlib.h"
+#include "algorithms/PCH.h"
+#include "../../Algorithms/libs/testlib.h"
 
 using namespace std;
 
