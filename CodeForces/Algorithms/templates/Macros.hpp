@@ -69,9 +69,9 @@ auto make_vec4(std::size_t n1, std::size_t n2, std::size_t n3, std::size_t n4, c
 #define FOR(...) overload4(__VA_ARGS__, FOR4, FOR3, FOR2, FOR1)(__VA_ARGS__)
 #define FOR_R(...) overload3(__VA_ARGS__, FOR3_R, FOR2_R, FOR1_R)(__VA_ARGS__)
 
-// Range-based iteration:
-#define REP(i, n) for (I64 i = 0, _rep_n = static_cast<I64>(n); i < _rep_n; ++i)
-#define RREP(i, n) for (I64 i = static_cast<I64>(n) - 1; i >= 0; --i)
+// Range-based iteration (deprecated -- use FOR/FOR_R and all/rall instead):
+#define REP(i, n) _Pragma("GCC warning \"REP is deprecated, use FOR(i, n)\"") for (I64 i = 0, _rep_n = static_cast<I64>(n); i < _rep_n; ++i)
+#define RREP(i, n) _Pragma("GCC warning \"RREP is deprecated, use FOR_R(i, n)\"") for (I64 i = static_cast<I64>(n) - 1; i >= 0; --i)
 #define ALL(x) std::ranges::begin(x), std::ranges::end(x)
 #define RALL(x) std::ranges::rbegin(x), std::ranges::rend(x)
 
@@ -82,10 +82,11 @@ auto make_vec4(std::size_t n1, std::size_t n2, std::size_t n3, std::size_t n4, c
 #define len(x) sz(x)
 #define pb push_back
 #define eb emplace_back
-#define mp make_pair
-#define mt make_tuple
 #define fi first
 #define se second
+// mp/mt are obsolete with C++17 CTAD -- prefer brace init or direct construction.
+#define mp make_pair
+#define mt make_tuple
 #define elif else if
 
 // Advanced container operations:

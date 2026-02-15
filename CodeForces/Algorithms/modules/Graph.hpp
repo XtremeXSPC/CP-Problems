@@ -413,6 +413,172 @@ struct Dinic {
 };
 
 /**
+ * @brief Min-Cost Max-Flow via Successive Shortest Paths with SPFA.
+ * @tparam Cap Capacity type.
+ * @tparam Cost Cost type.
+ *
+ * Handles negative edge costs correctly via Bellman-Ford (SPFA).
+ */
+template <typename Cap = I64, typename Cost = I64>
+struct MCMF {
+  struct Edge {
+    I32 to, rev;
+    Cap cap;
+    Cost cost;
+  };
+
+  I32 n;
+  Vec<Vec<Edge>> g;
+  Vec<Cost> dist;
+  VI prev_v, prev_e;
+  VB in_queue;
+
+  MCMF(I32 n) : n(n), g(n), dist(n), prev_v(n), prev_e(n), in_queue(n) {}
+
+  /**
+   * @brief Adds a directed edge with capacity and cost (and reverse with 0 cap, -cost).
+   */
+  void add_edge(I32 from, I32 to, Cap cap, Cost cost) {
+    g[from].push_back({to, (I32)g[to].size(), cap, cost});
+    g[to].push_back({from, (I32)g[from].size() - 1, 0, -cost});
+  }
+
+  /**
+   * @brief SPFA shortest path from s to t in the residual graph.
+   */
+  bool spfa(I32 s, I32 t) {
+    std::fill(all(dist), infinity<Cost>);
+    std::fill(all(in_queue), false);
+    dist[s] = 0;
+    Queue<I32> que;
+    que.push(s);
+    in_queue[s] = true;
+
+    while (!que.empty()) {
+      I32 v = que.front(); que.pop();
+      in_queue[v] = false;
+      FOR(i, (I64)g[v].size()) {
+        auto& e = g[v][i];
+        if (e.cap > 0 && dist[v] + e.cost < dist[e.to]) {
+          dist[e.to] = dist[v] + e.cost;
+          prev_v[e.to] = v;
+          prev_e[e.to] = (I32)i;
+          if (!in_queue[e.to]) {
+            que.push(e.to);
+            in_queue[e.to] = true;
+          }
+        }
+      }
+    }
+    return dist[t] < infinity<Cost>;
+  }
+
+  /**
+   * @brief Computes min-cost flow up to max_flow units from s to t.
+   * @return {total_flow, total_cost}.
+   */
+  P<Cap, Cost> min_cost_flow(I32 s, I32 t, Cap max_flow) {
+    Cap flow = 0;
+    Cost cost = 0;
+    while (flow < max_flow && spfa(s, t)) {
+      // Find bottleneck along shortest path
+      Cap d = max_flow - flow;
+      for (I32 v = t; v != s; v = prev_v[v]) {
+        d = std::min(d, g[prev_v[v]][prev_e[v]].cap);
+      }
+      // Augment along path
+      for (I32 v = t; v != s; v = prev_v[v]) {
+        auto& e = g[prev_v[v]][prev_e[v]];
+        e.cap -= d;
+        g[v][e.rev].cap += d;
+      }
+      flow += d;
+      cost += d * dist[t];
+    }
+    return {flow, cost};
+  }
+};
+
+/**
+ * @brief Hopcroft-Karp maximum bipartite matching.
+ *
+ * O(E * sqrt(V)) complexity.
+ * Left vertices: [0, left_size), Right vertices: [0, right_size).
+ */
+struct BipartiteMatching {
+  I32 left_sz, right_sz;
+  Vec<VI> adj;
+  VI match_left, match_right, dist_left;
+
+  BipartiteMatching(I32 left_size, I32 right_size)
+      : left_sz(left_size), right_sz(right_size), adj(left_size),
+        match_left(left_size, -1), match_right(right_size, -1), dist_left(left_size) {}
+
+  /**
+   * @brief Adds an edge from left vertex u to right vertex v.
+   */
+  void add_edge(I32 u, I32 v) { adj[u].push_back(v); }
+
+  /**
+   * @brief BFS phase: builds layered graph of free left vertices.
+   */
+  bool bfs() {
+    Queue<I32> que;
+    FOR(u, left_sz) {
+      if (match_left[u] == -1) {
+        dist_left[u] = 0;
+        que.push(u);
+      } else {
+        dist_left[u] = infinity<I32>;
+      }
+    }
+    bool found = false;
+    while (!que.empty()) {
+      I32 u = que.front(); que.pop();
+      for (I32 v : adj[u]) {
+        I32 w = match_right[v];
+        if (w == -1) {
+          found = true;
+        } else if (dist_left[w] == infinity<I32>) {
+          dist_left[w] = dist_left[u] + 1;
+          que.push(w);
+        }
+      }
+    }
+    return found;
+  }
+
+  /**
+   * @brief DFS phase: finds augmenting path from left vertex u.
+   */
+  bool dfs(I32 u) {
+    for (I32 v : adj[u]) {
+      I32 w = match_right[v];
+      if (w == -1 || (dist_left[w] == dist_left[u] + 1 && dfs(w))) {
+        match_left[u] = v;
+        match_right[v] = u;
+        return true;
+      }
+    }
+    dist_left[u] = infinity<I32>;
+    return false;
+  }
+
+  /**
+   * @brief Computes maximum matching size.
+   */
+  I32 max_matching() {
+    I32 result = 0;
+    while (bfs()) {
+      FOR(u, left_sz) {
+        if (match_left[u] == -1 && dfs(u)) ++result;
+      }
+    }
+    return result;
+  }
+};
+
+/**
  * @brief Disjoint Set Union (Union-Find) with union by rank + path compression.
  */
 struct DSU {
@@ -602,6 +768,69 @@ struct LCA {
    */
   I32 distance(I32 u, I32 v) {
     return depth[u] + depth[v] - 2 * depth[query(u, v)];
+  }
+};
+
+/**
+ * @brief Euler Tour decomposition of a rooted tree.
+ * @tparam Weight Edge weight type.
+ *
+ * Iterative DFS to avoid stack overflow on large trees (n up to 10^6).
+ * Provides discovery/finish times, DFS order, depths, and parent array.
+ */
+template <typename Weight = I64>
+struct EulerTour {
+  I32 n, timer;
+  VI tin, tout, order, depth, parent;
+
+  /**
+   * @brief Builds Euler Tour from the given tree rooted at root.
+   * @param g Input tree.
+   * @param root Root vertex (default 0).
+   */
+  EulerTour(const Graph<Weight>& g, I32 root = 0)
+      : n(g.n), timer(0), tin(n, -1), tout(n, -1), depth(n, 0), parent(n, -1) {
+    order.reserve(n);
+    // Iterative DFS using explicit stack of (vertex, edge_index).
+    Stack<PII> stk;
+    stk.push({root, 0});
+    tin[root] = timer++;
+    order.push_back(root);
+
+    while (!stk.empty()) {
+      auto& [v, ei] = stk.top();
+      bool found = false;
+      while (ei < (I32)g.adj[v].size()) {
+        I32 to = g.adj[v][ei].to;
+        ++ei;
+        if (to == parent[v]) continue;
+        parent[to] = v;
+        depth[to] = depth[v] + 1;
+        tin[to] = timer++;
+        order.push_back(to);
+        stk.push({to, 0});
+        found = true;
+        break;
+      }
+      if (!found) {
+        tout[v] = timer;
+        stk.pop();
+      }
+    }
+  }
+
+  /**
+   * @brief Checks if u is an ancestor of v (inclusive).
+   */
+  bool is_ancestor(I32 u, I32 v) const {
+    return tin[u] <= tin[v] && tout[v] <= tout[u];
+  }
+
+  /**
+   * @brief Returns half-open subtree range [tin[v], tout[v]) in DFS order.
+   */
+  PII subtree_range(I32 v) const {
+    return {tin[v], tout[v]};
   }
 };
 

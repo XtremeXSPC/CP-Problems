@@ -384,6 +384,47 @@ struct Circle {
 };
 
 /**
+ * @brief Circle through two points (diameter).
+ */
+template <typename T>
+Circle<T> circle_from_two(const Point2D<T>& a, const Point2D<T>& b) {
+  Point2D<T> center((a.x + b.x) / 2, (a.y + b.y) / 2);
+  return Circle<T>(center, (a - b).norm() / 2);
+}
+
+/**
+ * @brief Minimum enclosing circle via Welzl's randomized incremental algorithm.
+ * @param points Input points (taken by value for internal shuffle).
+ * @return Smallest circle containing all points. O(n) expected time.
+ */
+template <typename T>
+Circle<T> min_enclosing_circle(Vec<Point2D<T>> points) {
+  static_assert(std::is_floating_point_v<T>, "min_enclosing_circle requires floating-point type");
+
+  I32 n = (I32)points.size();
+  if (n == 0) return Circle<T>();
+  if (n == 1) return Circle<T>(points[0], 0);
+
+  std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
+  std::shuffle(all(points), rng);
+
+  Circle<T> c(points[0], 0);
+  FOR(i, 1, n) {
+    if (c.contains(points[i])) continue;
+    c = Circle<T>(points[i], 0);
+    FOR(j, i) {
+      if (c.contains(points[j])) continue;
+      c = circle_from_two(points[i], points[j]);
+      FOR(k, j) {
+        if (c.contains(points[k])) continue;
+        c = Circle<T>::from_points(points[i], points[j], points[k]);
+      }
+    }
+  }
+  return c;
+}
+
+/**
  * @brief 3D point/vector primitive.
  */
 template <typename T = F64>
