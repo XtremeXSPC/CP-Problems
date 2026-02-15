@@ -1,0 +1,26 @@
+{
+  "round_dir": "/Volumes/LCS.Data/CP-Problems/CodeForces/Rounds/Round_1047_Div_3",
+  "target": "problem_A",
+  "compiler": "gcc",
+  "threshold_sec": 1.0,
+  "pch_on": {
+    "configure_sec": 1.188,
+    "cold_build_sec": 4.73,
+    "incremental_build_sec": 0.867,
+    "reconfigure_sec": 0.104,
+    "post_reconfigure_build_sec": 4.834
+  },
+  "pch_off": {
+    "configure_sec": 1.07,
+    "cold_build_sec": 2.304,
+    "incremental_build_sec": 2.428,
+    "reconfigure_sec": 0.11,
+    "post_reconfigure_build_sec": 1.651
+  },
+  "delta": {
+    "incremental_gain_sec": 1.561,
+    "cold_penalty_sec": 2.426,
+    "post_reconfigure_penalty_sec": 3.183
+  },
+  "recommendation": "keep_default_pch"
+}
