@@ -65,7 +65,7 @@
       "binaryDir": "${sourceDir}/build/clang/debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "CP_ENABLE_PCH": "ON"
+        "CP_ENABLE_PCH": "OFF"
       }
     },
     {
