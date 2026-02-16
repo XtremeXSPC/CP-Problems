@@ -84,8 +84,3 @@ python3 /Volumes/LCS.Data/CP-Problems/CodeForces/Algorithms/scripts/workflow_man
   `CodeForces/Algorithms/cmake/PCHBenchmarkResult.json`
 - Notes and operational guidance:
   `CodeForces/Algorithms/cmake/PCHBenchmark.md`
-
-## Next Phase (recommended)
-
-- Update `cpp-tools` template generation so new rounds are created directly with the thin `CMakeLists.txt`.
-- Reduce first-build-after-reconfigure latency (item 7.1) without sacrificing Debug incremental speed.
