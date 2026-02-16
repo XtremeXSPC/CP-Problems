@@ -24,11 +24,13 @@ THIN_PRESETS = """{
 
 
 def _backup_name(path: Path) -> Path:
+    """Build a timestamped backup filename next to the original file."""
     stamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
     return path.with_name(f"{path.name}.bak-centralized-{stamp}")
 
 
 def _iter_round_dirs(rounds_root: Path, explicit_rounds: List[str]) -> Iterable[Path]:
+    """Yield round directories eligible for preset wrapper migration."""
     if explicit_rounds:
         for name in explicit_rounds:
             round_dir = rounds_root / name
@@ -47,6 +49,7 @@ def _iter_round_dirs(rounds_root: Path, explicit_rounds: List[str]) -> Iterable[
 
 
 def main() -> int:
+    """Rewrite round CMakePresets files as thin includes of central presets."""
     parser = argparse.ArgumentParser(
         description=(
             "Write thin round-level CMakePresets.json files that include the centralized presets."

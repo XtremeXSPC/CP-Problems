@@ -62,5 +62,5 @@ EOF
 
 # Execute if called directly.
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    generate_template "$1"
+    generate_template "${1:-}"
 fi

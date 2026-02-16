@@ -8,4 +8,5 @@ __all__ = [
     "runner",
     "types",
     "utils",
+    "workflows",
 ]

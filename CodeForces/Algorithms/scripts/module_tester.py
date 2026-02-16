@@ -96,6 +96,7 @@ BENCHMARK_CANDIDATES = [
 
 class ModuleTester:
     def __init__(self, templates_dir: Path):
+        """Initialize tester state, compiler selection, and NEED_* discovery."""
         self.templates_dir = templates_dir
         self.test_results: List[Dict] = []
         self.config = self.load_config()
@@ -199,10 +200,12 @@ class ModuleTester:
             Path(temp_file).unlink(missing_ok=True)
 
     def _record(self, payload: Dict) -> None:
+        """Store one test result payload with a timestamp."""
         payload["timestamp"] = datetime.now().isoformat()
         self.test_results.append(payload)
 
     def _available_candidates(self, candidates):
+        """Filter candidate macro sets to those supported by current templates."""
         available = set(self.need_macros)
         filtered = []
         seen = set()
@@ -332,6 +335,11 @@ class ModuleTester:
 
         passed = sum(1 for r in self.test_results if r.get("success", False))
         total = len(self.test_results)
+        if total == 0:
+            print("\n" + "=" * 50)
+            print("SUMMARY: 0 tests executed (treating as failure)")
+            print("=" * 50)
+            return False
         print("\n" + "=" * 50)
         print(f"SUMMARY: {passed}/{total} tests passed")
         print("=" * 50)
@@ -339,6 +347,7 @@ class ModuleTester:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build CLI parser for module test execution."""
     parser = argparse.ArgumentParser(
         description="Compile-test CP template NEED_* modules."
     )
@@ -359,6 +368,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """Run module tests and exit with a CI-friendly status code."""
     parser = build_parser()
     args = parser.parse_args()
 

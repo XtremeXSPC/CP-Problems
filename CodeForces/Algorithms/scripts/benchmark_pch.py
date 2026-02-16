@@ -25,6 +25,7 @@ def _run_command(
     env: Dict[str, str],
     verbose: bool,
 ) -> float:
+    """Run a command and return wall-clock duration in seconds."""
     if verbose:
         print(f"[bench] {' '.join(argv)}")
 
@@ -52,6 +53,7 @@ def _run_command(
 
 
 def _discover_target(round_dir: Path) -> str:
+    """Pick a default target from round sources when none is provided."""
     candidates = sorted(
         p for p in round_dir.glob("*.cpp") if "template" not in p.name.lower()
     )
@@ -61,11 +63,13 @@ def _discover_target(round_dir: Path) -> str:
 
 
 def _write_touch_marker(source_file: Path, marker: str) -> None:
+    """Append a marker comment to force an incremental rebuild."""
     with source_file.open("a", encoding="utf-8") as fh:
         fh.write(f"\n// {marker}\n")
 
 
 def _write_new_target(round_dir: Path, target_name: str) -> None:
+    """Create a minimal benchmark source file for post-reconfigure timing."""
     source = round_dir / f"{target_name}.cpp"
     source.write_text(
         "#include <bits/stdc++.h>\n"
@@ -86,6 +90,7 @@ def _benchmark_mode(
     algorithms_dir: Path,
     verbose: bool,
 ) -> Dict[str, float]:
+    """Measure configure/build timings for one PCH mode."""
     env = os.environ.copy()
     env["CP_ALGORITHMS_DIR"] = str(algorithms_dir)
     env["CCACHE_DISABLE"] = "1"
@@ -171,6 +176,7 @@ def _build_result(
     on_metrics: Dict[str, float],
     off_metrics: Dict[str, float],
 ) -> Dict[str, object]:
+    """Assemble benchmark output payload and recommendation."""
     incremental_gain_sec = round(
         off_metrics["incremental_build_sec"] - on_metrics["incremental_build_sec"],
         3,
@@ -208,6 +214,7 @@ def _build_result(
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse benchmark CLI arguments."""
     parser = argparse.ArgumentParser(
         description="Benchmark PCH value for CP round builds (Debug presets)."
     )
@@ -254,6 +261,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    """Execute PCH benchmark workflow and emit JSON output."""
     ns = parse_args()
     round_dir = ns.round_dir.expanduser().resolve()
     algorithms_dir = ns.algorithms_dir.expanduser().resolve()
@@ -293,11 +301,13 @@ def main() -> int:
 
     print(json.dumps(result, ensure_ascii=False, indent=2))
     if ns.json_out is not None:
-        ns.json_out.write_text(
+        json_out = ns.json_out.expanduser()
+        json_out.parent.mkdir(parents=True, exist_ok=True)
+        json_out.write_text(
             json.dumps(result, ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",
         )
-        print(f"[bench] wrote {ns.json_out}")
+        print(f"[bench] wrote {json_out}")
 
     return 0
 

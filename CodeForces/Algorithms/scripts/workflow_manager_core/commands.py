@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Iterable, List, Optional
@@ -24,13 +23,15 @@ from .orchestration import (
     run_external_step_with_policy,
     run_step_with_policy,
 )
-from .types import WorkflowCommandError, WorkflowError
+from .types import WorkflowError
 from .utils import (
     discover_algorithms_dir,
     normalize_contest_dir,
     normalize_input_name,
     normalize_target,
 )
+from .workflows import handle_cycle as _handle_cycle
+from .workflows import handle_doctor as _handle_doctor
 
 ParserConfigurator = Callable[[argparse.ArgumentParser], None]
 CommandHandler = Callable[[WorkflowManager, argparse.Namespace], None]
@@ -49,6 +50,7 @@ class CommandSpec:
 def _add_target_arg(
     parser: argparse.ArgumentParser, required: bool = False, name: str = "target"
 ) -> None:
+    """Attach a normalized target argument to a subparser."""
     parser.add_argument(
         name,
         nargs=None if required else "?",
@@ -58,6 +60,7 @@ def _add_target_arg(
 
 
 def _add_conf_options(parser: argparse.ArgumentParser) -> None:
+    """Attach shared `cppconf` options."""
     parser.add_argument("--build-type", choices=BUILD_TYPE_CHOICES)
     parser.add_argument("--compiler", choices=COMPILER_CHOICES)
     parser.add_argument("--timing", choices=TOGGLE_CHOICES)
@@ -72,6 +75,7 @@ def _add_conf_options(parser: argparse.ArgumentParser) -> None:
 
 
 def _add_algorithms_dir_option(parser: argparse.ArgumentParser) -> None:
+    """Attach optional centralized Algorithms directory override."""
     parser.add_argument(
         "--algorithms-dir",
         type=Path,
@@ -81,22 +85,27 @@ def _add_algorithms_dir_option(parser: argparse.ArgumentParser) -> None:
 
 
 def _no_args(_: argparse.Namespace) -> List[str]:
+    """Return an empty argument vector."""
     return []
 
 
 def _target_args(ns: argparse.Namespace) -> List[str]:
+    """Build args containing an optional target name."""
     return [ns.target] if ns.target else []
 
 
 def _build_args(ns: argparse.Namespace) -> List[str]:
+    """Build args for `cppbuild`."""
     return _target_args(ns)
 
 
 def _run_args(ns: argparse.Namespace) -> List[str]:
+    """Build args for `cpprun`."""
     return _target_args(ns)
 
 
 def _go_args(ns: argparse.Namespace) -> List[str]:
+    """Build args for `cppgo`."""
     args: List[str] = []
     if ns.force:
         args.append("--force")
@@ -108,6 +117,7 @@ def _go_args(ns: argparse.Namespace) -> List[str]:
 
 
 def _forcego_args(ns: argparse.Namespace) -> List[str]:
+    """Build args for force-run flow."""
     args: List[str] = ["--force"]
     if ns.target:
         args.append(ns.target)
@@ -115,6 +125,7 @@ def _forcego_args(ns: argparse.Namespace) -> List[str]:
 
 
 def _stress_args(ns: argparse.Namespace) -> List[str]:
+    """Build args for `cppstress`."""
     args: List[str] = []
     if ns.target:
         args.append(ns.target)
@@ -124,6 +135,7 @@ def _stress_args(ns: argparse.Namespace) -> List[str]:
 
 
 def _submit_args(ns: argparse.Namespace) -> List[str]:
+    """Build args for `cppsubmit`."""
     args: List[str] = []
     if getattr(ns, "strict", False):
         args.append("--strict")
@@ -133,6 +145,7 @@ def _submit_args(ns: argparse.Namespace) -> List[str]:
 
 
 def _test_submit_args(ns: argparse.Namespace) -> List[str]:
+    """Build args for `cpptestsubmit`."""
     args: List[str] = []
     if ns.strict:
         args.append("--strict")
@@ -146,6 +159,7 @@ def _test_submit_args(ns: argparse.Namespace) -> List[str]:
 
 
 def _full_args(ns: argparse.Namespace) -> List[str]:
+    """Build args for `cppfull`."""
     args: List[str] = []
     if ns.target:
         args.append(ns.target)
@@ -155,14 +169,17 @@ def _full_args(ns: argparse.Namespace) -> List[str]:
 
 
 def _new_args(ns: argparse.Namespace) -> List[str]:
+    """Build args for `cppnew`."""
     return [ns.name, ns.template]
 
 
 def _batch_args(ns: argparse.Namespace) -> List[str]:
+    """Build args for `cppbatch`."""
     return [str(ns.count), ns.template]
 
 
 def _delete_args(ns: argparse.Namespace) -> List[str]:
+    """Build args for `cppdelete`."""
     args: List[str] = []
     if ns.yes:
         args.append("-y")
@@ -173,10 +190,12 @@ def _delete_args(ns: argparse.Namespace) -> List[str]:
 
 
 def _conf_args(ns: argparse.Namespace) -> List[str]:
+    """Build args for `cppconf`."""
     return build_cppconf_args(ns)
 
 
 def _skip_new_if_missing(manager: WorkflowManager, ns: argparse.Namespace) -> bool:
+    """Skip `cppnew` when `--if-missing` is enabled and target exists."""
     target_file = manager.runner.cwd / f"{ns.name}.cpp"
     if ns.if_missing and target_file.exists():
         manager.note(f"[workflow] {target_file.name} already exists, skipping cppnew")
@@ -185,6 +204,7 @@ def _skip_new_if_missing(manager: WorkflowManager, ns: argparse.Namespace) -> bo
 
 
 def _require_deepclean_yes(_: WorkflowManager, ns: argparse.Namespace) -> bool:
+    """Validate explicit confirmation for destructive deepclean."""
     if not ns.yes:
         raise WorkflowError("deepclean is destructive; pass --yes to confirm")
     return False
@@ -197,7 +217,9 @@ def _cpp_handler(
     pre_hook: Optional[PreHook] = None,
     auto_confirm_deepclean: bool = False,
 ) -> CommandHandler:
+    """Create a command handler delegating to one cpp-tools function."""
     def _handler(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+        """Execute optional pre-hook then run wrapped cpp-tools function."""
         if pre_hook is not None and pre_hook(manager, ns):
             return
         run_step_with_policy(
@@ -212,6 +234,7 @@ def _cpp_handler(
 
 
 def _handle_preset_conf(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+    """Run centralized CMake configure preset with proper environment wiring."""
     algorithms_dir = discover_algorithms_dir(ns.algorithms_dir)
     env = {"CP_ALGORITHMS_DIR": str(algorithms_dir)}
 
@@ -223,6 +246,7 @@ def _handle_preset_conf(manager: WorkflowManager, ns: argparse.Namespace) -> Non
 
 
 def _handle_preset_build(manager: WorkflowManager, ns: argparse.Namespace) -> None:
+    """Run centralized CMake build preset with optional target/jobs."""
     if ns.jobs is not None and ns.jobs <= 0:
         raise WorkflowError("--jobs must be a positive integer")
 
@@ -235,82 +259,13 @@ def _handle_preset_build(manager: WorkflowManager, ns: argparse.Namespace) -> No
     run_external_step_with_policy(manager, ns, argv)
 
 
-def _handle_doctor(manager: WorkflowManager, ns: argparse.Namespace) -> None:
-    manager.note(f"[workflow] cp-tools script: {manager.runner.script_path}")
-    manager.note(f"[workflow] cwd: {manager.runner.cwd}")
-    manager.note("[workflow] running diagnostics suite...")
-
-    timeout_tool = shutil.which("timeout") or shutil.which("gtimeout")
-    if timeout_tool:
-        manager.note(f"[workflow] timeout tool: {timeout_tool}")
-    else:
-        manager.note(
-            "[workflow] warning: neither timeout nor gtimeout found in PATH "
-            "(install coreutils if needed)."
-        )
-
-    run_step_with_policy(manager, ns, "cpphelp")
-    run_step_with_policy(manager, ns, "cppinfo")
-
-    diag_result = manager.run_cpp("cppdiag", check=False)
-    if diag_result.returncode != 0:
-        manager.note(f"[workflow] warning: cppdiag exited with {diag_result.returncode}")
-        if ns.strict:
-            raise WorkflowCommandError(diag_result)
-        diag_result.returncode = 0
-
-    run_step_with_policy(manager, ns, "cppcheck")
-
-
-def _handle_cycle(manager: WorkflowManager, ns: argparse.Namespace) -> None:
-    input_name = ns.input
-
-    if ns.configure:
-        run_step_with_policy(manager, ns, "cppconf", build_cppconf_args(ns))
-
-    if not ns.skip_new:
-        target_file = manager.runner.cwd / f"{ns.name}.cpp"
-        if ns.new_if_missing and target_file.exists():
-            manager.note(
-                f"[workflow] {target_file.name} already exists, skipping cppnew"
-            )
-        else:
-            run_step_with_policy(manager, ns, "cppnew", [ns.name, ns.template])
-
-    if not ns.skip_go:
-        go_args = [ns.name]
-        if input_name:
-            go_args.append(input_name)
-        run_step_with_policy(manager, ns, "cppgo", go_args)
-
-    if not ns.skip_judge:
-        run_step_with_policy(manager, ns, "cppjudge", [ns.name])
-
-    if not ns.skip_submit:
-        submit_args = [ns.name] if not ns.strict_submit else ["--strict", ns.name]
-        run_step_with_policy(manager, ns, "cppsubmit", submit_args)
-        if not ns.skip_submit_test:
-            test_args: List[str] = []
-            if ns.strict_submit:
-                test_args.append("--strict")
-            test_args.extend(["--no-generate", ns.name])
-            if input_name:
-                test_args.append(input_name)
-            run_step_with_policy(manager, ns, "cpptestsubmit", test_args)
-    elif not ns.skip_submit_test:
-        test_args = [ns.name]
-        if ns.strict_submit:
-            test_args.insert(0, "--strict")
-        if input_name:
-            test_args.append(input_name)
-        run_step_with_policy(manager, ns, "cpptestsubmit", test_args)
-
-
 def _configure_contest(parser: argparse.ArgumentParser) -> None:
+    """Configure parser for `contest` subcommand."""
     parser.add_argument("directory", type=normalize_contest_dir)
 
 
 def _configure_new(parser: argparse.ArgumentParser) -> None:
+    """Configure parser for `new` subcommand."""
     parser.add_argument("name", type=normalize_target)
     parser.add_argument("--template", choices=TEMPLATE_CHOICES, default="base")
     parser.add_argument(
@@ -321,21 +276,25 @@ def _configure_new(parser: argparse.ArgumentParser) -> None:
 
 
 def _configure_batch(parser: argparse.ArgumentParser) -> None:
+    """Configure parser for `batch` subcommand."""
     parser.add_argument("count", type=int)
     parser.add_argument("--template", choices=TEMPLATE_CHOICES, default="base")
 
 
 def _configure_delete(parser: argparse.ArgumentParser) -> None:
+    """Configure parser for `delete` subcommand."""
     parser.add_argument("names", nargs="+", type=normalize_target)
     parser.add_argument("-y", "--yes", action="store_true")
     parser.add_argument("--no-config", action="store_true")
 
 
 def _configure_conf(parser: argparse.ArgumentParser) -> None:
+    """Configure parser for `conf` subcommand."""
     _add_conf_options(parser)
 
 
 def _configure_preset_conf(parser: argparse.ArgumentParser) -> None:
+    """Configure parser for `preset-conf` subcommand."""
     parser.add_argument(
         "--preset",
         choices=CMAKE_CONFIG_PRESET_CHOICES,
@@ -350,6 +309,7 @@ def _configure_preset_conf(parser: argparse.ArgumentParser) -> None:
 
 
 def _configure_preset_build(parser: argparse.ArgumentParser) -> None:
+    """Configure parser for `preset-build` subcommand."""
     parser.add_argument(
         "--preset",
         choices=CMAKE_BUILD_PRESET_CHOICES,
@@ -360,10 +320,12 @@ def _configure_preset_build(parser: argparse.ArgumentParser) -> None:
 
 
 def _configure_target_optional(parser: argparse.ArgumentParser) -> None:
+    """Configure parser with optional target-only signature."""
     _add_target_arg(parser)
 
 
 def _configure_go(parser: argparse.ArgumentParser) -> None:
+    """Configure parser for `go` subcommand."""
     _add_target_arg(parser)
     parser.add_argument(
         "--force",
@@ -374,11 +336,13 @@ def _configure_go(parser: argparse.ArgumentParser) -> None:
 
 
 def _configure_stress(parser: argparse.ArgumentParser) -> None:
+    """Configure parser for `stress` subcommand."""
     _add_target_arg(parser)
     parser.add_argument("--iterations", type=int, default=None)
 
 
 def _configure_submit(parser: argparse.ArgumentParser) -> None:
+    """Configure parser for `submit` subcommand."""
     _add_target_arg(parser)
     parser.add_argument(
         "--strict",
@@ -388,6 +352,7 @@ def _configure_submit(parser: argparse.ArgumentParser) -> None:
 
 
 def _configure_test_submit(parser: argparse.ArgumentParser) -> None:
+    """Configure parser for `test-submit` subcommand."""
     _add_target_arg(parser)
     parser.add_argument("--input", type=normalize_input_name, help=INPUT_FILE_HELP)
     parser.add_argument(
@@ -399,15 +364,18 @@ def _configure_test_submit(parser: argparse.ArgumentParser) -> None:
 
 
 def _configure_full(parser: argparse.ArgumentParser) -> None:
+    """Configure parser for `full` subcommand."""
     _add_target_arg(parser)
     parser.add_argument("--input", type=normalize_input_name, help=INPUT_FILE_HELP)
 
 
 def _configure_deepclean(parser: argparse.ArgumentParser) -> None:
+    """Configure parser for `deepclean` subcommand."""
     parser.add_argument("--yes", action="store_true")
 
 
 def _configure_doctor(parser: argparse.ArgumentParser) -> None:
+    """Configure parser for `doctor` diagnostics subcommand."""
     parser.add_argument(
         "--strict",
         action="store_true",
@@ -416,6 +384,7 @@ def _configure_doctor(parser: argparse.ArgumentParser) -> None:
 
 
 def _configure_cycle(parser: argparse.ArgumentParser) -> None:
+    """Configure parser for the high-level `cycle` workflow."""
     parser.add_argument("name", type=normalize_target)
     parser.add_argument("--template", choices=TEMPLATE_CHOICES, default="base")
     parser.add_argument("--input", type=normalize_input_name, help=INPUT_FILE_HELP)

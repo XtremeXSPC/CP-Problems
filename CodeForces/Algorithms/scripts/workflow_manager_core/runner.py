@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Optional, Sequence
 
 from .constants import ALLOWED_FUNCTIONS
-from .types import CommandResult, WorkflowError
+from .types import CommandResult, WorkflowError, ensure_text, format_timeout_stderr
 
 
 class CppToolsRunner:
@@ -21,6 +21,7 @@ class CppToolsRunner:
         default_timeout: int,
         quiet_load: bool = True,
     ):
+        """Validate runtime prerequisites and cache immutable runner settings."""
         if shutil.which("zsh") is None:
             raise WorkflowError("zsh is required but was not found in PATH")
         if not cp_tools_script.is_file():
@@ -36,6 +37,7 @@ class CppToolsRunner:
 
     @staticmethod
     def _build_wrapper_script() -> str:
+        """Return the in-memory zsh wrapper enforcing allowlisted functions."""
         allowed_cases = "\n".join(
             f"  {name}) ;;" for name in sorted(ALLOWED_FUNCTIONS)
         )
@@ -68,6 +70,7 @@ class CppToolsRunner:
         timeout: Optional[int] = None,
         auto_confirm_deepclean: bool = False,
     ) -> CommandResult:
+        """Execute one cpp-tools function and return normalized command metadata."""
         if function not in ALLOWED_FUNCTIONS:
             raise WorkflowError(f"function not allowlisted: {function}")
 
@@ -115,7 +118,7 @@ class CppToolsRunner:
                 cwd=str(self.cwd),
                 returncode=124,
                 duration_ms=elapsed_ms,
-                stdout=exc.stdout or "",
-                stderr=(exc.stderr or "") + "\nCommand timed out.",
+                stdout=ensure_text(exc.stdout),
+                stderr=format_timeout_stderr(exc.stderr),
                 timed_out=True,
             )
