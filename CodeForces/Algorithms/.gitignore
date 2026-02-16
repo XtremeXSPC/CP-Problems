@@ -5,6 +5,4 @@ lib/
 compile_commands.json
 *.DS_Store
 CMakeLists.txt
-clang-toolchain.cmake
-gcc-toolchain.cmake
 reports/Audits/

@@ -15,22 +15,14 @@ include_guard(GLOBAL)
 set(USING_CLANG_FOR_SANITIZERS FALSE)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Sanitize" AND APPLE)
-  # On macOS, we prefer Clang for sanitizers due to better library support.
+  # On macOS, sanitizer workflows are supported only with Clang.
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang")
     set(USING_CLANG_FOR_SANITIZERS TRUE)
-    message(STATUS "${ANSI_COLOR_CYAN}Using Clang for Sanitize build on macOS (better sanitizer support)${ANSI_COLOR_RESET}")
+    message(STATUS "${ANSI_COLOR_CYAN}Using Clang for Sanitize build on macOS (required for sanitizer support)${ANSI_COLOR_RESET}")
   elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-    # Check if GCC has sanitizer support on this system.
-    include(CheckCXXCompilerFlag)
-    set(CMAKE_REQUIRED_FLAGS "-fsanitize=address")
-    check_cxx_compiler_flag("-fsanitize=address" HAS_ASAN)
-    unset(CMAKE_REQUIRED_FLAGS)
-
-    if(NOT HAS_ASAN)
-      message(WARNING
-        "${ANSI_COLOR_YELLOW}GCC on this macOS system lacks sanitizer support.\n"
-        "Consider using 'cppconf Sanitize clang' to use Clang for sanitizers.${ANSI_COLOR_RESET}")
-    endif()
+    message(FATAL_ERROR
+      "${ANSI_COLOR_RED}Sanitize + GCC is not supported on macOS in this toolchain setup.\n"
+      "Use Clang instead (for example: 'cppconf Sanitize clang' or preset 'cp-sanitize-clang').${ANSI_COLOR_RESET}")
   endif()
 elseif(NOT CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
   message(FATAL_ERROR "This project requires GCC or Clang. Found: ${CMAKE_CXX_COMPILER_ID}")

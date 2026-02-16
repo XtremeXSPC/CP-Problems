@@ -35,6 +35,7 @@
     {
       "name": "cp-debug-gcc",
       "inherits": "cp-gcc-base",
+      "binaryDir": "${sourceDir}/build/gcc/debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "CP_ENABLE_PCH": "ON"
@@ -43,6 +44,7 @@
     {
       "name": "cp-release-gcc",
       "inherits": "cp-gcc-base",
+      "binaryDir": "${sourceDir}/build/gcc/release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "CP_ENABLE_PCH": "OFF"
@@ -51,6 +53,7 @@
     {
       "name": "cp-sanitize-gcc",
       "inherits": "cp-gcc-base",
+      "binaryDir": "${sourceDir}/build/gcc/sanitize",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Sanitize",
         "CP_ENABLE_PCH": "OFF"
@@ -59,6 +62,7 @@
     {
       "name": "cp-debug-clang",
       "inherits": "cp-clang-base",
+      "binaryDir": "${sourceDir}/build/clang/debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "CP_ENABLE_PCH": "ON"
@@ -67,6 +71,7 @@
     {
       "name": "cp-release-clang",
       "inherits": "cp-clang-base",
+      "binaryDir": "${sourceDir}/build/clang/release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "CP_ENABLE_PCH": "OFF",
@@ -76,6 +81,7 @@
     {
       "name": "cp-sanitize-clang",
       "inherits": "cp-clang-base",
+      "binaryDir": "${sourceDir}/build/clang/sanitize",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Sanitize",
         "CP_ENABLE_PCH": "OFF"

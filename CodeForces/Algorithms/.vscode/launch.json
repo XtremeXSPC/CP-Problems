@@ -5,7 +5,7 @@
   // Notes:
   // - binary path is kept aligned with current CP build layout: ${workspaceFolder}/bin/<target>
   // - preLaunchTask names map to centralized tasks.json entries
-  // - sanitizer profile runs through dedicated sanitizer build task
+  // - sanitizer profiles run through dedicated OS-aware sanitizer tasks
   //===-------------------------------------------------------------------------===//
   "version": "0.2.0",
   "configurations": [
@@ -45,13 +45,13 @@
       ]
     },
     {
-      "name": "CP: Debug Active File (CodeLLDB, Sanitize Clang)",
+      "name": "CP: Debug Active File (CodeLLDB, Sanitize Auto OS)",
       "type": "lldb",
       "request": "launch",
       "program": "${workspaceFolder}/bin/${fileBasenameNoExtension}",
       "args": [],
       "cwd": "${workspaceFolder}",
-      "preLaunchTask": "Build: Active File (Sanitize, Clang)",
+      "preLaunchTask": "Build: Active File (Sanitize, Auto OS)",
       "sourceLanguages": ["cpp"],
       "terminal": "integrated",
       "stopOnEntry": false,
@@ -65,6 +65,56 @@
         "command script import ~/.lldb/LLDB_Formatters",
         "settings set target.inline-breakpoint-strategy always",
         "settings set target.prefer-dynamic-value run-target"
+      ]
+    },
+    {
+      "name": "CP: Debug Active File (GDB, Sanitize GCC Linux)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/bin/${fileBasenameNoExtension}",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "Build: Active File (Sanitize, GCC Linux Only)",
+      "environment": [
+        {
+          "name": "ASAN_OPTIONS",
+          "value": "detect_leaks=1:check_initialization_order=1:strict_init_order=1:detect_stack_use_after_return=1:halt_on_error=1"
+        },
+        {
+          "name": "UBSAN_OPTIONS",
+          "value": "print_stacktrace=1:halt_on_error=1"
+        },
+        {
+          "name": "LSAN_OPTIONS",
+          "value": "verbosity=1:log_threads=1"
+        },
+        {
+          "name": "TERM",
+          "value": "xterm-256color"
+        }
+      ],
+      "externalConsole": false,
+      "linux": {
+        "MIMode": "gdb",
+        "miDebuggerPath": "/usr/bin/gdb"
+      },
+      "setupCommands": [
+        {
+          "description": "Enable GDB pretty printing",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Prefer Intel disassembly flavor",
+          "text": "set disassembly-flavor intel",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Hide thread event noise",
+          "text": "set print thread-events off",
+          "ignoreFailures": true
+        }
       ]
     },
     {
