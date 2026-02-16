@@ -8,12 +8,12 @@
 
 void solve() {
   INT(n);
-  bool ok = false;
+  bool answer = false;
   FOR(n) {
     INT(x);
-    if (x == 67) ok = true;
+    if (x == 67) answer = true;
   }
-  YES(ok);
+  YES(answer);
 }
 
 //===----------------------------------------------------------------------===//

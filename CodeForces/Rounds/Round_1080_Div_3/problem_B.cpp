@@ -15,15 +15,15 @@ void solve() {
   INT(n);
   VEC(I32, a, n);
 
-  bool ok = true;
+  bool answer = true;
   FOR(i, n) {
     if (odd_part(i + 1) != odd_part(a[i])) {
-      ok = false;
+      answer = false;
       break;
     }
   }
 
-  YES(ok);
+  YES(answer);
 }
 
 //===----------------------------------------------------------------------===//
