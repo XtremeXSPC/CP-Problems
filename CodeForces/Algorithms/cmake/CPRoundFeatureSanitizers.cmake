@@ -29,12 +29,10 @@ elseif(NOT CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
 elseif(CMAKE_BUILD_TYPE STREQUAL "Sanitize" AND CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang")
   set(USING_CLANG_FOR_SANITIZERS TRUE)
   message(STATUS "${ANSI_COLOR_CYAN}Using Clang for Sanitize build${ANSI_COLOR_RESET}")
-elseif(NOT CMAKE_BUILD_TYPE STREQUAL "Sanitize" AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  # Only show warning for non-Apple systems when using non-GCC for non-Sanitize builds.
-  message(WARNING
-    "${ANSI_COLOR_YELLOW}Non-GCC compiler detected for non-Sanitize build.\n"
-    "Detected compiler: ${CMAKE_CXX_COMPILER_ID}\n"
-    "Some features like <bits/stdc++.h> may not be available.${ANSI_COLOR_RESET}")
+elseif(NOT CMAKE_BUILD_TYPE STREQUAL "Sanitize" AND CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang")
+  # Clang debug/release builds are valid; avoid noisy warnings on Linux.
+  message(STATUS
+    "${ANSI_COLOR_CYAN}Using Clang for non-Sanitize build (${CMAKE_CXX_COMPILER_ID}).${ANSI_COLOR_RESET}")
 endif()
 
 # ============================================================================ #

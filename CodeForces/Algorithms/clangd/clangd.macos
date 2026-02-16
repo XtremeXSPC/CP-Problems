@@ -2,50 +2,47 @@
 
 CompileFlags:
   Add:
-    # Target architecture for Apple Silicon
-    - --target=arm64-apple-darwin
-
-    # Force C++ compilation
+    # Force C++ compilation.
     - -xc++
 
-    # C++23 standard with optimization and debug flags
+    # Keep fallback parsing on modern C++ when no compilation DB entry exists.
     - -std=c++23
+
+  Remove:
+    # Remove problematic Clang flags that vary by platform.
+    - -stdlib=*
+    - -fcolor-diagnostics
+    # Remove platform-specific toolchain flags.
+    - --gcc-toolchain=*
+
+    # Neutralize legacy/global flags that can leak from user-level config.
     - -O2
     - -DLOCAL=1
-
-    # Enable debug mode, disable debug info for faster compilation
+    - -D__GNUC__=15
     - -DDEBUG
     - -g0
 
-    # Cross-platform GCC compatibility
-    - -D__GNUC__=15
-
-  Remove:
-    # Remove problematic Clang flags that vary by platform
-    - -stdlib=*
-    - -fcolor-diagnostics
-    # Remove platform-specific toolchain flags
-    - --gcc-toolchain=*
-
-  Compiler: clang++
+    # Avoid GCC-PCH specific options in clangd parsing context.
+    - -Winvalid-pch
+    - -include
 
 Diagnostics:
-  # Suppress diagnostics from system and standard library files
+  # Suppress diagnostics from system and standard library files.
   Suppress:
-    # Suppress unsupported types warning
+    # Suppress unsupported types warning.
     - type_unsupported
 
-    # macOS specific paths
+    # macOS specific paths.
     - "^/opt/homebrew/.*"
     - "^/usr/local/.*"
     - "^/System/.*"
     - "^/Applications/Xcode.app/.*"
 
-    # Generic system paths
+    # Generic system paths.
     - "^/opt/.*"
     - "^/snap/.*"
 
-    # Standard library internals (platform-independent)
+    # Standard library internals (platform-independent).
     - ".*bits/.*"
     - ".*ext/.*"
     - ".*__.*"
@@ -58,18 +55,18 @@ Diagnostics:
     - ".*string.*"
     - ".*memory.*"
 
-    # C++ standard library patterns
+    # C++ standard library patterns.
     - ".*stdc\\+\\+.*"
     - ".*c\\+\\+/.*"
     - ".*libstdc\\+\\+.*"
     - ".*libc\\+\\+.*"
 
-    # Compiler-specific internals
+    # Compiler-specific internals.
     - ".*clang/.*"
     - ".*gcc/.*"
     - ".*gnu/.*"
 
-    # Common warnings to suppress for fast development
+    # Common warnings to suppress for fast development.
     - unknown-pragmas
     - unused-includes
     - unused-const-variable
@@ -78,28 +75,28 @@ Diagnostics:
     - shorten-64-to-32
     - builtin_definition
 
-  # Disable clang-tidy completely
+  # Disable clang-tidy completely.
   ClangTidy:
     Remove: ["*"]
     Add: []
 
-  # Disable other checks that can be noisy
+  # Disable other checks that can be noisy.
   UnusedIncludes: None
   MissingIncludes: None
 
-# Index settings for better performance
+# Index settings for better performance.
 Index:
   Background: Build
   StandardLibrary: Yes
 
-# Completion settings optimized for productivity
+# Completion settings optimized for productivity.
 Completion:
   AllScopes: Yes
 
-# Disable InlayHints to avoid visual clutter
+# Disable InlayHints to avoid visual clutter.
 InlayHints:
   Enabled: No
 
-# Hover settings
+# Hover settings.
 Hover:
   ShowAKA: Yes

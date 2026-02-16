@@ -47,6 +47,74 @@ class CommandSpec:
     configure: Optional[ParserConfigurator] = None
 
 
+@dataclass(frozen=True)
+class PresetProfile:
+    """Metadata describing one centralized compiler/build profile."""
+
+    build_type: str
+    compiler: str
+    pch: str
+    build_dir: str
+    config_preset: str
+    build_preset: str
+
+
+_PRESET_PROFILES_BY_CONFIG = {
+    "cp-debug-gcc": PresetProfile(
+        build_type="Debug",
+        compiler="gcc",
+        pch="ON",
+        build_dir="build/gcc/debug",
+        config_preset="cp-debug-gcc",
+        build_preset="cp-build-debug-gcc",
+    ),
+    "cp-release-gcc": PresetProfile(
+        build_type="Release",
+        compiler="gcc",
+        pch="OFF",
+        build_dir="build/gcc/release",
+        config_preset="cp-release-gcc",
+        build_preset="cp-build-release-gcc",
+    ),
+    "cp-sanitize-gcc": PresetProfile(
+        build_type="Sanitize",
+        compiler="gcc",
+        pch="OFF",
+        build_dir="build/gcc/sanitize",
+        config_preset="cp-sanitize-gcc",
+        build_preset="cp-build-sanitize-gcc",
+    ),
+    "cp-debug-clang": PresetProfile(
+        build_type="Debug",
+        compiler="clang",
+        pch="OFF",
+        build_dir="build/clang/debug",
+        config_preset="cp-debug-clang",
+        build_preset="cp-build-debug-clang",
+    ),
+    "cp-release-clang": PresetProfile(
+        build_type="Release",
+        compiler="clang",
+        pch="OFF",
+        build_dir="build/clang/release",
+        config_preset="cp-release-clang",
+        build_preset="cp-build-release-clang",
+    ),
+    "cp-sanitize-clang": PresetProfile(
+        build_type="Sanitize",
+        compiler="clang",
+        pch="OFF",
+        build_dir="build/clang/sanitize",
+        config_preset="cp-sanitize-clang",
+        build_preset="cp-build-sanitize-clang",
+    ),
+}
+
+_PRESET_PROFILES_BY_BUILD = {
+    profile.build_preset: profile for profile in _PRESET_PROFILES_BY_CONFIG.values()
+}
+
+
 def _add_target_arg(
     parser: argparse.ArgumentParser, required: bool = False, name: str = "target"
 ) -> None:
@@ -233,8 +301,60 @@ def _cpp_handler(
     return _handler
 
 
+def _preset_profile_from_config(preset: str) -> PresetProfile:
+    """Return profile metadata for one configure preset name."""
+    try:
+        return _PRESET_PROFILES_BY_CONFIG[preset]
+    except KeyError as exc:
+        raise WorkflowError(f"unsupported configure preset: {preset}") from exc
+
+
+def _preset_profile_from_build(preset: str) -> PresetProfile:
+    """Return profile metadata for one build preset name."""
+    try:
+        return _PRESET_PROFILES_BY_BUILD[preset]
+    except KeyError as exc:
+        raise WorkflowError(f"unsupported build preset: {preset}") from exc
+
+
+def _write_profile_metadata(manager: WorkflowManager, profile: PresetProfile) -> None:
+    """Persist active build profile metadata consumed by cpp-tools shell helpers."""
+    stats_dir = manager.runner.cwd / ".statistics"
+    stats_dir.mkdir(parents=True, exist_ok=True)
+    (stats_dir / "last_config").write_text(
+        f"{profile.build_type}:{profile.compiler}:{profile.pch}:{profile.build_dir}\n",
+        encoding="utf-8",
+    )
+    (stats_dir / "active_build_dir").write_text(
+        f"{profile.build_dir}\n",
+        encoding="utf-8",
+    )
+
+
+def _sync_compile_commands_for_preset(
+    manager: WorkflowManager,
+    ns: argparse.Namespace,
+    build_preset: str,
+    *,
+    jobs: Optional[int] = None,
+) -> None:
+    """Refresh root compile_commands symlinks for the selected preset profile."""
+    argv: List[str] = [
+        "cmake",
+        "--build",
+        "--preset",
+        build_preset,
+        "--target",
+        "symlink_clangd",
+    ]
+    if jobs:
+        argv.extend(["-j", str(jobs)])
+    run_external_step_with_policy(manager, ns, argv)
+
+
 def _handle_preset_conf(manager: WorkflowManager, ns: argparse.Namespace) -> None:
     """Run centralized CMake configure preset with proper environment wiring."""
+    profile = _preset_profile_from_config(ns.preset)
     algorithms_dir = discover_algorithms_dir(ns.algorithms_dir)
     env = {"CP_ALGORITHMS_DIR": str(algorithms_dir)}
 
@@ -242,11 +362,17 @@ def _handle_preset_conf(manager: WorkflowManager, ns: argparse.Namespace) -> Non
     if ns.fresh:
         argv.append("--fresh")
 
-    run_external_step_with_policy(manager, ns, argv, env_overrides=env)
+    conf_result = run_external_step_with_policy(manager, ns, argv, env_overrides=env)
+    if conf_result.returncode != 0:
+        return
+
+    _sync_compile_commands_for_preset(manager, ns, profile.build_preset)
+    _write_profile_metadata(manager, profile)
 
 
 def _handle_preset_build(manager: WorkflowManager, ns: argparse.Namespace) -> None:
     """Run centralized CMake build preset with optional target/jobs."""
+    profile = _preset_profile_from_build(ns.preset)
     if ns.jobs is not None and ns.jobs <= 0:
         raise WorkflowError("--jobs must be a positive integer")
 
@@ -256,7 +382,12 @@ def _handle_preset_build(manager: WorkflowManager, ns: argparse.Namespace) -> No
     if ns.jobs:
         argv.extend(["-j", str(ns.jobs)])
 
-    run_external_step_with_policy(manager, ns, argv)
+    build_result = run_external_step_with_policy(manager, ns, argv)
+    if build_result.returncode != 0:
+        return
+
+    _sync_compile_commands_for_preset(manager, ns, ns.preset, jobs=ns.jobs)
+    _write_profile_metadata(manager, profile)
 
 
 def _configure_contest(parser: argparse.ArgumentParser) -> None:

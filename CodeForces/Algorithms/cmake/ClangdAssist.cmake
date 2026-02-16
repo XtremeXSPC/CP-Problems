@@ -217,8 +217,24 @@ function(cp_detect_compiler_system_includes OUTPUT_VARIABLE)
     endif()
   endif()
 
-  # Keep only directories that actually exist.
+  # Normalize discovered paths to canonical absolute paths and deduplicate.
   if(DETECTED_PATHS)
+    set(NORMALIZED_DETECTED_PATHS "")
+    foreach(path IN LISTS DETECTED_PATHS)
+      if(IS_DIRECTORY "${path}")
+        file(REAL_PATH "${path}" canonical_path)
+        if(canonical_path)
+          list(APPEND NORMALIZED_DETECTED_PATHS "${canonical_path}")
+        else()
+          list(APPEND NORMALIZED_DETECTED_PATHS "${path}")
+        endif()
+      endif()
+    endforeach()
+
+    if(NORMALIZED_DETECTED_PATHS)
+      set(DETECTED_PATHS "${NORMALIZED_DETECTED_PATHS}")
+    endif()
+
     list(REMOVE_DUPLICATES DETECTED_PATHS)
     set(COMPILER_SYSTEM_INCLUDES_CACHED "${DETECTED_PATHS}" CACHE INTERNAL "Cached compiler include paths")
     set(${OUTPUT_VARIABLE} "${DETECTED_PATHS}" PARENT_SCOPE)
