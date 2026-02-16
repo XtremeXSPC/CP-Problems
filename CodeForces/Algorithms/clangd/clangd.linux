@@ -18,7 +18,7 @@ CompileFlags:
     # Neutralize legacy/global flags that can leak from user-level config.
     - -O2
     - -DLOCAL=1
-    - -D__GNUC__=15
+    - -D__GNUC__=*
     - -DDEBUG
     - -g0
 

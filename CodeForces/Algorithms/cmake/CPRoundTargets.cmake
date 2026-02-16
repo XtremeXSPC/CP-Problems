@@ -8,7 +8,7 @@
 #
 # Compiler Flags:
 #   Debug:    -g2 -O0 -fstack-protector-strong
-#   Release:  -O2 -funroll-loops -ftree-vectorize -march=native
+#   Release:  -O2 -funroll-loops -ftree-vectorize -march=native (no -ffast-math)
 #   Sanitize: -g -O1 -fsanitize=address,undefined,leak
 #
 # Functions:
@@ -111,9 +111,9 @@ set(USE_PCH_FOR_TARGET FALSE)
     # GCC flags.
     set(COMMON_FLAGS -Wall -Wextra -Wpedantic -Wshadow)
     set(DEBUG_FLAGS -g2 -O0 -fstack-protector-strong)
-    set(RELEASE_FLAGS -O2 -funroll-loops -ftree-vectorize -ffast-math)
+    set(RELEASE_FLAGS -O2 -funroll-loops -ftree-vectorize)
 
-    if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86_64|AMD64)")
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86_64|AMD64|aarch64|arm64)")
       list(APPEND RELEASE_FLAGS -march=native)
     endif()
 
@@ -136,6 +136,11 @@ set(USE_PCH_FOR_TARGET FALSE)
       -fno-omit-frame-pointer
       -fno-sanitize-recover=all)
 
+    # Add LeakSanitizer on Linux (not supported on macOS).
+    if(NOT APPLE)
+      list(APPEND SANITIZE_FLAGS -fsanitize=leak)
+    endif()
+
     # Add integer and nullability sanitizers on newer Clang.
     if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "10.0")
       list(APPEND SANITIZE_FLAGS -fsanitize=integer,nullability)
@@ -144,8 +149,6 @@ set(USE_PCH_FOR_TARGET FALSE)
 
   # Apply compiler flags.
   target_compile_options(${TARGET_NAME} PRIVATE
-    # Use C++23 standard.
-    -std=c++23
     ${COMMON_FLAGS}
     # Suppress common warnings.
     -Wno-unused-const-variable
@@ -166,11 +169,7 @@ set(USE_PCH_FOR_TARGET FALSE)
   endif()
 
   # ----- Platform and compiler specific adjustments ----- #
-  if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-    # Use libstdc++ for GCC on macOS.
-    target_compile_options(${TARGET_NAME} PRIVATE -stdlib=libstdc++)
-    target_link_options(${TARGET_NAME} PRIVATE -stdlib=libstdc++)
-  elseif(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang")
+  if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang")
     # Use libc++ for Clang on macOS, being explicit to avoid linking issues.
     target_compile_options(${TARGET_NAME} PRIVATE -stdlib=libc++)
     target_link_options(${TARGET_NAME} PRIVATE -stdlib=libc++)
@@ -216,7 +215,7 @@ set(USE_PCH_FOR_TARGET FALSE)
   if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND NOT APPLE)
     # Test if stacktrace libraries are available.
     include(CheckCXXSourceCompiles)
-    set(CMAKE_REQUIRED_FLAGS "-std=c++22")
+    set(CMAKE_REQUIRED_FLAGS "-std=c++23")
     set(CMAKE_REQUIRED_LIBRARIES "stdc++_libbacktrace")
 
     check_cxx_source_compiles(

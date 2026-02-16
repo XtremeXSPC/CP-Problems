@@ -127,6 +127,41 @@ endif()
 
 # If no g++ is found, terminate with a helpful platform-specific error message.
 if(NOT GCC_EXECUTABLE)
+    if(APPLE)
+        set(_INSTALL_HINT
+            "  macOS (Homebrew):\n"
+            "    brew install gcc\n"
+            "\n"
+            "  macOS (MacPorts):\n"
+            "    sudo port install gcc13 +universal\n")
+    elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
+        if(DISTRO MATCHES "Debian")
+            set(INSTALL_CMD "sudo apt update && sudo apt install g++")
+        elseif(DISTRO MATCHES "RedHat")
+            set(INSTALL_CMD "sudo dnf install gcc-c++  # or: sudo yum install gcc-c++")
+        elseif(DISTRO MATCHES "Arch")
+            set(INSTALL_CMD "sudo pacman -S gcc")
+        else()
+            set(INSTALL_CMD "Use your distribution's package manager to install g++")
+        endif()
+
+        set(_INSTALL_HINT
+            "  ${DISTRO}:\n"
+            "    ${INSTALL_CMD}\n"
+            "\n"
+            "  For newer GCC versions, you may need to add a PPA or use a toolchain:\n"
+            "    Ubuntu: sudo add-apt-repository ppa:ubuntu-toolchain-r/test\n"
+            "    RHEL/CentOS: sudo yum install devtoolset-11\n")
+    else()
+        set(_INSTALL_HINT
+            "  Please install GCC using your system's package manager.\n"
+            "\n"
+            "  Common commands:\n"
+            "    pkg install gcc      # FreeBSD\n"
+            "    pkg_add gcc          # OpenBSD\n"
+            "    pkgin install gcc    # NetBSD\n")
+    endif()
+
     message(FATAL_ERROR
         "\n"
         "╔═══────────────────────────────────────────────────────────────────────────═══╗\n"
@@ -139,51 +174,11 @@ if(NOT GCC_EXECUTABLE)
         "  - Full C++23 support\n"
         "\n"
         "Installation instructions for ${PLATFORM_NAME}:\n"
-        "\n")
-
-    if(APPLE)
-        message(FATAL_ERROR
-            "  macOS (Homebrew):\n"
-            "    brew install gcc\n"
-            "\n"
-            "  macOS (MacPorts):\n"
-            "    sudo port install gcc13 +universal\n"
-            "\n"
-            "After installation, re-run 'cppconf' to configure the project.\n"
-            "╬═══────────────────────────────────────────────────────────────────────────═══╬\n")
-    elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
-        if(DISTRO MATCHES "Debian")
-            set(INSTALL_CMD "sudo apt update && sudo apt install g++")
-        elseif(DISTRO MATCHES "RedHat")
-            set(INSTALL_CMD "sudo dnf install gcc-c++  # or: sudo yum install gcc-c++")
-        elseif(DISTRO MATCHES "Arch")
-            set(INSTALL_CMD "sudo pacman -S gcc")
-        else()
-            set(INSTALL_CMD "Use your distribution's package manager to install g++")
-        endif()
-
-        message(FATAL_ERROR
-            "  ${DISTRO}:\n"
-            "    ${INSTALL_CMD}\n"
-            "\n"
-            "  For newer GCC versions, you may need to add a PPA or use a toolchain:\n"
-            "    Ubuntu: sudo add-apt-repository ppa:ubuntu-toolchain-r/test\n"
-            "    RHEL/CentOS: sudo yum install devtoolset-11\n"
-            "\n"
-            "After installation, re-run 'cppconf' to configure the project.\n"
-            "╬═══────────────────────────────────────────────────────────────────────────═══╬\n")
-    else()
-        message(FATAL_ERROR
-            "  Please install GCC using your system's package manager.\n"
-            "\n"
-            "  Common commands:\n"
-            "    pkg install gcc      # FreeBSD\n"
-            "    pkg_add gcc          # OpenBSD\n"
-            "    pkgin install gcc    # NetBSD\n"
-            "\n"
-            "After installation, re-run 'cppconf' to configure the project.\n"
-            "╬═══────────────────────────────────────────────────────────────────────────═══╬\n")
-    endif()
+        "\n"
+        "${_INSTALL_HINT}"
+        "\n"
+        "After installation, re-run 'cppconf' to configure the project.\n"
+        "╬═══────────────────────────────────────────────────────────────────────────═══╬\n")
 endif()
 
 # Verify the found compiler is actually GCC and get version info.
