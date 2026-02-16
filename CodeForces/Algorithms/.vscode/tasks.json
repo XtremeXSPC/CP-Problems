@@ -1,25 +1,22 @@
 {
-  //===------------------------------------------------------------------------===//
+  //===-------------------------------------------------------------------------===//
   // VS Code tasks for Competitive Programming (CP-first workflow).
   //
   // Design goals:
-  // - keep tasks aligned with cpptools as the canonical interface
-  // - keep sanitizer logic centralized and OS-aware via helper script
-  //===------------------------------------------------------------------------===//
+  //  - keep tasks aligned with cpptools as the canonical interface
+  //  - keep sanitizer logic centralized and OS-aware via helper script
+  //===-------------------------------------------------------------------------===//
   "version": "2.0.0",
   "options": {
     "cwd": "${workspaceFolder}"
   },
   "tasks": [
-    //===------------------------------ BUILD --------------------------------===//
+    //===-------------------------------- BUILD --------------------------------===//
     {
       "label": "Build: Active File (Debug)",
       "type": "shell",
       "command": "zsh",
-      "args": [
-        "-lc",
-        "cpptools conf Debug auto && cpptools build ${fileBasenameNoExtension}"
-      ],
+      "args": ["-lc", "cpptools conf Debug auto && cpptools build ${fileBasenameNoExtension}"],
       "group": {
         "kind": "build",
         "isDefault": true
@@ -31,10 +28,7 @@
       "label": "Build: Active File (Release)",
       "type": "shell",
       "command": "zsh",
-      "args": [
-        "-lc",
-        "cpptools conf Release auto && cpptools build ${fileBasenameNoExtension}"
-      ],
+      "args": ["-lc", "cpptools conf Release auto && cpptools build ${fileBasenameNoExtension}"],
       "group": "build",
       "problemMatcher": ["$gcc"],
       "detail": "Configure Release (auto compiler) and build the active problem target."
@@ -82,7 +76,7 @@
       "detail": "Build with sanitizer profile using GCC. Linux-only; macOS is explicitly blocked."
     },
 
-    //===--------------------------- RUN AND TEST -----------------------------===//
+    //===---------------------------- RUN AND TEST -----------------------------===//
     {
       "label": "Run: Build and Run Active File",
       "type": "shell",
@@ -105,10 +99,7 @@
       "label": "Run: Build and Run Active File (Prompt Input)",
       "type": "shell",
       "command": "zsh",
-      "args": [
-        "-lc",
-        "cpptools go ${fileBasenameNoExtension} \"${input:inputFile}\""
-      ],
+      "args": ["-lc", "cpptools go ${fileBasenameNoExtension} \"${input:inputFile}\""],
       "group": "test",
       "presentation": {
         "reveal": "always",
@@ -251,7 +242,7 @@
       "detail": "Run stress test under sanitizer instrumentation."
     },
 
-    //===---------------------------- SUBMISSION ------------------------------===//
+    //===----------------------------- SUBMISSION ------------------------------===//
     {
       "label": "Submit: Generate Active File (Strict)",
       "type": "shell",
@@ -298,7 +289,7 @@
       "detail": "Judge, generate strict submission, then test strict submission end-to-end."
     },
 
-    //===---------------------- CONFIGURATION AND CLEAN -----------------------===//
+    //===----------------------- CONFIGURATION AND CLEAN -----------------------===//
     {
       "label": "Configure: Debug (Auto Compiler)",
       "type": "shell",
@@ -351,11 +342,7 @@
       "label": "Configure: Sanitize (Auto OS)",
       "type": "shell",
       "command": "sh",
-      "args": [
-        "${workspaceFolder}/.vscode/scripts/cp_sanitize_task.sh",
-        "conf",
-        "auto"
-      ],
+      "args": ["${workspaceFolder}/.vscode/scripts/cp_sanitize_task.sh", "conf", "auto"],
       "problemMatcher": [],
       "detail": "Configure sanitizer profile with OS-aware toolchain selection."
     },
@@ -363,11 +350,7 @@
       "label": "Configure: Sanitize (Clang)",
       "type": "shell",
       "command": "sh",
-      "args": [
-        "${workspaceFolder}/.vscode/scripts/cp_sanitize_task.sh",
-        "conf",
-        "clang"
-      ],
+      "args": ["${workspaceFolder}/.vscode/scripts/cp_sanitize_task.sh", "conf", "clang"],
       "problemMatcher": [],
       "detail": "Configure sanitizer profile using Clang."
     },
@@ -375,11 +358,7 @@
       "label": "Configure: Sanitize (GCC Linux Only)",
       "type": "shell",
       "command": "sh",
-      "args": [
-        "${workspaceFolder}/.vscode/scripts/cp_sanitize_task.sh",
-        "conf",
-        "gcc"
-      ],
+      "args": ["${workspaceFolder}/.vscode/scripts/cp_sanitize_task.sh", "conf", "gcc"],
       "problemMatcher": [],
       "detail": "Configure sanitizer profile using GCC. Linux-only; macOS is explicitly blocked."
     },

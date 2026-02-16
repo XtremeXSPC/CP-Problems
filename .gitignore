@@ -356,7 +356,7 @@ $RECYCLE.BIN/
 *.lnk
 
 # Custom Additions
-Guides/*
+Docs/*
 Codeforces/Problems/*
 AGENTS.md
 
