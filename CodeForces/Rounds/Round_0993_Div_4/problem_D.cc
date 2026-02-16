@@ -2,7 +2,7 @@
 /**
  * @brief Codeforces Round 993 (Div. 4)
  * @author: Costantino Lombardi
- * @file: problem_D_v2.cc
+ * @file: problem_D.cc
  *
  * @status: PASSED
  */
