@@ -1,52 +1,55 @@
 {
+  //===-------------------------------------------------------------------------===//
+  // VS Code tasks for Competitive Programming (CP-first workflow).
+  //
+  // Design goals:
+  // - keep tasks aligned with cpptools as the canonical interface
+  // - provide explicit profile tasks (Debug/Release/Sanitize)
+  // - include sanitizer-focused run/test workflows for fast bug hunting
+  //===-------------------------------------------------------------------------===//
   "version": "2.0.0",
   "options": {
-    "env": {
-      "CPP_TOOLS_CONFIG": "${env:HOME}/.config/cpp-tools/competitive.sh"
-    }
+    "cwd": "${workspaceFolder}"
   },
   "tasks": [
-    //===------------------------ CORE BUILD TASKS ------------------------===//
+    //===-------------------------------- BUILD --------------------------------===//
     {
-      "label": "Build: Build Active File (Debug)",
+      "label": "Build: Active File (Debug)",
       "type": "shell",
       "command": "zsh",
-      "args": [
-        "-c",
-        "source ${CPP_TOOLS_CONFIG} && cppbuild ${fileBasenameNoExtension}"
-      ],
+      "args": ["-lc", "cpptools conf Debug auto && cpptools build ${fileBasenameNoExtension}"],
       "group": {
         "kind": "build",
         "isDefault": true
       },
       "problemMatcher": ["$gcc"],
-      "detail": "Builds the currently open file in Debug mode."
+      "detail": "Configure Debug (auto compiler) and build the active problem target."
     },
     {
-      "label": "Build: Build Active File (Release)",
-      "type": "shell",
-      "command": "cmake",
-      "args": [
-        "--build",
-        "build",
-        "--config",
-        "Release",
-        "--target",
-        "${fileBasenameNoExtension}"
-      ],
-      "group": "build",
-      "problemMatcher": ["$gcc"],
-      "detail": "Builds the currently open file in optimized Release mode for contests."
-    },
-    //===------------------------ RUN & TEST TASKS ------------------------===//
-    {
-      "label": "Run: Build & Run Active File",
+      "label": "Build: Active File (Release)",
       "type": "shell",
       "command": "zsh",
-      "args": [
-        "-c",
-        "source ${CPP_TOOLS_CONFIG} && cppgo ${fileBasenameNoExtension}"
-      ],
+      "args": ["-lc", "cpptools conf Release auto && cpptools build ${fileBasenameNoExtension}"],
+      "group": "build",
+      "problemMatcher": ["$gcc"],
+      "detail": "Configure Release (auto compiler) and build the active problem target."
+    },
+    {
+      "label": "Build: Active File (Sanitize, Clang)",
+      "type": "shell",
+      "command": "zsh",
+      "args": ["-lc", "cpptools conf Sanitize clang && cpptools build ${fileBasenameNoExtension}"],
+      "group": "build",
+      "problemMatcher": ["$gcc"],
+      "detail": "Configure Sanitize with Clang and build the active problem target."
+    },
+
+    //===---------------------------- RUN AND TEST -----------------------------===//
+    {
+      "label": "Run: Build and Run Active File",
+      "type": "shell",
+      "command": "cpptools",
+      "args": ["go", "${fileBasenameNoExtension}"],
       "group": {
         "kind": "test",
         "isDefault": true
@@ -57,79 +60,14 @@
         "panel": "shared",
         "clear": true
       },
-      "detail": "Builds and runs the active file. Looks for 'input.txt' or '{problem_name}.in' in 'input_cases/'."
+      "problemMatcher": ["$gcc"],
+      "detail": "Build and run the active problem in the currently configured profile."
     },
     {
-      "label": "Run: Build & Run (Prompt for Input)",
+      "label": "Run: Build and Run Active File (Prompt Input)",
       "type": "shell",
       "command": "zsh",
-      "args": [
-        "-c",
-        "source ${CPP_TOOLS_CONFIG} && cppgo ${fileBasenameNoExtension} ${input:inputFile}"
-      ],
-      "group": "test",
-      "presentation": {
-        "reveal": "always",
-        "focus": true,
-        "panel": "shared",
-        "clear": true
-      },
-      "detail": "Builds and runs the active file, prompting you to enter the input filename."
-    },
-    {
-      "label": "Test: Judge Active File",
-      "type": "shell",
-      "command": "zsh",
-      "args": [
-        "-c",
-        "source ${CPP_TOOLS_CONFIG} && cppjudge ${fileBasenameNoExtension}"
-      ],
-      "group": "test",
-      "presentation": {
-        "reveal": "always",
-        "focus": true,
-        "panel": "shared",
-        "clear": true
-      },
-      "detail": "Tests the active file against all corresponding '.in'/'.out' sample files in 'input_cases/'."
-    },
-    //===-------------------- CONFIGURATION & CLEANUP ---------------------===//
-    {
-      "label": "Configure: Reconfigure Project (Debug)",
-      "type": "shell",
-      "command": "zsh",
-      "args": ["-c", "source ${CPP_TOOLS_CONFIG} && cppconf Debug"],
-      "detail": "Cleans and re-runs CMake configuration for Debug. Updates compile_commands.json."
-    },
-    {
-      "label": "Configure: Reconfigure Project (Release)",
-      "type": "shell",
-      "command": "zsh",
-      "args": ["-c", "source ${CPP_TOOLS_CONFIG} && cppconf Release"],
-      "detail": "Re-runs CMake configuration for Release."
-    },
-    {
-      "label": "Configure: Reconfigure Project (Sanitize)",
-      "type": "shell",
-      "command": "zsh",
-      "args": ["-c", "source ${CPP_TOOLS_CONFIG} && cppconf Sanitize"],
-      "detail": "Re-runs CMake configuration for memory sanitization."
-    },
-    {
-      "label": "Clean: Clean Project",
-      "type": "shell",
-      "command": "cppclean",
-      "detail": "Removes the build directory entirely."
-    },
-    //===----------------------- ADVANCED DEBUGGING -----------------------===//
-    {
-      "label": "Debug: Memory Check Active File (Sanitize)",
-      "type": "shell",
-      "command": "zsh",
-      "args": [
-        "-c",
-        "source ${CPP_TOOLS_CONFIG} && cppconf Sanitize && cppgo ${fileBasenameNoExtension}"
-      ],
+      "args": ["-lc", "cpptools go ${fileBasenameNoExtension} \"${input:inputFile}\""],
       "group": "test",
       "presentation": {
         "reveal": "always",
@@ -138,16 +76,225 @@
         "clear": true
       },
       "problemMatcher": ["$gcc"],
-      "detail": "Reconfigures for Sanitize mode, then builds and runs the active file for memory debugging."
+      "detail": "Build and run active problem using a user-selected input file."
+    },
+    {
+      "label": "Run: Build and Run Active File (Sanitize, Clang)",
+      "type": "shell",
+      "command": "zsh",
+      "args": ["-lc", "cpptools conf Sanitize clang && cpptools go ${fileBasenameNoExtension}"],
+      "options": {
+        "env": {
+          "ASAN_OPTIONS": "detect_leaks=1:check_initialization_order=1:strict_init_order=1:detect_stack_use_after_return=1:halt_on_error=1",
+          "UBSAN_OPTIONS": "print_stacktrace=1:halt_on_error=1",
+          "LSAN_OPTIONS": "verbosity=1:log_threads=1"
+        }
+      },
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": ["$gcc"],
+      "detail": "Reconfigure to Sanitize (Clang), then build and run active problem with sanitizer runtime options."
+    },
+    {
+      "label": "Test: Judge Active File",
+      "type": "shell",
+      "command": "cpptools",
+      "args": ["judge", "${fileBasenameNoExtension}"],
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": ["$gcc"],
+      "detail": "Run sample-case judging for the active problem in the current profile."
+    },
+    {
+      "label": "Test: Judge Active File (Sanitize, Clang)",
+      "type": "shell",
+      "command": "zsh",
+      "args": ["-lc", "cpptools conf Sanitize clang && cpptools judge ${fileBasenameNoExtension}"],
+      "options": {
+        "env": {
+          "ASAN_OPTIONS": "detect_leaks=1:check_initialization_order=1:strict_init_order=1:detect_stack_use_after_return=1:halt_on_error=1",
+          "UBSAN_OPTIONS": "print_stacktrace=1:halt_on_error=1",
+          "LSAN_OPTIONS": "verbosity=1:log_threads=1"
+        }
+      },
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": ["$gcc"],
+      "detail": "Run judge with sanitizer instrumentation to catch memory/UB defects."
+    },
+    {
+      "label": "Test: Stress Active File",
+      "type": "shell",
+      "command": "cpptools",
+      "args": ["stress", "${fileBasenameNoExtension}", "${input:stressIterations}"],
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": ["$gcc"],
+      "detail": "Run stress testing for active problem with configurable iteration count."
+    },
+
+    //===----------------------------- SUBMISSION ------------------------------===//
+    {
+      "label": "Submit: Generate Active File (Strict)",
+      "type": "shell",
+      "command": "cpptools",
+      "args": ["submit", "--strict", "${fileBasenameNoExtension}"],
+      "presentation": {
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": ["$gcc"],
+      "detail": "Generate strict single-file submission artifact for active problem."
+    },
+    {
+      "label": "Submit: Test Active File Submission (Strict)",
+      "type": "shell",
+      "command": "cpptools",
+      "args": ["test-submit", "--strict", "${fileBasenameNoExtension}"],
+      "presentation": {
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": ["$gcc"],
+      "detail": "Compile and run strict submission artifact for active problem."
+    },
+    {
+      "label": "Workflow: Validate and Submit Active File (Strict)",
+      "type": "shell",
+      "command": "zsh",
+      "args": [
+        "-lc",
+        "cpptools judge ${fileBasenameNoExtension} && cpptools submit --strict ${fileBasenameNoExtension} && cpptools test-submit --strict ${fileBasenameNoExtension}"
+      ],
+      "presentation": {
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": ["$gcc"],
+      "detail": "Judge, generate strict submission, then test strict submission end-to-end."
+    },
+
+    //===----------------------- CONFIGURATION AND CLEAN -----------------------===//
+    {
+      "label": "Configure: Debug (Auto Compiler)",
+      "type": "shell",
+      "command": "cpptools",
+      "args": ["conf", "Debug", "auto"],
+      "problemMatcher": [],
+      "detail": "Reconfigure CMake with Debug profile and auto compiler detection."
+    },
+    {
+      "label": "Configure: Debug (GCC)",
+      "type": "shell",
+      "command": "cpptools",
+      "args": ["conf", "Debug", "gcc"],
+      "problemMatcher": [],
+      "detail": "Reconfigure CMake with Debug profile using GCC."
+    },
+    {
+      "label": "Configure: Debug (Clang)",
+      "type": "shell",
+      "command": "cpptools",
+      "args": ["conf", "Debug", "clang"],
+      "problemMatcher": [],
+      "detail": "Reconfigure CMake with Debug profile using Clang."
+    },
+    {
+      "label": "Configure: Release (Auto Compiler)",
+      "type": "shell",
+      "command": "cpptools",
+      "args": ["conf", "Release", "auto"],
+      "problemMatcher": [],
+      "detail": "Reconfigure CMake with Release profile and auto compiler detection."
+    },
+    {
+      "label": "Configure: Release (GCC)",
+      "type": "shell",
+      "command": "cpptools",
+      "args": ["conf", "Release", "gcc"],
+      "problemMatcher": [],
+      "detail": "Reconfigure CMake with Release profile using GCC."
+    },
+    {
+      "label": "Configure: Release (Clang)",
+      "type": "shell",
+      "command": "cpptools",
+      "args": ["conf", "Release", "clang"],
+      "problemMatcher": [],
+      "detail": "Reconfigure CMake with Release profile using Clang."
+    },
+    {
+      "label": "Configure: Sanitize (Clang)",
+      "type": "shell",
+      "command": "cpptools",
+      "args": ["conf", "Sanitize", "clang"],
+      "problemMatcher": [],
+      "detail": "Reconfigure CMake with sanitizer profile using Clang (recommended)."
+    },
+    {
+      "label": "Configure: Sanitize (GCC)",
+      "type": "shell",
+      "command": "cpptools",
+      "args": ["conf", "Sanitize", "gcc"],
+      "problemMatcher": [],
+      "detail": "Reconfigure CMake with sanitizer profile using GCC."
+    },
+    {
+      "label": "Info: Show Active CP Profile",
+      "type": "shell",
+      "command": "cpptools",
+      "args": ["info"],
+      "problemMatcher": [],
+      "detail": "Display active build profile, compiler, and CP workspace diagnostics."
+    },
+    {
+      "label": "Clean: Build Artifacts",
+      "type": "shell",
+      "command": "cpptools",
+      "args": ["clean"],
+      "problemMatcher": [],
+      "detail": "Remove generated build artifacts."
     }
   ],
-  // Input prompt used by the "Run (Prompt for Input)" task
   "inputs": [
     {
       "id": "inputFile",
       "type": "promptString",
-      "description": "Enter the input file name (e.g., sample.in)",
+      "description": "Input file for cppgo (relative to workspace or absolute path)",
       "default": "${fileBasenameNoExtension}.in"
+    },
+    {
+      "id": "stressIterations",
+      "type": "pickString",
+      "description": "Stress-test iteration count",
+      "options": ["50", "100", "200", "500", "1000"],
+      "default": "200"
     }
   ]
 }
