@@ -27,6 +27,7 @@ include("${CP_ROUND_BOOTSTRAP}")
 
 
 def _iter_round_cmakelists(rounds_root: Path, explicit_rounds: List[str]) -> Iterable[Path]:
+    """Yield round CMakeLists paths, optionally filtered by explicit round names."""
     if explicit_rounds:
         for name in explicit_rounds:
             cmake_path = rounds_root / name / "CMakeLists.txt"
@@ -45,6 +46,7 @@ def _iter_round_cmakelists(rounds_root: Path, explicit_rounds: List[str]) -> Ite
 
 
 def main() -> int:
+    """Rewrite round CMakeLists files to the centralized thin wrapper format."""
     parser = argparse.ArgumentParser(
         description="Convert round CMakeLists.txt files to centralized thin wrappers."
     )

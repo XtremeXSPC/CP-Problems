@@ -19,11 +19,13 @@ TOOLCHAIN_FILES = ("gcc-toolchain.cmake", "clang-toolchain.cmake")
 
 
 def _backup_name(path: Path) -> Path:
+    """Build a timestamped backup filename next to the original file."""
     stamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
     return path.with_name(f"{path.name}.bak-centralized-{stamp}")
 
 
 def _safe_resolve(path: Path) -> Path:
+    """Resolve a path when possible, preserving unresolved paths if missing."""
     try:
         return path.resolve(strict=True)
     except FileNotFoundError:
@@ -31,10 +33,12 @@ def _safe_resolve(path: Path) -> Path:
 
 
 def _is_linked_to(path: Path, target: Path) -> bool:
+    """Return True when `path` is a symlink pointing to `target`."""
     return path.is_symlink() and _safe_resolve(path) == _safe_resolve(target)
 
 
 def main() -> int:
+    """Remove round-local toolchains so rounds rely on centralized ones."""
     parser = argparse.ArgumentParser(
         description=(
             "Remove per-round toolchain files to enforce centralized toolchain usage."

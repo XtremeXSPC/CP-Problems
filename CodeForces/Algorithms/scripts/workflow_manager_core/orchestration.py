@@ -10,7 +10,13 @@ from typing import List, Optional, Sequence
 
 from .constants import DEFAULT_WORKSPACE_ROOT
 from .runner import CppToolsRunner
-from .types import CommandResult, WorkflowCommandError, WorkflowError
+from .types import (
+    CommandResult,
+    WorkflowCommandError,
+    WorkflowError,
+    ensure_text,
+    format_timeout_stderr,
+)
 from .utils import is_under
 
 
@@ -18,6 +24,7 @@ class WorkflowManager:
     """Tracks workflow execution steps and exposes controlled run helpers."""
 
     def __init__(self, runner: CppToolsRunner, json_mode: bool, verbose: bool):
+        """Initialize execution state and workspace safety notes."""
         self.runner = runner
         self.json_mode = json_mode
         self.verbose = verbose
@@ -33,6 +40,7 @@ class WorkflowManager:
             )
 
     def note(self, message: str) -> None:
+        """Record an informational message and print it in text mode."""
         self.notes.append(message)
         if not self.json_mode:
             print(message)
@@ -45,6 +53,7 @@ class WorkflowManager:
         timeout: Optional[int] = None,
         auto_confirm_deepclean: bool = False,
     ) -> CommandResult:
+        """Run one cpp-tools command and store its result."""
         if self.verbose and not self.json_mode:
             print(f"[workflow] -> {' '.join([function, *args])}")
 
@@ -73,6 +82,7 @@ class WorkflowManager:
         timeout: Optional[int] = None,
         env_overrides: Optional[dict] = None,
     ) -> CommandResult:
+        """Run an external command with the same reporting semantics as cpp-tools."""
         if not argv:
             raise WorkflowError("run_external requires a non-empty command")
 
@@ -113,8 +123,8 @@ class WorkflowManager:
                 cwd=str(self.runner.cwd),
                 returncode=124,
                 duration_ms=elapsed_ms,
-                stdout=exc.stdout or "",
-                stderr=(exc.stderr or "") + "\nCommand timed out.",
+                stdout=ensure_text(exc.stdout),
+                stderr=format_timeout_stderr(exc.stderr),
                 timed_out=True,
             )
 
@@ -131,6 +141,7 @@ class WorkflowManager:
         return result
 
     def emit_json(self, status: str) -> None:
+        """Emit complete workflow results as JSON."""
         payload = {
             "status": status,
             "cwd": str(self.runner.cwd),
@@ -141,6 +152,7 @@ class WorkflowManager:
         print(json.dumps(payload, ensure_ascii=False, indent=2))
 
     def emit_summary(self) -> None:
+        """Print a compact final status line in text mode."""
         if self.json_mode or not self.results:
             return
         total_ms = sum(r.duration_ms for r in self.results)
@@ -153,6 +165,7 @@ class WorkflowManager:
 
 
 def build_cppconf_args(ns) -> List[str]:
+    """Translate CLI namespace fields into raw `cppconf` arguments."""
     args: List[str] = []
     if ns.build_type:
         args.append(ns.build_type)
@@ -176,6 +189,7 @@ def run_step_with_policy(
     args: Sequence[str] = (),
     auto_confirm_deepclean: bool = False,
 ) -> CommandResult:
+    """Run one cpp-tools step honoring `--continue-on-error` policy."""
     check = not getattr(ns, "continue_on_error", False)
     result = manager.run_cpp(
         function=function,
@@ -197,6 +211,7 @@ def run_external_step_with_policy(
     argv: Sequence[str],
     env_overrides: Optional[dict] = None,
 ) -> CommandResult:
+    """Run one external step honoring `--continue-on-error` policy."""
     check = not getattr(ns, "continue_on_error", False)
     result = manager.run_external(
         argv=argv,

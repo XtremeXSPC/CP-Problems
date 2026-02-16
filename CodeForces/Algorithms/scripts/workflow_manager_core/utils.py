@@ -14,6 +14,7 @@ from .types import WorkflowError
 
 
 def is_under(path: Path, root: Path) -> bool:
+    """Return True when `path` resolves under `root`."""
     try:
         path.resolve().relative_to(root.resolve())
         return True
@@ -22,6 +23,7 @@ def is_under(path: Path, root: Path) -> bool:
 
 
 def normalize_target(raw: str) -> str:
+    """Normalize and validate a target/problem identifier."""
     candidate = Path(raw).name
     suffix = Path(candidate).suffix.lower()
     if suffix in {".cpp", ".cc", ".cxx"}:
@@ -35,6 +37,7 @@ def normalize_target(raw: str) -> str:
 
 
 def normalize_input_name(raw: str) -> str:
+    """Normalize an input filename while forbidding empty values."""
     name = Path(raw).name
     if not name:
         raise argparse.ArgumentTypeError("input filename cannot be empty")
@@ -42,6 +45,7 @@ def normalize_input_name(raw: str) -> str:
 
 
 def normalize_contest_dir(raw: str) -> str:
+    """Validate a workspace-relative contest directory path."""
     p = Path(raw)
     if p.is_absolute():
         raise argparse.ArgumentTypeError("contest path must be workspace-relative")
@@ -61,6 +65,7 @@ def normalize_contest_dir(raw: str) -> str:
 
 
 def discover_cp_tools_script(explicit: Optional[Path]) -> Path:
+    """Locate `competitive.sh` from CLI args, env, or common defaults."""
     candidates: List[Path] = []
     if explicit is not None:
         candidates.append(explicit.expanduser())
@@ -90,6 +95,7 @@ def discover_cp_tools_script(explicit: Optional[Path]) -> Path:
 
 
 def discover_algorithms_dir(explicit: Optional[Path]) -> Path:
+    """Locate the centralized Algorithms directory used by preset workflows."""
     candidates: List[Path] = []
     if explicit is not None:
         candidates.append(explicit.expanduser())

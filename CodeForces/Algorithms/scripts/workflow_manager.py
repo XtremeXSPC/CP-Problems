@@ -15,6 +15,7 @@ from workflow_manager_core.utils import discover_cp_tools_script
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
+    """Parse CLI arguments and execute a single workflow command."""
     parser = build_parser()
     ns = parser.parse_args(argv)
 

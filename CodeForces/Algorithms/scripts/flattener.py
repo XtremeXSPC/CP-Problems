@@ -82,6 +82,7 @@ HEADER_DEPENDENCIES = {
 
 
 def _strip_non_code(text: str) -> str:
+    """Remove strings/comments so token scans only see code-like identifiers."""
     text = STRING_LITERAL_RE.sub('""', text)
     text = CHAR_LITERAL_RE.sub("''", text)
     text = BLOCK_COMMENT_RE.sub(" ", text)
@@ -90,6 +91,7 @@ def _strip_non_code(text: str) -> str:
 
 
 def _extract_identifiers(text: str) -> set[str]:
+    """Extract identifier tokens from source text."""
     return set(IDENTIFIER_RE.findall(_strip_non_code(text)))
 
 
@@ -214,6 +216,7 @@ def inline_local_header(project_root, header_path, inlined_headers):
 
 
 def main():
+    """Flatten one source file by expanding template and local project includes."""
     if len(sys.argv) != 2:
         sys.stderr.write(f"Usage: {sys.argv[0]} <source_file.cpp>\n")
         sys.exit(1)
