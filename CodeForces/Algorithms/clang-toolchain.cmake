@@ -87,6 +87,19 @@ endif()
 
 # Error if Clang not found.
 if(NOT CLANG_EXECUTABLE)
+    if(APPLE)
+        set(_INSTALL_HINT
+            "  macOS:\n"
+            "    Xcode Command Line Tools: xcode-select --install\n"
+            "    Homebrew LLVM: brew install llvm\n")
+    else()
+        set(_INSTALL_HINT
+            "  Linux:\n"
+            "    Debian/Ubuntu: sudo apt install clang\n"
+            "    Fedora/RHEL: sudo dnf install clang\n"
+            "    Arch: sudo pacman -S clang\n")
+    endif()
+
     message(FATAL_ERROR
         "\n"
         "╔═══────────────────────────────────────────────────────────────────────────═══╗\n"
@@ -95,26 +108,12 @@ if(NOT CLANG_EXECUTABLE)
         "\n"
         "Clang is required for sanitizer builds on this platform.\n"
         "\n"
-        "Installation instructions:\n")
-
-    if(APPLE)
-        message(FATAL_ERROR
-            "  macOS:\n"
-            "    Xcode Command Line Tools: xcode-select --install\n"
-            "    Homebrew LLVM: brew install llvm\n"
-            "\n"
-            "After installation, re-run 'cppconf Sanitize clang'.\n"
-            "╬═══────────────────────────────────────────────────────────────────────────═══╬\n")
-    else()
-        message(FATAL_ERROR
-            "  Linux:\n"
-            "    Debian/Ubuntu: sudo apt install clang\n"
-            "    Fedora/RHEL: sudo dnf install clang\n"
-            "    Arch: sudo pacman -S clang\n"
-            "\n"
-            "After installation, re-run 'cppconf Sanitize clang'.\n"
-            "╬═══────────────────────────────────────────────────────────────────────────═══╬\n")
-    endif()
+        "Installation instructions:\n"
+        "\n"
+        "${_INSTALL_HINT}"
+        "\n"
+        "After installation, re-run 'cppconf Sanitize clang'.\n"
+        "╬═══────────────────────────────────────────────────────────────────────────═══╬\n")
 endif()
 
 # Verify it's actually Clang.

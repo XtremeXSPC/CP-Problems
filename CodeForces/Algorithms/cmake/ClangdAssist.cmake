@@ -247,4 +247,4 @@ function(cp_detect_compiler_system_includes OUTPUT_VARIABLE)
 endfunction()
 
 # ============================================================================ #
-# End of Clangd Assist Moduele.
+# End of Clangd Assist Module.
