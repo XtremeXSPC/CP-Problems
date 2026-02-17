@@ -709,7 +709,7 @@ struct LinkCutTree {
 struct Mo {
   I32 block_sz;
 
-  Mo(I32 n) : block_sz(std::max(1, (I32)std::sqrt(n))) {}
+  Mo(I32 n) : block_sz(std::max(1, static_cast<I32>(std::sqrt(n)))) {}
 
   /**
    * @brief Processes range queries offline.
@@ -720,7 +720,7 @@ struct Mo {
    */
   template <typename Add, typename Remove, typename Answer>
   void process(const Vec<PII>& queries, Add add, Remove remove, Answer answer) {
-    I32 q = (I32)queries.size();
+    I32 q = sz(queries);
     VI order(q);
     std::iota(all(order), 0);
     std::sort(all(order), [&](I32 a, I32 b) {

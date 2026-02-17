@@ -439,8 +439,8 @@ struct MCMF {
    * @brief Adds a directed edge with capacity and cost (and reverse with 0 cap, -cost).
    */
   void add_edge(I32 from, I32 to, Cap cap, Cost cost) {
-    g[from].push_back({to, (I32)g[to].size(), cap, cost});
-    g[to].push_back({from, (I32)g[from].size() - 1, 0, -cost});
+    g[from].pb({to, sz(g[to]), cap, cost});
+    g[to].pb({from, sz(g[from]) - 1, 0, -cost});
   }
 
   /**
@@ -457,12 +457,12 @@ struct MCMF {
     while (!que.empty()) {
       I32 v = que.front(); que.pop();
       in_queue[v] = false;
-      FOR(i, (I64)g[v].size()) {
+      FOR(i, sz(g[v])) {
         auto& e = g[v][i];
         if (e.cap > 0 && dist[v] + e.cost < dist[e.to]) {
           dist[e.to] = dist[v] + e.cost;
           prev_v[e.to] = v;
-          prev_e[e.to] = (I32)i;
+          prev_e[e.to] = i;
           if (!in_queue[e.to]) {
             que.push(e.to);
             in_queue[e.to] = true;
@@ -517,7 +517,7 @@ struct BipartiteMatching {
   /**
    * @brief Adds an edge from left vertex u to right vertex v.
    */
-  void add_edge(I32 u, I32 v) { adj[u].push_back(v); }
+  void add_edge(I32 u, I32 v) { adj[u].pb(v); }
 
   /**
    * @brief BFS phase: builds layered graph of free left vertices.
@@ -772,6 +772,92 @@ struct LCA {
 };
 
 /**
+ * @brief O(1) Lowest Common Ancestor via Euler Tour + Sparse Table RMQ.
+ * @tparam Weight Graph edge weight type.
+ *
+ * Builds in O(n log n), answers LCA queries in O(1).
+ * Preferred over binary-lifting LCA when query count greatly exceeds n.
+ */
+template <typename Weight = I64>
+struct LCA_RMQ {
+  I32 n;
+  VI first_occ;
+  VI euler;
+  VI euler_dep;
+  VI depth;
+  VI parent;
+  Vec2<I32> sparse;
+  VI lg;
+
+  LCA_RMQ(const Graph<Weight>& g, I32 root = 0)
+      : n(g.n), first_occ(n, -1), depth(n, 0), parent(n, -1) {
+    euler.reserve(2 * n);
+    euler_dep.reserve(2 * n);
+
+    // Iterative DFS building full Euler tour (each node appears on enter + backtrack).
+    Stack<P<I32, I32>> stk;
+    stk.push({root, 0});
+
+    while (!stk.empty()) {
+      auto [v, ei] = stk.top();
+      stk.pop();
+
+      euler.pb(v);
+      euler_dep.pb(depth[v]);
+      if (first_occ[v] == -1) first_occ[v] = sz(euler) - 1;
+
+      while (ei < sz(g.adj[v])) {
+        I32 to = g.adj[v][ei].to;
+        ++ei;
+        if (to == parent[v]) continue;
+        parent[to] = v;
+        depth[to] = depth[v] + 1;
+        stk.push({v, ei});
+        stk.push({to, 0});
+        break;
+      }
+    }
+
+    // Build sparse table on euler_dep for range-minimum-index queries.
+    I32 m = sz(euler);
+    I32 max_log = 1;
+    while ((1 << max_log) <= m) ++max_log;
+
+    lg.assign(m + 1, 0);
+    FOR(i, 2, m + 1) lg[i] = lg[i / 2] + 1;
+
+    sparse.assign(max_log, VI(m));
+    FOR(i, m) sparse[0][i] = i;
+
+    FOR(k, 1, max_log) {
+      FOR(i, m - (1 << k) + 1) {
+        I32 a = sparse[k - 1][i];
+        I32 b = sparse[k - 1][i + (1 << (k - 1))];
+        sparse[k][i] = (euler_dep[a] <= euler_dep[b]) ? a : b;
+      }
+    }
+  }
+
+  /**
+   * @brief LCA query in O(1).
+   */
+  I32 query(I32 u, I32 v) const {
+    I32 l = first_occ[u], r = first_occ[v];
+    if (l > r) std::swap(l, r);
+    I32 k = lg[r - l + 1];
+    I32 a = sparse[k][l], b = sparse[k][r - (1 << k) + 1];
+    return euler[euler_dep[a] <= euler_dep[b] ? a : b];
+  }
+
+  /**
+   * @brief Tree distance in edges between u and v.
+   */
+  I32 distance(I32 u, I32 v) const {
+    return depth[u] + depth[v] - 2 * depth[query(u, v)];
+  }
+};
+
+/**
  * @brief Euler Tour decomposition of a rooted tree.
  * @tparam Weight Edge weight type.
  *
@@ -795,19 +881,19 @@ struct EulerTour {
     Stack<PII> stk;
     stk.push({root, 0});
     tin[root] = timer++;
-    order.push_back(root);
+    order.pb(root);
 
     while (!stk.empty()) {
       auto& [v, ei] = stk.top();
       bool found = false;
-      while (ei < (I32)g.adj[v].size()) {
+      while (ei < sz(g.adj[v])) {
         I32 to = g.adj[v][ei].to;
         ++ei;
         if (to == parent[v]) continue;
         parent[to] = v;
         depth[to] = depth[v] + 1;
         tin[to] = timer++;
-        order.push_back(to);
+        order.pb(to);
         stk.push({to, 0});
         found = true;
         break;
@@ -845,7 +931,7 @@ template <typename Weight = I64>
 struct HLD {
   I32 n;
   const Graph<Weight>& g;
-  VI parent, depth, heavy, head, pos, subtree_size;
+  VI parent, depth, heavy, head, pos, subtree_size, order;
   I32 cur_pos;
 
   /**
@@ -853,7 +939,7 @@ struct HLD {
    * @param g Input forest/tree.
    */
   HLD(const Graph<Weight>& g) : n(g.n), g(g), parent(n, -1), depth(n, 0), heavy(n, -1),
-                                head(n, 0), pos(n, -1), subtree_size(n, 0), cur_pos(0) {
+                                head(n, 0), pos(n, -1), subtree_size(n, 0), order(n), cur_pos(0) {
     auto dfs = [&](auto&& self, I32 v, I32 p) -> I32 {
       parent[v] = p;
       subtree_size[v] = 1;
@@ -873,6 +959,7 @@ struct HLD {
 
     auto decompose = [&](auto&& self, I32 v, I32 h, I32 p) -> void {
       head[v] = h;
+      order[cur_pos] = v;
       pos[v] = cur_pos++;
       if (heavy[v] != -1) {
         self(self, heavy[v], h, v);
@@ -933,6 +1020,21 @@ struct HLD {
    */
   P<I32, I32> subtree_range(I32 v) const {
     return {pos[v], pos[v] + subtree_size[v] - 1};
+  }
+
+  /**
+   * @brief Returns the k-th ancestor of vertex v (0-th ancestor = v itself).
+   * @return Ancestor vertex, or -1 if k > depth[v].
+   *
+   * Complexity: O(log V) via heavy-chain jumps.
+   */
+  I32 kth_ancestor(I32 v, I32 k) const {
+    if (k > depth[v]) return -1;
+    I32 target = depth[v] - k;
+    while (depth[head[v]] > target) {
+      v = parent[head[v]];
+    }
+    return order[pos[v] - (depth[v] - target)];
   }
 };
 

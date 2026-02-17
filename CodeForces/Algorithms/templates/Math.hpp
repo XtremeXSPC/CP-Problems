@@ -105,6 +105,24 @@ inline T rnd(T a, T b) {
   return std::uniform_real_distribution<T>(a, b)(rng);
 }
 
+// High-resolution timer for time-limited heuristics:
+struct Timer {
+  using Clock = std::chrono::high_resolution_clock;
+  Clock::time_point start;
+
+  Timer() : start(Clock::now()) {}
+
+  [[gnu::always_inline]] F64 elapsed() const {
+    return std::chrono::duration<F64>(Clock::now() - start).count();
+  }
+
+  void reset() { start = Clock::now(); }
+
+  [[gnu::always_inline]] bool within(F64 limit) const {
+    return elapsed() < limit;
+  }
+};
+
 // Variadic min/max:
 template <typename T>
 constexpr const T& _min(const T& a, const T& b) { return (b < a) ? b : a; }

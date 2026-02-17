@@ -96,3 +96,21 @@ auto make_vec4(std::size_t n1, std::size_t n2, std::size_t n3, std::size_t n4, c
 #define SUM(x) std::accumulate(all(x), 0LL)
 #define MIN(x) *std::ranges::min_element(x)
 #define MAX(x) *std::ranges::max_element(x)
+
+// Y-combinator for recursive lambdas:
+template <class F>
+struct YCombinator {
+  F fn;
+  template <class... Args>
+  decltype(auto) operator()(Args&&... args) const {
+    return fn(*this, std::forward<Args>(args)...);
+  }
+};
+
+template <class F>
+YCombinator(F) -> YCombinator<F>;
+
+template <class F>
+[[gnu::always_inline]] constexpr auto fix(F&& fn) {
+  return YCombinator<std::decay_t<F>>{std::forward<F>(fn)};
+}
