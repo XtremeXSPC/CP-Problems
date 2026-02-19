@@ -106,11 +106,11 @@ inline T rnd(T a, T b) {
 }
 
 // High-resolution timer for time-limited heuristics:
-struct Timer {
+struct Stopwatch {
   using Clock = std::chrono::high_resolution_clock;
   Clock::time_point start;
 
-  Timer() : start(Clock::now()) {}
+  Stopwatch() : start(Clock::now()) {}
 
   [[gnu::always_inline]] F64 elapsed() const {
     return std::chrono::duration<F64>(Clock::now() - start).count();

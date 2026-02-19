@@ -2,9 +2,7 @@
 
 #include "templates/Base.hpp"
 #include "templates/Constants.hpp"
-#define Timer CP_MATH_TIMER
 #include "templates/Math.hpp"
-#undef Timer
 
 //===----------------------------------------------------------------------===//
 /* Main Solver Function */
@@ -16,7 +14,7 @@ void solve() {
   edges.reserve(n - 1);
   FOR(n - 1) {
     INT(x, y);
-    edges.push_back({x, y});
+    edges.pb({x, y});
   }
 
   Vec<I32> a(n);
@@ -44,10 +42,10 @@ void solve() {
     Vec<I32> basis_vec;
     basis_vec.reserve(30);
     FOR(bit, 30) {
-      if (basis[bit] != 0) basis_vec.push_back(basis[bit]);
+      if (basis[bit] != 0) basis_vec.pb(basis[bit]);
     }
 
-    const I32 d = static_cast<I32>(basis_vec.size());
+    const I32 d = as<I32>(basis_vec.size());
     const I32 m = 1 << d;
     Vec<I32> vals(m, 0);
     FOR(i, d) {
@@ -57,7 +55,7 @@ void solve() {
     }
 
     std::unordered_map<I32, I32> coord;
-    coord.reserve(static_cast<std::size_t>(m) * 2);
+    coord.reserve(as<std::size_t>(m) * 2);
     FOR(mask, m) coord[vals[mask]] = mask;
     return {std::move(coord), m};
   };
@@ -96,8 +94,8 @@ void solve() {
   for (auto [x, y] : edges) {
     --x;
     --y;
-    adj[x].push_back(y);
-    adj[y].push_back(x);
+    adj[x].pb(y);
+    adj[y].pb(x);
   }
 
   Vec<I32> parent(n, -1), order;
@@ -107,16 +105,16 @@ void solve() {
   while (!st.empty()) {
     const I32 v = st.back();
     st.pop_back();
-    order.push_back(v);
+    order.pb(v);
     for (I32 u : adj[v]) {
       if (u == parent[v]) continue;
       parent[u] = v;
-      st.push_back(u);
+      st.pb(u);
     }
   }
 
   Vec<Vec<I32>> children(n);
-  FOR(v, 1, n) children[parent[v]].push_back(v);
+  FOR(v, 1, n) children[parent[v]].pb(v);
 
   Vec<I32> xor_sub = a;
   for (I32 i = n - 1; i >= 1; --i) {
@@ -147,7 +145,7 @@ void solve() {
       if (cu == 0) {
         if (has_du) {
           FOR(s, m) {
-            dv[s] = static_cast<I32>((static_cast<I64>(dv[s]) * d[u][s]) % MOD);
+            dv[s] = as<I32>((as<I64>(dv[s]) * d[u][s]) % MOD);
           }
         }
       } else {
@@ -162,7 +160,7 @@ void solve() {
               factor = 1 - cu;
               if (factor < 0) factor += MOD;
             }
-            dv[s] = static_cast<I32>((static_cast<I64>(dv[s]) * factor) % MOD);
+            dv[s] = as<I32>((as<I64>(dv[s]) * factor) % MOD);
           }
         } else {
           FOR(s, m) {
@@ -174,7 +172,7 @@ void solve() {
               factor = d[u][s] - cu;
               if (factor < 0) factor += MOD;
             }
-            dv[s] = static_cast<I32>((static_cast<I64>(dv[s]) * factor) % MOD);
+            dv[s] = as<I32>((as<I64>(dv[s]) * factor) % MOD);
           }
         }
       }
@@ -202,14 +200,14 @@ void solve() {
       }
     } else {
       FOR(s, m) {
-        const I32 term = static_cast<I32>((static_cast<I64>(d[v][s]) * j[s]) % MOD);
+        const I32 term = as<I32>((as<I64>(d[v][s]) * j[s]) % MOD);
         total += (parity[s & tv] == 0 ? term : -term);
       }
     }
 
     total %= MOD;
     if (total < 0) total += MOD;
-    c[v] = static_cast<I32>((total * inv_m) % MOD);
+    c[v] = as<I32>((total * inv_m) % MOD);
   }
 
   OUT(c[0]);

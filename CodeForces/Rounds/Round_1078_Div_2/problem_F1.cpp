@@ -2,9 +2,7 @@
 
 #include "templates/Base.hpp"
 #include "templates/Constants.hpp"
-#define Timer CP_MATH_TIMER
 #include "templates/Math.hpp"
-#undef Timer
 
 //===----------------------------------------------------------------------===//
 /* Main Solver Function */
