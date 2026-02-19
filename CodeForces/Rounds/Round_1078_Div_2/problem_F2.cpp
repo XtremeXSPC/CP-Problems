@@ -23,7 +23,7 @@ void solve() {
   Vec<I32> b(k);
   IN(b);
 
-  auto build_coord = [&]() -> Pair<std::unordered_map<I32, I32>, I32> {
+  auto build_coord = [&]() -> Pair<UnorderedMap<I32, I32>, I32> {
     std::array<I32, 30> basis{};
     basis.fill(0);
     for (I32 x : b) {
@@ -54,7 +54,7 @@ void solve() {
       FOR(mask, step) vals[mask | step] = vals[mask] ^ bb;
     }
 
-    std::unordered_map<I32, I32> coord;
+    UnorderedMap<I32, I32> coord;
     coord.reserve(as<std::size_t>(m) * 2);
     FOR(mask, m) coord[vals[mask]] = mask;
     return {std::move(coord), m};

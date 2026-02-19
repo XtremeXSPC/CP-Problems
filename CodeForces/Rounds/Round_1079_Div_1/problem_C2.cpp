@@ -105,7 +105,7 @@ void solve() {
   I32 pos = 1;
   FOR(u, 1, n + 1) {
     if (!done[u]) {
-      dfs(u, Path{u}, pos);
+      dfs(u, Path{as<I32>(u)}, pos);
     }
     pos += cnt[u];
   }
