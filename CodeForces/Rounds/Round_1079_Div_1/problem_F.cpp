@@ -56,7 +56,7 @@ void solve() {
 
     const Vec<Edge> base = build_circulant(k, as<I32>(q + 1));
     const I32 limit = k - as<I32>(r);
-    std::unordered_set<U64> removed;
+    UnorderedSet<U64> removed;
     removed.reserve(as<std::size_t>(limit));
     for (I32 i = 1; i < limit; i += 2) removed.insert(encode(i, i + 1));
 
@@ -87,7 +87,7 @@ void solve() {
   };
 
   auto complement_edges = [&](I32 n_all, const Vec<Edge>& small) -> Vec<Edge> {
-    std::unordered_set<U64> s;
+    UnorderedSet<U64> s;
     s.reserve(small.size() * 2 + 1);
     for (auto [u, v] : small) s.insert(encode(u, v));
 
@@ -101,6 +101,29 @@ void solve() {
           edges.pb({u, v});
         } else if (!s.contains(encode(u, v))) {
           edges.pb({u, v});
+        }
+      }
+    }
+    return edges;
+  };
+
+  auto construct_dense_comp12 = [&](I32 n_all) -> Vec<Edge> {
+    UnorderedSet<U64> missing;
+    missing.reserve(32);
+    FOR(i, 1, 7) {
+      FOR(j, i + 1, 7) {
+        if (i <= 3 && j <= 3) continue;
+        missing.insert(encode(as<I32>(i), as<I32>(j)));
+      }
+    }
+
+    Vec<Edge> edges;
+    const I64 total = as<I64>(n_all) * (n_all - 1) / 2;
+    edges.reserve(as<std::size_t>(total - 12));
+    FOR(u, 1, n_all + 1) {
+      FOR(v, u + 1, n_all + 1) {
+        if (!missing.contains(encode(as<I32>(u), as<I32>(v)))) {
+          edges.pb({as<I32>(u), as<I32>(v)});
         }
       }
     }
@@ -126,12 +149,16 @@ void solve() {
       edges = construct_odd_total(as<I32>(n - 1), m);
     } else {
       const I64 m_comp = n * (n - 1) / 2 - m;
+      if (m_comp == 12) {
+        edges = construct_dense_comp12(as<I32>(n));
+      } else
       if (bad_comp(m_comp)) {
         OUT("No");
         return;
+      } else {
+        const Vec<Edge> edges_comp = construct_odd_total(as<I32>(n - 1), m_comp);
+        edges = complement_edges(as<I32>(n), edges_comp);
       }
-      const Vec<Edge> edges_comp = construct_odd_total(as<I32>(n - 1), m_comp);
-      edges = complement_edges(as<I32>(n), edges_comp);
     }
   }
 
