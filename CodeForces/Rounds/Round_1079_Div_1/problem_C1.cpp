@@ -78,7 +78,7 @@ void solve() {
 
   start[1] = 1;
   FOR(u, 1, n) {
-    end[u] = lower_bound_path(path_count, Path{u + 1});
+    end[u] = lower_bound_path(path_count, Path{as<I32>(u + 1)});
     start[u + 1] = end[u];
   }
   end[n] = path_count + 1;
@@ -101,7 +101,7 @@ void solve() {
         edges.eb(u, v);
       }
 
-      cur = lower_bound_path(path_count, Path{u, v, sentinel});
+      cur = lower_bound_path(path_count, Path{as<I32>(u), v, sentinel});
     }
   }
 
