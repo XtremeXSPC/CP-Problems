@@ -97,6 +97,12 @@ auto make_vec4(std::size_t n1, std::size_t n2, std::size_t n3, std::size_t n4, c
 #define MIN(x) *std::ranges::min_element(x)
 #define MAX(x) *std::ranges::max_element(x)
 
+// Type-safe cast alias:
+template <typename To>
+[[gnu::always_inline]] constexpr To as(auto x) noexcept {
+  return static_cast<To>(x);
+}
+
 // Y-combinator for recursive lambdas:
 template <class F>
 struct YCombinator {
