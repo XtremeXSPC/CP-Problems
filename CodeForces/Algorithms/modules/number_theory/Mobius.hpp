@@ -16,7 +16,7 @@ struct Mobius {
 
     FOR(i, 2, n + 1) {
       if (is_prime[i]) {
-        primes.pb(i);
+        primes.push_back(i);
         mu[i] = -1;
       }
 

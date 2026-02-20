@@ -21,7 +21,7 @@ struct PersistentSegTree {
     while (n < size) n *= 2;
     nodes.reserve(n * 20);  // Pre-allocate for efficiency.
     build(0, n);
-    roots.pb(0);
+    roots.push_back(0);
   }
 
   /// @brief Builds initial tree structure.
@@ -40,7 +40,7 @@ struct PersistentSegTree {
   I32 update(I32 prev, I32 pos, I64 val, I32 tl = 0, I32 tr = -1) {
     if (tr == -1) tr = n;
     I32 idx = sz(nodes);
-    nodes.pb(nodes[prev]);
+    nodes.push_back(nodes[prev]);
 
     if (tl + 1 == tr) {
       nodes[idx].val = val;
@@ -68,7 +68,7 @@ struct PersistentSegTree {
 
   /// @brief Appends a new version after setting one position.
   void new_version(I32 pos, I64 val) {
-    roots.pb(update(roots.back(), pos, val));
+    roots.push_back(update(roots.back(), pos, val));
   }
 };
 

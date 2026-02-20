@@ -8,7 +8,7 @@
  * @tparam Cap Capacity type.
  *
  * Uses BFS level graph + DFS blocking flow.
- * Complexity: O(V^2 E) in general, O(E sqrt(V)) for bipartite matching cases.
+ * @Complexity: O(V^2 E) in general, O(E sqrt(V)) for bipartite matching cases.
  */
 template <typename Cap = I64>
 struct Dinic {
@@ -28,10 +28,13 @@ struct Dinic {
 
   /// @brief Adds a directed edge with capacity.
   void add_edge(I32 from, I32 to, Cap cap) {
-    Edge fwd{to, static_cast<I32>(g[to].size()), cap};
-    Edge rev{from, static_cast<I32>(g[from].size()), 0};
-    g[from].pb(fwd);
-    g[to].pb(rev);
+    I32 from_index = static_cast<I32>(g[from].size());
+    I32 to_index = static_cast<I32>(g[to].size());
+    if (from == to) ++to_index;
+    Edge fwd{to, to_index, cap};
+    Edge rev{from, from_index, 0};
+    g[from].push_back(fwd);
+    g[to].push_back(rev);
   }
 
   /// @brief Builds BFS level graph from source.

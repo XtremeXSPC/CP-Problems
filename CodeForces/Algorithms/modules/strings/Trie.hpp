@@ -68,7 +68,7 @@ struct Trie {
 
     std::function<void(I32, std::string)> dfs = [&](I32 node, std::string word) {
       if (nodes[node].is_end) {
-        FOR(nodes[node].count) result.pb(word);
+        FOR(nodes[node].count) result.push_back(word);
       }
       for (auto [c, child] : nodes[node].children) {
         dfs(child, word + c);

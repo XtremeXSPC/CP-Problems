@@ -10,7 +10,7 @@ inline I64 pollard_rho(I64 n) {
   if (n % 3 == 0) return 3;
   if (miller_rabin(n)) return n;
 
-  static thread_local std::mt19937_64 rng(as<U64>(std::chrono::steady_clock::now().time_since_epoch().count()));
+  static thread_local std::mt19937_64 rng(static_cast<U64>(std::chrono::steady_clock::now().time_since_epoch().count()));
 
   std::uniform_int_distribution<I64> dist_c(1, n - 1);
   std::uniform_int_distribution<I64> dist_x(0, n - 1);
@@ -40,7 +40,7 @@ inline Vec<I64> factorize(I64 n) {
   std::function<void(I64)> factor = [&](I64 x) {
     if (x == 1) return;
     if (miller_rabin(x)) {
-      factors.pb(x);
+      factors.push_back(x);
       return;
     }
 

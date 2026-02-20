@@ -30,8 +30,7 @@ Polygon<T> half_plane_intersection(Vec<HalfPlane<T>> planes) {
 
   if (planes.empty()) return Polygon<T>();
 
-  auto intersect_segment_with_line = [](const Point2D<T>& a, const Point2D<T>& b,
-                                        const HalfPlane<T>& hp) -> Point2D<T> {
+  auto intersect_segment_with_line = [](const Point2D<T>& a, const Point2D<T>& b, const HalfPlane<T>& hp) -> Point2D<T> {
     Point2D<T> ab = b - a;
     Point2D<T> dir = hp.p2 - hp.p1;
     T denom = ab.cross(dir);
@@ -46,7 +45,7 @@ Polygon<T> half_plane_intersection(Vec<HalfPlane<T>> planes) {
 
   auto push_unique = [&](Vec<Point2D<T>>& poly, const Point2D<T>& p) {
     if (poly.empty() || !nearly_equal(poly.back(), p)) {
-      poly.pb(p);
+      poly.push_back(p);
     }
   };
 

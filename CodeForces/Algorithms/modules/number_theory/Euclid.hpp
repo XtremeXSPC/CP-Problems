@@ -24,14 +24,30 @@ T mod_inverse(T a, T m) {
 /// @brief General Chinese Remainder Theorem for possibly non-coprime moduli.
 template <typename T>
 std::pair<T, T> chinese_remainder(const Vec<T>& a, const Vec<T>& m) {
+  if (a.size() != m.size()) return {-1, -1};
+
   T x = 0, M = 1;
 
   FOR(i, sz(a)) {
+    if (m[i] <= 0) return {-1, -1};
     auto [g, p, q] = extended_gcd(M, m[i]);
-    if ((a[i] - x) % g != 0) return {-1, -1};  // No solution.
+    (void)q;
 
-    x += M * ((a[i] - x) / g * p % (m[i] / g));
-    M *= m[i] / g;
+    T diff = a[i] - x;
+    if (diff % g != 0) return {-1, -1};  // No solution.
+
+    T mod = m[i] / g;
+    T p_norm = p % mod;
+    if (p_norm < 0) p_norm += mod;
+    T t = static_cast<T>((static_cast<__int128>(diff / g) * p_norm) % mod);
+    if (t < 0) t += mod;
+
+    __int128 next_x = static_cast<__int128>(x) + static_cast<__int128>(M) * t;
+    __int128 next_M = static_cast<__int128>(M) * mod;
+    if (next_M > std::numeric_limits<T>::max()) return {-1, -1};
+
+    x = static_cast<T>(next_x % next_M);
+    M = static_cast<T>(next_M);
     x = ((x % M) + M) % M;
   }
 

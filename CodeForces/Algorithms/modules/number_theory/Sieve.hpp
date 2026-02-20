@@ -11,12 +11,16 @@ struct Sieve {
   Vec<I32> smallest_factor;
 
   /// @brief Builds sieve up to @p size.
-  Sieve(I32 size) : n(size), is_prime(size + 1, true), smallest_factor(size + 1) {
-    is_prime[0] = is_prime[1] = false;
+  Sieve(I32 size)
+      : n(std::max<I32>(size, 0)),
+        is_prime(static_cast<Size>(n + 1), true),
+        smallest_factor(static_cast<Size>(n + 1), 0) {
+    is_prime[0] = false;
+    if (n >= 1) is_prime[1] = false;
 
     FOR(i, 2, n + 1) {
       if (is_prime[i]) {
-        primes.pb(i);
+        primes.push_back(i);
         smallest_factor[i] = i;
 
         for (I64 j = (I64)i * i; j <= n; j += i) {
@@ -45,9 +49,9 @@ struct Sieve {
           x /= p;
           cnt++;
         }
-        factors.pb({p, cnt});
+        factors.push_back({p, cnt});
       }
-      if (x > 1) factors.pb({x, 1});
+      if (x > 1) factors.push_back({x, 1});
       return factors;
     }
 
@@ -58,7 +62,7 @@ struct Sieve {
         x /= p;
         cnt++;
       }
-      factors.pb({p, cnt});
+      factors.push_back({p, cnt});
     }
     return factors;
   }

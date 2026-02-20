@@ -11,18 +11,16 @@ struct NTT {
   /// @brief In-place NTT on vector a. If inverse=true, computes inverse transform.
   static void ntt(Vec<I64>& a, bool inverse) {
     I32 n = sz(a);
-    if (n == 1) return;
+    if (n <= 1) return;
 
-    // Bit reversal.
-    FOR(i, n) {
-      I32 j = 0;
-      I32 x = i, y = n - 1;
-      while (y > 0) {
-        j <<= 1;
-        j |= x & 1;
-        x >>= 1;
-        y >>= 1;
+    // Bit reversal (iterative Gray-code style).
+    for (I32 i = 1, j = 0; i < n; ++i) {
+      I32 bit = n >> 1;
+      while (j & bit) {
+        j ^= bit;
+        bit >>= 1;
       }
+      j ^= bit;
       if (i < j) std::swap(a[i], a[j]);
     }
 
@@ -51,6 +49,7 @@ struct NTT {
 
   /// @brief Polynomial multiplication via NTT.
   static Vec<I64> multiply(Vec<I64> a, Vec<I64> b) {
+    if (a.empty() || b.empty()) return {};
     I32 result_size = sz(a) + sz(b) - 1;
     I32 n = 1;
     while (n < result_size) n <<= 1;

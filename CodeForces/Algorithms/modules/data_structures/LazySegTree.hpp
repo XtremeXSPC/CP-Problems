@@ -3,11 +3,7 @@
 
 #include "_Common.hpp"
 
-/**
- * @brief Recursive lazy-propagation segment tree for range add / range sum.
- * @tparam T Node aggregate type.
- * @tparam U Lazy delta type.
- */
+/// @brief Recursive lazy-propagation segment tree for range add / range sum.
 template <typename T, typename U>
 struct LazySegTree {
   I32 n;

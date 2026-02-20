@@ -57,7 +57,7 @@ struct SplayTree {
 
   /// @brief Returns a node to the free list for reuse.
   void del_node(I32 x) {
-    if (x != -1) free_list.pb(x);
+    if (x != -1) free_list.push_back(x);
   }
 
   I32 size(I32 x) const { return x == -1 ? 0 : nodes[x].sz; }
@@ -128,7 +128,7 @@ struct SplayTree {
   void splay(I32 x) {
     static Vec<I32> anc;
     anc.clear();
-    for (I32 v = x; v != -1; v = nodes[v].par) anc.pb(v);
+    for (I32 v = x; v != -1; v = nodes[v].par) anc.push_back(v);
     FOR_R(i, sz(anc)) push(anc[i]);
 
     while (nodes[x].par != -1) {
@@ -156,7 +156,7 @@ struct SplayTree {
   //===-------------------- AUXILIARY TREE OPERATIONS ---------------------===//
 
   /// @brief Splits tree into left (k elements) and right (rest).
-  TP<I32, I32> split(I32 root, I32 k) {
+  Pair<I32, I32> split(I32 root, I32 k) {
     if (k <= 0) return {-1, root};
     if (root == -1 || k >= size(root)) return {root, -1};
 
@@ -254,7 +254,7 @@ struct SplayTree {
     if (x == -1) return;
     push(x);
     to_vec(nodes[x].ch[0], out);
-    out.pb(nodes[x].val);
+    out.push_back(nodes[x].val);
     to_vec(nodes[x].ch[1], out);
   }
 

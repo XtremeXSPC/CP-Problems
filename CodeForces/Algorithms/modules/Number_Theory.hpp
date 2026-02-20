@@ -8,6 +8,8 @@
 
 #include "number_theory/Sieve.hpp"
 #include "number_theory/Euclid.hpp"
+#include "number_theory/Garner.hpp"
+#include "number_theory/LinearDiophantine.hpp"
 #include "number_theory/Phi.hpp"
 #include "number_theory/Primality64.hpp"
 #include "number_theory/PollardRho.hpp"

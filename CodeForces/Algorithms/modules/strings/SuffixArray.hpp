@@ -69,7 +69,7 @@ struct SuffixArray {
     }
 
     while (left < n && cmp_suffix_pattern(sa[left]) == 0) {
-      result.pb(sa[left]);
+      result.push_back(sa[left]);
       ++left;
     }
     return result;

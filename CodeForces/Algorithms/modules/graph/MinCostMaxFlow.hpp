@@ -26,8 +26,11 @@ struct MCMF {
 
   /// @brief Adds a directed edge with capacity and cost (and reverse with 0 cap, -cost).
   void add_edge(I32 from, I32 to, Cap cap, Cost cost) {
-    g[from].pb({to, sz(g[to]), cap, cost});
-    g[to].pb({from, sz(g[from]) - 1, 0, -cost});
+    I32 from_index = static_cast<I32>(g[from].size());
+    I32 to_index = static_cast<I32>(g[to].size());
+    if (from == to) ++to_index;
+    g[from].push_back({to, to_index, cap, cost});
+    g[to].push_back({from, from_index, 0, -cost});
   }
 
   /// @brief SPFA shortest path from s to t in the residual graph.
@@ -59,7 +62,7 @@ struct MCMF {
   }
 
   /// @brief Computes min-cost flow up to max_flow units from s to t.
-  TP<Cap, Cost> min_cost_flow(I32 s, I32 t, Cap max_flow) {
+  Pair<Cap, Cost> min_cost_flow(I32 s, I32 t, Cap max_flow) {
     Cap flow = 0;
     Cost cost = 0;
     while (flow < max_flow && spfa(s, t)) {

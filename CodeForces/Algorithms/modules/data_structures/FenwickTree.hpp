@@ -3,10 +3,7 @@
 
 #include "_Common.hpp"
 
-/**
- * @brief Fenwick tree (Binary Indexed Tree) for prefix sums.
- * @tparam T Value type supporting + and -.
- */
+/// @brief Fenwick tree (Binary Indexed Tree) for prefix sums.
 template <typename T>
 struct FenwickTree {
   I32 n;

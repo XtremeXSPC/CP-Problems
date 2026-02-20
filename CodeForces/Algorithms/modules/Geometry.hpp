@@ -7,6 +7,7 @@
  */
 
 #include "geometry/Point2D.hpp"
+#include "geometry/PointInConvexPolygon.hpp"
 #include "geometry/Line2D.hpp"
 #include "geometry/Polygon.hpp"
 #include "geometry/Circle.hpp"

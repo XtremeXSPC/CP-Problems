@@ -22,7 +22,7 @@ struct CentroidDecomposition {
       : n(g.n), tree(n), parent(n, -1), subtree_size(n, 0), used(n, false) {
     FOR(u, n) {
       for (const auto& e : g.adj[u]) {
-        tree[u].pb(e.to);
+        tree[u].push_back(e.to);
       }
     }
 

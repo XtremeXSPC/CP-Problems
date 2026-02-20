@@ -86,7 +86,7 @@ Vec<Point2D<T>> convex_hull(Vec<Point2D<T>> points) {
     while (sz(hull) >= 2 && orientation(hull[sz(hull) - 2], hull.back(), points[i]) <= 0) {
       hull.pop_back();
     }
-    hull.pb(points[i]);
+    hull.push_back(points[i]);
   }
 
   // Upper hull.
@@ -95,7 +95,7 @@ Vec<Point2D<T>> convex_hull(Vec<Point2D<T>> points) {
     while (sz(hull) > lower_size && orientation(hull[sz(hull) - 2], hull.back(), points[i]) <= 0) {
       hull.pop_back();
     }
-    hull.pb(points[i]);
+    hull.push_back(points[i]);
   }
 
   hull.pop_back();  // Remove duplicate point.
@@ -141,7 +141,7 @@ std::pair<Point2D<T>, Point2D<T>> closest_pair(Vec<Point2D<T>> points) {
     Vec<Point2D<T>> strip;
     FOR(i, l, r) {
       if (abs(points[i].x - midx) < d) {
-        strip.pb(points[i]);
+        strip.push_back(points[i]);
       }
     }
 
