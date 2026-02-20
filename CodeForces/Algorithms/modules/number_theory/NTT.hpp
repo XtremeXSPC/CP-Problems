@@ -3,18 +3,12 @@
 
 #include "_Common.hpp"
 
-/**
- * @brief Number Theoretic Transform over MOD=998244353.
- */
+/// @brief Number Theoretic Transform over MOD=998244353.
 struct NTT {
   static constexpr I64 MOD = 998244353;  // 2^23 * 119 + 1
   static constexpr I64 ROOT = 3;  // Primitive root of MOD.
 
-  /**
-   * @brief In-place forward/inverse NTT.
-   * @param a Coefficient vector (size must be power of two).
-   * @param inverse true for inverse transform.
-   */
+  /// @brief In-place NTT on vector a. If inverse=true, computes inverse transform.
   static void ntt(Vec<I64>& a, bool inverse) {
     I32 n = sz(a);
     if (n == 1) return;
@@ -32,7 +26,7 @@ struct NTT {
       if (i < j) std::swap(a[i], a[j]);
     }
 
-    // NTT computation
+    // NTT computation.
     for (I32 len = 2; len <= n; len <<= 1) {
       I64 w = inverse ? mod_pow(ROOT, MOD - 1 - (MOD - 1) / len, MOD)
                       : mod_pow(ROOT, (MOD - 1) / len, MOD);
@@ -55,9 +49,7 @@ struct NTT {
     }
   }
 
-  /**
-   * @brief Polynomial multiplication via NTT.
-   */
+  /// @brief Polynomial multiplication via NTT.
   static Vec<I64> multiply(Vec<I64> a, Vec<I64> b) {
     I32 result_size = sz(a) + sz(b) - 1;
     I32 n = 1;

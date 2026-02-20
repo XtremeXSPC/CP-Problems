@@ -4,13 +4,7 @@
 #include "_Common.hpp"
 #include "Primality64.hpp"
 
-/**
- * @brief Tonelli-Shanks algorithm for modular square root.
- * @param n Value to find square root of.
- * @param p Odd prime modulus.
- * @return x such that x^2 = n (mod p), or -1 if no root exists.
- *         Returns the canonical (smaller) root min(x, p-x).
- */
+/// @brief Tonelli-Shanks algorithm for modular square roots.
 inline I64 tonelli_shanks(I64 n, I64 p) {
   n %= p;
   if (n < 0) n += p;

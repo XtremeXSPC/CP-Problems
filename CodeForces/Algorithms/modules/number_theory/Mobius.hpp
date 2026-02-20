@@ -3,16 +3,12 @@
 
 #include "_Common.hpp"
 
-/**
- * @brief Mobius function precomputation and inversion helper.
- */
+/// @brief Mobius function precomputation and inversion helper.
 struct Mobius {
   Vec<I32> mu;
   I32 n;
 
-  /**
-   * @brief Computes mu[1..size] in O(size).
-   */
+  /// @brief Computes mu[1..size] in O(size).
   Mobius(I32 size) : mu(size + 1), n(size) {
     mu[1] = 1;
     Vec<bool> is_prime(n + 1, true);
@@ -36,11 +32,8 @@ struct Mobius {
     }
   }
 
-  /**
-   * @brief Mobius inversion:
-   * f(n) = sum_{d|n} mu(d) * g(n/d), given g(n) = sum_{d|n} f(d).
-   */
-  Vec<I64> invert(const Vec<I64>& g) {
+  /// @brief Mobius inversion: f(n) = sum_{d|n} mu(d) * g(n/d), given g(n) = sum_{d|n} f(d).
+   Vec<I64> invert(const Vec<I64>& g) {
     Vec<I64> f(sz(g));
     FOR(i, 1, sz(g)) {
       for (I32 j = i; j < sz(g); j += i) {

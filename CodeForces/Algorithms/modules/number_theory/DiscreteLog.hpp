@@ -3,10 +3,7 @@
 
 #include "_Common.hpp"
 
-/**
- * @brief Discrete logarithm via baby-step giant-step.
- * @return Smallest non-negative x such that a^x = b (mod m), or -1 if none.
- */
+/// @brief Baby-step Giant-step algorithm for discrete logarithm: finds x such that a^x ≡ b (mod m).
 inline I64 discrete_log(I64 a, I64 b, I64 m) {
   I64 n = sqrt(m) + 1;
 
