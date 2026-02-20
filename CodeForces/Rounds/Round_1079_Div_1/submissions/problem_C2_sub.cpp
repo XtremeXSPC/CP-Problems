@@ -1,7 +1,7 @@
 //===----------------------------------------------------------------------===//
 /**
  * @file: problem_C2_sub.cpp
- * @generated: 2026-02-20 00:51:27
+ * @generated: 2026-02-20 17:25:38
  * @source: problem_C2.cpp
  * @author: Costantino Lombardi
  *
@@ -46,6 +46,7 @@
   #include <cmath>
   #include <complex>
   #include <concepts>
+  #include <cstddef>
   #include <cstdint>
   #include <cstring>
   #include <deque>
@@ -73,6 +74,7 @@
   #include <unordered_map>
   #include <unordered_set>
   #include <utility>
+  #include <variant>
   #include <vector>
 #endif
 
@@ -122,10 +124,9 @@
 #endif
 
 //===----------------------------------------------------------------------===//
-/* Advanced Type System and Aliases */
-// clang-format off
+/* Core Type System and Aliases */
 
-// Fundamental type aliases with explicit sizes:
+// Fundamental signed/unsigned integer aliases with explicit bit widths.
 using I8  = std::int8_t;
 using I16 = std::int16_t;
 using I32 = std::int32_t;
@@ -135,56 +136,82 @@ using U16 = std::uint16_t;
 using U32 = std::uint32_t;
 using U64 = std::uint64_t;
 
-// Extended precision types (when available):
+// Extended precision integer aliases (when available).
 #ifdef __SIZEOF_INT128__
   using I128 = __int128;
   using U128 = unsigned __int128;
-#define HAS_INT128 1
+  #define HAS_INT128 1
 #else
-  // Fallback for compilers that don't support 128-bit integers.
+  // Fallback keeps APIs available on toolchains without native int128.
   using I128 = std::int64_t;
   using U128 = std::uint64_t;
-#define HAS_INT128 0
+  #define HAS_INT128 0
 #endif
 
-// Floating point types:
+// Floating-point aliases.
 using F32 = float;
 using F64 = double;
 using F80 = long double;
 
 #ifdef __FLOAT128__
   using F128 = __float128;
-#define HAS_FLOAT128 1
+  #define HAS_FLOAT128 1
 #else
-  // Fallback for compilers that don't support 128-bit floats.
+  // Fallback keeps APIs available on toolchains without float128.
   using F128 = long double;
-#define HAS_FLOAT128 0
+  #define HAS_FLOAT128 0
 #endif
 
-// Legacy short aliases (deprecated -- use I64, U64, F80 instead):
-using ll  [[deprecated("use I64 instead")]] = I64;
-using ull [[deprecated("use U64 instead")]] = U64;
-using ld  [[deprecated("use F80 instead")]] = F80;
+// Common standard scalar aliases.
+using Size = std::size_t;
+using Diff = std::ptrdiff_t;
+using Byte = std::byte;
 
-// Container type aliases:
+// String aliases.
+using String = std::string;
+using StringView = std::string_view;
+
+// Sequence containers.
 template <class T>
 using Vec = std::vector<T>;
 template <class T>
 using Deque = std::deque<T>;
 template <class T>
 using List = std::list<T>;
+template <class T, Size N>
+using Array = std::array<T, N>;
+template <Size N>
+using BitSet = std::bitset<N>;
+
+// Associative containers (kept compatible with PCH aliases).
 template <class T>
 using Set = std::set<T>;
 template <class T>
 using MultiSet = std::multiset<T>;
-template <class T>
-using UnorderedSet = std::unordered_set<T>;
 template <class K, class V>
 using Map = std::map<K, V>;
 template <class K, class V>
 using MultiMap = std::multimap<K, V>;
+template <class T>
+using UnorderedSet = std::unordered_set<T>;
 template <class K, class V>
 using UnorderedMap = std::unordered_map<K, V>;
+
+// Extended associative aliases with explicit comparator/hash control.
+template <class T, class Compare>
+using OrderedSetBy = std::set<T, Compare>;
+template <class T, class Compare>
+using OrderedMultiSetBy = std::multiset<T, Compare>;
+template <class K, class V, class Compare>
+using OrderedMapBy = std::map<K, V, Compare>;
+template <class K, class V, class Compare>
+using OrderedMultiMapBy = std::multimap<K, V, Compare>;
+template <class T, class Hash, class Eq = std::equal_to<T>>
+using HashedSetBy = std::unordered_set<T, Hash, Eq>;
+template <class K, class V, class Hash, class Eq = std::equal_to<K>>
+using HashedMapBy = std::unordered_map<K, V, Hash, Eq>;
+
+// Container adaptors (kept compatible with PCH aliases).
 template <class T>
 using Stack = std::stack<T, std::deque<T>>;
 template <class T>
@@ -194,47 +221,61 @@ using PriorityQueue = std::priority_queue<T, std::vector<T>>;
 template <class T>
 using MinPriorityQueue = std::priority_queue<T, std::vector<T>, std::greater<T>>;
 
-// Canonical multidimensional aliases:
+// Extended adaptor aliases with explicit container/comparator control.
+template <class T, class Container>
+using StackIn = std::stack<T, Container>;
+template <class T, class Container>
+using QueueIn = std::queue<T, Container>;
+template <class T, class Container, class Compare>
+using PriorityQueueBy = std::priority_queue<T, Container, Compare>;
+template <class T, class Container = std::vector<T>>
+using MinPriorityQueueIn = std::priority_queue<T, Container, std::greater<T>>;
+
+// Utility wrappers.
+template <class T, class U>
+using Pair = std::pair<T, U>;
+template <class... Args>
+using Tuple = std::tuple<Args...>;
+template <class T>
+using Optional = std::optional<T>;
+template <class... Ts>
+using Variant = std::variant<Ts...>;
+template <class Signature>
+using Function = std::function<Signature>;
+template <class T>
+using Span = std::span<T>;
+
+// Canonical multidimensional aliases.
 template <class T>
 using Vec2 = Vec<Vec<T>>;
 template <class T>
 using Vec3 = Vec<Vec2<T>>;
-
-// Legacy container aliases (deprecated -- use Vec, Vec2, Vec3 instead):
 template <class T>
-using VC [[deprecated("use Vec<T> instead")]] = Vec<T>;
-template <class T>
-using VVC [[deprecated("use Vec2<T> instead")]] = Vec2<T>;
-template <class T>
-using VVVC [[deprecated("use Vec3<T> instead")]] = Vec3<T>;
+using Vec4 = Vec<Vec3<T>>;
 
-// Pair and tuple aliases:
-template <class T, class U>
-using Pair = std::pair<T, U>;
-template <class T, class U>
-using P = Pair<T, U>;
-
-using PII = Pair<I32, I32>;
-using PLL = Pair<I64, I64>;
-using PLD = Pair<F80, F80>;
-
-// Specialized container aliases:
+// Specialized frequently-used aliases.
 using VI   = Vec<I32>;
 using VLL  = Vec<I64>;
 using VVI  = Vec<VI>;
 using VVLL = Vec<VLL>;
 using VB   = Vec<bool>;
-using VS   = Vec<std::string>;
+using VS   = Vec<String>;
 using VU8  = Vec<U8>;
+using VU16 = Vec<U16>;
 using VU32 = Vec<U32>;
 using VU64 = Vec<U64>;
 using VF   = Vec<F64>;
+using VLD  = Vec<F80>;
 
-// Vector of pairs:
+// Common pair aliases.
+template <class T, class U>
+using VecPair = Vec<Pair<T, U>>;
+
+using PII = Pair<I32, I32>;
+using PLL = Pair<I64, I64>;
+using PLD = Pair<F80, F80>;
 using VPII = Vec<PII>;
 using VPLL = Vec<PLL>;
-template <class T, class U>
-using VP = Vec<P<T, U>>;
 
 //===----------------------------------------------------------------------===//
 /* Advanced Macro System */
@@ -299,14 +340,13 @@ auto make_vec4(std::size_t n1, std::size_t n2, std::size_t n3, std::size_t n4, c
 #define FOR2_R(i, a) for (I64 i = (a) - 1; i >= 0; --i)
 #define FOR3_R(i, a, b) for (I64 i = (b) - 1; i >= (a); --i)
 
+// Overload resolution for FOR macros:
 #define overload4(a, b, c, d, e, ...) e
 #define overload3(a, b, c, d, ...) d
 #define FOR(...) overload4(__VA_ARGS__, FOR4, FOR3, FOR2, FOR1)(__VA_ARGS__)
 #define FOR_R(...) overload3(__VA_ARGS__, FOR3_R, FOR2_R, FOR1_R)(__VA_ARGS__)
 
-// Range-based iteration (deprecated -- use FOR/FOR_R and all/rall instead):
-#define REP(i, n) _Pragma("GCC warning \"REP is deprecated, use FOR(i, n)\"") for (I64 i = 0, _rep_n = static_cast<I64>(n); i < _rep_n; ++i)
-#define RREP(i, n) _Pragma("GCC warning \"RREP is deprecated, use FOR_R(i, n)\"") for (I64 i = static_cast<I64>(n) - 1; i >= 0; --i)
+// Range-based iteration macros:
 #define ALL(x) std::ranges::begin(x), std::ranges::end(x)
 #define RALL(x) std::ranges::rbegin(x), std::ranges::rend(x)
 
@@ -315,13 +355,7 @@ auto make_vec4(std::size_t n1, std::size_t n2, std::size_t n3, std::size_t n4, c
 #define rall(x) (x).rbegin(), (x).rend()
 #define sz(x) (I64)(x).size()
 #define len(x) sz(x)
-#define pb push_back
 #define eb emplace_back
-#define fi first
-#define se second
-// mp/mt are obsolete with C++17 CTAD -- prefer brace init or direct construction.
-#define mp make_pair
-#define mt make_tuple
 #define elif else if
 
 // Advanced container operations:
@@ -331,12 +365,6 @@ auto make_vec4(std::size_t n1, std::size_t n2, std::size_t n3, std::size_t n4, c
 #define SUM(x) std::accumulate(all(x), 0LL)
 #define MIN(x) *std::ranges::min_element(x)
 #define MAX(x) *std::ranges::max_element(x)
-
-// Type-safe cast alias:
-template <typename To>
-[[gnu::always_inline]] constexpr To as(auto x) noexcept {
-  return static_cast<To>(x);
-}
 
 // Y-combinator for recursive lambdas:
 template <class F>
@@ -354,6 +382,12 @@ YCombinator(F) -> YCombinator<F>;
 template <class F>
 [[gnu::always_inline]] constexpr auto fix(F&& fn) {
   return YCombinator<std::decay_t<F>>{std::forward<F>(fn)};
+}
+
+// Type-safe cast alias:
+template <typename To>
+[[gnu::always_inline]] constexpr To as(auto x) noexcept {
+  return static_cast<To>(x);
 }
 
 //===----------------------------------------------------------------------===//
@@ -450,14 +484,14 @@ void writeln(const Args&... args) {
 namespace fast_io {
 template <class T>
 inline void read_integer(T& x) { cp_io::read(x); }
+inline void read_char(char& x) { cp_io::read(x); }
+inline void read_string(std::string& x) { cp_io::read(x); }
 
 template <class T>
 inline void write_integer(T x) { cp_io::write_one(x); }
-
-inline void read_char(char& x) { cp_io::read(x); }
-inline void read_string(std::string& x) { cp_io::read(x); }
 inline void write_char(char c) { std::cout.put(c); }
 inline void write_string(const std::string& s) { cp_io::write_one(s); }
+
 inline void flush_output() { std::cout.flush(); }
 
 using cp_io::read;
@@ -466,20 +500,35 @@ using cp_io::writeln;
 } // namespace fast_io
 #endif
 
-// Input/Output macros.
-#ifndef IN
-  #define IN(...) cp_io::read(__VA_ARGS__)
+#ifdef CP_IO_IMPL_READ
+  #undef CP_IO_IMPL_READ
 #endif
-#ifndef OUT
-  #define OUT(...) cp_io::writeln(__VA_ARGS__)
+#ifdef CP_IO_IMPL_WRITELN
+  #undef CP_IO_IMPL_WRITELN
 #endif
-#ifndef FLUSH
-  #define FLUSH() std::cout.flush()
+#ifdef CP_IO_IMPL_FLUSH
+  #undef CP_IO_IMPL_FLUSH
 #endif
+
+#if defined(CP_FAST_IO_NAMESPACE_DEFINED)
+  #define CP_IO_IMPL_READ(...) fast_io::read(__VA_ARGS__)
+  #define CP_IO_IMPL_WRITELN(...) fast_io::writeln(__VA_ARGS__)
+  #define CP_IO_IMPL_FLUSH() fast_io::flush_output()
+#else
+  #define CP_IO_IMPL_READ(...) cp_io::read(__VA_ARGS__)
+  #define CP_IO_IMPL_WRITELN(...) cp_io::writeln(__VA_ARGS__)
+  #define CP_IO_IMPL_FLUSH() std::cout.flush()
+#endif
+
+//===----------------------------------------------------------------------===//
+/* Shared I/O Macro and Answer Helper Definitions */
+
+#define IN(...) CP_IO_IMPL_READ(__VA_ARGS__)
+#define OUT(...) CP_IO_IMPL_WRITELN(__VA_ARGS__)
+#define FLUSH() CP_IO_IMPL_FLUSH()
 
 #ifndef CP_IO_DECL_MACROS_DEFINED
   #define CP_IO_DECL_MACROS_DEFINED 1
-  // Convenient input macros.
   #define INT(...) I32 __VA_ARGS__; IN(__VA_ARGS__)
   #define LL(...) I64 __VA_ARGS__; IN(__VA_ARGS__)
   #define ULL(...) U64 __VA_ARGS__; IN(__VA_ARGS__)
@@ -499,7 +548,6 @@ using cp_io::writeln;
 
 #ifndef CP_IO_ANSWER_HELPERS_DEFINED
   #define CP_IO_ANSWER_HELPERS_DEFINED 1
-  // Answer helpers.
   inline void YES(bool condition = true) { OUT(condition ? "YES" : "NO"); }
   inline void NO(bool condition = true) { YES(!condition); }
   inline void Yes(bool condition = true) { OUT(condition ? "Yes" : "No"); }
@@ -517,7 +565,7 @@ void solve() {
   INT(n);
 
   constexpr I32 MAXK = 1 << 30;
-  UnorderedMap<I32, Path> cache; // k -> path (empty vec = nonexistent).
+  std::unordered_map<I32, Path> cache; // k -> path (empty vec = nonexistent).
 
   auto ask = [&](I32 k) -> const Path& {
     if (auto it = cache.find(k); it != cache.end()) return it->second;
@@ -558,7 +606,7 @@ void solve() {
   // Iterative DFS to avoid deep recursion.
   auto dfs = [&](I32 root, const Path& root_pref, I32 start_idx) -> I32 {
     Vec<Frame> stk;
-    stk.pb({root, root_pref, start_idx, 1});
+    stk.push_back({root, root_pref, start_idx, 1});
 
     while (!stk.empty()) {
       auto& fr = stk.back();
@@ -583,8 +631,8 @@ void solve() {
             edges.eb(fr.v, to);
           }
           Path child_pref = fr.pref;
-          child_pref.pb(to);
-          stk.pb({to, std::move(child_pref), nxt, 1});
+          child_pref.push_back(to);
+          stk.push_back({to, std::move(child_pref), nxt, 1});
           continue;
         }
       }

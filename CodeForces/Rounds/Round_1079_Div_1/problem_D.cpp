@@ -16,7 +16,7 @@ void solve() {
   Vec<I32> stk;
   FOR(i, n) {
     if (s[i] == '(') {
-      stk.pb(i);
+      stk.push_back(i);
     } else if (s[i] == ')') {
       if (!stk.empty()) {
         matched[stk.back()] = true;
@@ -30,7 +30,7 @@ void solve() {
   stk.clear();
   FOR(i, n) {
     if (s[i] == '[') {
-      stk.pb(i);
+      stk.push_back(i);
     } else if (s[i] == ']') {
       if (!stk.empty()) {
         matched[stk.back()] = true;
