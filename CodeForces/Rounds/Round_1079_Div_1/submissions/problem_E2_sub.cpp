@@ -1,11 +1,11 @@
 //===----------------------------------------------------------------------===//
 /**
- * @file: problem_C2_sub.cpp
- * @generated: 2026-02-20 00:51:27
- * @source: problem_C2.cpp
+ * @file: problem_E2_sub.cpp
+ * @generated: 2026-02-20 00:51:34
+ * @source: problem_E2.cpp
  * @author: Costantino Lombardi
  *
- * @brief: Codeforces Round 1079 (Div. 1) - Problem C2
+ * @brief: Codeforces Round 1079 (Div. 1) - Problem E2
  */
 //===----------------------------------------------------------------------===//
 /* Included library and Compiler Optimizations */
@@ -507,115 +507,507 @@ using cp_io::writeln;
 #endif
 
 //===----------------------------------------------------------------------===//
-/* Type Aliases */
+/* Data Structures & Algorithms for the Problem */
 
-using Path = Vec<I32>;
-using Edge = Pair<I32, I32>;
+//===----------------------------------------------------------------------===//
+/* Mathematical Utilities */
+
+// Generic mathematical functions:
+template <typename T>
+[[deprecated("use std::gcd() instead")]]
+[[gnu::always_inline]] constexpr T _gcd(T a, T b) {
+  static_assert(std::is_integral_v<T>, "_gcd requires an integral type.");
+  return b ? _gcd(b, a % b) : a;
+}
+
+template <typename T>
+[[deprecated("use std::lcm() instead")]]
+[[gnu::always_inline]] constexpr T _lcm(T a, T b) {
+  return a / _gcd(a, b) * b;
+}
+
+// Advanced division operations:
+template <typename T>
+[[gnu::always_inline]] constexpr T div_floor(T a, T b) {
+  return a / b - (a % b != 0 && (a ^ b) < 0);
+}
+
+template <typename T>
+[[gnu::always_inline]] constexpr T div_ceil(T a, T b) {
+  if constexpr (std::is_signed_v<T>) {
+    return a / b + ((a % b != 0) && ((a ^ b) >= 0));
+  } else {
+    return a / b + (a % b != 0);
+  }
+}
+
+template <typename T>
+[[gnu::always_inline]] constexpr T mod_floor(T a, T b) {
+  return a - b * div_floor(a, b);
+}
+
+template <typename T>
+[[gnu::always_inline]] constexpr std::pair<T, T> divmod(T a, T b) {
+  T q = div_floor(a, b);
+  return {q, a - q * b};
+}
+
+// Exponentiation without modulus:
+template <typename T>
+[[gnu::always_inline]] constexpr T power(T base, T exp) {
+  T result = 1;
+  while (exp > 0) {
+    if (exp & 1) result *= base;
+    base *= base;
+    exp >>= 1;
+  }
+  return result;
+}
+
+// Modular exponentiation:
+template <typename T>
+[[gnu::always_inline]] constexpr T mod_pow(T base, T exp, T mod) {
+  T result = 1 % mod;
+  base %= mod;
+  while (exp > 0) {
+    if (exp & 1) result = (__int128)result * base % mod;
+    base = (__int128)base * base % mod;
+    exp >>= 1;
+  }
+  return result;
+}
+
+// Legacy alias:
+template <typename T>
+[[deprecated("use power(base, exp) or mod_pow(base, exp, mod) instead")]]
+[[gnu::always_inline]] constexpr T _power(T base, T exp, T mod = 0) {
+  return mod ? mod_pow(base, exp, mod) : power(base, exp);
+}
+
+#ifndef __UTILITY_FUNCTIONS__
+template <class T, class S, class Compare = std::less<>>
+[[gnu::always_inline]] inline bool chmax(T& a, const S& b, const Compare& cmp = {}) {
+  return cmp(a, b) ? (a = b, true) : false;
+}
+
+template <class T, class S, class Compare = std::less<>>
+[[gnu::always_inline]] inline bool chmin(T& a, const S& b, const Compare& cmp = {}) {
+  return cmp(b, a) ? (a = b, true) : false;
+}
+#endif
+
+// Seeded random number generator:
+inline std::mt19937_64 rng(
+    static_cast<U64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
+
+template <typename T>
+  requires std::integral<T>
+inline T rnd(T a, T b) {
+  return std::uniform_int_distribution<T>(a, b)(rng);
+}
+
+template <typename T>
+  requires std::floating_point<T>
+inline T rnd(T a, T b) {
+  return std::uniform_real_distribution<T>(a, b)(rng);
+}
+
+// High-resolution timer for time-limited heuristics:
+struct Stopwatch {
+  using Clock = std::chrono::high_resolution_clock;
+  Clock::time_point start;
+
+  Stopwatch() : start(Clock::now()) {}
+
+  [[gnu::always_inline]] F64 elapsed() const {
+    return std::chrono::duration<F64>(Clock::now() - start).count();
+  }
+
+  void reset() { start = Clock::now(); }
+
+  [[gnu::always_inline]] bool within(F64 limit) const {
+    return elapsed() < limit;
+  }
+};
+
+// Variadic min/max:
+template <typename T>
+constexpr const T& _min(const T& a, const T& b) { return (b < a) ? b : a; }
+
+template <typename T>
+constexpr const T& _max(const T& a, const T& b) { return (a < b) ? b : a; }
+
+template <typename T, typename... Args>
+constexpr const T& _min(const T& a, const T& b, const Args&... args) {
+  return _min(a, _min(b, args...));
+}
+
+template <typename T, typename... Args>
+constexpr const T& _max(const T& a, const T& b, const Args&... args) {
+  return _max(a, _max(b, args...));
+}
+
+//===----------------------------------------------------------------------===//
+/* Mathematical Constants and Infinity Values */
+
+// High-precision mathematical constants:
+constexpr F80 PI   = 3.1415926535897932384626433832795028841971693993751L;
+constexpr F80 E    = 2.7182818284590452353602874713526624977572470937000L;
+constexpr F80 PHI  = 1.6180339887498948482045868343656381177203091798058L;
+constexpr F80 LN2  = 0.6931471805599453094172321214581765680755001343602L;
+constexpr F80 EPS  = 1e-9L;
+constexpr F80 DEPS = 1e-12L;
+
+// Robust infinity system:
+template <class T>
+constexpr T infinity = std::numeric_limits<T>::max() / 4;
+
+template <>
+inline constexpr I32 infinity<I32> = 1'010'000'000;
+template <>
+inline constexpr I64 infinity<I64> = 2'020'000'000'000'000'000LL;
+template <>
+inline constexpr U32 infinity<U32> = 2'020'000'000U;
+template <>
+inline constexpr U64 infinity<U64> = 4'040'000'000'000'000'000ULL;
+template <>
+inline constexpr F64 infinity<F64> = 1e18;
+template <>
+inline constexpr F80 infinity<F80> = 1e18L;
+
+#if HAS_INT128
+  static_assert(sizeof(I128) > sizeof(I64), "I128 must be true 128-bit when HAS_INT128 is enabled.");
+  template <>
+  inline constexpr I128 infinity<I128> = I128(infinity<I64>) * 2'000'000'000'000'000'000LL;
+#endif
+
+constexpr I32 INF32 = infinity<I32>;
+constexpr I64 INF64 = infinity<I64>;
+constexpr I64 LINF  = INF64; // Legacy alias
+
+// Powers of ten lookup table (10^k for k = 0..18):
+constexpr I64 POW10[] = {
+    1LL, 10LL, 100LL, 1000LL, 10000LL, 100000LL,
+    1000000LL, 10000000LL, 100000000LL, 1000000000LL,
+    10000000000LL, 100000000000LL, 1000000000000LL,
+    10000000000000LL, 100000000000000LL, 1000000000000000LL,
+    10000000000000000LL, 100000000000000000LL, 1000000000000000000LL,
+};
+
+// Modular arithmetic constants:
+constexpr I64 MOD  = 1000000007;
+constexpr I64 MOD2 = 998244353;
+constexpr I64 MOD3 = 1000000009;
+
+template <typename T>
+struct SparseTableMinOp {
+  constexpr T operator()(const T& a, const T& b) const { return a < b ? a : b; }
+};
+
+template <typename T, typename Op = SparseTableMinOp<T>>
+struct SparseTable {
+  Vec<Vec<T>> table;
+  Vec<I32> lg;
+  Op op;
+
+  SparseTable() = default;
+  explicit SparseTable(const Vec<T>& v, Op merge_op = Op{}) { build(v, merge_op); }
+
+  void build(const Vec<T>& v, Op merge_op = Op{}) {
+    op = merge_op;
+    const I32 n = sz(v);
+    lg.assign(n + 1, 0);
+    FOR(i, 2, n + 1) lg[i] = lg[i / 2] + 1;
+
+    if (n == 0) {
+      table.clear();
+      return;
+    }
+
+    const I32 max_log = lg[n] + 1;
+    table.assign(max_log, Vec<T>(n));
+    FOR(i, n) table[0][i] = v[i];
+
+    FOR(k, 1, max_log) {
+      FOR(i, n - (1 << k) + 1) {
+        table[k][i] = op(table[k - 1][i], table[k - 1][i + (1 << (k - 1))]);
+      }
+    }
+  }
+
+  T query(I32 l, I32 r) const {
+    const I32 k = lg[r - l + 1];
+    return op(table[k][l], table[k][r - (1 << k) + 1]);
+  }
+};
+
+struct SuffixArray {
+  std::string s;
+  Vec<I32> sa;    // Sorted suffix start positions.
+  Vec<I32> rank;  // rank[i] = position of suffix i in sa.
+  Vec<I32> lcp;   // lcp[k] = LCP(sa[k], sa[k+1]), size n-1.
+
+  Vec<I32> lg;
+  Vec<Vec<I32>> st;
+
+  SuffixArray() = default;
+  explicit SuffixArray(const std::string& str) { build(str); }
+
+  void build(const std::string& str) {
+    s = str;
+    build_sa();
+    build_lcp();
+    build_rmq();
+  }
+
+  I32 lcp_query(I32 i, I32 j) const {
+    if (i == j) return sz(s) - i;
+    I32 ri = rank[i];
+    I32 rj = rank[j];
+    if (ri > rj) std::swap(ri, rj);
+    return rmq(ri, rj - 1);
+  }
+
+  Vec<I32> find_pattern(const std::string& pattern) const {
+    Vec<I32> result;
+    const I32 n = sz(s);
+
+    auto cmp_suffix_pattern = [&](I32 suffix_pos) -> I32 {
+      I32 i = 0;
+      while (suffix_pos + i < n && i < sz(pattern)) {
+        char a = s[suffix_pos + i];
+        char b = pattern[i];
+        if (a < b) return -1;
+        if (a > b) return 1;
+        ++i;
+      }
+      return (i == sz(pattern)) ? 0 : -1;
+    };
+
+    I32 left = 0;
+    I32 right = n;
+    while (left < right) {
+      I32 mid = (left + right) / 2;
+      if (cmp_suffix_pattern(sa[mid]) < 0) {
+        left = mid + 1;
+      } else {
+        right = mid;
+      }
+    }
+
+    while (left < n && cmp_suffix_pattern(sa[left]) == 0) {
+      result.pb(sa[left]);
+      ++left;
+    }
+    return result;
+  }
+
+private:
+  void build_sa() {
+    const I32 n = sz(s);
+    sa.clear();
+    rank.clear();
+    if (n == 0) return;
+
+    // Build SA on s + sentinel(0) as cyclic shifts.
+    const I32 m = n + 1;
+    Vec<I32> a(m);
+    FOR(i, n) a[i] = static_cast<U8>(s[i]) + 1;
+    a[n] = 0;
+
+    Vec<I32> p(m), c(m);
+    {
+      const I32 alphabet = std::max<I32>(256 + 1, m);
+      Vec<I32> cnt(alphabet, 0);
+      FOR(i, m) cnt[a[i]]++;
+      FOR(i, 1, alphabet) cnt[i] += cnt[i - 1];
+      FOR_R(i, m) p[--cnt[a[i]]] = i;
+
+      c[p[0]] = 0;
+      I32 classes = 1;
+      FOR(i, 1, m) {
+        if (a[p[i]] != a[p[i - 1]]) ++classes;
+        c[p[i]] = classes - 1;
+      }
+    }
+
+    I32 k = 0;
+    while ((1 << k) < m) {
+      FOR(i, m) p[i] = (p[i] - (1 << k) + m) % m;
+
+      I32 classes = 0;
+      FOR(i, m) classes = std::max(classes, c[i] + 1);
+      Vec<I32> cnt(classes, 0);
+      FOR(i, m) cnt[c[p[i]]]++;
+      FOR(i, 1, classes) cnt[i] += cnt[i - 1];
+
+      Vec<I32> pn(m);
+      FOR_R(i, m) pn[--cnt[c[p[i]]]] = p[i];
+      p.swap(pn);
+
+      Vec<I32> cn(m);
+      cn[p[0]] = 0;
+      classes = 1;
+      FOR(i, 1, m) {
+        auto cur = Pair<I32, I32>{c[p[i]], c[(p[i] + (1 << k)) % m]};
+        auto prv = Pair<I32, I32>{c[p[i - 1]], c[(p[i - 1] + (1 << k)) % m]};
+        if (cur != prv) ++classes;
+        cn[p[i]] = classes - 1;
+      }
+      c.swap(cn);
+      ++k;
+    }
+
+    // Drop sentinel suffix.
+    sa.resize(n);
+    FOR(i, n) sa[i] = p[i + 1];
+    rank.assign(n, 0);
+    FOR(i, n) rank[sa[i]] = i;
+  }
+
+  void build_lcp() {
+    const I32 n = sz(s);
+    lcp.assign(n > 0 ? n - 1 : 0, 0);
+    if (n <= 1) return;
+
+    I32 k = 0;
+    FOR(i, n) {
+      if (rank[i] == n - 1) {
+        k = 0;
+        continue;
+      }
+      I32 j = sa[rank[i] + 1];
+      while (i + k < n && j + k < n && s[i + k] == s[j + k]) ++k;
+      lcp[rank[i]] = k;
+      if (k) --k;
+    }
+  }
+
+  void build_rmq() {
+    const I32 n = sz(lcp);
+    lg.assign(n + 1, 0);
+    FOR(i, 2, n + 1) lg[i] = lg[i / 2] + 1;
+    if (n == 0) {
+      st.clear();
+      return;
+    }
+
+    const I32 max_log = lg[n] + 1;
+    st.assign(max_log, Vec<I32>(n));
+    FOR(i, n) st[0][i] = lcp[i];
+    FOR(k, 1, max_log) {
+      FOR(i, n - (1 << k) + 1) {
+        st[k][i] = std::min(st[k - 1][i], st[k - 1][i + (1 << (k - 1))]);
+      }
+    }
+  }
+
+  I32 rmq(I32 l, I32 r) const {
+    if (l > r) return 0;
+    I32 k = lg[r - l + 1];
+    return std::min(st[k][l], st[k][r - (1 << k) + 1]);
+  }
+};
 
 //===----------------------------------------------------------------------===//
 /* Main Solver Function */
 
 void solve() {
-  INT(n);
+  INT(n, m);
+  STR(s, t);
 
-  constexpr I32 MAXK = 1 << 30;
-  std::unordered_map<I32, Path> cache; // k -> path (empty vec = nonexistent).
+  std::string all = s + "%" + t + "$";
+  SuffixArray sa(all);
+  SparseTable<I32> lcp_st(sa.lcp);
 
-  auto ask = [&](I32 k) -> const Path& {
-    if (auto it = cache.find(k); it != cache.end()) return it->second;
-    OUT("?", k);
-    FLUSH();
-
-    I32 len = 0;
-    if (!(std::cin >> len)) std::exit(0);
-    if (len == -1) {
-      return cache[k]; // insert empty = nonexistent.
-    }
-    Path& path = cache[k];
-    path.resize(len);
-    FOR(i, len) IN(path[i]);
-    return path;
+  auto get_lcp = [&](I32 i, I32 j) -> I32 {
+    if (i == j) return as<I32>(all.size()) - i;
+    I32 ri = sa.rank[i];
+    I32 rj = sa.rank[j];
+    if (ri > rj) std::swap(ri, rj);
+    return lcp_st.query(ri, rj - 1);
   };
 
-  auto is_prefix = [](const Path& path, const Path& pref) -> bool {
-    if (path.empty() || path.size() < pref.size()) return false;
-    FOR(i, static_cast<I32>(pref.size())) {
-      if (path[i] != pref[i]) return false;
-    }
-    return true;
-  };
-
-  Vec<bool> done(n + 1, false);
-  Vec<I32> cnt(n + 1, 0);
-  Vec<Vec<bool>> has_edge(n + 1, Vec<bool>(n + 1, false));
-  Vec<Edge> edges;
-
-  struct Frame {
-    I32 v;
-    Path pref;
-    I32 cursor;
-    I32 total;
-  };
-
-  // Iterative DFS to avoid deep recursion.
-  auto dfs = [&](I32 root, const Path& root_pref, I32 start_idx) -> I32 {
-    Vec<Frame> stk;
-    stk.pb({root, root_pref, start_idx, 1});
-
-    while (!stk.empty()) {
-      auto& fr = stk.back();
-
-      if (done[fr.v]) {
-        I32 res = cnt[fr.v];
-        stk.pop_back();
-        if (!stk.empty()) {
-          stk.back().total += res;
-          stk.back().cursor += res;
-        }
-        continue;
-      }
-
-      I32 nxt = fr.cursor + 1;
-      if (nxt <= MAXK) {
-        const Path& path = ask(nxt);
-        if (is_prefix(path, fr.pref)) {
-          I32 to = path[static_cast<I32>(fr.pref.size())];
-          if (!has_edge[fr.v][to]) {
-            has_edge[fr.v][to] = true;
-            edges.eb(fr.v, to);
-          }
-          Path child_pref = fr.pref;
-          child_pref.pb(to);
-          stk.pb({to, std::move(child_pref), nxt, 1});
-          continue;
-        }
-      }
-
-      done[fr.v] = true;
-      cnt[fr.v] = fr.total;
-      I32 res = fr.total;
-      stk.pop_back();
-      if (!stk.empty()) {
-        stk.back().total += res;
-        stk.back().cursor += res;
-      }
-    }
-
-    return cnt[root];
-  };
-
-  cache[1] = {1}; // Path(1) is always [1].
-  I32 pos = 1;
-  FOR(u, 1, n + 1) {
-    if (!done[u]) {
-      dfs(u, Path{as<I32>(u)}, pos);
-    }
-    pos += cnt[u];
+  Vec<I32> from_s;
+  FOR(i, as<I32>(sa.sa.size())) {
+    if (sa.sa[i] < n) from_s.eb(i);
   }
 
-  OUT("!", static_cast<I32>(edges.size()));
-  for (const auto& [a, b] : edges) OUT(a, b);
-  FLUSH();
+  auto compare_suffix = [&](I32 start, I32 pos, char ch, I32 idx) -> Pair<I32, I32> {
+    if (idx == 0 || idx > n) return {1, 0};
+
+    pos -= start;
+    idx--;
+    I32 p = sa.sa[from_s[idx]];
+
+    const I32 lcp1 = get_lcp(p, n + 1 + start);
+    if (lcp1 < pos) {
+      const char a = all[p + lcp1];
+      const char b = all[n + 1 + start + lcp1];
+      return (a < b) ? Pair<I32, I32>{1, lcp1} : Pair<I32, I32>{-1, lcp1};
+    }
+
+    if (lcp1 > pos) {
+      char a = all[p + pos];
+      char b;
+      I32 len = pos;
+      if (a != ch) {
+        b = ch;
+      } else {
+        len = lcp1;
+        a = all[p + lcp1];
+        b = all[n + 1 + start + lcp1];
+      }
+      return (a < b) ? Pair<I32, I32>{1, len} : Pair<I32, I32>{-1, len};
+    }
+
+    char a = all[p + lcp1];
+    char b = ch;
+    if (a < b) return {1, pos};
+    if (a > b) return {-1, pos};
+
+    const I32 lcp2 = get_lcp(p + lcp1 + 1, n + 1 + start + lcp1 + 1);
+    a = all[p + lcp1 + 1 + lcp2];
+    b = all[n + 1 + start + lcp1 + 1 + lcp2];
+    return (a < b) ? Pair<I32, I32>{1, pos + 1 + lcp2} : Pair<I32, I32>{-1, pos + 1 + lcp2};
+  };
+
+  auto get_max_len = [&](I32 start, I32 pos, char ch) -> I32 {
+    I32 l = 0;
+    I32 r = as<I32>(from_s.size());
+    while (l <= r) {
+      const I32 mid = l + (r - l) / 2;
+      if (compare_suffix(start, pos, ch, mid).first == -1) {
+        r = mid - 1;
+      } else {
+        l = mid + 1;
+      }
+    }
+    I32 res = 0;
+    res = std::max(res, compare_suffix(start, pos, ch, l - 1).second);
+    res = std::max(res, compare_suffix(start, pos, ch, l).second);
+    return res;
+  };
+
+  I32 ans = 0;
+  I32 start = 0;
+  I32 best = -1;
+
+  FOR(i, m) {
+    I32 mx_len = 0;
+    FOR(ch, 'a', 'z' + 1) mx_len = std::max(mx_len, get_max_len(start, i, as<char>(ch)));
+    best = std::max(best, mx_len);
+
+    if (mx_len < i - start + 1) {
+      ans++;
+      start += best;
+      best = -1;
+      i = start - 1;
+    }
+  }
+
+  if (start != m) ans++;
+  OUT(ans);
 }
 
 //===----------------------------------------------------------------------===//
@@ -624,10 +1016,10 @@ void solve() {
 auto main() -> int {
 #ifdef LOCAL
   Timer timer;
+  // init_debug_log();
 #endif
 
-  I32 T = 0;
-  if (!(std::cin >> T)) return 0;
+  INT(T);
   FOR(T) solve();
 
   return 0;
