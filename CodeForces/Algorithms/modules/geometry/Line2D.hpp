@@ -4,7 +4,7 @@
 #include "_Common.hpp"
 #include "Point2D.hpp"
 
-/// @brief 2D line in implicit form a*x + b*y = c.
+/// @brief 2D line in implicit form 'a * x + b * y = c'.
 template <typename T = F64>
 struct Line2D {
   T a, b, c;

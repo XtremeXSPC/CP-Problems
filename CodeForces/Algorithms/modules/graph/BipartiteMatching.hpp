@@ -19,7 +19,7 @@ struct BipartiteMatching {
         match_left(left_size, -1), match_right(right_size, -1), dist_left(left_size) {}
 
   /// @brief Adds an edge from left vertex u to right vertex v.
-  void add_edge(I32 u, I32 v) { adj[u].pb(v); }
+  void add_edge(I32 u, I32 v) { adj[u].push_back(v); }
 
   /// @brief BFS phase: builds layered graph of free left vertices.
   bool bfs() {

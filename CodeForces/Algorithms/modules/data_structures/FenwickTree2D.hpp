@@ -3,10 +3,7 @@
 
 #include "_Common.hpp"
 
-/**
- * @brief 2D Fenwick tree for point updates and rectangle sums.
- * @tparam T Value type.
- */
+/// @brief 2D Fenwick tree for point updates and rectangle sums.
 template <typename T>
 struct FenwickTree2D {
   I32 n, m;

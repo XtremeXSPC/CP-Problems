@@ -24,7 +24,7 @@ struct KMP {
   }
 
   /// @brief Finds all pattern occurrences in text.
-  Vec<I32> search(const std::string& text) {
+  Vec<I32> search(const std::string& text) const {
     Vec<I32> matches;
     I32 n = sz(text), m = sz(pattern);
     if (m == 0) {
@@ -41,7 +41,7 @@ struct KMP {
       if (text[i] == pattern[j]) j++;
 
       if (j == m) {
-        matches.pb(i - m + 1);
+        matches.push_back(i - m + 1);
         j = failure[j - 1];
       }
     }

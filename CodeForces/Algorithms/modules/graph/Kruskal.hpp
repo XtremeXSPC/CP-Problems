@@ -7,25 +7,41 @@
 /**
  * @brief Kruskal minimum spanning tree.
  *
- * @details Returns total weight and list of edge indices in the MST.
+ * @details Returns total weight and list of original edge indices in the MST.
  * Edges should be provided in (u, v, w) format.
- * Complexity: O(E log E).
+ * @Complexity: O(E log E).
  */
 template <typename Weight = I64>
-TP<Weight, Vec<I32>> kruskal_mst(I32 n, Vec<std::tuple<I32, I32, Weight>>& edges) {
-  std::sort(all(edges), [](const auto& a, const auto& b) {
-    return std::get<2>(a) < std::get<2>(b);
+Pair<Weight, Vec<I32>> kruskal_mst(I32 n, const Vec<std::tuple<I32, I32, Weight>>& edges) {
+  struct EdgeWithId {
+    I32 u;
+    I32 v;
+    Weight w;
+    I32 id;
+  };
+
+  Vec<EdgeWithId> sorted_edges;
+  sorted_edges.reserve(edges.size());
+  FOR(i, sz(edges)) {
+    auto [u, v, w] = edges[i];
+    sorted_edges.push_back({u, v, w, static_cast<I32>(i)});
+  }
+
+  std::sort(all(sorted_edges), [](const EdgeWithId& a, const EdgeWithId& b) {
+    return a.w < b.w;
   });
 
   DSU dsu(n);
   Weight total_weight = 0;
   Vec<I32> mst_edges;
+  if (n > 0) mst_edges.reserve(n - 1);
 
-  FOR(i, sz(edges)) {
-    auto [u, v, w] = edges[i];
+  for (const auto& e : sorted_edges) {
+    auto [u, v, w, id] = e;
     if (dsu.unite(u, v)) {
       total_weight += w;
-      mst_edges.pb(i);
+      mst_edges.push_back(id);
+      if (sz(mst_edges) == n - 1) break;
     }
   }
 

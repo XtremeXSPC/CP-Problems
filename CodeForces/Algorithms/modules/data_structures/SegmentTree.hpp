@@ -3,11 +3,7 @@
 
 #include "_Common.hpp"
 
-/**
- * @brief Iterative segment tree for point updates and range queries.
- * @tparam T Value type.
- * @tparam F Associative merge function type.
- */
+/// @brief Iterative segment tree for point updates and range queries.
 template <typename T, typename F = std::plus<T>>
 struct SegmentTree {
   I32 n;
@@ -34,8 +30,8 @@ struct SegmentTree {
     pos += n;
     tree[pos] = val;
     while (pos > 1) {
-      tree[pos >> 1] = op(tree[pos], tree[pos ^ 1]);
       pos >>= 1;
+      tree[pos] = op(tree[pos << 1], tree[pos << 1 | 1]);
     }
   }
 

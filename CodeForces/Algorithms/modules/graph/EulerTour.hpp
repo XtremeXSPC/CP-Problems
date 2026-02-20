@@ -23,7 +23,7 @@ struct EulerTour {
     Stack<PII> stk;
     stk.push({root, 0});
     tin[root] = timer++;
-    order.pb(root);
+    order.push_back(root);
 
     while (!stk.empty()) {
       auto& [v, ei] = stk.top();
@@ -35,7 +35,7 @@ struct EulerTour {
         parent[to] = v;
         depth[to] = depth[v] + 1;
         tin[to] = timer++;
-        order.pb(to);
+        order.push_back(to);
         stk.push({to, 0});
         found = true;
         break;

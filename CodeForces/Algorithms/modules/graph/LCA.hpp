@@ -8,7 +8,7 @@
 struct LCA {
   I32 n, log_n;
   VVI parent;
-  VI depth;
+  VI depth, component;
 
   /// @brief Builds lifting table from a rooted tree.
   LCA(const Graph<>& g, I32 root = 0) : n(g.n) {
@@ -17,21 +17,29 @@ struct LCA {
 
     parent.assign(log_n + 1, VI(n, -1));
     depth.assign(n, 0);
+    component.assign(n, -1);
     VB visited(n, false);
 
-    // DFS to set up parent[0] and depth.
-    std::function<void(I32, I32)> dfs = [&](I32 u, I32 p) {
+    // DFS to set up parent[0], depth and component id.
+    std::function<void(I32, I32, I32)> dfs = [&](I32 u, I32 p, I32 comp_id) {
       visited[u] = true;
       parent[0][u] = p;
+      component[u] = comp_id;
       for (const auto& e : g.adj[u]) {
         if (e.to != p && !visited[e.to]) {
           depth[e.to] = depth[u] + 1;
-          dfs(e.to, u);
+          dfs(e.to, u, comp_id);
         }
       }
     };
 
-    dfs(root, -1);
+    if (0 <= root && root < n && !visited[root]) dfs(root, -1, root);
+    FOR(i, n) {
+      if (!visited[i]) {
+        depth[i] = 0;
+        dfs(i, -1, i);
+      }
+    }
 
     // Binary lifting preprocessing.
     FOR(j, 1, log_n + 1) {
@@ -44,7 +52,8 @@ struct LCA {
   }
 
   /// @brief Returns LCA of u and v.
-  I32 query(I32 u, I32 v) {
+  I32 query(I32 u, I32 v) const {
+    if (component[u] != component[v]) return -1;
     if (depth[u] < depth[v]) std::swap(u, v);
 
     // Bring 'u' to the same level as 'v'.
@@ -67,8 +76,10 @@ struct LCA {
   }
 
   /// @brief Tree distance in edges between u and v.
-  I32 distance(I32 u, I32 v) {
-    return depth[u] + depth[v] - 2 * depth[query(u, v)];
+  I32 distance(I32 u, I32 v) const {
+    I32 w = query(u, v);
+    if (w == -1) return -1;
+    return depth[u] + depth[v] - 2 * depth[w];
   }
 };
 

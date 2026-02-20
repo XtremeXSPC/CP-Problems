@@ -45,7 +45,7 @@ struct AhoCorasick {
       }
       v = nodes[v].next[c];
     }
-    nodes[v].out.pb(id);
+    nodes[v].out.push_back(id);
   }
 
   /// @brief Builds full automaton from a pattern set.
@@ -96,7 +96,7 @@ struct AhoCorasick {
       }
       v = nodes[v].next[c];
       for (I32 id : nodes[v].out) {
-        result[i].pb(id);
+        result[i].push_back(id);
       }
     }
 

@@ -4,7 +4,7 @@
 #include "_Common.hpp"
 #include "Point3D.hpp"
 
-/// @brief Plane in 3D represented as a*x + b*y + c*z = d.
+/// @brief Plane in 3D represented as 'a * x + b * y + c * z = d'.
 template <typename T = F64>
 struct Plane3D {
   T a, b, c, d;

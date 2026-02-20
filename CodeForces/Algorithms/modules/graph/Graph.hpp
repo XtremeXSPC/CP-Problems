@@ -63,7 +63,7 @@ struct Graph {
   /// @brief Dijkstra shortest paths for non-negative edge weights.
   Vec<Weight> dijkstra(I32 source) const {
     Vec<Weight> dist(n, infinity<Weight>);
-    MinPriorityQueue<TP<Weight, I32>> pq;
+    MinPriorityQueue<Pair<Weight, I32>> pq;
 
     dist[source] = 0;
     pq.push({0, source});
@@ -87,7 +87,7 @@ struct Graph {
   }
 
   /// @brief Bellman-Ford shortest paths with negative-cycle detection.
-  TP<bool, Vec<Weight>> bellman_ford(I32 source) const {
+  Pair<bool, Vec<Weight>> bellman_ford(I32 source) const {
     Vec<Weight> dist(n, infinity<Weight>);
     dist[source] = 0;
 
@@ -129,7 +129,7 @@ struct Graph {
       for (const auto& e : adj[u]) {
         if (!visited[e.to]) dfs(e.to);
       }
-      result.pb(u);
+      result.push_back(u);
     };
 
     FOR(i, n) {
@@ -151,7 +151,7 @@ struct Graph {
       for (const auto& e : adj[u]) {
         if (!visited[e.to]) dfs1(e.to);
       }
-      order.pb(u);
+      order.push_back(u);
     };
 
     FOR(i, n) {
@@ -162,7 +162,7 @@ struct Graph {
     Vec<Vec<I32>> rev_adj(n);
     FOR(u, n) {
       for (const auto& e : adj[u]) {
-        rev_adj[e.to].pb(u);
+        rev_adj[e.to].push_back(u);
       }
     }
 
@@ -203,7 +203,7 @@ struct Graph {
           low[u] = std::min(low[u], low[v]);
 
           if (low[v] > disc[u]) {
-            bridges.pb({std::min(u, v), std::max(u, v)});
+            bridges.push_back({std::min(u, v), std::max(u, v)});
           }
         } else if (e.id != parent_edge) {
           low[u] = std::min(low[u], disc[v]);
@@ -254,7 +254,7 @@ struct Graph {
 
     Vec<I32> result;
     FOR(i, n) {
-      if (is_articulation[i]) result.pb(i);
+      if (is_articulation[i]) result.push_back(i);
     }
     return result;
   }

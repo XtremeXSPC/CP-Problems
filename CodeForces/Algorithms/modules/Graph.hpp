@@ -12,11 +12,17 @@
 #include "graph/BipartiteMatching.hpp"
 #include "graph/DSU.hpp"
 #include "graph/Kruskal.hpp"
+#include "graph/Prim.hpp"
+#include "graph/EulerianPath.hpp"
+#include "graph/DijkstraSparse.hpp"
 #include "graph/FloydWarshall.hpp"
+#include "graph/ZeroOneBFS.hpp"
+#include "graph/TarjanSCC.hpp"
 #include "graph/LCA.hpp"
 #include "graph/LCA_RMQ.hpp"
 #include "graph/EulerTour.hpp"
 #include "graph/HLD.hpp"
 #include "graph/CentroidDecomposition.hpp"
+#include "graph/TwoSAT.hpp"
 
 #endif

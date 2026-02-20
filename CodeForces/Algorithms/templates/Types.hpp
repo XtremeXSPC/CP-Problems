@@ -61,7 +61,7 @@ using Array = std::array<T, N>;
 template <Size N>
 using BitSet = std::bitset<N>;
 
-// Associative containers (kept compatible with PCH aliases).
+// Associative containers.
 template <class T>
 using Set = std::set<T>;
 template <class T>
@@ -89,7 +89,7 @@ using HashedSetBy = std::unordered_set<T, Hash, Eq>;
 template <class K, class V, class Hash, class Eq = std::equal_to<K>>
 using HashedMapBy = std::unordered_map<K, V, Hash, Eq>;
 
-// Container adaptors (kept compatible with PCH aliases).
+// Container adaptors.
 template <class T>
 using Stack = std::stack<T, std::deque<T>>;
 template <class T>
