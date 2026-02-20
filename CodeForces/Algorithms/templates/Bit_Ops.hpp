@@ -98,14 +98,3 @@ struct subset_range {
   iterator begin() const { return iterator(mask); }
   iterator end() const { return iterator(0); }
 };
-
-// Legacy aliases (Deprecated -- use popcount, bit_width, trailing_zeros instead):
-template <typename T>
-[[deprecated("use popcount() instead")]]
-constexpr I32 popcnt(T x) { return popcount(x); }
-template <typename T>
-[[deprecated("use bit_width() - 1 instead")]]
-constexpr I32 topbit(T x) { return bit_width(x) - 1; }
-template <typename T>
-[[deprecated("use trailing_zeros() instead")]]
-constexpr I32 lowbit(T x) { return trailing_zeros(x); }
