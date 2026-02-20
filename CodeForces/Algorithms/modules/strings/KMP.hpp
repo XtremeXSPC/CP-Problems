@@ -3,16 +3,12 @@
 
 #include "_Common.hpp"
 
-/**
- * @brief KMP matcher with linear-time preprocessing and matching.
- */
+/// @brief KMP matcher with linear-time preprocessing and matching.
 struct KMP {
   std::string pattern;
   Vec<I32> failure;
 
-  /**
-   * @brief Builds prefix-function table for a pattern.
-   */
+  /// @brief Builds prefix-function table for a pattern.
   KMP(const std::string& p) : pattern(p) {
     I32 m = sz(pattern);
     failure.assign(m, 0);
@@ -27,13 +23,7 @@ struct KMP {
     }
   }
 
-  /**
-   * @brief Finds all pattern occurrences in text.
-   * @param text Text to search.
-   * @return Start indices of all matches.
-   *
-   * Complexity: O(|text| + |pattern|).
-   */
+  /// @brief Finds all pattern occurrences in text.
   Vec<I32> search(const std::string& text) {
     Vec<I32> matches;
     I32 n = sz(text), m = sz(pattern);

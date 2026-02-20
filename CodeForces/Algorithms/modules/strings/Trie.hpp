@@ -3,32 +3,24 @@
 
 #include "_Common.hpp"
 
-/**
- * @brief Trie with multiplicity and prefix-frequency support.
- */
+/// @brief Trie with multiplicity and prefix-frequency support.
 struct Trie {
-  /**
-   * @brief Trie node keyed by character transitions.
-   */
+  /// @brief Trie node keyed by character transitions.
   struct Node {
     std::unordered_map<char, I32> children;
     bool is_end = false;
-    I32 count = 0;  // Number of words ending at this node.
+    I32 count = 0;         // Number of words ending at this node.
     I32 prefix_count = 0;  // Number of words with this prefix.
   };
 
   Vec<Node> nodes;
 
-  /**
-   * @brief Initializes trie with one root node.
-   */
+  /// s@brief Initializes trie with one root node.
   Trie() {
     nodes.eb();  // Root node.
   }
 
-  /**
-   * @brief Inserts one word occurrence.
-   */
+  /// @brief Inserts one word occurrence.
   void insert(const std::string& word) {
     I32 current = 0;
     for (char c : word) {
@@ -44,9 +36,7 @@ struct Trie {
     nodes[current].count++;
   }
 
-  /**
-   * @brief Checks exact word existence.
-   */
+  /// @brief Checks exact word existence.
   bool search(const std::string& word) {
     I32 current = 0;
     for (char c : word) {
@@ -56,9 +46,7 @@ struct Trie {
     return nodes[current].is_end;
   }
 
-  /**
-   * @brief Counts inserted words sharing given prefix.
-   */
+  /// @brief Counts inserted words sharing given prefix.
   I32 count_prefix(const std::string& prefix) {
     I32 current = 0;
     for (char c : prefix) {
@@ -68,10 +56,7 @@ struct Trie {
     return nodes[current].prefix_count;
   }
 
-  /**
-   * @brief Enumerates all stored words with given prefix.
-   * @return Words repeated according to multiplicity.
-   */
+  /// @brief Enumerates all stored words with given prefix.
   Vec<std::string> find_with_prefix(const std::string& prefix) {
     Vec<std::string> result;
     I32 current = 0;

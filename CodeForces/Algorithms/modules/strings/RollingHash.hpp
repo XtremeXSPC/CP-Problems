@@ -3,9 +3,7 @@
 
 #include "_Common.hpp"
 
-/**
- * @brief Double rolling hash utility for substring hashing/LCP.
- */
+/// @brief Double rolling hash utility for substring hashing/LCP.
 struct RollingHash {
   static constexpr I64 MOD1 = 1e9 + 7;
   static constexpr I64 MOD2 = 1e9 + 9;
@@ -15,9 +13,7 @@ struct RollingHash {
   std::string s;
   Vec<I64> hash1, hash2, pow1, pow2;
 
-  /**
-   * @brief Precomputes prefix hashes and powers.
-   */
+  /// @brief Precomputes prefix hashes and powers.
   RollingHash(const std::string& str) : s(str) {
     I32 n = sz(s);
     hash1.resize(n + 1);
@@ -34,25 +30,19 @@ struct RollingHash {
     }
   }
 
-  /**
-   * @brief Returns pair hash of substring [l, r).
-   */
+  /// @brief Returns pair hash of substring [l, r).
   PLL get_hash(I32 l, I32 r) {
     I64 h1 = (hash1[r] - hash1[l] * pow1[r - l] % MOD1 + MOD1) % MOD1;
     I64 h2 = (hash2[r] - hash2[l] * pow2[r - l] % MOD2 + MOD2) % MOD2;
     return {h1, h2};
   }
 
-  /**
-   * @brief Checks equality of two substrings in O(1).
-   */
+  /// @brief Checks equality of two substrings in O(1).
   bool equal(I32 l1, I32 r1, I32 l2, I32 r2) {
     return get_hash(l1, r1) == get_hash(l2, r2);
   }
 
-  /**
-   * @brief Longest common prefix of suffixes starting at i and j.
-   */
+  /// @brief Longest common prefix of suffixes starting at i and j.
   I32 lcp(I32 i, I32 j) {
     I32 left = 0, right = std::min(sz(s) - i, sz(s) - j) + 1;
     while (right - left > 1) {

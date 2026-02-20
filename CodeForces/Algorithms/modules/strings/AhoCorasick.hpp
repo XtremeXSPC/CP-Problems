@@ -6,15 +6,13 @@
 /**
  * @brief Aho-Corasick automaton for multi-pattern matching.
  *
- * Current alphabet is fixed to lowercase ['a'..'z'].
+ * @details Current alphabet is fixed to lowercase ['a'..'z'].
  */
 struct AhoCorasick {
   static constexpr I32 ALPHABET = 26;
   static constexpr char BASE = 'a';
 
-  /**
-   * @brief Automaton node with goto transitions, suffix link and output list.
-   */
+  /// @brief Automaton node with goto transitions, suffix link and output list.
   struct Node {
     std::array<I32, ALPHABET> next;
     I32 link;
@@ -27,18 +25,12 @@ struct AhoCorasick {
 
   Vec<Node> nodes;
 
-  /**
-   * @brief Initializes empty automaton with root node.
-   */
+  /// @brief Initializes empty automaton with root node.
   AhoCorasick() {
     nodes.eb();
   }
 
-  /**
-   * @brief Adds one pattern to trie backbone.
-   * @param pattern Lowercase pattern.
-   * @param id External pattern identifier.
-   */
+  /// @brief Adds one pattern to trie backbone.
   void add_pattern(const std::string& pattern, I32 id) {
     I32 v = 0;
     for (char ch : pattern) {
@@ -56,10 +48,7 @@ struct AhoCorasick {
     nodes[v].out.pb(id);
   }
 
-  /**
-   * @brief Builds full automaton from a pattern set.
-   * @param patterns Lowercase patterns.
-   */
+  /// @brief Builds full automaton from a pattern set.
   void build(const Vec<std::string>& patterns) {
     nodes.assign(1, Node{});
     FOR(i, sz(patterns)) add_pattern(patterns[i], i);
@@ -93,11 +82,7 @@ struct AhoCorasick {
     }
   }
 
-  /**
-   * @brief Matches text and returns output ids at each end position.
-   * @param text Query text.
-   * @return result[i] contains ids of patterns ending at text index i.
-   */
+  /// @brief Matches text and returns output ids at each end position.
   Vec<Vec<I32>> match(const std::string& text) const {
     Vec<Vec<I32>> result(sz(text));
     I32 v = 0;

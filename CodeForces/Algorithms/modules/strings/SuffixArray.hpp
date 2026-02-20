@@ -7,9 +7,9 @@
  * @brief Suffix array + Kasai LCP with O(1) LCP queries.
  *
  * Construction:
- * - suffix array in O(n log n) via counting-sort doubling on cyclic shifts
- * - LCP in O(n) via Kasai
- * - RMQ over LCP in O(n log n)
+ *  - suffix array in O(n log n) via counting-sort doubling on cyclic shifts
+ *  - LCP in O(n) via Kasai
+ *  - RMQ over LCP in O(n log n)
  */
 struct SuffixArray {
   std::string s;
@@ -23,9 +23,7 @@ struct SuffixArray {
   SuffixArray() = default;
   explicit SuffixArray(const std::string& str) { build(str); }
 
-  /**
-   * @brief Rebuilds all structures for input string.
-   */
+  /// @brief Rebuilds all structures for input string.
   void build(const std::string& str) {
     s = str;
     build_sa();
@@ -33,9 +31,7 @@ struct SuffixArray {
     build_rmq();
   }
 
-  /**
-   * @brief Returns LCP length of suffixes starting at i and j.
-   */
+  /// @brief Returns LCP length of suffixes starting at i and j.
   I32 lcp_query(I32 i, I32 j) const {
     if (i == j) return sz(s) - i;
     I32 ri = rank[i];
@@ -44,9 +40,7 @@ struct SuffixArray {
     return rmq(ri, rj - 1);
   }
 
-  /**
-   * @brief Finds all occurrences of pattern using binary search on SA.
-   */
+  /// @brief Finds all occurrences of pattern using binary search on SA.
   Vec<I32> find_pattern(const std::string& pattern) const {
     Vec<I32> result;
     const I32 n = sz(s);
@@ -82,6 +76,7 @@ struct SuffixArray {
   }
 
 private:
+  /// @brief Builds suffix array and rank array for s.
   void build_sa() {
     const I32 n = sz(s);
     sa.clear();
@@ -91,7 +86,7 @@ private:
     // Build SA on s + sentinel(0) as cyclic shifts.
     const I32 m = n + 1;
     Vec<I32> a(m);
-    FOR(i, n) a[i] = static_cast<U8>(s[i]) + 1;
+    FOR(i, n) a[i] = as<U8>(s[i]) + 1;
     a[n] = 0;
 
     Vec<I32> p(m), c(m);
@@ -144,6 +139,7 @@ private:
     FOR(i, n) rank[sa[i]] = i;
   }
 
+  /// @brief Builds LCP array using Kasai algorithm.
   void build_lcp() {
     const I32 n = sz(s);
     lcp.assign(n > 0 ? n - 1 : 0, 0);
@@ -162,6 +158,7 @@ private:
     }
   }
 
+  /// @brief Builds RMQ sparse table over LCP array.
   void build_rmq() {
     const I32 n = sz(lcp);
     lg.assign(n + 1, 0);
@@ -181,6 +178,7 @@ private:
     }
   }
 
+  /// @brief RMQ query on LCP array for range [l, r].
   I32 rmq(I32 l, I32 r) const {
     if (l > r) return 0;
     I32 k = lg[r - l + 1];
