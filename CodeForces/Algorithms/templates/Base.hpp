@@ -27,7 +27,6 @@
     #include "Macros.hpp"
   #endif
   #include "Fast_IO.hpp"
-  #include "IO.hpp"
 #endif
 
 // I/O system (lightweight by default).
