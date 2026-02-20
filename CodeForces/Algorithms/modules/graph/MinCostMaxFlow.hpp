@@ -59,7 +59,7 @@ struct MCMF {
   }
 
   /// @brief Computes min-cost flow up to max_flow units from s to t.
-  P<Cap, Cost> min_cost_flow(I32 s, I32 t, Cap max_flow) {
+  TP<Cap, Cost> min_cost_flow(I32 s, I32 t, Cap max_flow) {
     Cap flow = 0;
     Cost cost = 0;
     while (flow < max_flow && spfa(s, t)) {

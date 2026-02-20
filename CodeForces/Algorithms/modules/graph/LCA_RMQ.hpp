@@ -28,7 +28,7 @@ struct LCA_RMQ {
     euler_dep.reserve(2 * n);
 
     // Iterative DFS building full Euler tour (each node appears on enter + backtrack).
-    Stack<P<I32, I32>> stk;
+    Stack<TP<I32, I32>> stk;
     stk.push({root, 0});
 
     while (!stk.empty()) {
