@@ -4,34 +4,26 @@
 #include "_Common.hpp"
 #include "Point2D.hpp"
 
-/**
- * @brief 2D line in implicit form a*x + b*y = c.
- */
+/// @brief 2D line in implicit form a*x + b*y = c.
 template <typename T = F64>
 struct Line2D {
   T a, b, c;
 
   Line2D(T a = 0, T b = 0, T c = 0) : a(a), b(b), c(c) {}
 
-  /**
-   * @brief Builds line passing through points p1 and p2.
-   */
+  /// @brief Builds line passing through points p1 and p2.
   Line2D(const Point2D<T>& p1, const Point2D<T>& p2) {
     a = p2.y - p1.y;
     b = p1.x - p2.x;
     c = a * p1.x + b * p1.y;
   }
 
-  /**
-   * @brief Euclidean distance from point to line.
-   */
+  /// @brief Euclidean distance from point to line.
   T distance(const Point2D<T>& p) const {
     return abs(a * p.x + b * p.y - c) / sqrt(a * a + b * b);
   }
 
-  /**
-   * @brief Orthogonal projection of point onto this line.
-   */
+  /// @brief Orthogonal projection of point onto this line.
   Point2D<T> project(const Point2D<T>& p) const {
     T d = a * a + b * b;
     T x = (b * (b * p.x - a * p.y) + a * c) / d;
@@ -40,12 +32,7 @@ struct Line2D {
   }
 };
 
-/**
- * @brief Segment intersection test with intersection point extraction.
- * @tparam T Input coordinate type.
- * @tparam U Output coordinate type (must be floating point).
- * @return true if segments intersect (including collinear touching).
- */
+/// @brief Segment intersection test with intersection point extraction.
 template <typename T, typename U>
 bool segment_intersect(const Point2D<T>& a, const Point2D<T>& b,
                        const Point2D<T>& c, const Point2D<T>& d,
@@ -67,7 +54,7 @@ bool segment_intersect(const Point2D<T>& a, const Point2D<T>& b,
     return true;
   }
 
-  // Check for collinear cases
+  // Check for collinear cases.
   if (abs(d1) < EPS && on_segment(a, c, d)) {
     intersection = Point2D<U>(static_cast<U>(a.x), static_cast<U>(a.y));
     return true;

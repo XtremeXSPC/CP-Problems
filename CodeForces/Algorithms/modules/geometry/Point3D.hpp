@@ -3,9 +3,7 @@
 
 #include "_Common.hpp"
 
-/**
- * @brief 3D point/vector primitive.
- */
+/// @brief 3D point/vector primitive.
 template <typename T = F64>
 struct Point3D {
   T x, y, z;
@@ -20,9 +18,7 @@ struct Point3D {
   T dot(const Point3D& p) const { return x * p.x + y * p.y + z * p.z; }
 
   Point3D cross(const Point3D& p) const {
-    return Point3D(y * p.z - z * p.y,
-                   z * p.x - x * p.z,
-                   x * p.y - y * p.x);
+    return Point3D((y * p.z - z * p.y), (z * p.x - x * p.z), (x * p.y - y * p.x));
   }
 
   T norm2() const { return x * x + y * y + z * z; }

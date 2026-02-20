@@ -3,10 +3,7 @@
 
 #include "_Common.hpp"
 
-/**
- * @brief 2D point/vector with standard vector operations.
- * @tparam T Coordinate type.
- */
+/// @brief 2D point/vector with standard vector operations.
 template <typename T = F64>
 struct Point2D {
   T x, y;
@@ -23,17 +20,13 @@ struct Point2D {
   T norm2() const { return x * x + y * y; }
   T norm() const { return sqrt(norm2()); }
 
-  /**
-   * @brief Rotates the vector by angle (radians) around origin.
-   */
+  /// @brief Rotates the vector by angle (radians) around origin.
   Point2D rotate(T angle) const {
     T c = cos(angle), s = sin(angle);
     return Point2D(x * c - y * s, x * s + y * c);
   }
 
-  /**
-   * @brief Returns perpendicular vector (-y, x).
-   */
+  ///@brief Returns perpendicular vector (-y, x).
   Point2D perp() const { return Point2D(-y, x); }
 
   bool operator<(const Point2D& p) const {
@@ -45,18 +38,13 @@ struct Point2D {
   }
 };
 
-/**
- * @brief Oriented area sign of triangle (a, b, c).
- * @return Positive for counterclockwise turn, negative for clockwise.
- */
+/// @brief Oriented area sign of triangle (a, b, c).
 template <typename T>
 T orientation(const Point2D<T>& a, const Point2D<T>& b, const Point2D<T>& c) {
   return (b - a).cross(c - a);
 }
 
-/**
- * @brief Checks whether point p lies on segment [a, b].
- */
+/// @brief Checks whether point p lies on segment [a, b].
 template <typename T>
 bool on_segment(const Point2D<T>& p, const Point2D<T>& a, const Point2D<T>& b) {
   return abs((b - a).cross(p - a)) < EPS &&
