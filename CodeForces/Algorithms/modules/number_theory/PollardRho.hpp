@@ -4,17 +4,13 @@
 #include "_Common.hpp"
 #include "Primality64.hpp"
 
-/**
- * @brief Pollard's Rho randomized factor finder.
- * @return A non-trivial factor of @p n (or n itself if prime).
- */
+/// @brief Pollard's Rho randomized factor finder.
 inline I64 pollard_rho(I64 n) {
   if (n % 2 == 0) return 2;
   if (n % 3 == 0) return 3;
   if (miller_rabin(n)) return n;
 
-  static thread_local std::mt19937_64 rng(
-      static_cast<U64>(std::chrono::steady_clock::now().time_since_epoch().count()));
+  static thread_local std::mt19937_64 rng(as<U64>(std::chrono::steady_clock::now().time_since_epoch().count()));
 
   std::uniform_int_distribution<I64> dist_c(1, n - 1);
   std::uniform_int_distribution<I64> dist_x(0, n - 1);
@@ -37,10 +33,7 @@ inline I64 pollard_rho(I64 n) {
   }
 }
 
-/**
- * @brief Full prime factorization for 64-bit integer.
- * @return Sorted multiset of prime factors.
- */
+/// @brief Full prime factorization for 64-bit integer.
 inline Vec<I64> factorize(I64 n) {
   Vec<I64> factors;
 

@@ -92,11 +92,14 @@ using VVVC [[deprecated("use Vec3<T> instead")]] = Vec3<T>;
 template <class T, class U>
 using Pair = std::pair<T, U>;
 template <class T, class U>
-using P = Pair<T, U>;
+using TP = Pair<T, U>;
 
 using PII = Pair<I32, I32>;
 using PLL = Pair<I64, I64>;
 using PLD = Pair<F80, F80>;
+
+template <class... Args>
+using Tuple = std::tuple<Args...>;
 
 // Specialized container aliases:
 using VI   = Vec<I32>;
@@ -114,4 +117,4 @@ using VF   = Vec<F64>;
 using VPII = Vec<PII>;
 using VPLL = Vec<PLL>;
 template <class T, class U>
-using VP = Vec<P<T, U>>;
+using VP = Vec<TP<T, U>>;

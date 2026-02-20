@@ -3,9 +3,7 @@
 
 #include "_Common.hpp"
 
-/**
- * @brief Euler's totient φ(n) by trial factorization.
- */
+/// @brief Euler's totient φ(n) by trial factorization.
 inline I64 euler_phi(I64 n) {
   I64 result = n;
   for (I64 i = 2; i * i <= n; i++) {
@@ -18,9 +16,7 @@ inline I64 euler_phi(I64 n) {
   return result;
 }
 
-/**
- * @brief Computes totients for all values in [0, n].
- */
+/// @brief Computes totients for all values in [0, n].
 inline Vec<I32> euler_phi_sieve(I32 n) {
   Vec<I32> phi(n + 1);
   std::iota(all(phi), 0);

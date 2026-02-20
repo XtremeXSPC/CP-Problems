@@ -3,11 +3,7 @@
 
 #include "_Common.hpp"
 
-/**
- * @brief Extended Euclidean algorithm.
- * @tparam T Integer type.
- * @return Tuple (g, x, y) such that ax + by = g = gcd(a, b).
- */
+/// @brief Extended Euclidean Algorithm returning gcd and coefficients.
 template <typename T>
 std::tuple<T, T, T> extended_gcd(T a, T b) {
   if (b == 0) return {a, 1, 0};
@@ -17,10 +13,7 @@ std::tuple<T, T, T> extended_gcd(T a, T b) {
   return {g, x, y};
 }
 
-/**
- * @brief Modular inverse using extended gcd.
- * @return a^{-1} mod m, or -1 if inverse does not exist.
- */
+/// @brief Modular inverse of a modulo m using Extended Euclidean Algorithm.
 template <typename T>
 T mod_inverse(T a, T m) {
   auto [g, x, _] = extended_gcd(a, m);
@@ -28,10 +21,7 @@ T mod_inverse(T a, T m) {
   return ((x % m) + m) % m;
 }
 
-/**
- * @brief General Chinese Remainder Theorem for possibly non-coprime moduli.
- * @return Pair (x, M) meaning x mod M is the combined congruence, or {-1,-1}.
- */
+/// @brief General Chinese Remainder Theorem for possibly non-coprime moduli.
 template <typename T>
 std::pair<T, T> chinese_remainder(const Vec<T>& a, const Vec<T>& m) {
   T x = 0, M = 1;

@@ -4,10 +4,7 @@
 #include "_Common.hpp"
 #include "PollardRho.hpp"
 
-/**
- * @brief Finds a primitive root modulo prime p.
- * @return Primitive root or -1 if not found.
- */
+/// @brief Finds a primitive root modulo prime p.
 inline I64 primitive_root(I64 p) {
   if (p == 2) return 1;
 

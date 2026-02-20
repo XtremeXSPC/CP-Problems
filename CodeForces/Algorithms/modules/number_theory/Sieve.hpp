@@ -3,18 +3,14 @@
 
 #include "_Common.hpp"
 
-/**
- * @brief Prime sieve with smallest prime factor table.
- */
+/// @brief Prime sieve with smallest prime factor table.
 struct Sieve {
   I32 n;
   Vec<bool> is_prime;
   Vec<I32> primes;
   Vec<I32> smallest_factor;
 
-  /**
-   * @brief Builds sieve up to @p size.
-   */
+  /// @brief Builds sieve up to @p size.
   Sieve(I32 size) : n(size), is_prime(size + 1, true), smallest_factor(size + 1) {
     is_prime[0] = is_prime[1] = false;
 
@@ -31,18 +27,12 @@ struct Sieve {
     }
   }
 
-  /**
-   * @brief Checks primality for x within sieve range.
-   */
+  /// @brief Checks primality for x within sieve range.
   bool check_prime(I32 x) const {
     return x >= 2 && x <= n && is_prime[x];
   }
 
-  /**
-   * @brief Prime factorization of x as (prime, exponent) pairs.
-   *
-   * Uses smallest_factor table for x <= n; trial division otherwise.
-   */
+  /// @brief Prime factorization of x as (prime, exponent) pairs.
   Vec<PII> factorize(I32 x) const {
     Vec<PII> factors;
     if (x <= 1) return factors;
@@ -73,9 +63,7 @@ struct Sieve {
     return factors;
   }
 
-  /**
-   * @brief Counts divisors of x from its prime factorization.
-   */
+  /// @brief Counts divisors of x from its prime factorization.
   I32 count_divisors(I32 x) const {
     auto factors = factorize(x);
     I32 result = 1;

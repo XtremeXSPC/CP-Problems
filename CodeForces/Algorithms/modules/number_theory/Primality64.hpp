@@ -3,16 +3,12 @@
 
 #include "_Common.hpp"
 
-/**
- * @brief Overflow-safe modular multiplication on 64-bit inputs.
- */
+/// @brief Overflow-safe modular multiplication on 64-bit inputs.
 inline I64 mod_mul64(I64 a, I64 b, I64 mod) {
   return static_cast<I64>((static_cast<__int128>(a) * b) % mod);
 }
 
-/**
- * @brief Fast modular exponentiation on 64-bit inputs.
- */
+/// @brief Fast modular exponentiation on 64-bit inputs.
 inline I64 mod_pow64(I64 base, I64 exp, I64 mod) {
   I64 result = 1 % mod;
   base %= mod;
@@ -24,16 +20,12 @@ inline I64 mod_pow64(I64 base, I64 exp, I64 mod) {
   return result;
 }
 
-/**
- * @brief Absolute difference helper avoiding signed overflow pitfalls.
- */
+/// @brief Absolute difference helper avoiding signed overflow pitfalls.
 inline I64 abs_diff64(I64 a, I64 b) {
   return a > b ? a - b : b - a;
 }
 
-/**
- * @brief Deterministic Miller-Rabin primality test for 64-bit integers.
- */
+/// @brief Deterministic Miller-Rabin primality test for 64-bit integers.
 inline bool miller_rabin(I64 n) {
   if (n < 2) return false;
   if (n == 2) return true;
