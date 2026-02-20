@@ -4,6 +4,7 @@
 //===----------------------------------------------------------------------===//
 /* Lightweight I/O Utilities */
 
+#if !defined(CP_FAST_IO_NAMESPACE_DEFINED)
 namespace cp_io {
 
 inline void setup() {
@@ -91,7 +92,6 @@ void writeln(const Args&... args) {
 
 } // namespace cp_io
 
-#if !defined(CP_FAST_IO_NAMESPACE_DEFINED)
 namespace fast_io {
 template <class T>
 inline void read_integer(T& x) { cp_io::read(x); }
@@ -122,25 +122,31 @@ using cp_io::writeln;
   #define FLUSH() std::cout.flush()
 #endif
 
-// Convenient input macros.
-#define INT(...) I32 __VA_ARGS__; IN(__VA_ARGS__)
-#define LL(...) I64 __VA_ARGS__; IN(__VA_ARGS__)
-#define ULL(...) U64 __VA_ARGS__; IN(__VA_ARGS__)
-#define STR(...) std::string __VA_ARGS__; IN(__VA_ARGS__)
-#define CHR(...) char __VA_ARGS__; IN(__VA_ARGS__)
-#define DBL(...) F64 __VA_ARGS__; IN(__VA_ARGS__)
+#ifndef CP_IO_DECL_MACROS_DEFINED
+  #define CP_IO_DECL_MACROS_DEFINED 1
+  // Convenient input macros.
+  #define INT(...) I32 __VA_ARGS__; IN(__VA_ARGS__)
+  #define LL(...) I64 __VA_ARGS__; IN(__VA_ARGS__)
+  #define ULL(...) U64 __VA_ARGS__; IN(__VA_ARGS__)
+  #define STR(...) std::string __VA_ARGS__; IN(__VA_ARGS__)
+  #define CHR(...) char __VA_ARGS__; IN(__VA_ARGS__)
+  #define DBL(...) F64 __VA_ARGS__; IN(__VA_ARGS__)
 
-#ifndef CP_ENABLE_LEGACY_IO_VEC_MACROS
-  #define CP_ENABLE_LEGACY_IO_VEC_MACROS 1
+  #ifndef CP_ENABLE_LEGACY_IO_VEC_MACROS
+    #define CP_ENABLE_LEGACY_IO_VEC_MACROS 1
+  #endif
+
+  #if CP_ENABLE_LEGACY_IO_VEC_MACROS
+    #define VEC(type, name, size) Vec<type> name(size); IN(name)
+    #define VV(type, name, h, w) Vec2<type> name(h, Vec<type>(w)); IN(name)
+  #endif
 #endif
 
-#if CP_ENABLE_LEGACY_IO_VEC_MACROS
-  #define VEC(type, name, size) Vec<type> name(size); IN(name)
-  #define VV(type, name, h, w) Vec2<type> name(h, Vec<type>(w)); IN(name)
+#ifndef CP_IO_ANSWER_HELPERS_DEFINED
+  #define CP_IO_ANSWER_HELPERS_DEFINED 1
+  // Answer helpers.
+  inline void YES(bool condition = true) { OUT(condition ? "YES" : "NO"); }
+  inline void NO(bool condition = true) { YES(!condition); }
+  inline void Yes(bool condition = true) { OUT(condition ? "Yes" : "No"); }
+  inline void No(bool condition = true) { Yes(!condition); }
 #endif
-
-// Answer macros.
-inline void YES(bool condition = true) { OUT(condition ? "YES" : "NO"); }
-inline void NO(bool condition = true) { YES(!condition); }
-inline void Yes(bool condition = true) { OUT(condition ? "Yes" : "No"); }
-inline void No(bool condition = true) { Yes(!condition); }
