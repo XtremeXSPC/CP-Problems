@@ -36,15 +36,10 @@ struct SplayTree {
 
   SplayTree() = default;
 
-  /**
-   * @brief Pre-allocates node storage for anticipated element count.
-   */
+  /// @brief Pre-allocates node storage for anticipated element count.
   explicit SplayTree(I32 capacity) { nodes.reserve(capacity); }
 
-  /**
-   * @brief Allocates a new node with the given value.
-   * @return Node index.
-   */
+  /// @brief Allocates a new node with the given value.
   I32 new_node(Val v = M::e()) {
     I32 idx;
     if (!free_list.empty()) {
@@ -60,9 +55,7 @@ struct SplayTree {
     return idx;
   }
 
-  /**
-   * @brief Returns a node to the free list for reuse.
-   */
+  /// @brief Returns a node to the free list for reuse.
   void del_node(I32 x) {
     if (x != -1) free_list.pb(x);
   }
@@ -71,9 +64,7 @@ struct SplayTree {
 
   //===-------------------- CORE SPLAY TREE OPERATIONS --------------------===//
 
-  /**
-   * @brief Pushes pending lazy tags and reverse flag to children.
-   */
+  /// @brief Pushes pending lazy tags and reverse flag to children.
   void push(I32 x) {
     if (x == -1) return;
 
@@ -98,9 +89,7 @@ struct SplayTree {
     }
   }
 
-  /**
-   * @brief Recomputes size and aggregate from children.
-   */
+  /// @brief Recomputes size and aggregate from children.
   void pull(I32 x) {
     if (x == -1) return;
     nodes[x].sz = 1;
@@ -116,9 +105,7 @@ struct SplayTree {
     }
   }
 
-  /**
-   * @brief Single tree rotation around node x.
-   */
+  /// @brief Single tree rotation around node x.
   void rot(I32 x) {
     I32 p = nodes[x].par;
     I32 g = nodes[p].par;
@@ -137,11 +124,7 @@ struct SplayTree {
     pull(x);
   }
 
-  /**
-   * @brief Splays node x to the root of its tree.
-   *
-   * Pushes all pending lazy tags along the root-to-x path before rotating.
-   */
+  /// @brief Splays node x to the root of its tree.
   void splay(I32 x) {
     static Vec<I32> anc;
     anc.clear();
@@ -159,9 +142,7 @@ struct SplayTree {
     }
   }
 
-  /**
-   * @brief Finds the node at position k (0-indexed) in the subtree.
-   */
+  /// @brief Finds the node at position k (0-indexed) in the subtree.
   I32 kth_node(I32 x, I32 k) {
     while (true) {
       push(x);
@@ -174,11 +155,8 @@ struct SplayTree {
 
   //===-------------------- AUXILIARY TREE OPERATIONS ---------------------===//
 
-  /**
-   * @brief Splits tree into left (k elements) and right (rest).
-   * @return {left_root, right_root}.
-   */
-  P<I32, I32> split(I32 root, I32 k) {
+  /// @brief Splits tree into left (k elements) and right (rest).
+  TP<I32, I32> split(I32 root, I32 k) {
     if (k <= 0) return {-1, root};
     if (root == -1 || k >= size(root)) return {root, -1};
 
@@ -193,10 +171,7 @@ struct SplayTree {
     return {x, right};
   }
 
-  /**
-   * @brief Merges two trees (all elements in l precede all elements in r).
-   * @return Root of merged tree.
-   */
+  /// @brief Merges two trees (all elements in l precede all elements in r).
   I32 merge(I32 l, I32 r) {
     if (l == -1) return r;
     if (r == -1) return l;
@@ -217,20 +192,14 @@ struct SplayTree {
 
   //===----------------------- SEQUENCE OPERATIONS ------------------------===//
 
-  /**
-   * @brief Inserts value v at position pos (0-indexed, pushes existing elements right).
-   * @return New root.
-   */
+  /// @brief Inserts value v at position pos (0-indexed, pushes existing elements right).
   I32 insert(I32 root, I32 pos, Val v) {
     I32 nd = new_node(v);
     auto [l, r] = split(root, pos);
     return merge(merge(l, nd), r);
   }
 
-  /**
-   * @brief Erases the element at position pos (0-indexed).
-   * @return New root.
-   */
+  /// @brief Erases the element at position pos (0-indexed).
   I32 erase(I32 root, I32 pos) {
     auto [l, mr] = split(root, pos);
     auto [m, r] = split(mr, 1);
@@ -238,9 +207,7 @@ struct SplayTree {
     return merge(l, r);
   }
 
-  /**
-   * @brief Range aggregate query over half-open interval [l, r).
-   */
+  /// @brief Range aggregate query over half-open interval [l, r).
   Val query(I32& root, I32 l, I32 r) {
     auto [ab, c] = split(root, r);
     auto [a, b] = split(ab, l);
@@ -249,9 +216,7 @@ struct SplayTree {
     return result;
   }
 
-  /**
-   * @brief Applies lazy update to half-open interval [l, r).
-   */
+  /// @brief Applies lazy update to half-open interval [l, r).
   void apply(I32& root, I32 l, I32 r, Lazy lz) {
     auto [ab, c] = split(root, r);
     auto [a, b] = split(ab, l);
@@ -263,9 +228,7 @@ struct SplayTree {
     root = merge(merge(a, b), c);
   }
 
-  /**
-   * @brief Reverses the half-open interval [l, r).
-   */
+  /// @brief Reverses the half-open interval [l, r).
   void reverse(I32& root, I32 l, I32 r) {
     auto [ab, c] = split(root, r);
     auto [a, b] = split(ab, l);
@@ -273,9 +236,7 @@ struct SplayTree {
     root = merge(merge(a, b), c);
   }
 
-  /**
-   * @brief Returns the value at position pos (0-indexed).
-   */
+  /// @brief Returns the value at position pos (0-indexed).
   Val at(I32& root, I32 pos) {
     I32 x = kth_node(root, pos);
     splay(x);
@@ -283,17 +244,12 @@ struct SplayTree {
     return nodes[x].val;
   }
 
-  /**
-   * @brief Builds a balanced tree from an array of values.
-   * @return Root index.
-   */
+  /// @brief Builds a balanced tree from an array of values.
   I32 build(const Vec<Val>& a) {
     return build_rec(a, 0, sz(a));
   }
 
-  /**
-   * @brief Collects all values in-order into a vector.
-   */
+  /// @brief Collects all values in-order into a vector.
   void to_vec(I32 x, Vec<Val>& out) {
     if (x == -1) return;
     push(x);

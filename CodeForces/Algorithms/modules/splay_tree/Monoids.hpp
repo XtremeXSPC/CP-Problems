@@ -5,9 +5,7 @@
 
 //===--------------------- COMMON MONOIDS DEFINITIONS ---------------------===//
 
-/**
- * @brief Range sum query with range addition.
- */
+/// @brief Range sum query with range addition.
 struct SumAdd {
   using Val  = I64;
   using Lazy = I64;
@@ -18,9 +16,7 @@ struct SumAdd {
   static Lazy composition(Lazy f, Lazy g)      { return f + g; }
 };
 
-/**
- * @brief Range minimum query with range addition.
- */
+/// @brief Range minimum query with range addition.
 struct MinAdd {
   using Val  = I64;
   using Lazy = I64;
@@ -31,9 +27,7 @@ struct MinAdd {
   static Lazy composition(Lazy f, Lazy g)      { return f + g; }
 };
 
-/**
- * @brief Range maximum query with range addition.
- */
+/// @brief Range maximum query with range addition.
 struct MaxAdd {
   using Val  = I64;
   using Lazy = I64;
@@ -44,11 +38,7 @@ struct MaxAdd {
   static Lazy composition(Lazy f, Lazy g)      { return f + g; }
 };
 
-/**
- * @brief Range sum query with range assignment.
- *
- * Uses std::optional<I64> as the lazy type; std::nullopt denotes no pending update.
- */
+/// @brief Range sum query with range assignment.
 struct SumAssign {
   using Val  = I64;
   using Lazy = std::optional<I64>;
