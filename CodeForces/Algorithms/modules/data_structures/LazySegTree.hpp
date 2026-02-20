@@ -14,18 +14,14 @@ struct LazySegTree {
   Vec<T> tree;
   Vec<U> lazy;
 
-  /**
-   * @brief Constructs tree for given size (rounded up to power of two).
-   */
+  /// @brief Constructs tree for given size (rounded up to power of two).
   LazySegTree(I32 size) : n(1) {
     while (n < size) n *= 2;
     tree.assign(2 * n, T{});
     lazy.assign(2 * n, U{});
   }
 
-  /**
-   * @brief Pushes pending lazy value from node to children.
-   */
+  /// @brief Pushes lazy updates from node @p v down to its children.
   void push(I32 v, I32 tl, I32 tr) {
     if (lazy[v] == U{}) return;
     tree[v] += lazy[v] * (tr - tl);
@@ -36,9 +32,7 @@ struct LazySegTree {
     lazy[v] = U{};
   }
 
-  /**
-   * @brief Adds @p val over interval [l, r).
-   */
+  /// @brief Adds @p val to all elements in interval [l, r).
   void update(I32 l, I32 r, U val, I32 v = 1, I32 tl = 0, I32 tr = -1) {
     if (tr == -1) tr = n;
     push(v, tl, tr);
@@ -56,9 +50,7 @@ struct LazySegTree {
     tree[v] = tree[2*v] + tree[2*v + 1];
   }
 
-  /**
-   * @brief Returns aggregate over interval [l, r).
-   */
+  /// @brief Returns sum of elements in interval [l, r).
   T query(I32 l, I32 r, I32 v = 1, I32 tl = 0, I32 tr = -1) {
     if (tr == -1) tr = n;
     if (l >= tr || r <= tl) return T{};

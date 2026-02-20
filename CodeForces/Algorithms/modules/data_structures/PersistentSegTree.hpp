@@ -3,13 +3,9 @@
 
 #include "_Common.hpp"
 
-/**
- * @brief Persistent segment tree supporting versioned point updates.
- */
+/// @brief Persistent segment tree supporting versioned point updates.
 struct PersistentSegTree {
-  /**
-   * @brief Node in persistent segment tree arena.
-   */
+  /// @brief Node in persistent segment tree arena.
   struct Node {
     I64 val;
     I32 left, right;
@@ -20,9 +16,7 @@ struct PersistentSegTree {
   Vec<I32> roots;
   I32 n;
 
-  /**
-   * @brief Creates base version initialized with zeros.
-   */
+  /// @brief Creates base version initialized with zeros.
   PersistentSegTree(I32 size) : n(1) {
     while (n < size) n *= 2;
     nodes.reserve(n * 20);  // Pre-allocate for efficiency.
@@ -30,9 +24,7 @@ struct PersistentSegTree {
     roots.pb(0);
   }
 
-  /**
-   * @brief Builds initial tree structure.
-   */
+  /// @brief Builds initial tree structure.
   I32 build(I32 tl, I32 tr) {
     I32 idx = sz(nodes);
     nodes.eb();
@@ -44,10 +36,7 @@ struct PersistentSegTree {
     return idx;
   }
 
-  /**
-   * @brief Creates updated node path from previous version root.
-   * @return New version root index.
-   */
+  /// @brief Creates updated node path from previous version root.
   I32 update(I32 prev, I32 pos, I64 val, I32 tl = 0, I32 tr = -1) {
     if (tr == -1) tr = n;
     I32 idx = sz(nodes);
@@ -67,9 +56,7 @@ struct PersistentSegTree {
     return idx;
   }
 
-  /**
-   * @brief Range sum query on version root over [l, r).
-   */
+  /// @brief Range sum query on version root over [l, r).
   I64 query(I32 root, I32 l, I32 r, I32 tl = 0, I32 tr = -1) {
     if (tr == -1) tr = n;
     if (l >= tr || r <= tl) return 0;
@@ -79,9 +66,7 @@ struct PersistentSegTree {
            query(nodes[root].right, l, r, tm, tr);
   }
 
-  /**
-   * @brief Appends a new version after setting one position.
-   */
+  /// @brief Appends a new version after setting one position.
   void new_version(I32 pos, I64 val) {
     roots.pb(update(roots.back(), pos, val));
   }

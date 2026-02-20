@@ -3,19 +3,13 @@
 
 #include "_Common.hpp"
 
-/**
- * @brief Default min operation functor for SparseTable.
- */
+/// @brief Default min operation functor for SparseTable.
 template <typename T>
 struct SparseTableMinOp {
   constexpr T operator()(const T& a, const T& b) const { return a < b ? a : b; }
 };
 
-/**
- * @brief Sparse table for static idempotent range queries.
- * @tparam T Value type.
- * @tparam Op Merge operation type.
- */
+/// @brief Sparse table for static idempotent range queries.
 template <typename T, typename Op = SparseTableMinOp<T>>
 struct SparseTable {
   Vec<Vec<T>> table;
@@ -25,9 +19,7 @@ struct SparseTable {
   SparseTable() = default;
   explicit SparseTable(const Vec<T>& v, Op merge_op = Op{}) { build(v, merge_op); }
 
-  /**
-   * @brief Precomputes sparse table for input vector.
-   */
+  /// @brief Precomputes sparse table for input vector.
   void build(const Vec<T>& v, Op merge_op = Op{}) {
     op = merge_op;
     const I32 n = sz(v);
@@ -50,9 +42,7 @@ struct SparseTable {
     }
   }
 
-  /**
-   * @brief Query over inclusive range [l, r].
-   */
+  /// @brief Query over inclusive range [l, r].
   T query(I32 l, I32 r) const {
     const I32 k = lg[r - l + 1];
     return op(table[k][l], table[k][r - (1 << k) + 1]);

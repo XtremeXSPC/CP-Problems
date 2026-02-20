@@ -15,27 +15,21 @@ struct SegmentTree {
   F op;
   T identity;
 
-  /**
-   * @brief Constructs empty segment tree with identity element.
-   */
+  /// @brief Constructs empty segment tree with identity element.
   SegmentTree(I32 size, T id = T{}, F func = F{})
     : n(1), op(func), identity(id) {
     while (n < size) n *= 2;
     tree.assign(2 * n, identity);
   }
 
-  /**
-   * @brief Constructs segment tree from initial array.
-   */
+  /// @brief Constructs segment tree from initial array.
   SegmentTree(const Vec<T>& v, T id = T{}, F func = F{})
     : SegmentTree(sz(v), id, func) {
     FOR(i, sz(v)) tree[n + i] = v[i];
     FOR_R(i, 1, n) tree[i] = op(tree[2*i], tree[2*i + 1]);
   }
 
-  /**
-   * @brief Point assignment at position @p pos.
-   */
+  /// @brief Point assignment at position @p pos.
   void update(I32 pos, T val) {
     pos += n;
     tree[pos] = val;
@@ -45,9 +39,7 @@ struct SegmentTree {
     }
   }
 
-  /**
-   * @brief Range query over half-open interval [l, r).
-   */
+  /// @brief Range query over half-open interval [l, r).
   T query(I32 l, I32 r) {  // [l, r)
     T res_left = identity, res_right = identity;
     l += n; r += n;
@@ -59,9 +51,7 @@ struct SegmentTree {
     return op(res_left, res_right);
   }
 
-  /**
-   * @brief Returns current value at index @p pos.
-   */
+  /// @brief Returns current value at index @p pos.
   T get(I32 pos) { return tree[n + pos]; }
 };
 

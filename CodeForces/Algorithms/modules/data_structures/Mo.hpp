@@ -5,8 +5,7 @@
 
 /**
  * @brief Mo's algorithm for offline range queries.
- *
- * Processes queries in an order that minimizes pointer movement.
+ * @details Processes queries in an order that minimizes pointer movement.
  * Uses alternating direction on even/odd blocks for better cache behavior.
  * Queries use half-open intervals [l, r).
  */
