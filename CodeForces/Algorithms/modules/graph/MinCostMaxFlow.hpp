@@ -5,10 +5,8 @@
 
 /**
  * @brief Min-Cost Max-Flow via Successive Shortest Paths with SPFA.
- * @tparam Cap Capacity type.
- * @tparam Cost Cost type.
  *
- * Handles negative edge costs correctly via Bellman-Ford (SPFA).
+ * @details Handles negative edge costs correctly via Bellman-Ford (SPFA).
  */
 template <typename Cap = I64, typename Cost = I64>
 struct MCMF {
@@ -26,17 +24,13 @@ struct MCMF {
 
   MCMF(I32 n) : n(n), g(n), dist(n), prev_v(n), prev_e(n), in_queue(n) {}
 
-  /**
-   * @brief Adds a directed edge with capacity and cost (and reverse with 0 cap, -cost).
-   */
+  /// @brief Adds a directed edge with capacity and cost (and reverse with 0 cap, -cost).
   void add_edge(I32 from, I32 to, Cap cap, Cost cost) {
     g[from].pb({to, sz(g[to]), cap, cost});
     g[to].pb({from, sz(g[from]) - 1, 0, -cost});
   }
 
-  /**
-   * @brief SPFA shortest path from s to t in the residual graph.
-   */
+  /// @brief SPFA shortest path from s to t in the residual graph.
   bool spfa(I32 s, I32 t) {
     std::fill(all(dist), infinity<Cost>);
     std::fill(all(in_queue), false);
@@ -64,20 +58,17 @@ struct MCMF {
     return dist[t] < infinity<Cost>;
   }
 
-  /**
-   * @brief Computes min-cost flow up to max_flow units from s to t.
-   * @return {total_flow, total_cost}.
-   */
+  /// @brief Computes min-cost flow up to max_flow units from s to t.
   P<Cap, Cost> min_cost_flow(I32 s, I32 t, Cap max_flow) {
     Cap flow = 0;
     Cost cost = 0;
     while (flow < max_flow && spfa(s, t)) {
-      // Find bottleneck along shortest path
+      // Find bottleneck along shortest path.
       Cap d = max_flow - flow;
       for (I32 v = t; v != s; v = prev_v[v]) {
         d = std::min(d, g[prev_v[v]][prev_e[v]].cap);
       }
-      // Augment along path
+      // Augment along path.
       for (I32 v = t; v != s; v = prev_v[v]) {
         auto& e = g[prev_v[v]][prev_e[v]];
         e.cap -= d;

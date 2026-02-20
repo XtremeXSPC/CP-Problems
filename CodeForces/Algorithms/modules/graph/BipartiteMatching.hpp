@@ -18,14 +18,10 @@ struct BipartiteMatching {
       : left_sz(left_size), right_sz(right_size), adj(left_size),
         match_left(left_size, -1), match_right(right_size, -1), dist_left(left_size) {}
 
-  /**
-   * @brief Adds an edge from left vertex u to right vertex v.
-   */
+  /// @brief Adds an edge from left vertex u to right vertex v.
   void add_edge(I32 u, I32 v) { adj[u].pb(v); }
 
-  /**
-   * @brief BFS phase: builds layered graph of free left vertices.
-   */
+  /// @brief BFS phase: builds layered graph of free left vertices.
   bool bfs() {
     Queue<I32> que;
     FOR(u, left_sz) {
@@ -52,9 +48,7 @@ struct BipartiteMatching {
     return found;
   }
 
-  /**
-   * @brief DFS phase: finds augmenting path from left vertex u.
-   */
+  /// @brief DFS phase: finds augmenting path from left vertex u.
   bool dfs(I32 u) {
     for (I32 v : adj[u]) {
       I32 w = match_right[v];
@@ -68,9 +62,7 @@ struct BipartiteMatching {
     return false;
   }
 
-  /**
-   * @brief Computes maximum matching size.
-   */
+  /// @brief Computes maximum matching size.
   I32 max_matching() {
     I32 result = 0;
     while (bfs()) {

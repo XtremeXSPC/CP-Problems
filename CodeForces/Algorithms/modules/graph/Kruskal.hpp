@@ -6,11 +6,9 @@
 
 /**
  * @brief Kruskal minimum spanning tree.
- * @tparam Weight Edge weight type.
- * @param n Number of vertices.
- * @param edges Edge list as (u, v, w).
- * @return Pair {total_weight, indices_of_edges_used_from_input_array}.
  *
+ * @details Returns total weight and list of edge indices in the MST.
+ * Edges should be provided in (u, v, w) format.
  * Complexity: O(E log E).
  */
 template <typename Weight = I64>
