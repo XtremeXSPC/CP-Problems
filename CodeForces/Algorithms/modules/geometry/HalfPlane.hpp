@@ -4,32 +4,23 @@
 #include "_Common.hpp"
 #include "Polygon.hpp"
 
-/**
- * @brief Half-plane represented by directed line (left side is feasible).
- */
+/// @brief Half-plane represented by directed line (left side is feasible).
 template <typename T>
 struct HalfPlane {
   Point2D<T> p1, p2;  // Half-plane to the left of p1->p2.
 
   HalfPlane(const Point2D<T>& a, const Point2D<T>& b) : p1(a), p2(b) {}
 
-  /**
-   * @brief Checks if point lies in the half-plane.
-   */
+  /// @brief Checks if point lies in the half-plane.
   bool contains(const Point2D<T>& p) const {
     return orientation(p1, p2, p) >= -EPS;
   }
 
-  /**
-   * @brief Direction angle of boundary line.
-   */
+  /// @brief Direction angle of boundary line.
   T angle() const { return atan2(p2.y - p1.y, p2.x - p1.x); }
 };
 
-/**
- * @brief Intersects a set of half-planes and returns feasible polygon.
- * @return Polygon of feasible region (possibly empty).
- */
+/// @brief Intersects a set of half-planes and returns feasible polygon.
 template <typename T>
 Polygon<T> half_plane_intersection(Vec<HalfPlane<T>> planes) {
   static_assert(std::is_floating_point_v<T>, "half_plane_intersection requires floating-point coordinates");

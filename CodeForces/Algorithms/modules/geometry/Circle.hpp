@@ -4,9 +4,7 @@
 #include "_Common.hpp"
 #include "Point2D.hpp"
 
-/**
- * @brief Circle primitive with utility constructors and predicates.
- */
+/// @brief Circle primitive with utility constructors and predicates.
 template <typename T = F64>
 struct Circle {
   Point2D<T> center;
@@ -14,25 +12,18 @@ struct Circle {
 
   Circle(Point2D<T> c = Point2D<T>(), T r = 0) : center(c), radius(r) {}
 
-  /**
-   * @brief Circle area.
-   */
+  /// @brief Circle area.
   T area() const { return PI * radius * radius; }
-  /**
-   * @brief Circle circumference.
-   */
+
+  /// @brief Circle circumference.
   T circumference() const { return 2 * PI * radius; }
 
-  /**
-   * @brief Checks whether point lies inside or on boundary.
-   */
+  /// @brief Checks whether point lies inside or on boundary.
   bool contains(const Point2D<T>& p) const {
     return (p - center).norm2() <= radius * radius + EPS;
   }
 
-  /**
-   * @brief Circumcircle through three non-collinear points.
-   */
+  /// @brief Circumcircle through three non-collinear points.
   static Circle from_points(const Point2D<T>& a, const Point2D<T>& b, const Point2D<T>& c) {
     T d = 2 * (a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y));
     if (abs(d) < EPS) return Circle();  // Points are collinear
@@ -46,20 +37,14 @@ struct Circle {
   }
 };
 
-/**
- * @brief Circle through two points (diameter).
- */
+/// @brief Circle through two points (diameter).
 template <typename T>
 Circle<T> circle_from_two(const Point2D<T>& a, const Point2D<T>& b) {
   Point2D<T> center((a.x + b.x) / 2, (a.y + b.y) / 2);
   return Circle<T>(center, (a - b).norm() / 2);
 }
 
-/**
- * @brief Minimum enclosing circle via Welzl's randomized incremental algorithm.
- * @param points Input points (taken by value for internal shuffle).
- * @return Smallest circle containing all points. O(n) expected time.
- */
+/// @brief Minimum enclosing circle via Welzl's randomized incremental algorithm.
 template <typename T>
 Circle<T> min_enclosing_circle(Vec<Point2D<T>> points) {
   static_assert(std::is_floating_point_v<T>, "min_enclosing_circle requires floating-point type");

@@ -4,9 +4,7 @@
 #include "_Common.hpp"
 #include "Point2D.hpp"
 
-/**
- * @brief Polygon wrapper with common geometric predicates.
- */
+/// @brief Polygon wrapper with common geometric predicates.
 template <typename T = F64>
 struct Polygon {
   Vec<Point2D<T>> vertices;
@@ -14,9 +12,7 @@ struct Polygon {
   Polygon() {}
   Polygon(const Vec<Point2D<T>>& v) : vertices(v) {}
 
-  /**
-   * @brief Signed-area magnitude of polygon.
-   */
+  /// @brief Signed-area magnitude of polygon.
   T area() const {
     T result = 0;
     I32 n = sz(vertices);
@@ -26,9 +22,7 @@ struct Polygon {
     return abs(result) / 2;
   }
 
-  /**
-   * @brief Perimeter length.
-   */
+  /// @brief Perimeter length.
   T perimeter() const {
     T result = 0;
     I32 n = sz(vertices);
@@ -38,16 +32,12 @@ struct Polygon {
     return result;
   }
 
-  /**
-   * @brief Checks polygon convexity.
-   */
+  /// @brief Checks polygon convexity.
   bool is_convex() const {
     I32 n = sz(vertices);
     bool sign = false;
     FOR(i, n) {
-      T o = orientation(vertices[i],
-                       vertices[(i + 1) % n],
-                       vertices[(i + 2) % n]);
+      T o = orientation(vertices[i], vertices[(i + 1) % n], vertices[(i + 2) % n]);
       if (abs(o) < EPS) continue;
       if (i == 0) sign = o > 0;
       else if ((o > 0) != sign) return false;
@@ -55,9 +45,7 @@ struct Polygon {
     return true;
   }
 
-  /**
-   * @brief Point-in-polygon test (winding/ray crossing variant).
-   */
+  /// @brief Point-in-polygon test (winding/ray crossing variant).
   bool contains(const Point2D<T>& p) const {
     I32 n = sz(vertices);
     I32 count = 0;
@@ -83,10 +71,7 @@ struct Polygon {
   }
 };
 
-/**
- * @brief Convex hull via monotonic chain (a.k.a. Andrew/Graham variant).
- * @return Hull vertices in counterclockwise order.
- */
+/// @brief Convex hull via monotonic chain (a.k.a. Andrew/Graham variant).
 template <typename T>
 Vec<Point2D<T>> convex_hull(Vec<Point2D<T>> points) {
   I32 n = sz(points);
@@ -98,8 +83,7 @@ Vec<Point2D<T>> convex_hull(Vec<Point2D<T>> points) {
 
   // Lower hull.
   FOR(i, n) {
-    while (sz(hull) >= 2 &&
-           orientation(hull[sz(hull) - 2], hull.back(), points[i]) <= 0) {
+    while (sz(hull) >= 2 && orientation(hull[sz(hull) - 2], hull.back(), points[i]) <= 0) {
       hull.pop_back();
     }
     hull.pb(points[i]);
@@ -108,8 +92,7 @@ Vec<Point2D<T>> convex_hull(Vec<Point2D<T>> points) {
   // Upper hull.
   I32 lower_size = sz(hull);
   FOR_R(i, n - 1) {
-    while (sz(hull) > lower_size &&
-           orientation(hull[sz(hull) - 2], hull.back(), points[i]) <= 0) {
+    while (sz(hull) > lower_size && orientation(hull[sz(hull) - 2], hull.back(), points[i]) <= 0) {
       hull.pop_back();
     }
     hull.pb(points[i]);
@@ -119,12 +102,7 @@ Vec<Point2D<T>> convex_hull(Vec<Point2D<T>> points) {
   return hull;
 }
 
-/**
- * @brief Closest pair of points by divide-and-conquer.
- * @return Pair of points with minimum Euclidean distance.
- *
- * Complexity: O(n log^2 n) in this implementation due to per-level strip sorting.
- */
+/// @brief Closest pair of points by divide-and-conquer.
 template <typename T>
 std::pair<Point2D<T>, Point2D<T>> closest_pair(Vec<Point2D<T>> points) {
   I32 n = sz(points);
