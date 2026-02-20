@@ -12,7 +12,7 @@
  * Complexity: O(E log E).
  */
 template <typename Weight = I64>
-P<Weight, Vec<I32>> kruskal_mst(I32 n, Vec<std::tuple<I32, I32, Weight>>& edges) {
+TP<Weight, Vec<I32>> kruskal_mst(I32 n, Vec<std::tuple<I32, I32, Weight>>& edges) {
   std::sort(all(edges), [](const auto& a, const auto& b) {
     return std::get<2>(a) < std::get<2>(b);
   });

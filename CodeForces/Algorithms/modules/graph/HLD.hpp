@@ -87,7 +87,7 @@ struct HLD {
   }
 
   /// @brief Returns subtree interval in base-array coordinates.
-  P<I32, I32> subtree_range(I32 v) const {
+  TP<I32, I32> subtree_range(I32 v) const {
     return {pos[v], pos[v] + subtree_size[v] - 1};
   }
 

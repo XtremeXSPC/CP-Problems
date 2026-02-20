@@ -63,7 +63,7 @@ struct Graph {
   /// @brief Dijkstra shortest paths for non-negative edge weights.
   Vec<Weight> dijkstra(I32 source) const {
     Vec<Weight> dist(n, infinity<Weight>);
-    MinPriorityQueue<P<Weight, I32>> pq;
+    MinPriorityQueue<TP<Weight, I32>> pq;
 
     dist[source] = 0;
     pq.push({0, source});
@@ -87,7 +87,7 @@ struct Graph {
   }
 
   /// @brief Bellman-Ford shortest paths with negative-cycle detection.
-  P<bool, Vec<Weight>> bellman_ford(I32 source) const {
+  TP<bool, Vec<Weight>> bellman_ford(I32 source) const {
     Vec<Weight> dist(n, infinity<Weight>);
     dist[source] = 0;
 
