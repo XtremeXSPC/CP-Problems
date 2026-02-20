@@ -19,6 +19,8 @@ inline U32 input_pos = 0;
 inline U32 input_end = 0;
 inline U32 output_pos = 0;
 
+/* ------------------------------- INPUT API -------------------------------- */
+
 inline void load_input() {
   const U32 remaining = input_end - input_pos;
   std::memmove(input_buffer, input_buffer + input_pos, remaining);
@@ -84,6 +86,37 @@ inline void read_string(std::string& s) {
   } while (!std::isspace(static_cast<unsigned char>(c)));
 }
 
+inline void read(I32& x) { read_integer(x); }
+inline void read(I64& x) { read_integer(x); }
+inline void read(U32& x) { read_integer(x); }
+inline void read(U64& x) { read_integer(x); }
+inline void read(char& x) { read_char(x); }
+inline void read(std::string& x) { read_string(x); }
+
+template <class T, class U>
+void read(std::pair<T, U>& p) {
+  read(p.first);
+  read(p.second);
+}
+
+template <class T>
+void read(Vec<T>& v) {
+  for (auto& x : v) read(x);
+}
+
+template <typename... Args>
+void read(std::tuple<Args...>& t) {
+  std::apply([](auto&... args) { (read(args), ...); }, t);
+}
+
+template <class Head, class... Tail>
+void read(Head& head, Tail&... tail) {
+  read(head);
+  if constexpr (sizeof...(tail) > 0) read(tail...);
+}
+
+/* ------------------------------- OUTPUT API ------------------------------- */
+
 template <typename T>
 inline void write_integer(T x) {
   if (output_pos + 64 >= BUFFER_SIZE) flush_output();
@@ -120,35 +153,6 @@ inline void write_char(char c) {
 
 inline void write_string(std::string_view s) {
   for (char c : s) write_char(c);
-}
-
-inline void read(I32& x) { read_integer(x); }
-inline void read(I64& x) { read_integer(x); }
-inline void read(U32& x) { read_integer(x); }
-inline void read(U64& x) { read_integer(x); }
-inline void read(char& x) { read_char(x); }
-inline void read(std::string& x) { read_string(x); }
-
-template <class T, class U>
-void read(std::pair<T, U>& p) {
-  read(p.first);
-  read(p.second);
-}
-
-template <class T>
-void read(Vec<T>& v) {
-  for (auto& x : v) read(x);
-}
-
-template <typename... Args>
-void read(std::tuple<Args...>& t) {
-  std::apply([](auto&... args) { (read(args), ...); }, t);
-}
-
-template <class Head, class... Tail>
-void read(Head& head, Tail&... tail) {
-  read(head);
-  if constexpr (sizeof...(tail) > 0) read(tail...);
 }
 
 inline void write(I32 x) { write_integer(x); }
@@ -206,43 +210,18 @@ inline IOFlusher io_flusher;
 
 } // namespace fast_io
 
-#ifdef IN
-  #undef IN
+#ifdef CP_IO_IMPL_READ
+  #undef CP_IO_IMPL_READ
 #endif
-#ifdef OUT
-  #undef OUT
+#ifdef CP_IO_IMPL_WRITELN
+  #undef CP_IO_IMPL_WRITELN
 #endif
-#ifdef FLUSH
-  #undef FLUSH
-#endif
-
-#define IN(...) fast_io::read(__VA_ARGS__)
-#define OUT(...) fast_io::writeln(__VA_ARGS__)
-#define FLUSH() fast_io::flush_output()
-
-#ifndef CP_IO_DECL_MACROS_DEFINED
-  #define CP_IO_DECL_MACROS_DEFINED 1
-  #define INT(...) I32 __VA_ARGS__; IN(__VA_ARGS__)
-  #define LL(...) I64 __VA_ARGS__; IN(__VA_ARGS__)
-  #define ULL(...) U64 __VA_ARGS__; IN(__VA_ARGS__)
-  #define STR(...) std::string __VA_ARGS__; IN(__VA_ARGS__)
-  #define CHR(...) char __VA_ARGS__; IN(__VA_ARGS__)
-  #define DBL(...) F64 __VA_ARGS__; IN(__VA_ARGS__)
-
-  #ifndef CP_ENABLE_LEGACY_IO_VEC_MACROS
-    #define CP_ENABLE_LEGACY_IO_VEC_MACROS 1
-  #endif
-
-  #if CP_ENABLE_LEGACY_IO_VEC_MACROS
-    #define VEC(type, name, size) Vec<type> name(size); IN(name)
-    #define VV(type, name, h, w) Vec2<type> name(h, Vec<type>(w)); IN(name)
-  #endif
+#ifdef CP_IO_IMPL_FLUSH
+  #undef CP_IO_IMPL_FLUSH
 #endif
 
-#ifndef CP_IO_ANSWER_HELPERS_DEFINED
-  #define CP_IO_ANSWER_HELPERS_DEFINED 1
-  inline void YES(bool condition = true) { OUT(condition ? "YES" : "NO"); }
-  inline void NO(bool condition = true) { YES(!condition); }
-  inline void Yes(bool condition = true) { OUT(condition ? "Yes" : "No"); }
-  inline void No(bool condition = true) { Yes(!condition); }
-#endif
+#define CP_IO_IMPL_READ(...) fast_io::read(__VA_ARGS__)
+#define CP_IO_IMPL_WRITELN(...) fast_io::writeln(__VA_ARGS__)
+#define CP_IO_IMPL_FLUSH() fast_io::flush_output()
+
+#include "IO_Defs.hpp"

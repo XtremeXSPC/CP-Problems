@@ -113,7 +113,7 @@
   using P = std::pair<T, U>;
   using PII = std::pair<I32, I32>;
   using PLL = std::pair<I64, I64>;
-  using PLD = std::pair<ld, ld>;
+  using PLD = std::pair<F80, F80>;
 
   template <class T, class U>
   using VP = VC<P<T, U>>;

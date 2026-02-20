@@ -36,6 +36,7 @@
   #include <cmath>
   #include <complex>
   #include <concepts>
+  #include <cstddef>
   #include <cstdint>
   #include <cstring>
   #include <deque>
@@ -63,6 +64,7 @@
   #include <unordered_map>
   #include <unordered_set>
   #include <utility>
+  #include <variant>
   #include <vector>
 #endif
 

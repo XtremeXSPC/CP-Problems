@@ -95,14 +95,14 @@ void writeln(const Args&... args) {
 namespace fast_io {
 template <class T>
 inline void read_integer(T& x) { cp_io::read(x); }
+inline void read_char(char& x) { cp_io::read(x); }
+inline void read_string(std::string& x) { cp_io::read(x); }
 
 template <class T>
 inline void write_integer(T x) { cp_io::write_one(x); }
-
-inline void read_char(char& x) { cp_io::read(x); }
-inline void read_string(std::string& x) { cp_io::read(x); }
 inline void write_char(char c) { std::cout.put(c); }
 inline void write_string(const std::string& s) { cp_io::write_one(s); }
+
 inline void flush_output() { std::cout.flush(); }
 
 using cp_io::read;
@@ -111,42 +111,24 @@ using cp_io::writeln;
 } // namespace fast_io
 #endif
 
-// Input/Output macros.
-#ifndef IN
-  #define IN(...) cp_io::read(__VA_ARGS__)
+#ifdef CP_IO_IMPL_READ
+  #undef CP_IO_IMPL_READ
 #endif
-#ifndef OUT
-  #define OUT(...) cp_io::writeln(__VA_ARGS__)
+#ifdef CP_IO_IMPL_WRITELN
+  #undef CP_IO_IMPL_WRITELN
 #endif
-#ifndef FLUSH
-  #define FLUSH() std::cout.flush()
-#endif
-
-#ifndef CP_IO_DECL_MACROS_DEFINED
-  #define CP_IO_DECL_MACROS_DEFINED 1
-  // Convenient input macros.
-  #define INT(...) I32 __VA_ARGS__; IN(__VA_ARGS__)
-  #define LL(...) I64 __VA_ARGS__; IN(__VA_ARGS__)
-  #define ULL(...) U64 __VA_ARGS__; IN(__VA_ARGS__)
-  #define STR(...) std::string __VA_ARGS__; IN(__VA_ARGS__)
-  #define CHR(...) char __VA_ARGS__; IN(__VA_ARGS__)
-  #define DBL(...) F64 __VA_ARGS__; IN(__VA_ARGS__)
-
-  #ifndef CP_ENABLE_LEGACY_IO_VEC_MACROS
-    #define CP_ENABLE_LEGACY_IO_VEC_MACROS 1
-  #endif
-
-  #if CP_ENABLE_LEGACY_IO_VEC_MACROS
-    #define VEC(type, name, size) Vec<type> name(size); IN(name)
-    #define VV(type, name, h, w) Vec2<type> name(h, Vec<type>(w)); IN(name)
-  #endif
+#ifdef CP_IO_IMPL_FLUSH
+  #undef CP_IO_IMPL_FLUSH
 #endif
 
-#ifndef CP_IO_ANSWER_HELPERS_DEFINED
-  #define CP_IO_ANSWER_HELPERS_DEFINED 1
-  // Answer helpers.
-  inline void YES(bool condition = true) { OUT(condition ? "YES" : "NO"); }
-  inline void NO(bool condition = true) { YES(!condition); }
-  inline void Yes(bool condition = true) { OUT(condition ? "Yes" : "No"); }
-  inline void No(bool condition = true) { Yes(!condition); }
+#if defined(CP_FAST_IO_NAMESPACE_DEFINED)
+  #define CP_IO_IMPL_READ(...) fast_io::read(__VA_ARGS__)
+  #define CP_IO_IMPL_WRITELN(...) fast_io::writeln(__VA_ARGS__)
+  #define CP_IO_IMPL_FLUSH() fast_io::flush_output()
+#else
+  #define CP_IO_IMPL_READ(...) cp_io::read(__VA_ARGS__)
+  #define CP_IO_IMPL_WRITELN(...) cp_io::writeln(__VA_ARGS__)
+  #define CP_IO_IMPL_FLUSH() std::cout.flush()
 #endif
+
+#include "IO_Defs.hpp"

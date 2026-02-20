@@ -4,7 +4,6 @@
 //===----------------------------------------------------------------------===//
 /* Advanced Bitwise Operations */
 
-// Enhanced bit manipulation with SIMD hints:
 template <typename T>
 [[gnu::always_inline]] constexpr I32 popcount(T x) {
   using Raw = std::remove_cv_t<T>;
@@ -53,31 +52,18 @@ template <typename T>
   return T(1) << bit_width(x - 1);
 }
 
-// Parity sign: returns (-1)^popcount(x), useful for inclusion-exclusion:
 template <typename T>
 [[gnu::always_inline]] constexpr I32 parity_sign(T x) {
   return (popcount(x) & 1) ? -1 : 1;
 }
 
-// Legacy aliases (deprecated -- use popcount, bit_width, trailing_zeros instead):
-template <typename T>
-[[deprecated("use popcount() instead")]]
-constexpr I32 popcnt(T x) { return popcount(x); }
-template <typename T>
-[[deprecated("use bit_width() - 1 instead")]]
-constexpr I32 topbit(T x) { return bit_width(x) - 1; }
-template <typename T>
-[[deprecated("use trailing_zeros() instead")]]
-constexpr I32 lowbit(T x) { return trailing_zeros(x); }
-
-// Bit iteration utilities:
 template <typename T>
 constexpr T kth_bit(I32 k) { return T(1) << k; }
 
 template <typename T>
 constexpr bool has_kth_bit(T x, I32 k) { return (x >> k) & 1; }
 
-// Bit iteration ranges:
+/// @brief Iterate over set bits in a mask, yielding their 0-based indices.
 template <typename T>
 struct bit_range {
   T mask;
@@ -112,3 +98,14 @@ struct subset_range {
   iterator begin() const { return iterator(mask); }
   iterator end() const { return iterator(0); }
 };
+
+// Legacy aliases (Deprecated -- use popcount, bit_width, trailing_zeros instead):
+template <typename T>
+[[deprecated("use popcount() instead")]]
+constexpr I32 popcnt(T x) { return popcount(x); }
+template <typename T>
+[[deprecated("use bit_width() - 1 instead")]]
+constexpr I32 topbit(T x) { return bit_width(x) - 1; }
+template <typename T>
+[[deprecated("use trailing_zeros() instead")]]
+constexpr I32 lowbit(T x) { return trailing_zeros(x); }

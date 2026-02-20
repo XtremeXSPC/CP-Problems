@@ -87,6 +87,13 @@ using namespace std;
     #define HAS_FLOAT128 0
   #endif
 
+  // Common standard scalar/string aliases.
+  using Size = std::size_t;
+  using Diff = std::ptrdiff_t;
+  using Byte = std::byte;
+  using String = std::string;
+  using StringView = std::string_view;
+
   // Legacy short aliases are enabled by default for compatibility.
   // Define CP_ENABLE_LEGACY_SHORT_ALIASES=0 to hard-disable them.
   #ifndef CP_ENABLE_LEGACY_SHORT_ALIASES
@@ -106,6 +113,10 @@ using namespace std;
   using Deque = std::deque<T>;
   template <class T>
   using List = std::list<T>;
+  template <class T, Size N>
+  using Array = std::array<T, N>;
+  template <Size N>
+  using BitSet = std::bitset<N>;
   template <class T>
   using Set = std::set<T>;
   template <class T>
@@ -118,6 +129,21 @@ using namespace std;
   using MultiMap = std::multimap<K, V>;
   template <class K, class V>
   using UnorderedMap = std::unordered_map<K, V>;
+
+  // Extended associative aliases.
+  template <class T, class Compare>
+  using OrderedSetBy = std::set<T, Compare>;
+  template <class T, class Compare>
+  using OrderedMultiSetBy = std::multiset<T, Compare>;
+  template <class K, class V, class Compare>
+  using OrderedMapBy = std::map<K, V, Compare>;
+  template <class K, class V, class Compare>
+  using OrderedMultiMapBy = std::multimap<K, V, Compare>;
+  template <class T, class Hash, class Eq = std::equal_to<T>>
+  using HashedSetBy = std::unordered_set<T, Hash, Eq>;
+  template <class K, class V, class Hash, class Eq = std::equal_to<K>>
+  using HashedMapBy = std::unordered_map<K, V, Hash, Eq>;
+
   template <class T>
   using Stack = std::stack<T, std::deque<T>>;
   template <class T>
@@ -127,11 +153,23 @@ using namespace std;
   template <class T>
   using MinPriorityQueue = std::priority_queue<T, std::vector<T>, std::greater<T>>;
 
+  // Extended adaptor aliases.
+  template <class T, class Container>
+  using StackIn = std::stack<T, Container>;
+  template <class T, class Container>
+  using QueueIn = std::queue<T, Container>;
+  template <class T, class Container, class Compare>
+  using PriorityQueueBy = std::priority_queue<T, Container, Compare>;
+  template <class T, class Container = std::vector<T>>
+  using MinPriorityQueueIn = std::priority_queue<T, Container, std::greater<T>>;
+
   // Canonical multidimensional aliases:
   template <class T>
   using Vec2 = Vec<Vec<T>>;
   template <class T>
   using Vec3 = Vec<Vec2<T>>;
+  template <class T>
+  using Vec4 = Vec<Vec3<T>>;
 
   // Legacy container aliases are enabled by default for compatibility.
   // Define CP_ENABLE_LEGACY_CONTAINER_ALIASES=0 to hard-disable them.
@@ -153,6 +191,16 @@ using namespace std;
   using Pair = std::pair<T, U>;
   template <class T, class U>
   using P = Pair<T, U>;
+  template <class... Args>
+  using Tuple = std::tuple<Args...>;
+  template <class T>
+  using Optional = std::optional<T>;
+  template <class... Ts>
+  using Variant = std::variant<Ts...>;
+  template <class Signature>
+  using Function = std::function<Signature>;
+  template <class T>
+  using Span = std::span<T>;
   using PII = Pair<I32, I32>;
   using PLL = Pair<I64, I64>;
   using PLD = Pair<F80, F80>;
@@ -165,17 +213,23 @@ using namespace std;
   using VVL  = Vec2<I64>;
   using VVVL = Vec3<I64>;
   using VB   = Vec<bool>;
-  using VS   = Vec<std::string>;
+  using VS   = Vec<String>;
   using VU8  = Vec<U8>;
+  using VU16 = Vec<U16>;
   using VU32 = Vec<U32>;
   using VU64 = Vec<U64>;
   using VF   = Vec<F64>;
+  using VLD  = Vec<F80>;
 
   // Vector of pairs:
+  template <class T, class U>
+  using VecPair = Vec<Pair<T, U>>;
   using VPII = Vec<PII>;
   using VPLL = Vec<PLL>;
   template <class T, class U>
-  using VP = Vec<P<T, U>>;
+  using VP = VecPair<T, U>;
+  template <class T, class U>
+  using TP = Pair<T, U>;
 
   // Policy-based data structures:
   #if defined(PBDS_AVAILABLE) && PBDS_AVAILABLE
