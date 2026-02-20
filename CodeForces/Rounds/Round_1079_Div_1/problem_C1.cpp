@@ -4,14 +4,12 @@
 #include "templates/Base.hpp"
 
 //===----------------------------------------------------------------------===//
-/* Type Aliases */
+/* Main Solver Function */
 
+// Type aliases:
 using Edge  = Pair<I32, I32>;
 using Path  = Vec<I32>;
 using MPath = std::optional<Path>;
-
-//===----------------------------------------------------------------------===//
-/* Main Solver Function */
 
 void solve() {
   INT(n);
