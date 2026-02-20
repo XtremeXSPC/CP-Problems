@@ -12,18 +12,18 @@
  */
 template <typename Weight = I64>
 Vec<Weight> zero_one_bfs(const Graph<Weight>& g, I32 source) {
-  Vec<Weight> dist(static_cast<Size>(g.n), infinity<Weight>);
+  Vec<Weight> dist(as<Size>(g.n), infinity<Weight>);
   if (source < 0 || source >= g.n) return dist;
 
   Deque<I32> dq;
-  dist[static_cast<Size>(source)] = 0;
+  dist[as<Size>(source)] = 0;
   dq.push_front(source);
 
   while (!dq.empty()) {
     I32 v = dq.front();
     dq.pop_front();
 
-    for (const auto& e : g.adj[static_cast<Size>(v)]) {
+    for (const auto& e : g.adj[as<Size>(v)]) {
       if (e.weight != 0 && e.weight != 1) {
         #ifndef NDEBUG
           assert(false && "zero_one_bfs expects edge weights in {0,1}");
@@ -31,9 +31,9 @@ Vec<Weight> zero_one_bfs(const Graph<Weight>& g, I32 source) {
         continue;
       }
 
-      Weight nd = dist[static_cast<Size>(v)] + e.weight;
-      if (nd < dist[static_cast<Size>(e.to)]) {
-        dist[static_cast<Size>(e.to)] = nd;
+      Weight nd = dist[as<Size>(v)] + e.weight;
+      if (nd < dist[as<Size>(e.to)]) {
+        dist[as<Size>(e.to)] = nd;
         if (e.weight == 0) {
           dq.push_front(e.to);
         } else {

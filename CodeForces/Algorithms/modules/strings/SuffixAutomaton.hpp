@@ -39,36 +39,36 @@ struct SuffixAutomaton {
 
   /// @brief Appends one character to the automaton.
   void extend(char c) {
-    I32 cur = static_cast<I32>(st.size());
+    I32 cur = as<I32>(st.size());
     st.push_back(State{});
-    st[static_cast<Size>(cur)].len = st[static_cast<Size>(last)].len + 1;
-    st[static_cast<Size>(cur)].occ = 1;
+    st[as<Size>(cur)].len = st[as<Size>(last)].len + 1;
+    st[as<Size>(cur)].occ = 1;
 
     I32 p = last;
-    while (p != -1 && !st[static_cast<Size>(p)].next.contains(c)) {
-      st[static_cast<Size>(p)].next[c] = cur;
-      p = st[static_cast<Size>(p)].link;
+    while (p != -1 && !st[as<Size>(p)].next.contains(c)) {
+      st[as<Size>(p)].next[c] = cur;
+      p = st[as<Size>(p)].link;
     }
 
     if (p == -1) {
-      st[static_cast<Size>(cur)].link = 0;
+      st[as<Size>(cur)].link = 0;
     } else {
-      I32 q = st[static_cast<Size>(p)].next[c];
-      if (st[static_cast<Size>(p)].len + 1 == st[static_cast<Size>(q)].len) {
-        st[static_cast<Size>(cur)].link = q;
+      I32 q = st[as<Size>(p)].next[c];
+      if (st[as<Size>(p)].len + 1 == st[as<Size>(q)].len) {
+        st[as<Size>(cur)].link = q;
       } else {
-        I32 clone = static_cast<I32>(st.size());
-        st.push_back(st[static_cast<Size>(q)]);
-        st[static_cast<Size>(clone)].len = st[static_cast<Size>(p)].len + 1;
-        st[static_cast<Size>(clone)].occ = 0;
+        I32 clone = as<I32>(st.size());
+        st.push_back(st[as<Size>(q)]);
+        st[as<Size>(clone)].len = st[as<Size>(p)].len + 1;
+        st[as<Size>(clone)].occ = 0;
 
-        while (p != -1 && st[static_cast<Size>(p)].next[c] == q) {
-          st[static_cast<Size>(p)].next[c] = clone;
-          p = st[static_cast<Size>(p)].link;
+        while (p != -1 && st[as<Size>(p)].next[c] == q) {
+          st[as<Size>(p)].next[c] = clone;
+          p = st[as<Size>(p)].link;
         }
 
-        st[static_cast<Size>(q)].link = clone;
-        st[static_cast<Size>(cur)].link = clone;
+        st[as<Size>(q)].link = clone;
+        st[as<Size>(cur)].link = clone;
       }
     }
 
@@ -85,8 +85,8 @@ struct SuffixAutomaton {
   bool contains(const std::string& pattern) const {
     I32 v = 0;
     for (char c : pattern) {
-      auto it = st[static_cast<Size>(v)].next.find(c);
-      if (it == st[static_cast<Size>(v)].next.end()) return false;
+      auto it = st[as<Size>(v)].next.find(c);
+      if (it == st[as<Size>(v)].next.end()) return false;
       v = it->second;
     }
     return true;
@@ -95,9 +95,9 @@ struct SuffixAutomaton {
   /// @brief Number of distinct substrings of the built text.
   I64 distinct_substrings() const {
     I64 ans = 0;
-    FOR(v, 1, static_cast<I32>(st.size())) {
-      I32 link = st[static_cast<Size>(v)].link;
-      ans += st[static_cast<Size>(v)].len - st[static_cast<Size>(link)].len;
+    FOR(v, 1, as<I32>(st.size())) {
+      I32 link = st[as<Size>(v)].link;
+      ans += st[as<Size>(v)].len - st[as<Size>(link)].len;
     }
     return ans;
   }
@@ -107,22 +107,22 @@ struct SuffixAutomaton {
     I32 max_len = 0;
     for (const auto& s : st) max_len = std::max(max_len, s.len);
 
-    VI cnt(static_cast<Size>(max_len + 1), 0);
-    for (const auto& s : st) ++cnt[static_cast<Size>(s.len)];
-    FOR(i, 1, static_cast<I32>(cnt.size())) {
-      cnt[static_cast<Size>(i)] += cnt[static_cast<Size>(i - 1)];
+    VI cnt(as<Size>(max_len + 1), 0);
+    for (const auto& s : st) ++cnt[as<Size>(s.len)];
+    FOR(i, 1, as<I32>(cnt.size())) {
+      cnt[as<Size>(i)] += cnt[as<Size>(i - 1)];
     }
 
-    VI order(static_cast<Size>(st.size()), 0);
-    FOR(v, static_cast<I32>(st.size())) {
-      I32 len = st[static_cast<Size>(v)].len;
-      order[static_cast<Size>(--cnt[static_cast<Size>(len)])] = v;
+    VI order(as<Size>(st.size()), 0);
+    FOR(v, as<I32>(st.size())) {
+      I32 len = st[as<Size>(v)].len;
+      order[as<Size>(--cnt[as<Size>(len)])] = v;
     }
 
-    FOR_R(i, static_cast<I32>(order.size())) {
-      I32 v = order[static_cast<Size>(i)];
-      I32 p = st[static_cast<Size>(v)].link;
-      if (p != -1) st[static_cast<Size>(p)].occ += st[static_cast<Size>(v)].occ;
+    FOR_R(i, as<I32>(order.size())) {
+      I32 v = order[as<Size>(i)];
+      I32 p = st[as<Size>(v)].link;
+      if (p != -1) st[as<Size>(p)].occ += st[as<Size>(v)].occ;
     }
 
     occ_ready = true;
@@ -133,11 +133,11 @@ struct SuffixAutomaton {
     if (!occ_ready) build_occurrences();
     I32 v = 0;
     for (char c : pattern) {
-      auto it = st[static_cast<Size>(v)].next.find(c);
-      if (it == st[static_cast<Size>(v)].next.end()) return 0;
+      auto it = st[as<Size>(v)].next.find(c);
+      if (it == st[as<Size>(v)].next.end()) return 0;
       v = it->second;
     }
-    return st[static_cast<Size>(v)].occ;
+    return st[as<Size>(v)].occ;
   }
 };
 

@@ -41,8 +41,8 @@ struct AhoCorasickAdvanced {
 
   /// @brief Adds one pattern and returns its id.
   I32 add_pattern(const std::string& pattern) {
-    I32 id = static_cast<I32>(pattern_len.size());
-    pattern_len.push_back(static_cast<I32>(pattern.size()));
+    I32 id = as<I32>(pattern_len.size());
+    pattern_len.push_back(as<I32>(pattern.size()));
 
     I32 v = 0;
     for (char ch : pattern) {
@@ -53,15 +53,15 @@ struct AhoCorasickAdvanced {
         #endif
         return id;
       }
-      if (nodes[static_cast<Size>(v)].next[static_cast<Size>(c)] == -1) {
-        nodes[static_cast<Size>(v)].next[static_cast<Size>(c)] = static_cast<I32>(nodes.size());
+      if (nodes[as<Size>(v)].next[as<Size>(c)] == -1) {
+        nodes[as<Size>(v)].next[as<Size>(c)] = as<I32>(nodes.size());
         nodes.push_back(Node{});
         nodes.back().parent = v;
         nodes.back().parent_char = ch;
       }
-      v = nodes[static_cast<Size>(v)].next[static_cast<Size>(c)];
+      v = nodes[as<Size>(v)].next[as<Size>(c)];
     }
-    nodes[static_cast<Size>(v)].out.push_back(id);
+    nodes[as<Size>(v)].out.push_back(id);
     built = false;
     return id;
   }
@@ -72,11 +72,11 @@ struct AhoCorasickAdvanced {
     bfs_order.reserve(nodes.size());
 
     FOR(c, ALPHABET) {
-      I32 to = nodes[0].next[static_cast<Size>(c)];
+      I32 to = nodes[0].next[as<Size>(c)];
       if (to == -1) {
-        nodes[0].next[static_cast<Size>(c)] = 0;
+        nodes[0].next[as<Size>(c)] = 0;
       } else {
-        nodes[static_cast<Size>(to)].link = 0;
+        nodes[as<Size>(to)].link = 0;
         q.push(to);
       }
     }
@@ -87,18 +87,16 @@ struct AhoCorasickAdvanced {
       bfs_order.push_back(v);
 
       FOR(c, ALPHABET) {
-        I32 to = nodes[static_cast<Size>(v)].next[static_cast<Size>(c)];
+        I32 to = nodes[as<Size>(v)].next[as<Size>(c)];
         if (to == -1) {
-          nodes[static_cast<Size>(v)].next[static_cast<Size>(c)] =
-            nodes[static_cast<Size>(nodes[static_cast<Size>(v)].link)]
-              .next[static_cast<Size>(c)];
+          nodes[as<Size>(v)].next[as<Size>(c)] = nodes[as<Size>(nodes[as<Size>(v)].link)].next[as<Size>(c)];
           continue;
         }
 
-        I32 link_to = nodes[static_cast<Size>(nodes[static_cast<Size>(v)].link)].next[static_cast<Size>(c)];
-        nodes[static_cast<Size>(to)].link = link_to;
-        const auto& fail_out = nodes[static_cast<Size>(link_to)].out;
-        nodes[static_cast<Size>(to)].out.insert(nodes[static_cast<Size>(to)].out.end(), all(fail_out));
+        I32 link_to = nodes[as<Size>(nodes[as<Size>(v)].link)].next[as<Size>(c)];
+        nodes[as<Size>(to)].link = link_to;
+        const auto& fail_out = nodes[as<Size>(link_to)].out;
+        nodes[as<Size>(to)].out.insert(nodes[as<Size>(to)].out.end(), all(fail_out));
         q.push(to);
       }
     }
@@ -111,15 +109,15 @@ struct AhoCorasickAdvanced {
     if (!built) build();
     Vec<PII> matches;
     I32 v = 0;
-    FOR(i, static_cast<I32>(text.size())) {
-      char ch = text[static_cast<Size>(i)];
+    FOR(i, as<I32>(text.size())) {
+      char ch = text[as<Size>(i)];
       I32 c = ch - BASE;
       if (c < 0 || c >= ALPHABET) {
         v = 0;
         continue;
       }
-      v = nodes[static_cast<Size>(v)].next[static_cast<Size>(c)];
-      for (I32 id : nodes[static_cast<Size>(v)].out) {
+      v = nodes[as<Size>(v)].next[as<Size>(c)];
+      for (I32 id : nodes[as<Size>(v)].out) {
         matches.push_back({i, id});
       }
     }
@@ -137,9 +135,9 @@ struct AhoCorasickAdvanced {
         v = 0;
         continue;
       }
-      v = nodes[static_cast<Size>(v)].next[static_cast<Size>(c)];
-      for (I32 id : nodes[static_cast<Size>(v)].out) {
-        ++ans[static_cast<Size>(id)];
+      v = nodes[as<Size>(v)].next[as<Size>(c)];
+      for (I32 id : nodes[as<Size>(v)].out) {
+        ++ans[as<Size>(id)];
       }
     }
     return ans;

@@ -26,24 +26,24 @@ inline I64 discrete_log(I64 a, I64 b, I64 m) {
     b /= g;
     m /= g;
     ++add;
-    k = static_cast<I64>((static_cast<__int128>(k) * (a / g)) % m);
+    k = as<I64>((as<__int128>(k) * (a / g)) % m);
   }
 
-  I64 n = static_cast<I64>(std::sqrt(static_cast<F80>(m)) + 1);
+  I64 n = as<I64>(std::sqrt(as<F80>(m)) + 1);
   I64 an = 1;
-  FOR(i, n) an = static_cast<I64>((static_cast<__int128>(an) * a) % m);
+  FOR(i, n) an = as<I64>((as<__int128>(an) * a) % m);
 
   UnorderedMap<I64, I64> values;
-  values.reserve(static_cast<Size>(n + 1));
+  values.reserve(as<Size>(n + 1));
   I64 cur = b;
   FOR(q, n + 1) {
     values[cur] = q;
-    cur = static_cast<I64>((static_cast<__int128>(cur) * a) % m);
+    cur = as<I64>((as<__int128>(cur) * a) % m);
   }
 
   cur = k;
   FOR(p, 1, n + 1) {
-    cur = static_cast<I64>((static_cast<__int128>(cur) * an) % m);
+    cur = as<I64>((as<__int128>(cur) * an) % m);
     auto it = values.find(cur);
     if (it != values.end()) {
       return p * n - it->second + add;

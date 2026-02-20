@@ -17,7 +17,7 @@ template <I32 ALPHABET = 26, char BASE = 'a'>
 struct PrefixAutomaton {
   static_assert(ALPHABET > 0, "ALPHABET must be positive");
 
-  using Row = std::array<I32, static_cast<Size>(ALPHABET)>;
+  using Row = std::array<I32, as<Size>(ALPHABET)>;
 
   std::string pattern;
   VI pi;
@@ -30,20 +30,19 @@ struct PrefixAutomaton {
     pattern = p;
     pi = prefix_function(pattern);
 
-    const I32 n = static_cast<I32>(pattern.size());
-    next_state_table.assign(static_cast<Size>(n + 1), Row{});
+    const I32 n = as<I32>(pattern.size());
+    next_state_table.assign(as<Size>(n + 1), Row{});
     for (auto& row : next_state_table) row.fill(0);
 
     FOR(i, n + 1) {
       FOR(c, ALPHABET) {
-        const char ch = static_cast<char>(BASE + c);
-        if (i < n && pattern[static_cast<Size>(i)] == ch) {
-          next_state_table[static_cast<Size>(i)][static_cast<Size>(c)] = i + 1;
+        const char ch = as<char>(BASE + c);
+        if (i < n && pattern[as<Size>(i)] == ch) {
+          next_state_table[as<Size>(i)][as<Size>(c)] = i + 1;
         } else if (i == 0) {
-          next_state_table[static_cast<Size>(i)][static_cast<Size>(c)] = 0;
+          next_state_table[as<Size>(i)][as<Size>(c)] = 0;
         } else {
-          next_state_table[static_cast<Size>(i)][static_cast<Size>(c)] =
-            next_state_table[static_cast<Size>(pi[static_cast<Size>(i - 1)])][static_cast<Size>(c)];
+          next_state_table[as<Size>(i)][as<Size>(c)] = next_state_table[as<Size>(pi[as<Size>(i - 1)])][as<Size>(c)];
         }
       }
     }
@@ -51,26 +50,26 @@ struct PrefixAutomaton {
 
   /// @brief Returns next automaton state after reading ch from state.
   I32 next_state(I32 state, char ch) const {
-    if (state < 0 || state >= static_cast<I32>(next_state_table.size())) return 0;
-    const I32 c = static_cast<I32>(ch - BASE);
+    if (state < 0 || state >= as<I32>(next_state_table.size())) return 0;
+    const I32 c = as<I32>(ch - BASE);
     if (c < 0 || c >= ALPHABET) return 0;
-    return next_state_table[static_cast<Size>(state)][static_cast<Size>(c)];
+    return next_state_table[as<Size>(state)][as<Size>(c)];
   }
 
   /// @brief Returns starting positions of all pattern occurrences in text.
   VI find_occurrences(const std::string& text) const {
     VI occ;
-    const I32 m = static_cast<I32>(pattern.size());
-    const I32 n = static_cast<I32>(text.size());
+    const I32 m = as<I32>(pattern.size());
+    const I32 n = as<I32>(text.size());
     if (m == 0) {
-      occ.resize(static_cast<Size>(n + 1));
+      occ.resize(as<Size>(n + 1));
       std::iota(all(occ), 0);
       return occ;
     }
 
     I32 state = 0;
     FOR(i, n) {
-      state = next_state(state, text[static_cast<Size>(i)]);
+      state = next_state(state, text[as<Size>(i)]);
       if (state == m) {
         occ.push_back(i - m + 1);
       }

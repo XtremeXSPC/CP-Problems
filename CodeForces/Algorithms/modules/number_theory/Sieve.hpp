@@ -13,8 +13,8 @@ struct Sieve {
   /// @brief Builds sieve up to @p size.
   Sieve(I32 size)
       : n(std::max<I32>(size, 0)),
-        is_prime(static_cast<Size>(n + 1), true),
-        smallest_factor(static_cast<Size>(n + 1), 0) {
+        is_prime(as<Size>(n + 1), true),
+        smallest_factor(as<Size>(n + 1), 0) {
     is_prime[0] = false;
     if (n >= 1) is_prime[1] = false;
 

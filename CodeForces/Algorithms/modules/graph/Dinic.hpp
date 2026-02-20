@@ -28,8 +28,8 @@ struct Dinic {
 
   /// @brief Adds a directed edge with capacity.
   void add_edge(I32 from, I32 to, Cap cap) {
-    I32 from_index = static_cast<I32>(g[from].size());
-    I32 to_index = static_cast<I32>(g[to].size());
+    I32 from_index = as<I32>(g[from].size());
+    I32 to_index = as<I32>(g[to].size());
     if (from == to) ++to_index;
     Edge fwd{to, to_index, cap};
     Edge rev{from, from_index, 0};
