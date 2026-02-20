@@ -1,7 +1,7 @@
 //===----------------------------------------------------------------------===//
 /**
  * @file: problem_E2_sub.cpp
- * @generated: 2026-02-20 00:51:34
+ * @generated: 2026-02-20 17:25:58
  * @source: problem_E2.cpp
  * @author: Costantino Lombardi
  *
@@ -46,6 +46,7 @@
   #include <cmath>
   #include <complex>
   #include <concepts>
+  #include <cstddef>
   #include <cstdint>
   #include <cstring>
   #include <deque>
@@ -73,6 +74,7 @@
   #include <unordered_map>
   #include <unordered_set>
   #include <utility>
+  #include <variant>
   #include <vector>
 #endif
 
@@ -122,10 +124,9 @@
 #endif
 
 //===----------------------------------------------------------------------===//
-/* Advanced Type System and Aliases */
-// clang-format off
+/* Core Type System and Aliases */
 
-// Fundamental type aliases with explicit sizes:
+// Fundamental signed/unsigned integer aliases with explicit bit widths.
 using I8  = std::int8_t;
 using I16 = std::int16_t;
 using I32 = std::int32_t;
@@ -135,56 +136,82 @@ using U16 = std::uint16_t;
 using U32 = std::uint32_t;
 using U64 = std::uint64_t;
 
-// Extended precision types (when available):
+// Extended precision integer aliases (when available).
 #ifdef __SIZEOF_INT128__
   using I128 = __int128;
   using U128 = unsigned __int128;
-#define HAS_INT128 1
+  #define HAS_INT128 1
 #else
-  // Fallback for compilers that don't support 128-bit integers.
+  // Fallback keeps APIs available on toolchains without native int128.
   using I128 = std::int64_t;
   using U128 = std::uint64_t;
-#define HAS_INT128 0
+  #define HAS_INT128 0
 #endif
 
-// Floating point types:
+// Floating-point aliases.
 using F32 = float;
 using F64 = double;
 using F80 = long double;
 
 #ifdef __FLOAT128__
   using F128 = __float128;
-#define HAS_FLOAT128 1
+  #define HAS_FLOAT128 1
 #else
-  // Fallback for compilers that don't support 128-bit floats.
+  // Fallback keeps APIs available on toolchains without float128.
   using F128 = long double;
-#define HAS_FLOAT128 0
+  #define HAS_FLOAT128 0
 #endif
 
-// Legacy short aliases (deprecated -- use I64, U64, F80 instead):
-using ll  [[deprecated("use I64 instead")]] = I64;
-using ull [[deprecated("use U64 instead")]] = U64;
-using ld  [[deprecated("use F80 instead")]] = F80;
+// Common standard scalar aliases.
+using Size = std::size_t;
+using Diff = std::ptrdiff_t;
+using Byte = std::byte;
 
-// Container type aliases:
+// String aliases.
+using String = std::string;
+using StringView = std::string_view;
+
+// Sequence containers.
 template <class T>
 using Vec = std::vector<T>;
 template <class T>
 using Deque = std::deque<T>;
 template <class T>
 using List = std::list<T>;
+template <class T, Size N>
+using Array = std::array<T, N>;
+template <Size N>
+using BitSet = std::bitset<N>;
+
+// Associative containers (kept compatible with PCH aliases).
 template <class T>
 using Set = std::set<T>;
 template <class T>
 using MultiSet = std::multiset<T>;
-template <class T>
-using UnorderedSet = std::unordered_set<T>;
 template <class K, class V>
 using Map = std::map<K, V>;
 template <class K, class V>
 using MultiMap = std::multimap<K, V>;
+template <class T>
+using UnorderedSet = std::unordered_set<T>;
 template <class K, class V>
 using UnorderedMap = std::unordered_map<K, V>;
+
+// Extended associative aliases with explicit comparator/hash control.
+template <class T, class Compare>
+using OrderedSetBy = std::set<T, Compare>;
+template <class T, class Compare>
+using OrderedMultiSetBy = std::multiset<T, Compare>;
+template <class K, class V, class Compare>
+using OrderedMapBy = std::map<K, V, Compare>;
+template <class K, class V, class Compare>
+using OrderedMultiMapBy = std::multimap<K, V, Compare>;
+template <class T, class Hash, class Eq = std::equal_to<T>>
+using HashedSetBy = std::unordered_set<T, Hash, Eq>;
+template <class K, class V, class Hash, class Eq = std::equal_to<K>>
+using HashedMapBy = std::unordered_map<K, V, Hash, Eq>;
+
+// Container adaptors (kept compatible with PCH aliases).
 template <class T>
 using Stack = std::stack<T, std::deque<T>>;
 template <class T>
@@ -194,47 +221,61 @@ using PriorityQueue = std::priority_queue<T, std::vector<T>>;
 template <class T>
 using MinPriorityQueue = std::priority_queue<T, std::vector<T>, std::greater<T>>;
 
-// Canonical multidimensional aliases:
+// Extended adaptor aliases with explicit container/comparator control.
+template <class T, class Container>
+using StackIn = std::stack<T, Container>;
+template <class T, class Container>
+using QueueIn = std::queue<T, Container>;
+template <class T, class Container, class Compare>
+using PriorityQueueBy = std::priority_queue<T, Container, Compare>;
+template <class T, class Container = std::vector<T>>
+using MinPriorityQueueIn = std::priority_queue<T, Container, std::greater<T>>;
+
+// Utility wrappers.
+template <class T, class U>
+using Pair = std::pair<T, U>;
+template <class... Args>
+using Tuple = std::tuple<Args...>;
+template <class T>
+using Optional = std::optional<T>;
+template <class... Ts>
+using Variant = std::variant<Ts...>;
+template <class Signature>
+using Function = std::function<Signature>;
+template <class T>
+using Span = std::span<T>;
+
+// Canonical multidimensional aliases.
 template <class T>
 using Vec2 = Vec<Vec<T>>;
 template <class T>
 using Vec3 = Vec<Vec2<T>>;
-
-// Legacy container aliases (deprecated -- use Vec, Vec2, Vec3 instead):
 template <class T>
-using VC [[deprecated("use Vec<T> instead")]] = Vec<T>;
-template <class T>
-using VVC [[deprecated("use Vec2<T> instead")]] = Vec2<T>;
-template <class T>
-using VVVC [[deprecated("use Vec3<T> instead")]] = Vec3<T>;
+using Vec4 = Vec<Vec3<T>>;
 
-// Pair and tuple aliases:
-template <class T, class U>
-using Pair = std::pair<T, U>;
-template <class T, class U>
-using P = Pair<T, U>;
-
-using PII = Pair<I32, I32>;
-using PLL = Pair<I64, I64>;
-using PLD = Pair<F80, F80>;
-
-// Specialized container aliases:
+// Specialized frequently-used aliases.
 using VI   = Vec<I32>;
 using VLL  = Vec<I64>;
 using VVI  = Vec<VI>;
 using VVLL = Vec<VLL>;
 using VB   = Vec<bool>;
-using VS   = Vec<std::string>;
+using VS   = Vec<String>;
 using VU8  = Vec<U8>;
+using VU16 = Vec<U16>;
 using VU32 = Vec<U32>;
 using VU64 = Vec<U64>;
 using VF   = Vec<F64>;
+using VLD  = Vec<F80>;
 
-// Vector of pairs:
+// Common pair aliases.
+template <class T, class U>
+using VecPair = Vec<Pair<T, U>>;
+
+using PII = Pair<I32, I32>;
+using PLL = Pair<I64, I64>;
+using PLD = Pair<F80, F80>;
 using VPII = Vec<PII>;
 using VPLL = Vec<PLL>;
-template <class T, class U>
-using VP = Vec<P<T, U>>;
 
 //===----------------------------------------------------------------------===//
 /* Advanced Macro System */
@@ -299,14 +340,13 @@ auto make_vec4(std::size_t n1, std::size_t n2, std::size_t n3, std::size_t n4, c
 #define FOR2_R(i, a) for (I64 i = (a) - 1; i >= 0; --i)
 #define FOR3_R(i, a, b) for (I64 i = (b) - 1; i >= (a); --i)
 
+// Overload resolution for FOR macros:
 #define overload4(a, b, c, d, e, ...) e
 #define overload3(a, b, c, d, ...) d
 #define FOR(...) overload4(__VA_ARGS__, FOR4, FOR3, FOR2, FOR1)(__VA_ARGS__)
 #define FOR_R(...) overload3(__VA_ARGS__, FOR3_R, FOR2_R, FOR1_R)(__VA_ARGS__)
 
-// Range-based iteration (deprecated -- use FOR/FOR_R and all/rall instead):
-#define REP(i, n) _Pragma("GCC warning \"REP is deprecated, use FOR(i, n)\"") for (I64 i = 0, _rep_n = static_cast<I64>(n); i < _rep_n; ++i)
-#define RREP(i, n) _Pragma("GCC warning \"RREP is deprecated, use FOR_R(i, n)\"") for (I64 i = static_cast<I64>(n) - 1; i >= 0; --i)
+// Range-based iteration macros:
 #define ALL(x) std::ranges::begin(x), std::ranges::end(x)
 #define RALL(x) std::ranges::rbegin(x), std::ranges::rend(x)
 
@@ -315,13 +355,7 @@ auto make_vec4(std::size_t n1, std::size_t n2, std::size_t n3, std::size_t n4, c
 #define rall(x) (x).rbegin(), (x).rend()
 #define sz(x) (I64)(x).size()
 #define len(x) sz(x)
-#define pb push_back
 #define eb emplace_back
-#define fi first
-#define se second
-// mp/mt are obsolete with C++17 CTAD -- prefer brace init or direct construction.
-#define mp make_pair
-#define mt make_tuple
 #define elif else if
 
 // Advanced container operations:
@@ -331,12 +365,6 @@ auto make_vec4(std::size_t n1, std::size_t n2, std::size_t n3, std::size_t n4, c
 #define SUM(x) std::accumulate(all(x), 0LL)
 #define MIN(x) *std::ranges::min_element(x)
 #define MAX(x) *std::ranges::max_element(x)
-
-// Type-safe cast alias:
-template <typename To>
-[[gnu::always_inline]] constexpr To as(auto x) noexcept {
-  return static_cast<To>(x);
-}
 
 // Y-combinator for recursive lambdas:
 template <class F>
@@ -354,6 +382,12 @@ YCombinator(F) -> YCombinator<F>;
 template <class F>
 [[gnu::always_inline]] constexpr auto fix(F&& fn) {
   return YCombinator<std::decay_t<F>>{std::forward<F>(fn)};
+}
+
+// Type-safe cast alias:
+template <typename To>
+[[gnu::always_inline]] constexpr To as(auto x) noexcept {
+  return static_cast<To>(x);
 }
 
 //===----------------------------------------------------------------------===//
@@ -450,14 +484,14 @@ void writeln(const Args&... args) {
 namespace fast_io {
 template <class T>
 inline void read_integer(T& x) { cp_io::read(x); }
+inline void read_char(char& x) { cp_io::read(x); }
+inline void read_string(std::string& x) { cp_io::read(x); }
 
 template <class T>
 inline void write_integer(T x) { cp_io::write_one(x); }
-
-inline void read_char(char& x) { cp_io::read(x); }
-inline void read_string(std::string& x) { cp_io::read(x); }
 inline void write_char(char c) { std::cout.put(c); }
 inline void write_string(const std::string& s) { cp_io::write_one(s); }
+
 inline void flush_output() { std::cout.flush(); }
 
 using cp_io::read;
@@ -466,20 +500,35 @@ using cp_io::writeln;
 } // namespace fast_io
 #endif
 
-// Input/Output macros.
-#ifndef IN
-  #define IN(...) cp_io::read(__VA_ARGS__)
+#ifdef CP_IO_IMPL_READ
+  #undef CP_IO_IMPL_READ
 #endif
-#ifndef OUT
-  #define OUT(...) cp_io::writeln(__VA_ARGS__)
+#ifdef CP_IO_IMPL_WRITELN
+  #undef CP_IO_IMPL_WRITELN
 #endif
-#ifndef FLUSH
-  #define FLUSH() std::cout.flush()
+#ifdef CP_IO_IMPL_FLUSH
+  #undef CP_IO_IMPL_FLUSH
 #endif
+
+#if defined(CP_FAST_IO_NAMESPACE_DEFINED)
+  #define CP_IO_IMPL_READ(...) fast_io::read(__VA_ARGS__)
+  #define CP_IO_IMPL_WRITELN(...) fast_io::writeln(__VA_ARGS__)
+  #define CP_IO_IMPL_FLUSH() fast_io::flush_output()
+#else
+  #define CP_IO_IMPL_READ(...) cp_io::read(__VA_ARGS__)
+  #define CP_IO_IMPL_WRITELN(...) cp_io::writeln(__VA_ARGS__)
+  #define CP_IO_IMPL_FLUSH() std::cout.flush()
+#endif
+
+//===----------------------------------------------------------------------===//
+/* Shared I/O Macro and Answer Helper Definitions */
+
+#define IN(...) CP_IO_IMPL_READ(__VA_ARGS__)
+#define OUT(...) CP_IO_IMPL_WRITELN(__VA_ARGS__)
+#define FLUSH() CP_IO_IMPL_FLUSH()
 
 #ifndef CP_IO_DECL_MACROS_DEFINED
   #define CP_IO_DECL_MACROS_DEFINED 1
-  // Convenient input macros.
   #define INT(...) I32 __VA_ARGS__; IN(__VA_ARGS__)
   #define LL(...) I64 __VA_ARGS__; IN(__VA_ARGS__)
   #define ULL(...) U64 __VA_ARGS__; IN(__VA_ARGS__)
@@ -499,7 +548,6 @@ using cp_io::writeln;
 
 #ifndef CP_IO_ANSWER_HELPERS_DEFINED
   #define CP_IO_ANSWER_HELPERS_DEFINED 1
-  // Answer helpers.
   inline void YES(bool condition = true) { OUT(condition ? "YES" : "NO"); }
   inline void NO(bool condition = true) { YES(!condition); }
   inline void Yes(bool condition = true) { OUT(condition ? "Yes" : "No"); }
@@ -509,21 +557,7 @@ using cp_io::writeln;
 //===----------------------------------------------------------------------===//
 /* Mathematical Utilities */
 
-// Generic mathematical functions:
-template <typename T>
-[[deprecated("use std::gcd() instead")]]
-[[gnu::always_inline]] constexpr T _gcd(T a, T b) {
-  static_assert(std::is_integral_v<T>, "_gcd requires an integral type.");
-  return b ? _gcd(b, a % b) : a;
-}
-
-template <typename T>
-[[deprecated("use std::lcm() instead")]]
-[[gnu::always_inline]] constexpr T _lcm(T a, T b) {
-  return a / _gcd(a, b) * b;
-}
-
-// Advanced division operations:
+// Integer division and modulus with floor/ceil semantics:
 template <typename T>
 [[gnu::always_inline]] constexpr T div_floor(T a, T b) {
   return a / b - (a % b != 0 && (a ^ b) < 0);
@@ -572,13 +606,6 @@ template <typename T>
     exp >>= 1;
   }
   return result;
-}
-
-// Legacy alias:
-template <typename T>
-[[deprecated("use power(base, exp) or mod_pow(base, exp, mod) instead")]]
-[[gnu::always_inline]] constexpr T _power(T base, T exp, T mod = 0) {
-  return mod ? mod_pow(base, exp, mod) : power(base, exp);
 }
 
 #ifndef __UTILITY_FUNCTIONS__
@@ -645,65 +672,15 @@ constexpr const T& _max(const T& a, const T& b, const Args&... args) {
 }
 
 //===----------------------------------------------------------------------===//
-/* Mathematical Constants and Infinity Values */
-
-// High-precision mathematical constants:
-constexpr F80 PI   = 3.1415926535897932384626433832795028841971693993751L;
-constexpr F80 E    = 2.7182818284590452353602874713526624977572470937000L;
-constexpr F80 PHI  = 1.6180339887498948482045868343656381177203091798058L;
-constexpr F80 LN2  = 0.6931471805599453094172321214581765680755001343602L;
-constexpr F80 EPS  = 1e-9L;
-constexpr F80 DEPS = 1e-12L;
-
-// Robust infinity system:
-template <class T>
-constexpr T infinity = std::numeric_limits<T>::max() / 4;
-
-template <>
-inline constexpr I32 infinity<I32> = 1'010'000'000;
-template <>
-inline constexpr I64 infinity<I64> = 2'020'000'000'000'000'000LL;
-template <>
-inline constexpr U32 infinity<U32> = 2'020'000'000U;
-template <>
-inline constexpr U64 infinity<U64> = 4'040'000'000'000'000'000ULL;
-template <>
-inline constexpr F64 infinity<F64> = 1e18;
-template <>
-inline constexpr F80 infinity<F80> = 1e18L;
-
-#if HAS_INT128
-  static_assert(sizeof(I128) > sizeof(I64), "I128 must be true 128-bit when HAS_INT128 is enabled.");
-  template <>
-  inline constexpr I128 infinity<I128> = I128(infinity<I64>) * 2'000'000'000'000'000'000LL;
-#endif
-
-constexpr I32 INF32 = infinity<I32>;
-constexpr I64 INF64 = infinity<I64>;
-constexpr I64 LINF  = INF64; // Legacy alias
-
-// Powers of ten lookup table (10^k for k = 0..18):
-constexpr I64 POW10[] = {
-    1LL, 10LL, 100LL, 1000LL, 10000LL, 100000LL,
-    1000000LL, 10000000LL, 100000000LL, 1000000000LL,
-    10000000000LL, 100000000000LL, 1000000000000LL,
-    10000000000000LL, 100000000000000LL, 1000000000000000LL,
-    10000000000000000LL, 100000000000000000LL, 1000000000000000000LL,
-};
-
-// Modular arithmetic constants:
-constexpr I64 MOD  = 1000000007;
-constexpr I64 MOD2 = 998244353;
-constexpr I64 MOD3 = 1000000009;
-
-//===----------------------------------------------------------------------===//
 /* Data Structures & Algorithms for the Problem */
 
+/// @brief Default min operation functor for SparseTable.
 template <typename T>
 struct SparseTableMinOp {
   constexpr T operator()(const T& a, const T& b) const { return a < b ? a : b; }
 };
 
+/// @brief Sparse table for static idempotent range queries.
 template <typename T, typename Op = SparseTableMinOp<T>>
 struct SparseTable {
   Vec<Vec<T>> table;
@@ -713,6 +690,7 @@ struct SparseTable {
   SparseTable() = default;
   explicit SparseTable(const Vec<T>& v, Op merge_op = Op{}) { build(v, merge_op); }
 
+  /// @brief Precomputes sparse table for input vector.
   void build(const Vec<T>& v, Op merge_op = Op{}) {
     op = merge_op;
     const I32 n = sz(v);
@@ -735,12 +713,21 @@ struct SparseTable {
     }
   }
 
+  /// @brief Query over inclusive range [l, r].
   T query(I32 l, I32 r) const {
     const I32 k = lg[r - l + 1];
     return op(table[k][l], table[k][r - (1 << k) + 1]);
   }
 };
 
+/**
+ * @brief Suffix array + Kasai LCP with O(1) LCP queries.
+ *
+ * Construction:
+ *  - suffix array in O(n log n) via counting-sort doubling on cyclic shifts
+ *  - LCP in O(n) via Kasai
+ *  - RMQ over LCP in O(n log n)
+ */
 struct SuffixArray {
   std::string s;
   Vec<I32> sa;    // Sorted suffix start positions.
@@ -753,6 +740,7 @@ struct SuffixArray {
   SuffixArray() = default;
   explicit SuffixArray(const std::string& str) { build(str); }
 
+  /// @brief Rebuilds all structures for input string.
   void build(const std::string& str) {
     s = str;
     build_sa();
@@ -760,6 +748,7 @@ struct SuffixArray {
     build_rmq();
   }
 
+  /// @brief Returns LCP length of suffixes starting at i and j.
   I32 lcp_query(I32 i, I32 j) const {
     if (i == j) return sz(s) - i;
     I32 ri = rank[i];
@@ -768,6 +757,7 @@ struct SuffixArray {
     return rmq(ri, rj - 1);
   }
 
+  /// @brief Finds all occurrences of pattern using binary search on SA.
   Vec<I32> find_pattern(const std::string& pattern) const {
     Vec<I32> result;
     const I32 n = sz(s);
@@ -796,13 +786,14 @@ struct SuffixArray {
     }
 
     while (left < n && cmp_suffix_pattern(sa[left]) == 0) {
-      result.pb(sa[left]);
+      result.push_back(sa[left]);
       ++left;
     }
     return result;
   }
 
 private:
+  /// @brief Builds suffix array and rank array for s.
   void build_sa() {
     const I32 n = sz(s);
     sa.clear();
@@ -812,7 +803,7 @@ private:
     // Build SA on s + sentinel(0) as cyclic shifts.
     const I32 m = n + 1;
     Vec<I32> a(m);
-    FOR(i, n) a[i] = static_cast<U8>(s[i]) + 1;
+    FOR(i, n) a[i] = as<U8>(s[i]) + 1;
     a[n] = 0;
 
     Vec<I32> p(m), c(m);
@@ -865,6 +856,7 @@ private:
     FOR(i, n) rank[sa[i]] = i;
   }
 
+  /// @brief Builds LCP array using Kasai algorithm.
   void build_lcp() {
     const I32 n = sz(s);
     lcp.assign(n > 0 ? n - 1 : 0, 0);
@@ -883,6 +875,7 @@ private:
     }
   }
 
+  /// @brief Builds RMQ sparse table over LCP array.
   void build_rmq() {
     const I32 n = sz(lcp);
     lg.assign(n + 1, 0);
@@ -902,6 +895,7 @@ private:
     }
   }
 
+  /// @brief RMQ query on LCP array for range [l, r].
   I32 rmq(I32 l, I32 r) const {
     if (l > r) return 0;
     I32 k = lg[r - l + 1];

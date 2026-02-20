@@ -55,7 +55,7 @@ void solve() {
   // Iterative DFS to avoid deep recursion.
   auto dfs = [&](I32 root, const Path& root_pref, I32 start_idx) -> I32 {
     Vec<Frame> stk;
-    stk.pb({root, root_pref, start_idx, 1});
+    stk.push_back({root, root_pref, start_idx, 1});
 
     while (!stk.empty()) {
       auto& fr = stk.back();
@@ -80,8 +80,8 @@ void solve() {
             edges.eb(fr.v, to);
           }
           Path child_pref = fr.pref;
-          child_pref.pb(to);
-          stk.pb({to, std::move(child_pref), nxt, 1});
+          child_pref.push_back(to);
+          stk.push_back({to, std::move(child_pref), nxt, 1});
           continue;
         }
       }

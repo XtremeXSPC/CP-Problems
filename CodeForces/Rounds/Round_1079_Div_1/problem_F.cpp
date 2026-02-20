@@ -33,9 +33,9 @@ void solve() {
         I32 j = i + d;
         if (j > k) j -= k;
         if (i < j) {
-          edges.pb({i, j});
+          edges.push_back({i, j});
         } else {
-          edges.pb({j, i});
+          edges.push_back({j, i});
         }
       }
     }
@@ -50,7 +50,7 @@ void solve() {
       Vec<Edge> edges = build_circulant(k, as<I32>(q));
       const I32 shift = k / 2;
       edges.reserve(edges.size() + as<std::size_t>(r / 2));
-      FOR(i, 1, as<I32>(r / 2) + 1) edges.pb({i, i + shift});
+      FOR(i, 1, as<I32>(r / 2) + 1) edges.push_back({i, i + shift});
       return edges;
     }
 
@@ -63,7 +63,7 @@ void solve() {
     Vec<Edge> edges;
     edges.reserve(base.size());
     for (auto [u, v] : base) {
-      if (!removed.contains(encode(u, v))) edges.pb({u, v});
+      if (!removed.contains(encode(u, v))) edges.push_back({u, v});
     }
     return edges;
   };
@@ -80,7 +80,7 @@ void solve() {
     FOR(i, 1, 7) {
       FOR(j, i + 1, 7) {
         if (i <= 3 && j <= 3) continue;
-        edges.pb({i, j});
+        edges.push_back({i, j});
       }
     }
     return edges;
@@ -98,9 +98,9 @@ void solve() {
     FOR(u, 1, n_all + 1) {
       FOR(v, u + 1, n_all + 1) {
         if (u == n_all || v == n_all) {
-          edges.pb({u, v});
+          edges.push_back({u, v});
         } else if (!s.contains(encode(u, v))) {
-          edges.pb({u, v});
+          edges.push_back({u, v});
         }
       }
     }
@@ -123,7 +123,7 @@ void solve() {
     FOR(u, 1, n_all + 1) {
       FOR(v, u + 1, n_all + 1) {
         if (!missing.contains(encode(as<I32>(u), as<I32>(v)))) {
-          edges.pb({as<I32>(u), as<I32>(v)});
+          edges.push_back({as<I32>(u), as<I32>(v)});
         }
       }
     }
