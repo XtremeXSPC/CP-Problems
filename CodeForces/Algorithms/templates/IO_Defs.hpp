@@ -1,5 +1,5 @@
 #pragma once
-#include "Types.hpp"
+
 //===----------------------------------------------------------------------===//
 /* Shared I/O Macro and Answer Helper Definitions */
 

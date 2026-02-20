@@ -4,20 +4,7 @@
 //===----------------------------------------------------------------------===//
 /* Mathematical Utilities */
 
-template <typename T>
-[[deprecated("use std::gcd() instead")]]
-[[gnu::always_inline]] constexpr T _gcd(T a, T b) {
-  static_assert(std::is_integral_v<T>, "_gcd requires an integral type.");
-  return b ? _gcd(b, a % b) : a;
-}
-
-template <typename T>
-[[deprecated("use std::lcm() instead")]]
-[[gnu::always_inline]] constexpr T _lcm(T a, T b) {
-  return a / _gcd(a, b) * b;
-}
-
-// Advanced division operations:
+// Integer division and modulus with floor/ceil semantics:
 template <typename T>
 [[gnu::always_inline]] constexpr T div_floor(T a, T b) {
   return a / b - (a % b != 0 && (a ^ b) < 0);
@@ -66,13 +53,6 @@ template <typename T>
     exp >>= 1;
   }
   return result;
-}
-
-// Legacy alias:
-template <typename T>
-[[deprecated("use power(base, exp) or mod_pow(base, exp, mod) instead")]]
-[[gnu::always_inline]] constexpr T _power(T base, T exp, T mod = 0) {
-  return mod ? mod_pow(base, exp, mod) : power(base, exp);
 }
 
 #ifndef __UTILITY_FUNCTIONS__
