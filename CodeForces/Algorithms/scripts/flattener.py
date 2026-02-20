@@ -111,9 +111,19 @@ def main() -> None:
     # Never inline Preamble as a template section; it is emitted once at the top.
     files_to_include = [p for p in files_to_include if p.resolve() != preamble_resolved]
 
+    # Expand template headers recursively so template-level shared includes
+    # (e.g. IO_Defs.hpp) are preserved in flattened output.
+    inlined_headers = {preamble_resolved}
     template_sections = []
     for filepath in files_to_include:
-        content = process_file_content(filepath)
+        content = inline_local_header(
+            project_root,
+            filepath,
+            inlined_headers,
+            used_identifiers=used_identifiers,
+            module_leaf_tokens=module_leaf_tokens,
+            strip_module_docs=strip_module_docs,
+        )
         if content:
             template_sections.append(content)
 
@@ -123,8 +133,6 @@ def main() -> None:
     skip_need_defines = False
 
     # Prevent duplicated template/module bodies when sections are already expanded.
-    inlined_headers = {filepath.resolve() for filepath in files_to_include}
-    inlined_headers.add(preamble_resolved)
     module_section_emitted = False
 
     with open(source_file, "r", encoding="utf-8") as f:

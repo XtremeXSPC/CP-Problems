@@ -40,12 +40,12 @@ MOD_INT_HPP = "Mod_Int.hpp"
 OPTIONAL_HEADER_TRIGGER_TOKENS = {
     TYPES_HPP: {
         "I8", "I16", "I32", "I64", "U8", "U16", "U32", "U64", "I128", "U128",
-        "F32", "F64", "F80", "F128", "ll", "ull", "ld", "Vec", "Vec2", "Vec3",
+        "F32", "F64", "F80", "F128", "Vec", "Vec2", "Vec3",
         "Deque", "List", "Set", "MultiSet", "UnorderedSet", "Map", "MultiMap",
         "UnorderedMap", "Stack", "Queue", "PriorityQueue", "MinPriorityQueue",
-        "VC", "VVC", "VVVC", "Pair", "P", "PII", "PLL", "PLD", "VI", "VLL",
+        "Pair", "PII", "PLL", "PLD", "VI", "VLL",
         "VVI", "VVLL", "VB", "VS", "VU8", "VU32", "VU64", "VF", "VPII", "VPLL",
-        "VP", "ordered_set", "ordered_multiset", "ordered_map", "gp_hash_table",
+        "ordered_set", "ordered_multiset", "ordered_map", "gp_hash_table",
         "HAS_INT128", "HAS_FLOAT128",
         "PBDS_AVAILABLE",
     },
@@ -57,7 +57,7 @@ OPTIONAL_HEADER_TRIGGER_TOKENS = {
     MACROS_HPP: {
         "make_nd_vec", "make_vec2", "make_vec3", "make_vec4", "make_vec", "vv",
         "vvv", "vvvv", "FOR", "FOR_R", "REP", "RREP", "ALL", "RALL", "all",
-        "rall", "sz", "len", "pb", "eb", "mp", "mt", "fi", "se", "elif",
+        "rall", "sz", "len", "eb", "elif",
         "UNIQUE", "LB", "UB", "SUM", "MIN",
         "MAX",
     },
@@ -427,7 +427,12 @@ def inline_local_header(
                             strip_module_docs=strip_module_docs,
                         )
                         if nested_content:
-                            append_with_blank_separator(content_lines, nested_content)
+                            # Keep include replacement tight. Avoid adding extra blank lines.
+                            if content_lines and not content_lines[-1].endswith("\n"):
+                                content_lines.append("\n")
+                            content_lines.append(nested_content)
+                            if not nested_content.endswith("\n"):
+                                content_lines.append("\n")
                         continue
                 content_lines.append(line)
                 continue
