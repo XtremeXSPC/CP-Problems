@@ -2,10 +2,9 @@
 #include "Preamble.hpp"
 
 //===----------------------------------------------------------------------===//
-/* Advanced Type System and Aliases */
-// clang-format off
+/* Core Type System and Aliases */
 
-// Fundamental type aliases with explicit sizes:
+// Fundamental signed/unsigned integer aliases with explicit bit widths.
 using I8  = std::int8_t;
 using I16 = std::int16_t;
 using I32 = std::int32_t;
@@ -15,56 +14,82 @@ using U16 = std::uint16_t;
 using U32 = std::uint32_t;
 using U64 = std::uint64_t;
 
-// Extended precision types (when available):
+// Extended precision integer aliases (when available).
 #ifdef __SIZEOF_INT128__
   using I128 = __int128;
   using U128 = unsigned __int128;
-#define HAS_INT128 1
+  #define HAS_INT128 1
 #else
-  // Fallback for compilers that don't support 128-bit integers.
+  // Fallback keeps APIs available on toolchains without native int128.
   using I128 = std::int64_t;
   using U128 = std::uint64_t;
-#define HAS_INT128 0
+  #define HAS_INT128 0
 #endif
 
-// Floating point types:
+// Floating-point aliases.
 using F32 = float;
 using F64 = double;
 using F80 = long double;
 
 #ifdef __FLOAT128__
   using F128 = __float128;
-#define HAS_FLOAT128 1
+  #define HAS_FLOAT128 1
 #else
-  // Fallback for compilers that don't support 128-bit floats.
+  // Fallback keeps APIs available on toolchains without float128.
   using F128 = long double;
-#define HAS_FLOAT128 0
+  #define HAS_FLOAT128 0
 #endif
 
-// Legacy short aliases (deprecated -- use I64, U64, F80 instead):
-using ll  [[deprecated("use I64 instead")]] = I64;
-using ull [[deprecated("use U64 instead")]] = U64;
-using ld  [[deprecated("use F80 instead")]] = F80;
+// Common standard scalar aliases.
+using Size = std::size_t;
+using Diff = std::ptrdiff_t;
+using Byte = std::byte;
 
-// Container type aliases:
+// String aliases.
+using String = std::string;
+using StringView = std::string_view;
+
+// Sequence containers.
 template <class T>
 using Vec = std::vector<T>;
 template <class T>
 using Deque = std::deque<T>;
 template <class T>
 using List = std::list<T>;
+template <class T, Size N>
+using Array = std::array<T, N>;
+template <Size N>
+using BitSet = std::bitset<N>;
+
+// Associative containers (kept compatible with PCH aliases).
 template <class T>
 using Set = std::set<T>;
 template <class T>
 using MultiSet = std::multiset<T>;
-template <class T>
-using UnorderedSet = std::unordered_set<T>;
 template <class K, class V>
 using Map = std::map<K, V>;
 template <class K, class V>
 using MultiMap = std::multimap<K, V>;
+template <class T>
+using UnorderedSet = std::unordered_set<T>;
 template <class K, class V>
 using UnorderedMap = std::unordered_map<K, V>;
+
+// Extended associative aliases with explicit comparator/hash control.
+template <class T, class Compare>
+using OrderedSetBy = std::set<T, Compare>;
+template <class T, class Compare>
+using OrderedMultiSetBy = std::multiset<T, Compare>;
+template <class K, class V, class Compare>
+using OrderedMapBy = std::map<K, V, Compare>;
+template <class K, class V, class Compare>
+using OrderedMultiMapBy = std::multimap<K, V, Compare>;
+template <class T, class Hash, class Eq = std::equal_to<T>>
+using HashedSetBy = std::unordered_set<T, Hash, Eq>;
+template <class K, class V, class Hash, class Eq = std::equal_to<K>>
+using HashedMapBy = std::unordered_map<K, V, Hash, Eq>;
+
+// Container adaptors (kept compatible with PCH aliases).
 template <class T>
 using Stack = std::stack<T, std::deque<T>>;
 template <class T>
@@ -74,47 +99,58 @@ using PriorityQueue = std::priority_queue<T, std::vector<T>>;
 template <class T>
 using MinPriorityQueue = std::priority_queue<T, std::vector<T>, std::greater<T>>;
 
-// Canonical multidimensional aliases:
+// Extended adaptor aliases with explicit container/comparator control.
+template <class T, class Container>
+using StackIn = std::stack<T, Container>;
+template <class T, class Container>
+using QueueIn = std::queue<T, Container>;
+template <class T, class Container, class Compare>
+using PriorityQueueBy = std::priority_queue<T, Container, Compare>;
+template <class T, class Container = std::vector<T>>
+using MinPriorityQueueIn = std::priority_queue<T, Container, std::greater<T>>;
+
+// Utility wrappers.
+template <class T, class U>
+using Pair = std::pair<T, U>;
+template <class... Args>
+using Tuple = std::tuple<Args...>;
+template <class T>
+using Optional = std::optional<T>;
+template <class... Ts>
+using Variant = std::variant<Ts...>;
+template <class Signature>
+using Function = std::function<Signature>;
+template <class T>
+using Span = std::span<T>;
+
+// Canonical multidimensional aliases.
 template <class T>
 using Vec2 = Vec<Vec<T>>;
 template <class T>
 using Vec3 = Vec<Vec2<T>>;
-
-// Legacy container aliases (deprecated -- use Vec, Vec2, Vec3 instead):
 template <class T>
-using VC [[deprecated("use Vec<T> instead")]] = Vec<T>;
-template <class T>
-using VVC [[deprecated("use Vec2<T> instead")]] = Vec2<T>;
-template <class T>
-using VVVC [[deprecated("use Vec3<T> instead")]] = Vec3<T>;
+using Vec4 = Vec<Vec3<T>>;
 
-// Pair and tuple aliases:
-template <class T, class U>
-using Pair = std::pair<T, U>;
-template <class T, class U>
-using TP = Pair<T, U>;
-
-using PII = Pair<I32, I32>;
-using PLL = Pair<I64, I64>;
-using PLD = Pair<F80, F80>;
-
-template <class... Args>
-using Tuple = std::tuple<Args...>;
-
-// Specialized container aliases:
+// Specialized frequently-used aliases.
 using VI   = Vec<I32>;
 using VLL  = Vec<I64>;
 using VVI  = Vec<VI>;
 using VVLL = Vec<VLL>;
 using VB   = Vec<bool>;
-using VS   = Vec<std::string>;
+using VS   = Vec<String>;
 using VU8  = Vec<U8>;
+using VU16 = Vec<U16>;
 using VU32 = Vec<U32>;
 using VU64 = Vec<U64>;
 using VF   = Vec<F64>;
+using VLD  = Vec<F80>;
 
-// Vector of pairs:
+// Common pair aliases.
+template <class T, class U>
+using VecPair = Vec<Pair<T, U>>;
+
+using PII = Pair<I32, I32>;
+using PLL = Pair<I64, I64>;
+using PLD = Pair<F80, F80>;
 using VPII = Vec<PII>;
 using VPLL = Vec<PLL>;
-template <class T, class U>
-using VP = Vec<TP<T, U>>;

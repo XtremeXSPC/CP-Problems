@@ -4,7 +4,6 @@
 //===----------------------------------------------------------------------===//
 /* Mathematical Utilities */
 
-// Generic mathematical functions:
 template <typename T>
 [[deprecated("use std::gcd() instead")]]
 [[gnu::always_inline]] constexpr T _gcd(T a, T b) {

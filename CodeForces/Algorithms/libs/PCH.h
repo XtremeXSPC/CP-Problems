@@ -497,6 +497,13 @@
     #define HAS_FLOAT128 0
   #endif
 
+  // Common standard scalar/string aliases.
+  using Size = std::size_t;
+  using Diff = std::ptrdiff_t;
+  using Byte = std::byte;
+  using String = std::string;
+  using StringView = std::string_view;
+
   // Legacy short aliases are enabled by default for compatibility.
   // Define CP_ENABLE_LEGACY_SHORT_ALIASES=0 to hard-disable them.
   #ifndef CP_ENABLE_LEGACY_SHORT_ALIASES
@@ -519,6 +526,10 @@
   using Deque = std::deque<T>;
   template <class T>
   using List = std::list<T>;
+  template <class T, Size N>
+  using Array = std::array<T, N>;
+  template <Size N>
+  using BitSet = std::bitset<N>;
   template <class T>
   using Set = std::set<T>;
   template <class T>
@@ -531,6 +542,21 @@
   using MultiMap = std::multimap<K, V>;
   template <class K, class V>
   using UnorderedMap = std::unordered_map<K, V>;
+
+  // Extended associative aliases.
+  template <class T, class Compare>
+  using OrderedSetBy = std::set<T, Compare>;
+  template <class T, class Compare>
+  using OrderedMultiSetBy = std::multiset<T, Compare>;
+  template <class K, class V, class Compare>
+  using OrderedMapBy = std::map<K, V, Compare>;
+  template <class K, class V, class Compare>
+  using OrderedMultiMapBy = std::multimap<K, V, Compare>;
+  template <class T, class Hash, class Eq = std::equal_to<T>>
+  using HashedSetBy = std::unordered_set<T, Hash, Eq>;
+  template <class K, class V, class Hash, class Eq = std::equal_to<K>>
+  using HashedMapBy = std::unordered_map<K, V, Hash, Eq>;
+
   template <class T>
   using Stack = std::stack<T, std::deque<T>>;
   template <class T>
@@ -540,11 +566,23 @@
   template <class T>
   using MinPriorityQueue = std::priority_queue<T, std::vector<T>, std::greater<T>>;
 
+  // Extended adaptor aliases.
+  template <class T, class Container>
+  using StackIn = std::stack<T, Container>;
+  template <class T, class Container>
+  using QueueIn = std::queue<T, Container>;
+  template <class T, class Container, class Compare>
+  using PriorityQueueBy = std::priority_queue<T, Container, Compare>;
+  template <class T, class Container = std::vector<T>>
+  using MinPriorityQueueIn = std::priority_queue<T, Container, std::greater<T>>;
+
   // Canonical multidimensional aliases:
   template <class T>
   using Vec2 = Vec<Vec<T>>;
   template <class T>
   using Vec3 = Vec<Vec2<T>>;
+  template <class T>
+  using Vec4 = Vec<Vec3<T>>;
 
   // Legacy container aliases are enabled by default for compatibility.
   // Define CP_ENABLE_LEGACY_CONTAINER_ALIASES=0 to hard-disable them.
@@ -566,6 +604,16 @@
   using Pair = std::pair<T, U>;
   template <class T, class U>
   using P = Pair<T, U>;
+  template <class... Args>
+  using Tuple = std::tuple<Args...>;
+  template <class T>
+  using Optional = std::optional<T>;
+  template <class... Ts>
+  using Variant = std::variant<Ts...>;
+  template <class Signature>
+  using Function = std::function<Signature>;
+  template <class T>
+  using Span = std::span<T>;
 
   using PII = Pair<I32, I32>;
   using PLL = Pair<I64, I64>;
@@ -579,29 +627,46 @@
   using VVL  = Vec2<I64>;
   using VVVL = Vec3<I64>;
   using VB   = Vec<bool>;
-  using VS   = Vec<std::string>;
+  using VS   = Vec<String>;
   using VU8  = Vec<U8>;
+  using VU16 = Vec<U16>;
   using VU32 = Vec<U32>;
   using VU64 = Vec<U64>;
   using VF   = Vec<F64>;
+  using VLD  = Vec<F80>;
 
   // Vector of pairs:
+  template <class T, class U>
+  using VecPair = Vec<Pair<T, U>>;
   using VPII = Vec<PII>;
   using VPLL = Vec<PLL>;
   template <class T, class U>
-  using VP = Vec<P<T, U>>;
+  using VP = VecPair<T, U>;
+  template <class T, class U>
+  using TP = Pair<T, U>;
 
   // Policy-based data structures:
   #if defined(PBDS_AVAILABLE) && PBDS_AVAILABLE
     using namespace __gnu_pbds;
+
     template <typename T>
     using ordered_set = tree<T, null_type, std::less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
     template <typename T>
     using ordered_multiset = tree<T, null_type, std::less_equal<T>, rb_tree_tag, tree_order_statistics_node_update>;
+
     template <typename K, typename V>
     using ordered_map = tree<K, V, std::less<K>, rb_tree_tag, tree_order_statistics_node_update>;
+
     template <typename K, typename V>
-    using gp_hash_table = __gnu_pbds::gp_hash_table<K, V, std::hash<K>, std::equal_to<K>, direct_mask_range_hashing<>, linear_probe_fn<>, hash_standard_resize_policy<hash_exponential_size_policy<>, hash_load_check_resize_trigger<>, true>>;
+    using gp_hash_table = __gnu_pbds::gp_hash_table<
+        K,
+        V,
+        std::hash<K>,
+        std::equal_to<K>,
+        direct_mask_range_hashing<>,
+        linear_probe_fn<>,
+        hash_standard_resize_policy<hash_exponential_size_policy<>, hash_load_check_resize_trigger<>, true>>;
   #endif
 #endif
 
@@ -673,7 +738,7 @@
 
 #ifndef __UTILITY_FUNCTIONS__
 #define __UTILITY_FUNCTIONS__
-  // Bitwise operations with modern implementations.
+  /// @brief Bitwise operations with modern implementations.
   template<std::integral T>
   ALWAYS_INLINE constexpr I32 popcount(T x) noexcept {
       #ifdef HAS_BIT_HEADER
@@ -687,6 +752,7 @@
       #endif
   }
 
+  /// @brief Count leading zeros with modern implementations.
   template<std::integral T>
   ALWAYS_INLINE constexpr I32 countl_zero(T x) noexcept {
       #ifdef HAS_BIT_HEADER
@@ -701,6 +767,7 @@
       #endif
   }
 
+  /// @brief Count trailing zeros with modern implementations.
   template<std::integral T>
   ALWAYS_INLINE constexpr I32 countr_zero(T x) noexcept {
       #ifdef HAS_BIT_HEADER
@@ -715,6 +782,7 @@
       #endif
   }
 
+  /// @brief Calculate the position of the highest set bit (0-based index).
   template<std::integral T>
   ALWAYS_INLINE constexpr I32 bit_width(T x) noexcept {
       #ifdef HAS_BIT_HEADER
@@ -729,7 +797,7 @@
   template<std::integral T> constexpr I32 topbit(T x) { return bit_width(x) - 1; }
   template<std::integral T> constexpr I32 lowbit(T x) { return countr_zero(x); }
 
-  // Mathematical utility functions.
+  /// @brief Calculate greatest common divisor with modern implementations.
   template<std::integral T>
   ALWAYS_INLINE constexpr T gcd(T a, T b) noexcept {
       #if HAS_CPP20
@@ -744,6 +812,7 @@
       #endif
   }
 
+  /// @brief Calculate least common multiple with modern implementations.
   template<std::integral T>
   ALWAYS_INLINE constexpr T lcm(T a, T b) noexcept {
       #if HAS_CPP20
@@ -753,7 +822,7 @@
       #endif
   }
 
-  // Fast power function with modular arithmetic support.
+  /// @brief Modular exponentiation with optional modulus.
   template<std::integral T>
   ALWAYS_INLINE constexpr T power(T base, T exp, T mod = 0) noexcept {
       T result = 1;
@@ -769,7 +838,7 @@
       return result;
   }
 
-  // Min/Max functions with variadic support.
+  /// @brief Variadic min/max functions with modern implementations.
   template<class T>
   ALWAYS_INLINE constexpr const T& cp_min(const T& a, const T& b) noexcept {
       return (b < a) ? b : a;
@@ -790,7 +859,7 @@
       return cp_max(a, cp_max(b, args...));
   }
 
-  // Efficient min/max update functions.
+  /// @brief Conditional update functions for min/max with modern implementations.
   template<class T, class S>
   ALWAYS_INLINE constexpr bool chmin(T& a, const S& b) noexcept {
       return (a > b) ? (a = b, true) : false;
@@ -805,14 +874,14 @@
 //===----------------------------------------------------------------------===//
 //======================== ADVANCED HASHING UTILITIES ========================//
 
-// Modern hash combiners for custom types.
+/// @brief Combine hash values for custom types.
 template<class T>
 ALWAYS_INLINE void hash_combine(std::size_t& seed, const T& v) noexcept {
     std::hash<T> hasher;
     seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 }
 
-// Enhanced pair hash.
+/// @brief Hash function for pairs.
 struct PairHash {
     template<class T1, class T2>
     std::size_t operator()(const std::pair<T1, T2>& p) const noexcept {
@@ -822,7 +891,7 @@ struct PairHash {
     }
 };
 
-// Tuple hash implementation.
+/// @brief Hash function for tuples.
 template<class Tuple, std::size_t Index = std::tuple_size_v<Tuple> - 1>
 struct TupleHashImpl {
     static void apply(std::size_t& seed, const Tuple& tuple) {
@@ -831,6 +900,7 @@ struct TupleHashImpl {
     }
 };
 
+/// @brief Base case for tuple hashing.
 template<class Tuple>
 struct TupleHashImpl<Tuple, 0> {
     static void apply(std::size_t& seed, const Tuple& tuple) {
@@ -838,6 +908,7 @@ struct TupleHashImpl<Tuple, 0> {
     }
 };
 
+/// @brief Hash function for tuples.
 template<typename... T>
 struct TupleHash {
     std::size_t operator()(const std::tuple<T...>& t) const noexcept {
@@ -851,7 +922,7 @@ struct TupleHash {
 //===================== RANDOM NUMBER GENERATION SYSTEM ======================//
 
 #ifndef DISABLE_RANDOM_SYSTEM
-// Thread-safe random number generation.
+/// @brief Thread-safe random engine with support for multiple distributions and seeding.
 class RandomEngine {
 private:
     mutable std::mt19937 gen32;
@@ -885,27 +956,30 @@ public:
     }
 };
 
-// Global random engine instance.
+/// @brief Get the global random engine instance.
 inline RandomEngine& random_engine() {
     static RandomEngine engine;
     return engine;
 }
 
-// Convenient random functions.
+/// @brief Generate a random integer in the range [min_val, max_val].
 template<std::integral T>
 T randint(T min_val, T max_val) {
     return random_engine().randint(min_val, max_val);
 }
 
+/// @brief Generate a random real number in the range [min_val, max_val).
 template<std::floating_point T>
 T randreal(T min_val = T(0), T max_val = T(1)) {
     return random_engine().randreal(min_val, max_val);
 }
 
+/// @brief Generate a random boolean value.
 inline bool randbool() {
     return random_engine().randbool();
 }
 
+/// @brief Set the random seed for reproducibility.
 inline void set_random_seed(U64 seed) {
     random_engine().seed(seed);
 }
