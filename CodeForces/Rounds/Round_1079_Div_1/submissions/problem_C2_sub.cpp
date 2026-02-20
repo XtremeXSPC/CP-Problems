@@ -507,19 +507,17 @@ using cp_io::writeln;
 #endif
 
 //===----------------------------------------------------------------------===//
-/* Type Aliases */
+/* Main Solver Function */
 
+// Type aliases:
 using Path = Vec<I32>;
 using Edge = Pair<I32, I32>;
-
-//===----------------------------------------------------------------------===//
-/* Main Solver Function */
 
 void solve() {
   INT(n);
 
   constexpr I32 MAXK = 1 << 30;
-  std::unordered_map<I32, Path> cache; // k -> path (empty vec = nonexistent).
+  UnorderedMap<I32, Path> cache; // k -> path (empty vec = nonexistent).
 
   auto ask = [&](I32 k) -> const Path& {
     if (auto it = cache.find(k); it != cache.end()) return it->second;

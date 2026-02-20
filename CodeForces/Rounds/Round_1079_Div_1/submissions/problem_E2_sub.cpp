@@ -507,9 +507,6 @@ using cp_io::writeln;
 #endif
 
 //===----------------------------------------------------------------------===//
-/* Data Structures & Algorithms for the Problem */
-
-//===----------------------------------------------------------------------===//
 /* Mathematical Utilities */
 
 // Generic mathematical functions:
@@ -698,6 +695,9 @@ constexpr I64 POW10[] = {
 constexpr I64 MOD  = 1000000007;
 constexpr I64 MOD2 = 998244353;
 constexpr I64 MOD3 = 1000000009;
+
+//===----------------------------------------------------------------------===//
+/* Data Structures & Algorithms for the Problem */
 
 template <typename T>
 struct SparseTableMinOp {
