@@ -10,15 +10,15 @@
  * which is also a suffix of s[0..i]. Complexity: O(n).
  */
 inline VI prefix_function(const std::string& s) {
-  I32 n = static_cast<I32>(s.size());
-  VI pi(static_cast<Size>(n), 0);
+  I32 n = as<I32>(s.size());
+  VI pi(as<Size>(n), 0);
   FOR(i, 1, n) {
-    I32 j = pi[static_cast<Size>(i - 1)];
-    while (j > 0 && s[static_cast<Size>(i)] != s[static_cast<Size>(j)]) {
-      j = pi[static_cast<Size>(j - 1)];
+    I32 j = pi[as<Size>(i - 1)];
+    while (j > 0 && s[as<Size>(i)] != s[as<Size>(j)]) {
+      j = pi[as<Size>(j - 1)];
     }
-    if (s[static_cast<Size>(i)] == s[static_cast<Size>(j)]) ++j;
-    pi[static_cast<Size>(i)] = j;
+    if (s[as<Size>(i)] == s[as<Size>(j)]) ++j;
+    pi[as<Size>(i)] = j;
   }
   return pi;
 }

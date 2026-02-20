@@ -5,7 +5,7 @@
 
 /// @brief Overflow-safe modular multiplication on 64-bit inputs.
 inline I64 mod_mul64(I64 a, I64 b, I64 mod) {
-  return static_cast<I64>((static_cast<__int128>(a) * b) % mod);
+  return as<I64>((as<__int128>(a) * b) % mod);
 }
 
 /// @brief Fast modular exponentiation on 64-bit inputs.

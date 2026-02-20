@@ -23,7 +23,7 @@ struct RollingHash {
 
     pow1[0] = pow2[0] = 1;
     FOR(i, n) {
-      I64 ch = static_cast<U8>(s[i]);
+      I64 ch = as<U8>(s[i]);
       hash1[i + 1] = (hash1[i] * BASE1 + ch) % MOD1;
       hash2[i + 1] = (hash2[i] * BASE2 + ch) % MOD2;
       pow1[i + 1] = (pow1[i] * BASE1) % MOD1;

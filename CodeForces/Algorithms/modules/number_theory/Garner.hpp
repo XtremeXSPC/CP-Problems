@@ -16,7 +16,7 @@ inline I64 garner(const Vec<I64>& residues, const Vec<I64>& moduli, I64 result_m
   if (result_mod <= 0) return -1;
   if (residues.empty()) return 0;
 
-  I32 k = static_cast<I32>(residues.size());
+  I32 k = as<I32>(residues.size());
   FOR(i, k) {
     if (moduli[i] <= 1) return -1;
   }
@@ -35,8 +35,8 @@ inline I64 garner(const Vec<I64>& residues, const Vec<I64>& moduli, I64 result_m
   Vec<I64> mods = moduli;
   mods.push_back(result_mod);
 
-  Vec<I64> coeffs(static_cast<Size>(k + 1), 1);
-  Vec<I64> constants(static_cast<Size>(k + 1), 0);
+  Vec<I64> coeffs(as<Size>(k + 1), 1);
+  Vec<I64> constants(as<Size>(k + 1), 0);
 
   FOR(i, k) {
     I64 mi = mods[i];
@@ -46,16 +46,16 @@ inline I64 garner(const Vec<I64>& residues, const Vec<I64>& moduli, I64 result_m
     if (inv == -1) return -1;
 
     I64 delta = norm_mod(ai - constants[i], mi);
-    I64 t = static_cast<I64>((static_cast<__int128>(delta) * inv) % mi);
+    I64 t = as<I64>((as<__int128>(delta) * inv) % mi);
 
     FOR(j, i + 1, k + 1) {
       I64 mj = mods[j];
-      constants[j] = static_cast<I64>(
-          (static_cast<__int128>(constants[j]) +
-           static_cast<__int128>(coeffs[j]) * t) %
+      constants[j] = as<I64>(
+          (as<__int128>(constants[j]) +
+           as<__int128>(coeffs[j]) * t) %
           mj);
       coeffs[j] =
-          static_cast<I64>((static_cast<__int128>(coeffs[j]) * mi) % mj);
+          as<I64>((as<__int128>(coeffs[j]) * mi) % mj);
     }
   }
 

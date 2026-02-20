@@ -88,7 +88,7 @@ struct HLD {
       u = parent[head[u]];
     }
     if (depth[u] > depth[v]) std::swap(u, v);
-    I32 l = pos[u] + static_cast<I32>(edge_mode);
+    I32 l = pos[u] + as<I32>(edge_mode);
     I32 r = pos[v];
     if (l <= r) op(l, r);
   }

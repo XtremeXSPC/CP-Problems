@@ -39,15 +39,15 @@ std::pair<T, T> chinese_remainder(const Vec<T>& a, const Vec<T>& m) {
     T mod = m[i] / g;
     T p_norm = p % mod;
     if (p_norm < 0) p_norm += mod;
-    T t = static_cast<T>((static_cast<__int128>(diff / g) * p_norm) % mod);
+    T t = as<T>((as<__int128>(diff / g) * p_norm) % mod);
     if (t < 0) t += mod;
 
-    __int128 next_x = static_cast<__int128>(x) + static_cast<__int128>(M) * t;
-    __int128 next_M = static_cast<__int128>(M) * mod;
+    __int128 next_x = as<__int128>(x) + as<__int128>(M) * t;
+    __int128 next_M = as<__int128>(M) * mod;
     if (next_M > std::numeric_limits<T>::max()) return {-1, -1};
 
-    x = static_cast<T>(next_x % next_M);
-    M = static_cast<T>(next_M);
+    x = as<T>(next_x % next_M);
+    M = as<T>(next_M);
     x = ((x % M) + M) % M;
   }
 

@@ -26,8 +26,8 @@ struct MCMF {
 
   /// @brief Adds a directed edge with capacity and cost (and reverse with 0 cap, -cost).
   void add_edge(I32 from, I32 to, Cap cap, Cost cost) {
-    I32 from_index = static_cast<I32>(g[from].size());
-    I32 to_index = static_cast<I32>(g[to].size());
+    I32 from_index = as<I32>(g[from].size());
+    I32 to_index = as<I32>(g[to].size());
     if (from == to) ++to_index;
     g[from].push_back({to, to_index, cap, cost});
     g[to].push_back({from, from_index, 0, -cost});

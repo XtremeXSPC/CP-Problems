@@ -24,7 +24,7 @@ Pair<Weight, Vec<I32>> kruskal_mst(I32 n, const Vec<std::tuple<I32, I32, Weight>
   sorted_edges.reserve(edges.size());
   FOR(i, sz(edges)) {
     auto [u, v, w] = edges[i];
-    sorted_edges.push_back({u, v, w, static_cast<I32>(i)});
+    sorted_edges.push_back({u, v, w, as<I32>(i)});
   }
 
   std::sort(all(sorted_edges), [](const EdgeWithId& a, const EdgeWithId& b) {
