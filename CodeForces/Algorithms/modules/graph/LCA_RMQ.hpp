@@ -71,9 +71,7 @@ struct LCA_RMQ {
     }
   }
 
-  /**
-   * @brief LCA query in O(1).
-   */
+  /// @brief LCA query in O(1).
   I32 query(I32 u, I32 v) const {
     I32 l = first_occ[u], r = first_occ[v];
     if (l > r) std::swap(l, r);
@@ -82,9 +80,7 @@ struct LCA_RMQ {
     return euler[euler_dep[a] <= euler_dep[b] ? a : b];
   }
 
-  /**
-   * @brief Tree distance in edges between u and v.
-   */
+  /// @brief Tree distance in edges between u and v.
   I32 distance(I32 u, I32 v) const {
     return depth[u] + depth[v] - 2 * depth[query(u, v)];
   }

@@ -17,9 +17,7 @@ struct CentroidDecomposition {
   VI parent, subtree_size;
   VB used;
 
-  /**
-   * @brief Constructs centroid decomposition for each connected component.
-   */
+  /// @brief Constructs centroid decomposition for each connected component.
   explicit CentroidDecomposition(const Graph<Weight>& g)
       : n(g.n), tree(n), parent(n, -1), subtree_size(n, 0), used(n, false) {
     FOR(u, n) {

@@ -18,12 +18,10 @@ struct HLD {
   VI parent, depth, heavy, head, pos, subtree_size, order;
   I32 cur_pos;
 
-  /**
-   * @brief Builds decomposition for every connected component.
-   * @param g Input forest/tree.
-   */
-  HLD(const Graph<Weight>& g) : n(g.n), g(g), parent(n, -1), depth(n, 0), heavy(n, -1),
-                                head(n, 0), pos(n, -1), subtree_size(n, 0), order(n), cur_pos(0) {
+  /// @brief Builds decomposition for every connected component.
+  HLD(const Graph<Weight>& g)
+    : n(g.n), g(g), parent(n, -1), depth(n, 0), heavy(n, -1),
+      head(n, 0), pos(n, -1), subtree_size(n, 0), order(n), cur_pos(0) {
     auto dfs = [&](auto&& self, I32 v, I32 p) -> I32 {
       parent[v] = p;
       subtree_size[v] = 1;
@@ -62,9 +60,7 @@ struct HLD {
     }
   }
 
-  /**
-   * @brief LCA query using chain heads.
-   */
+  /// @brief LCA query using chain heads.
   I32 lca(I32 u, I32 v) const {
     while (head[u] != head[v]) {
       if (depth[head[u]] > depth[head[v]]) {
@@ -76,14 +72,7 @@ struct HLD {
     return depth[u] < depth[v] ? u : v;
   }
 
-  /**
-   * @brief Iterates path(u, v) as O(log V) base-array segments.
-   * @tparam F Callable signature void(I32 l, I32 r), inclusive segment.
-   * @param u Path endpoint.
-   * @param v Path endpoint.
-   * @param op Callback for each segment in decomposition order.
-   * @param edge_mode If true, excludes LCA node from final segment.
-   */
+  /// @brief Iterates path(u, v) as O(log V) base-array segments.
   template <class F>
   void process_path(I32 u, I32 v, F&& op, bool edge_mode = false) const {
     while (head[u] != head[v]) {
@@ -97,21 +86,12 @@ struct HLD {
     if (l <= r) op(l, r);
   }
 
-  /**
-   * @brief Returns subtree interval in base-array coordinates.
-   * @param v Root of subtree.
-   * @return Inclusive range [l, r].
-   */
+  /// @brief Returns subtree interval in base-array coordinates.
   P<I32, I32> subtree_range(I32 v) const {
     return {pos[v], pos[v] + subtree_size[v] - 1};
   }
 
-  /**
-   * @brief Returns the k-th ancestor of vertex v (0-th ancestor = v itself).
-   * @return Ancestor vertex, or -1 if k > depth[v].
-   *
-   * Complexity: O(log V) via heavy-chain jumps.
-   */
+  /// @brief Returns the k-th ancestor of vertex v (0-th ancestor = v itself).
   I32 kth_ancestor(I32 v, I32 k) const {
     if (k > depth[v]) return -1;
     I32 target = depth[v] - k;

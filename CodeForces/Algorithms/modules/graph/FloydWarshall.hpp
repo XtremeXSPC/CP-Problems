@@ -5,12 +5,9 @@
 
 /**
  * @brief Floyd-Warshall all-pairs shortest paths.
- * @tparam Weight Edge weight type.
- * @param n Number of vertices.
- * @param edges Directed weighted edges.
- * @return n x n distance matrix.
  *
- * Complexity: O(V^3).
+ * @details Handles negative edge weights but no negative cycles. Returns distance matrix.
+ * @Complexity: O(V^3).
  */
 template <typename Weight = I64>
 Vec2<Weight> floyd_warshall(I32 n, const Vec<std::tuple<I32, I32, Weight>>& edges) {

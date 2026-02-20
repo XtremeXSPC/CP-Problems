@@ -3,9 +3,7 @@
 
 #include "_Common.hpp"
 
-/**
- * @brief Disjoint Set Union (Union-Find) with union by rank + path compression.
- */
+/// @brief Disjoint Set Union (Union-Find) with union by rank + path compression.
 struct DSU {
   Vec<I32> parent, rank, size;
   I32 components;
@@ -14,18 +12,13 @@ struct DSU {
     std::iota(all(parent), 0);
   }
 
-  /**
-   * @brief Finds representative of the set containing x.
-   */
+  /// @brief Finds representative of the set containing x.
   I32 find(I32 x) {
     if (parent[x] != x) parent[x] = find(parent[x]);
     return parent[x];
   }
 
-  /**
-   * @brief Unites sets containing x and y.
-   * @return True if merge happened; false if already in same set.
-   */
+  /// @brief Unites sets containing x and y. Returns true if they were separate.
   bool unite(I32 x, I32 y) {
     x = find(x);
     y = find(y);
@@ -42,17 +35,13 @@ struct DSU {
     return true;
   }
 
-  /**
-   * @brief Checks whether x and y are in the same connected component.
-   */
+  /// @brief Checks whether x and y are in the same connected component.
   bool connected(I32 x, I32 y) { return find(x) == find(y); }
-  /**
-   * @brief Returns size of component containing x.
-   */
+
+  /// @brief Returns size of component containing x.
   I32 component_size(I32 x) { return size[find(x)]; }
-  /**
-   * @brief Returns current number of components.
-   */
+
+  /// @brief Returns current number of components.
   I32 num_components() const { return components; }
 };
 

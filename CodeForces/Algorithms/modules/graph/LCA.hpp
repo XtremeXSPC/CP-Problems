@@ -4,19 +4,13 @@
 #include "_Common.hpp"
 #include "Graph.hpp"
 
-/**
- * @brief Lowest Common Ancestor via binary lifting.
- */
+/// @brief Lowest Common Ancestor via binary lifting.
 struct LCA {
   I32 n, log_n;
   VVI parent;
   VI depth;
 
-  /**
-   * @brief Builds lifting table from a rooted tree.
-   * @param g Input tree.
-   * @param root Chosen root.
-   */
+  /// @brief Builds lifting table from a rooted tree.
   LCA(const Graph<>& g, I32 root = 0) : n(g.n) {
     log_n = 0;
     while ((1 << log_n) < n) log_n++;
@@ -49,9 +43,7 @@ struct LCA {
     }
   }
 
-  /**
-   * @brief Returns LCA of u and v.
-   */
+  /// @brief Returns LCA of u and v.
   I32 query(I32 u, I32 v) {
     if (depth[u] < depth[v]) std::swap(u, v);
 
@@ -74,9 +66,7 @@ struct LCA {
     return parent[0][u];
   }
 
-  /**
-   * @brief Tree distance in edges between u and v.
-   */
+  /// @brief Tree distance in edges between u and v.
   I32 distance(I32 u, I32 v) {
     return depth[u] + depth[v] - 2 * depth[query(u, v)];
   }

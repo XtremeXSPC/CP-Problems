@@ -6,9 +6,8 @@
 
 /**
  * @brief Euler Tour decomposition of a rooted tree.
- * @tparam Weight Edge weight type.
  *
- * Iterative DFS to avoid stack overflow on large trees (n up to 10^6).
+ * @details Iterative DFS to avoid stack overflow on large trees (n up to 10^6).
  * Provides discovery/finish times, DFS order, depths, and parent array.
  */
 template <typename Weight = I64>
@@ -16,11 +15,7 @@ struct EulerTour {
   I32 n, timer;
   VI tin, tout, order, depth, parent;
 
-  /**
-   * @brief Builds Euler Tour from the given tree rooted at root.
-   * @param g Input tree.
-   * @param root Root vertex (default 0).
-   */
+  /// @brief Builds Euler Tour from the given tree rooted at root.
   EulerTour(const Graph<Weight>& g, I32 root = 0)
       : n(g.n), timer(0), tin(n, -1), tout(n, -1), depth(n, 0), parent(n, -1) {
     order.reserve(n);
@@ -52,16 +47,12 @@ struct EulerTour {
     }
   }
 
-  /**
-   * @brief Checks if u is an ancestor of v (inclusive).
-   */
+  /// @brief Checks if u is an ancestor of v (inclusive).
   bool is_ancestor(I32 u, I32 v) const {
     return tin[u] <= tin[v] && tout[v] <= tout[u];
   }
 
-  /**
-   * @brief Returns half-open subtree range [tin[v], tout[v]) in DFS order.
-   */
+  /// @brief Returns half-open subtree range [tin[v], tout[v]) in DFS order.
   PII subtree_range(I32 v) const {
     return {tin[v], tout[v]};
   }

@@ -5,16 +5,13 @@
 
 /**
  * @brief Adjacency-list graph with common traversal and connectivity routines.
- * @tparam Weight Edge weight type.
  *
- * Supports directed or undirected graphs. In undirected mode each edge is
+ * @details Supports directed or undirected graphs. In undirected mode each edge is
  * stored in both directions in @c adj and in @c edges for consistency.
  */
 template <typename Weight = I64>
 struct Graph {
-  /**
-   * @brief Edge record stored in adjacency lists and in the global edge list.
-   */
+  /// @brief Edge record stored in adjacency lists and in the global edge list.
   struct Edge {
     I32 from;
     I32 to;
@@ -32,14 +29,7 @@ struct Graph {
 
   Graph(I32 n, bool directed = false) : n(n), m(0), adj(n), directed(directed) {}
 
-  /**
-   * @brief Adds an edge to the graph.
-   * @param from Source vertex.
-   * @param to Destination vertex.
-   * @param weight Edge weight (default 1).
-   *
-   * Complexity: O(1).
-   */
+  /// @brief Adds an edge from 'from' to 'to' with given weight (default 1).
   void add_edge(I32 from, I32 to, Weight weight = 1) {
     adj[from].eb(from, to, weight, m);
     edges.eb(from, to, weight, m);
@@ -50,13 +40,7 @@ struct Graph {
     m++;
   }
 
-  /**
-   * @brief Unweighted shortest-path distances from a source via BFS.
-   * @param source Source vertex.
-   * @return Distance array where unreachable nodes are -1.
-   *
-   * Complexity: O(V + E).
-   */
+  /// @brief Unweighted shortest-path distances from a source via BFS.
   Vec<I32> bfs(I32 source) const {
     Vec<I32> dist(n, -1);
     Queue<I32> q;
@@ -76,13 +60,7 @@ struct Graph {
     return dist;
   }
 
-  /**
-   * @brief Dijkstra shortest paths for non-negative edge weights.
-   * @param source Source vertex.
-   * @return Distance array with @c infinity<Weight> for unreachable nodes.
-   *
-   * Complexity: O((V + E) log V).
-   */
+  /// @brief Dijkstra shortest paths for non-negative edge weights.
   Vec<Weight> dijkstra(I32 source) const {
     Vec<Weight> dist(n, infinity<Weight>);
     MinPriorityQueue<P<Weight, I32>> pq;
@@ -108,13 +86,7 @@ struct Graph {
     return dist;
   }
 
-  /**
-   * @brief Bellman-Ford shortest paths with negative-cycle detection.
-   * @param source Source vertex.
-   * @return Pair {has_negative_cycle, distances}.
-   *
-   * Complexity: O(VE).
-   */
+  /// @brief Bellman-Ford shortest paths with negative-cycle detection.
   P<bool, Vec<Weight>> bellman_ford(I32 source) const {
     Vec<Weight> dist(n, infinity<Weight>);
     dist[source] = 0;
@@ -147,13 +119,7 @@ struct Graph {
     return {false, dist};
   }
 
-  /**
-   * @brief Topological ordering via DFS postorder.
-   * @return A topological order for DAG inputs.
-   *
-   * Complexity: O(V + E).
-   * @note For non-DAG graphs, returned order is not guaranteed to be valid.
-   */
+  /// @brief Topological sort of a DAG. Returns vertices in topologically sorted order.
   Vec<I32> topological_sort() const {
     Vec<I32> result;
     Vec<bool> visited(n, false);
@@ -174,12 +140,7 @@ struct Graph {
     return result;
   }
 
-  /**
-   * @brief Strongly connected components via Kosaraju algorithm.
-   * @return Component index for each vertex.
-   *
-   * Complexity: O(V + E).
-   */
+  /// @brief Strongly connected components via Kosaraju algorithm.
   Vec<I32> find_scc() const {
     Vec<I32> order;
     Vec<bool> visited(n, false);
@@ -226,12 +187,7 @@ struct Graph {
     return component;
   }
 
-  /**
-   * @brief Finds all bridges (cut edges) in an undirected graph.
-   * @return List of bridge edges as sorted endpoint pairs.
-   *
-   * Complexity: O(V + E).
-   */
+  ///@brief Finds all bridges (cut edges) in an undirected graph.
   Vec<PII> find_bridges() const {
     Vec<PII> bridges;
     Vec<I32> disc(n, -1), low(n, -1);
@@ -262,12 +218,7 @@ struct Graph {
     return bridges;
   }
 
-  /**
-   * @brief Finds articulation points (cut vertices) in an undirected graph.
-   * @return List of articulation vertex indices.
-   *
-   * Complexity: O(V + E).
-   */
+  /// @brief Finds articulation points (cut vertices) in an undirected graph.
   Vec<I32> find_articulation_points() const {
     Vec<I32> disc(n, -1), low(n, -1);
     Vec<bool> is_articulation(n, false);
