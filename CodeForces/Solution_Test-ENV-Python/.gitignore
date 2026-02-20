@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+
+output_cases/*.out
+!output_cases/.gitkeep
+
+submissions/*.py
+!submissions/.gitkeep
+
