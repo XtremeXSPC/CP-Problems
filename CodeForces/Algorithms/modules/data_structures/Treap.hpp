@@ -3,13 +3,9 @@
 
 #include "_Common.hpp"
 
-/**
- * @brief Randomized treap supporting duplicates and order statistics.
- */
+/// @brief Randomized treap supporting duplicates and order statistics.
 struct Treap {
-  /**
-   * @brief Treap node storing key, multiplicity and subtree aggregates.
-   */
+  /// @brief Treap node storing key, multiplicity and subtree aggregates.
   struct Node {
     I64 key, priority;
     I32 left, right, size, cnt;
@@ -23,26 +19,20 @@ struct Treap {
   Vec<Node> nodes;
   I32 root;
 
-  /**
-   * @brief Constructs empty treap.
-   */
+  /// @brief Constructs empty treap.
   Treap() : root(-1) { nodes.reserve(200000); }
 
   I32 get_size(I32 t) { return t == -1 ? 0 : nodes[t].size; }
   I64 get_sum(I32 t) { return t == -1 ? 0 : nodes[t].sum; }
 
-  /**
-   * @brief Recomputes subtree aggregates for node @p t.
-   */
+  /// @brief Recomputes subtree aggregates for node @p t.
   void update(I32 t) {
     if (t == -1) return;
     nodes[t].size = nodes[t].cnt + get_size(nodes[t].left) + get_size(nodes[t].right);
     nodes[t].sum = nodes[t].key * nodes[t].cnt + get_sum(nodes[t].left) + get_sum(nodes[t].right);
   }
 
-  /**
-   * @brief Splits tree into keys < key and keys >= key.
-   */
+  /// @brief Splits tree into keys < key and keys >= key.
   void split_lt(I32 t, I64 key, I32& l, I32& r) {
     if (t == -1) {
       l = r = -1;
@@ -58,9 +48,7 @@ struct Treap {
     update(t);
   }
 
-  /**
-   * @brief Splits tree into keys <= key and keys > key.
-   */
+  /// @brief Splits tree into keys <= key and keys > key.
   void split_le(I32 t, I64 key, I32& l, I32& r) {
     if (t == -1) {
       l = r = -1;
@@ -76,9 +64,7 @@ struct Treap {
     update(t);
   }
 
-  /**
-   * @brief Merges two treaps preserving BST and heap properties.
-   */
+  /// @brief Merges two treaps preserving BST and heap properties.
   void merge(I32& t, I32 l, I32 r) {
     if (l == -1 || r == -1) {
       t = l == -1 ? r : l;
@@ -94,9 +80,7 @@ struct Treap {
     update(t);
   }
 
-  /**
-   * @brief Inserts one occurrence of @p key.
-   */
+  /// @brief Inserts one occurrence of @p key.
   void insert(I64 key) {
     I32 l, m, r;
     split_lt(root, key, l, m);
@@ -112,9 +96,7 @@ struct Treap {
     merge(root, root, r);
   }
 
-  /**
-   * @brief Removes one occurrence of @p key if present.
-   */
+  /// @brief Removes one occurrence of @p key if present.
   void erase(I64 key) {
     I32 l, m, r;
     split_lt(root, key, l, m);
@@ -133,11 +115,8 @@ struct Treap {
     merge(root, root, r);
   }
 
-  /**
-   * @brief Returns k-th smallest key (0-indexed).
-   * @return Key value or -1 if k is out of bounds.
-   */
-  I64 kth_element(I32 k) {  // 0-indexed
+  /// @brief Returns k-th smallest key (0-indexed).
+  I64 kth_element(I32 k) {
     I32 t = root;
     while (t != -1) {
       I32 left_size = get_size(nodes[t].left);
