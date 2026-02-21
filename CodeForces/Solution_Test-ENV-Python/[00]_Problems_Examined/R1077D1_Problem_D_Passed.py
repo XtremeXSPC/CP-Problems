@@ -3,6 +3,7 @@
 import sys
 from collections import Counter
 
+
 def solve():
     # Fast I/O.
     input_data = sys.stdin.read().split()
@@ -17,9 +18,9 @@ def solve():
 
     for _ in range(t):
         n = int(input_data[idx])
-        x = int(input_data[idx+1])
-        y = int(input_data[idx+2])
-        s = input_data[idx+3]
+        x = int(input_data[idx + 1])
+        y = int(input_data[idx + 2])
+        s = input_data[idx + 3]
         idx += 4
 
         W0 = 0
@@ -31,7 +32,7 @@ def solve():
 
         # Parse the string into independent blocks.
         for ch in s:
-            if ch == '?':
+            if ch == "?":
                 if first_q:
                     W0 = current_sum
                     first_q = False
@@ -40,7 +41,7 @@ def solve():
                 current_sum = 0
                 A = 1
 
-            if ch == '1':
+            if ch == "1":
                 A = -A
             current_sum += A
 
@@ -66,7 +67,7 @@ def solve():
         # Ultra-fast bitset shift for subset sums.
         reachable = 1
         for w in grouped_V:
-            reachable |= (reachable << w)
+            reachable |= reachable << w
 
         # Extract all reachable subset sums.
         bin_str = bin(reachable)[2:][::-1]
@@ -78,7 +79,7 @@ def solve():
 
         # Evaluate the closed-form formula for each reachable S_n.
         for i, bit in enumerate(bin_str):
-            if bit == '1':
+            if bit == "1":
                 Sn = base_S + 2 * i
                 val = (x * Sn * Sn + (x - y) * Sn + y * n) // 2
                 unique_f.add(val)
@@ -87,7 +88,9 @@ def solve():
         ans = sum(unique_f) % MOD
         out.append(str(ans))
 
-    sys.stdout.write('\n'.join(out) + '\n')
+    sys.stdout.write("\n".join(out) + "\n")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
+    solve()
     solve()
