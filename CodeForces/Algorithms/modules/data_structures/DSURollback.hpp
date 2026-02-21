@@ -29,16 +29,16 @@ public:
 
   void init(I32 n) {
     n = std::max<I32>(n, 0);
-    parent.resize(static_cast<Size>(n));
+    parent.resize(as<Size>(n));
     std::iota(all(parent), 0);
-    size.assign(static_cast<Size>(n), 1);
+    size.assign(as<Size>(n), 1);
     history.clear();
     components = n;
   }
 
   I32 find(I32 v) const {
-    while (parent[static_cast<Size>(v)] != v) {
-      v = parent[static_cast<Size>(v)];
+    while (parent[as<Size>(v)] != v) {
+      v = parent[as<Size>(v)];
     }
     return v;
   }
@@ -51,13 +51,13 @@ public:
       return false;
     }
 
-    if (size[static_cast<Size>(a)] < size[static_cast<Size>(b)]) {
+    if (size[as<Size>(a)] < size[as<Size>(b)]) {
       std::swap(a, b);
     }
 
-    history.push_back(Change{a, b, size[static_cast<Size>(a)]});
-    parent[static_cast<Size>(b)] = a;
-    size[static_cast<Size>(a)] += size[static_cast<Size>(b)];
+    history.push_back(Change{a, b, size[as<Size>(a)]});
+    parent[as<Size>(b)] = a;
+    size[as<Size>(a)] += size[as<Size>(b)];
     --components;
     return true;
   }
@@ -72,8 +72,8 @@ public:
       history.pop_back();
       if (ch.a == -1) continue;  // no-op merge
 
-      parent[static_cast<Size>(ch.b)] = ch.b;
-      size[static_cast<Size>(ch.a)] = ch.size_a;
+      parent[as<Size>(ch.b)] = ch.b;
+      size[as<Size>(ch.a)] = ch.size_a;
       ++components;
     }
   }
@@ -86,7 +86,7 @@ public:
 
   bool connected(I32 a, I32 b) const { return find(a) == find(b); }
 
-  I32 component_size(I32 v) const { return size[static_cast<Size>(find(v))]; }
+  I32 component_size(I32 v) const { return size[as<Size>(find(v))]; }
 
   I32 num_components() const { return components; }
 };

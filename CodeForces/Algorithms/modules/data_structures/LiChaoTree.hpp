@@ -15,7 +15,7 @@ struct LiChaoTree {
     I64 m = 0;
     I64 b = infinity<I64>;
     I64 eval(I64 x) const {
-      return static_cast<I64>(static_cast<I128>(m) * x + b);
+      return as<I64>(as<I128>(m) * x + b);
     }
   };
 
@@ -61,40 +61,39 @@ struct LiChaoTree {
 private:
   I32 new_node() {
     nodes.push_back(Node{});
-    return static_cast<I32>(nodes.size()) - 1;
+    return as<I32>(nodes.size()) - 1;
   }
 
   void add_line_internal(I32 v, I64 l, I64 r, Line nw) {
     I64 mid = l + (r - l) / 2;
-    bool left_better = nw.eval(l) < nodes[static_cast<Size>(v)].ln.eval(l);
-    bool mid_better = nw.eval(mid) < nodes[static_cast<Size>(v)].ln.eval(mid);
+    bool left_better = nw.eval(l) < nodes[as<Size>(v)].ln.eval(l);
+    bool mid_better = nw.eval(mid) < nodes[as<Size>(v)].ln.eval(mid);
 
-    if (mid_better) std::swap(nodes[static_cast<Size>(v)].ln, nw);
+    if (mid_better) std::swap(nodes[as<Size>(v)].ln, nw);
     if (l == r) return;
 
     if (left_better != mid_better) {
-      if (nodes[static_cast<Size>(v)].left == -1) {
-        nodes[static_cast<Size>(v)].left = new_node();
+      if (nodes[as<Size>(v)].left == -1) {
+        nodes[as<Size>(v)].left = new_node();
       }
-      add_line_internal(nodes[static_cast<Size>(v)].left, l, mid, nw);
+      add_line_internal(nodes[as<Size>(v)].left, l, mid, nw);
     } else {
-      if (nodes[static_cast<Size>(v)].right == -1) {
-        nodes[static_cast<Size>(v)].right = new_node();
+      if (nodes[as<Size>(v)].right == -1) {
+        nodes[as<Size>(v)].right = new_node();
       }
-      add_line_internal(nodes[static_cast<Size>(v)].right, mid + 1, r, nw);
+      add_line_internal(nodes[as<Size>(v)].right, mid + 1, r, nw);
     }
   }
 
   I64 query_internal(I32 v, I64 l, I64 r, I64 x) const {
-    I64 res = nodes[static_cast<Size>(v)].ln.eval(x);
+    I64 res = nodes[as<Size>(v)].ln.eval(x);
     if (l == r) return res;
     I64 mid = l + (r - l) / 2;
-    if (x <= mid && nodes[static_cast<Size>(v)].left != -1) {
-      return std::min(res, query_internal(nodes[static_cast<Size>(v)].left, l, mid, x));
+    if (x <= mid && nodes[as<Size>(v)].left != -1) {
+      return std::min(res, query_internal(nodes[as<Size>(v)].left, l, mid, x));
     }
-    if (x > mid && nodes[static_cast<Size>(v)].right != -1) {
-      return std::min(
-          res, query_internal(nodes[static_cast<Size>(v)].right, mid + 1, r, x));
+    if (x > mid && nodes[as<Size>(v)].right != -1) {
+      return std::min(res, query_internal(nodes[as<Size>(v)].right, mid + 1, r, x));
     }
     return res;
   }

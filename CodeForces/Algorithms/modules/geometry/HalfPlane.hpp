@@ -49,7 +49,7 @@ Polygon<T> half_plane_intersection(Vec<HalfPlane<T>> planes) {
     }
   };
 
-  const T BOUND = static_cast<T>(1e9);
+  const T BOUND = as<T>(1e9);
   Vec<Point2D<T>> polygon = {
     {-BOUND, -BOUND},
     { BOUND, -BOUND},

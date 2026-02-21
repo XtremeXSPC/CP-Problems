@@ -12,7 +12,7 @@
 struct Mo {
   I32 block_sz;
 
-  Mo(I32 n) : block_sz(std::max(1, static_cast<I32>(std::sqrt(n)))) {}
+  Mo(I32 n) : block_sz(std::max(1, as<I32>(std::sqrt(n)))) {}
 
   /// @brief Processes range queries offline.
   template <typename Add, typename Remove, typename Answer>

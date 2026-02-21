@@ -13,11 +13,11 @@
 template <typename T>
 bool point_in_convex_polygon(
     const Vec<Point2D<T>>& poly, const Point2D<T>& p, bool strict = false) {
-  I32 n = static_cast<I32>(poly.size());
+  I32 n = as<I32>(poly.size());
   if (n < 3) return false;
 
   auto orient = [](const Point2D<T>& a, const Point2D<T>& b, const Point2D<T>& c) -> F80 {
-    return static_cast<F80>(orientation(a, b, c));
+    return as<F80>(orientation(a, b, c));
   };
 
   F80 o1 = orient(poly[0], poly[1], p);
