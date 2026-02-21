@@ -16,6 +16,9 @@ constexpr F80 DEPS = 1e-12L;
 template <class T>
 constexpr T infinity = std::numeric_limits<T>::max() / 4;
 
+template <class T>
+constexpr T neg_infinity = std::numeric_limits<T>::lowest() / 4;
+
 template <>
 inline constexpr I32 infinity<I32> = 1'010'000'000;
 template <>
@@ -29,15 +32,33 @@ inline constexpr F64 infinity<F64> = 1e18;
 template <>
 inline constexpr F80 infinity<F80> = 1e18L;
 
+template <>
+inline constexpr I32 neg_infinity<I32> = -infinity<I32>;
+template <>
+inline constexpr I64 neg_infinity<I64> = -infinity<I64>;
+template <>
+inline constexpr U32 neg_infinity<U32> = 0U;
+template <>
+inline constexpr U64 neg_infinity<U64> = 0ULL;
+template <>
+inline constexpr F64 neg_infinity<F64> = -infinity<F64>;
+template <>
+inline constexpr F80 neg_infinity<F80> = -infinity<F80>;
+
 #if HAS_INT128
   static_assert(sizeof(I128) > sizeof(I64), "I128 must be true 128-bit when HAS_INT128 is enabled.");
   template <>
   inline constexpr I128 infinity<I128> = I128(infinity<I64>) * 2'000'000'000'000'000'000LL;
+  template <>
+  inline constexpr I128 neg_infinity<I128> = -infinity<I128>;
 #endif
 
 constexpr I32 INF32 = infinity<I32>;
 constexpr I64 INF64 = infinity<I64>;
 constexpr I64 LINF  = INF64; // Legacy alias
+constexpr I32 NINF32 = neg_infinity<I32>;
+constexpr I64 NINF64 = neg_infinity<I64>;
+constexpr I64 NLINF  = NINF64; // Legacy-style alias
 
 // Powers of ten lookup table (10^k for k = 0..18):
 constexpr I64 POW10[] = {
@@ -49,6 +70,7 @@ constexpr I64 POW10[] = {
 };
 
 // Modular arithmetic constants:
-constexpr I64 MOD  = 1000000007;
-constexpr I64 MOD2 = 998244353;
-constexpr I64 MOD3 = 1000000009;
+constexpr I64 MOD  = 1'000'000'007LL;
+constexpr I64 MOD2 = 998'244'353LL;
+constexpr I64 MOD3 = 1'000'000'009LL;
+constexpr I64 INV2 = (MOD + 1) / 2;

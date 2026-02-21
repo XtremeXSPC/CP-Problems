@@ -54,6 +54,7 @@
       "description": "Advanced data structures",
       "features": [
         "segment_tree",
+        "segment_tree_hull",
         "fenwick_tree",
         "sparse_table",
         "heap",
