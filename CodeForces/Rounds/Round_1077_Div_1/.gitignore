@@ -3,6 +3,7 @@ bin/
 lib/
 algorithms/
 not_passed/
+others/
 .idea/
 .cache/*
 .ide-configs/
