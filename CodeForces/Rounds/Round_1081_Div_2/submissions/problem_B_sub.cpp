@@ -1,11 +1,11 @@
 //===----------------------------------------------------------------------===//
 /**
- * @file: problem_A_sub.cpp
- * @generated: 2026-02-21 15:38:58
- * @source: problem_A.cpp
+ * @file: problem_B_sub.cpp
+ * @generated: 2026-02-21 15:43:35
+ * @source: problem_B.cpp
  * @author: Costantino Lombardi
  *
- * @brief: Codeforces Round 1081 (Div. 2) - Problem A
+ * @brief: Codeforces Round 1081 (Div. 2) - Problem B
  */
 //===----------------------------------------------------------------------===//
 /* Included library and Compiler Optimizations */
@@ -391,123 +391,6 @@ template <typename To>
 }
 
 //===----------------------------------------------------------------------===//
-/* Mathematical Utilities */
-
-// Integer division and modulus with floor/ceil semantics:
-template <typename T>
-[[gnu::always_inline]] constexpr T div_floor(T a, T b) {
-  return a / b - (a % b != 0 && (a ^ b) < 0);
-}
-
-template <typename T>
-[[gnu::always_inline]] constexpr T div_ceil(T a, T b) {
-  if constexpr (std::is_signed_v<T>) {
-    return a / b + ((a % b != 0) && ((a ^ b) >= 0));
-  } else {
-    return a / b + (a % b != 0);
-  }
-}
-
-template <typename T>
-[[gnu::always_inline]] constexpr T mod_floor(T a, T b) {
-  return a - b * div_floor(a, b);
-}
-
-template <typename T>
-[[gnu::always_inline]] constexpr std::pair<T, T> divmod(T a, T b) {
-  T q = div_floor(a, b);
-  return {q, a - q * b};
-}
-
-// Exponentiation without modulus:
-template <typename T>
-[[gnu::always_inline]] constexpr T power(T base, T exp) {
-  T result = 1;
-  while (exp > 0) {
-    if (exp & 1) result *= base;
-    base *= base;
-    exp >>= 1;
-  }
-  return result;
-}
-
-// Modular exponentiation:
-template <typename T>
-[[gnu::always_inline]] constexpr T mod_pow(T base, T exp, T mod) {
-  T result = 1 % mod;
-  base %= mod;
-  while (exp > 0) {
-    if (exp & 1) result = (__int128)result * base % mod;
-    base = (__int128)base * base % mod;
-    exp >>= 1;
-  }
-  return result;
-}
-
-#ifndef __UTILITY_FUNCTIONS__
-template <class T, class S, class Compare = std::less<>>
-[[gnu::always_inline]] inline bool chmax(T& a, const S& b, const Compare& cmp = {}) {
-  return cmp(a, b) ? (a = b, true) : false;
-}
-
-template <class T, class S, class Compare = std::less<>>
-[[gnu::always_inline]] inline bool chmin(T& a, const S& b, const Compare& cmp = {}) {
-  return cmp(b, a) ? (a = b, true) : false;
-}
-#endif
-
-// Seeded random number generator:
-inline std::mt19937_64 rng(
-    static_cast<U64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
-
-template <typename T>
-  requires std::integral<T>
-inline T rnd(T a, T b) {
-  return std::uniform_int_distribution<T>(a, b)(rng);
-}
-
-template <typename T>
-  requires std::floating_point<T>
-inline T rnd(T a, T b) {
-  return std::uniform_real_distribution<T>(a, b)(rng);
-}
-
-// High-resolution timer for time-limited heuristics:
-struct Stopwatch {
-  using Clock = std::chrono::high_resolution_clock;
-  Clock::time_point start;
-
-  Stopwatch() : start(Clock::now()) {}
-
-  [[gnu::always_inline]] F64 elapsed() const {
-    return std::chrono::duration<F64>(Clock::now() - start).count();
-  }
-
-  void reset() { start = Clock::now(); }
-
-  [[gnu::always_inline]] bool within(F64 limit) const {
-    return elapsed() < limit;
-  }
-};
-
-// Variadic min/max:
-template <typename T>
-constexpr const T& _min(const T& a, const T& b) { return (b < a) ? b : a; }
-
-template <typename T>
-constexpr const T& _max(const T& a, const T& b) { return (a < b) ? b : a; }
-
-template <typename T, typename... Args>
-constexpr const T& _min(const T& a, const T& b, const Args&... args) {
-  return _min(a, _min(b, args...));
-}
-
-template <typename T, typename... Args>
-constexpr const T& _max(const T& a, const T& b, const Args&... args) {
-  return _max(a, _max(b, args...));
-}
-
-//===----------------------------------------------------------------------===//
 /* Lightweight I/O Utilities */
 
 #if !defined(CP_FAST_IO_NAMESPACE_DEFINED)
@@ -674,22 +557,41 @@ using cp_io::writeln;
 //===----------------------------------------------------------------------===//
 /* Main Solver Function */
 
+using namespace std;
+
 void solve() {
   INT(n);
   STR(s);
 
-  I32 best = 0;
-  FOR(shift, n) {
-    I32 blocks = 1;
-    FOR(i, 1, n) {
-      const I32 prev = (shift + i - 1) % n;
-      const I32 cur = (shift + i) % n;
-      if (s[cur] != s[prev]) ++blocks;
-    }
-    chmax(best, blocks);
+  I32 ones_parity = 0;
+  for (char c : s) ones_parity ^= (c - '0');
+
+  if ((n & 1) == 1 && ones_parity == 1) {
+    OUT(-1);
+    return;
   }
 
-  OUT(best);
+  const I32 k = (n & 1) ? 0 : ones_parity;
+  Vec<I32> ops;
+  ops.reserve(n);
+
+  FOR(i, n) {
+    const I32 bit = s[i] - '0';
+    const I32 use = bit ^ k;
+    if (use == 1) ops.eb(i + 1);
+  }
+
+  OUT(sz(ops));
+  if (ops.empty()) {
+    cout << '\n';
+    return;
+  }
+
+  FOR(i, sz(ops)) {
+    if (i) cout << ' ';
+    cout << ops[i];
+  }
+  cout << '\n';
 }
 
 //===----------------------------------------------------------------------===//
