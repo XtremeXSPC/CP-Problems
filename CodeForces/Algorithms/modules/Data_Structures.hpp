@@ -7,6 +7,7 @@
  */
 
 #include "data_structures/SegmentTree.hpp"
+#include "data_structures/SegmentTreeMinAddSearch.hpp"
 #include "data_structures/LazySegTree.hpp"
 #include "data_structures/FenwickTree.hpp"
 #include "data_structures/FenwickTree2D.hpp"
