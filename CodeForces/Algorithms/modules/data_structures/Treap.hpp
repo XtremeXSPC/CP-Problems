@@ -12,7 +12,7 @@ struct Treap {
     I64 sum;
 
     Node(I64 k)
-        : key(k), priority((static_cast<I64>(rand()) << 32) ^ rand()),
+        : key(k), priority((as<I64>(rand()) << 32) ^ rand()),
           left(-1), right(-1), size(1), cnt(1), sum(k) {}
   };
 

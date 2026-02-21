@@ -39,36 +39,36 @@ bool segment_intersect(const Point2D<T>& a, const Point2D<T>& b,
                        Point2D<U>& intersection) {
   static_assert(std::is_floating_point_v<U>, "intersection output type must be floating-point");
   using Calc = std::common_type_t<T, U, F64>;
-  Calc d1 = static_cast<Calc>(orientation(c, d, a));
-  Calc d2 = static_cast<Calc>(orientation(c, d, b));
-  Calc d3 = static_cast<Calc>(orientation(a, b, c));
-  Calc d4 = static_cast<Calc>(orientation(a, b, d));
+  Calc d1 = as<Calc>(orientation(c, d, a));
+  Calc d2 = as<Calc>(orientation(c, d, b));
+  Calc d3 = as<Calc>(orientation(a, b, c));
+  Calc d4 = as<Calc>(orientation(a, b, d));
 
   if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &&
       ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))) {
     Calc t = d1 / (d1 - d2);
     intersection = Point2D<U>(
-      static_cast<U>(a.x + (b.x - a.x) * t),
-      static_cast<U>(a.y + (b.y - a.y) * t)
+      as<U>(a.x + (b.x - a.x) * t),
+      as<U>(a.y + (b.y - a.y) * t)
     );
     return true;
   }
 
   // Check for collinear cases.
   if (abs(d1) < EPS && on_segment(a, c, d)) {
-    intersection = Point2D<U>(static_cast<U>(a.x), static_cast<U>(a.y));
+    intersection = Point2D<U>(as<U>(a.x), as<U>(a.y));
     return true;
   }
   if (abs(d2) < EPS && on_segment(b, c, d)) {
-    intersection = Point2D<U>(static_cast<U>(b.x), static_cast<U>(b.y));
+    intersection = Point2D<U>(as<U>(b.x), as<U>(b.y));
     return true;
   }
   if (abs(d3) < EPS && on_segment(c, a, b)) {
-    intersection = Point2D<U>(static_cast<U>(c.x), static_cast<U>(c.y));
+    intersection = Point2D<U>(as<U>(c.x), as<U>(c.y));
     return true;
   }
   if (abs(d4) < EPS && on_segment(d, a, b)) {
-    intersection = Point2D<U>(static_cast<U>(d.x), static_cast<U>(d.y));
+    intersection = Point2D<U>(as<U>(d.x), as<U>(d.y));
     return true;
   }
 
