@@ -1,11 +1,11 @@
 //===----------------------------------------------------------------------===//
 /**
- * @file: problem_A_sub.cpp
- * @generated: 2026-02-21 15:38:58
- * @source: problem_A.cpp
+ * @file: problem_D_sub.cpp
+ * @generated: 2026-02-21 16:11:33
+ * @source: problem_D.cpp
  * @author: Costantino Lombardi
  *
- * @brief: Codeforces Round 1081 (Div. 2) - Problem A
+ * @brief: Codeforces Round 1081 (Div. 2) - Problem D
  */
 //===----------------------------------------------------------------------===//
 /* Included library and Compiler Optimizations */
@@ -672,24 +672,426 @@ using cp_io::writeln;
 #endif
 
 //===----------------------------------------------------------------------===//
-/* Main Solver Function */
+/* Mathematical Constants and Infinity Values */
 
-void solve() {
-  INT(n);
-  STR(s);
+// High-precision mathematical constants:
+constexpr F80 PI   = 3.1415926535897932384626433832795028841971693993751L;
+constexpr F80 E    = 2.7182818284590452353602874713526624977572470937000L;
+constexpr F80 PHI  = 1.6180339887498948482045868343656381177203091798058L;
+constexpr F80 LN2  = 0.6931471805599453094172321214581765680755001343602L;
+constexpr F80 EPS  = 1e-9L;
+constexpr F80 DEPS = 1e-12L;
 
-  I32 best = 0;
-  FOR(shift, n) {
-    I32 blocks = 1;
-    FOR(i, 1, n) {
-      const I32 prev = (shift + i - 1) % n;
-      const I32 cur = (shift + i) % n;
-      if (s[cur] != s[prev]) ++blocks;
+// Robust infinity system:
+template <class T>
+constexpr T infinity = std::numeric_limits<T>::max() / 4;
+template <class T>
+constexpr T neg_infinity = std::numeric_limits<T>::min() / 4;
+
+template <>
+inline constexpr I32 infinity<I32> = 1'010'000'000;
+template <>
+inline constexpr I64 infinity<I64> = 2'020'000'000'000'000'000LL;
+template <>
+inline constexpr U32 infinity<U32> = 2'020'000'000U;
+template <>
+inline constexpr U64 infinity<U64> = 4'040'000'000'000'000'000ULL;
+template <>
+inline constexpr I64 neg_infinity<I64> = -infinity<I64>;
+template <>
+inline constexpr F64 infinity<F64> = 1e18;
+template <>
+inline constexpr F80 infinity<F80> = 1e18L;
+
+#if HAS_INT128
+  static_assert(sizeof(I128) > sizeof(I64), "I128 must be true 128-bit when HAS_INT128 is enabled.");
+  template <>
+  inline constexpr I128 infinity<I128> = I128(infinity<I64>) * 2'000'000'000'000'000'000LL;
+#endif
+
+constexpr I32 INF32 = infinity<I32>;
+constexpr I64 INF64 = infinity<I64>;
+constexpr I64 LINF  = INF64; // Legacy alias
+
+// Powers of ten lookup table (10^k for k = 0..18):
+constexpr I64 POW10[] = {
+    1LL, 10LL, 100LL, 1000LL, 10000LL, 100000LL,
+    1000000LL, 10000000LL, 100000000LL, 1000000000LL,
+    10000000000LL, 100000000000LL, 1000000000000LL,
+    10000000000000LL, 100000000000000LL, 1000000000000000LL,
+    10000000000000000LL, 100000000000000000LL, 1000000000000000000LL,
+};
+
+// Modular arithmetic constants:
+constexpr I64 MOD  = 1000000007;
+constexpr I64 MOD2 = 998244353;
+constexpr I64 MOD3 = 1000000009;
+
+//===----------------------------------------------------------------------===//
+/* Data Structures & Algorithms for the Problem */
+
+struct SegmentTreeHull {
+  static constexpr I64 NEG_INF = -4'000'000'000'000'000'000LL;
+  static constexpr I64 NO_TAG = NEG_INF;
+
+  I32 n = 0;
+  Vec<I64> lazy;
+  Vec<I64> max_val;
+  Vec<I32> hull_start;
+  Vec<I32> hull_len;
+  Vec<I64> hull_m;
+  Vec<I64> hull_c;
+
+  SegmentTreeHull() = default;
+
+  void init(I32 n_lines, const Vec<Pair<I64, I64>>& lines) {
+    n = std::max<I32>(0, n_lines);
+    if (n == 0) {
+      lazy.clear();
+      max_val.clear();
+      hull_start.clear();
+      hull_len.clear();
+      hull_m.clear();
+      hull_c.clear();
+      return;
     }
-    chmax(best, blocks);
+
+    my_assert(as<I32>(lines.size()) >= n + 1);
+
+    const I32 st_size = 4 * n + 8;
+    lazy.assign(as<Size>(st_size), NO_TAG);
+    max_val.assign(as<Size>(st_size), NEG_INF);
+    hull_start.assign(as<Size>(st_size), 0);
+    hull_len.assign(as<Size>(st_size), 0);
+
+    hull_m.clear();
+    hull_c.clear();
+    hull_m.reserve(as<Size>(n) * 20);
+    hull_c.reserve(as<Size>(n) * 20);
+
+    build(1, 1, n, lines);
   }
 
-  OUT(best);
+  void range_assign(I32 l, I32 r, I64 x) {
+    if (n == 0) return;
+    l = std::max<I32>(l, 1);
+    r = std::min<I32>(r, n);
+    if (l > r) return;
+    update(1, 1, n, l, r, x);
+  }
+
+  [[nodiscard]] I64 range_max(I32 l, I32 r) {
+    if (n == 0) return NEG_INF;
+    l = std::max<I32>(l, 1);
+    r = std::min<I32>(r, n);
+    if (l > r) return NEG_INF;
+    return query(1, 1, n, l, r);
+  }
+
+  [[nodiscard]] I64 all_max() const {
+    if (n == 0) return NEG_INF;
+    return max_val[1];
+  }
+
+private:
+  void build(I32 u, I32 l, I32 r, const Vec<Pair<I64, I64>>& lines) {
+    lazy[as<Size>(u)] = NO_TAG;
+    max_val[as<Size>(u)] = NEG_INF;
+
+    if (l == r) {
+      hull_start[as<Size>(u)] = as<I32>(hull_m.size());
+      hull_len[as<Size>(u)] = 1;
+      hull_m.eb(lines[as<Size>(l)].first);
+      hull_c.eb(lines[as<Size>(l)].second);
+      return;
+    }
+
+    const I32 mid = (l + r) / 2;
+    build(2 * u, l, mid, lines);
+    build(2 * u + 1, mid + 1, r, lines);
+
+    const I32 start = as<I32>(hull_m.size());
+    I32 count = 0;
+    FOR(i, l, r + 1) {
+      const auto [m, c] = lines[as<Size>(i)];
+      while (count >= 2) {
+        const I64 m0 = hull_m[as<Size>(start + count - 2)];
+        const I64 c0 = hull_c[as<Size>(start + count - 2)];
+        const I64 m1 = hull_m[as<Size>(start + count - 1)];
+        const I64 c1 = hull_c[as<Size>(start + count - 1)];
+
+        const I128 lhs = as<I128>(c - c1) * (m0 - m1);
+        const I128 rhs = as<I128>(c1 - c0) * (m1 - m);
+        if (lhs >= rhs) {
+          --count;
+          hull_m.pop_back();
+          hull_c.pop_back();
+        } else {
+          break;
+        }
+      }
+      hull_m.eb(m);
+      hull_c.eb(c);
+      ++count;
+    }
+
+    hull_start[as<Size>(u)] = start;
+    hull_len[as<Size>(u)] = count;
+  }
+
+  [[nodiscard]] I64 eval_max(I32 u, I64 x) const {
+    const I32 start = hull_start[as<Size>(u)];
+    const I32 len = hull_len[as<Size>(u)];
+    if (len == 1) {
+      return as<I64>(as<I128>(hull_m[as<Size>(start)]) * x + hull_c[as<Size>(start)]);
+    }
+
+    I32 lo = 0;
+    I32 hi = len - 2;
+    I32 ans = len - 1;
+    while (lo <= hi) {
+      const I32 mid = (lo + hi) / 2;
+      const I32 idx = start + mid;
+
+      const I64 m1 = hull_m[as<Size>(idx)];
+      const I64 c1 = hull_c[as<Size>(idx)];
+      const I64 m2 = hull_m[as<Size>(idx + 1)];
+      const I64 c2 = hull_c[as<Size>(idx + 1)];
+
+      const I128 lhs = as<I128>(x) * (m1 - m2);
+      const I128 rhs = as<I128>(c2) - c1;
+      if (lhs >= rhs) {
+        ans = mid;
+        hi = mid - 1;
+      } else {
+        lo = mid + 1;
+      }
+    }
+
+    const I32 best = start + ans;
+    return as<I64>(as<I128>(hull_m[as<Size>(best)]) * x + hull_c[as<Size>(best)]);
+  }
+
+  void apply(I32 u, I64 x) {
+    lazy[as<Size>(u)] = x;
+    max_val[as<Size>(u)] = eval_max(u, x);
+  }
+
+  void push_down(I32 u) {
+    const I64 tag = lazy[as<Size>(u)];
+    if (tag == NO_TAG) return;
+    apply(2 * u, tag);
+    apply(2 * u + 1, tag);
+    lazy[as<Size>(u)] = NO_TAG;
+  }
+
+  void update(I32 u, I32 l, I32 r, I32 ql, I32 qr, I64 x) {
+    if (ql <= l && r <= qr) {
+      apply(u, x);
+      return;
+    }
+    push_down(u);
+    const I32 mid = (l + r) / 2;
+    if (ql <= mid) update(2 * u, l, mid, ql, qr, x);
+    if (qr > mid) update(2 * u + 1, mid + 1, r, ql, qr, x);
+    max_val[as<Size>(u)] = std::max(max_val[as<Size>(2 * u)], max_val[as<Size>(2 * u + 1)]);
+  }
+
+  I64 query(I32 u, I32 l, I32 r, I32 ql, I32 qr) {
+    if (ql <= l && r <= qr) return max_val[as<Size>(u)];
+    push_down(u);
+    const I32 mid = (l + r) / 2;
+    I64 ans = NEG_INF;
+    if (ql <= mid) ans = query(2 * u, l, mid, ql, qr);
+    if (qr > mid) ans = std::max(ans, query(2 * u + 1, mid + 1, r, ql, qr));
+    return ans;
+  }
+};
+
+//===----------------------------------------------------------------------===//
+/* Main Solver Function */
+
+using namespace std;
+
+void solve() {
+  constexpr I64 NEG_INF = SegmentTreeHull::NEG_INF;
+  INT(n);
+  Vec<I64> a(n + 1);
+  FOR(i, 1, n + 1) IN(a[i]);
+
+  Vec<Vec<I32>> adj(n + 1);
+  FOR(_, n - 1) {
+    INT(u, v);
+    adj[u].eb(v);
+    adj[v].eb(u);
+  }
+
+  Vec<I32> parent(n + 1, 0);
+  Vec<I32> depth(n + 1, 0);
+  Vec<I32> ptr(n + 1, 0);
+  Vec<I32> order;
+  order.reserve(n);
+
+  Vec<I32> st;
+  st.reserve(n);
+  st.eb(1);
+
+  while (!st.empty()) {
+    const I32 u = st.back();
+    if (ptr[u] == 0) order.eb(u);
+
+    if (ptr[u] < as<I32>(adj[u].size())) {
+      const I32 v = adj[u][ptr[u]++];
+      if (v == parent[u]) continue;
+      parent[v] = u;
+      depth[v] = depth[u] + 1;
+      st.eb(v);
+    } else {
+      st.pop_back();
+    }
+  }
+
+  Vec<I64> s(n + 1, 0);
+  Vec<I64> c(n + 1, 0);
+  Vec<I32> d1(n + 1, 0);
+  Vec<I32> d2(n + 1, 0);
+  Vec<I32> heavy(n + 1, 0);
+
+  FOR_R(i, 0, n) {
+    const I32 u = order[i];
+    s[u] = a[u];
+    d1[u] = depth[u];
+
+    I32 max_d = -1;
+    I32 h_child = 0;
+    for (I32 v : adj[u]) {
+      if (parent[v] != u) continue;
+      s[u] += s[v];
+      if (d1[v] > max_d) {
+        max_d = d1[v];
+        h_child = v;
+      }
+    }
+
+    if (h_child != 0) {
+      d1[u] = max_d;
+      heavy[u] = h_child;
+    }
+
+    I32 max_d2 = depth[u];
+    for (I32 v : adj[u]) {
+      if (parent[v] != u || v == h_child) continue;
+      chmax(max_d2, d1[v]);
+    }
+    d2[u] = max_d2;
+  }
+
+  FOR_R(i, 0, n) {
+    const I32 u = order[i];
+    I64 cur = 0;
+    for (I32 v : adj[u]) {
+      if (parent[v] != u) continue;
+      cur += c[v] + s[v];
+    }
+    c[u] = cur;
+  }
+
+  Vec<char> is_head(n + 1, true);
+  is_head[0] = false;
+  FOR(u, 1, n + 1) {
+    if (heavy[u] != 0) is_head[heavy[u]] = false;
+  }
+
+  Vec<Vec<I32>> paths;
+  paths.reserve(n);
+  FOR(u, 1, n + 1) {
+    if (!is_head[u]) continue;
+    Vec<I32> path;
+    I32 curr = u;
+    while (curr != 0) {
+      path.eb(curr);
+      curr = heavy[curr];
+    }
+    paths.eb(std::move(path));
+  }
+
+  Vec<I64> final_ans(n + 1, 0);
+  SegmentTreeHull seg;
+
+  for (const auto& path : paths) {
+    const I32 k = as<I32>(path.size()) - 1;
+    const I32 d_max = depth[path.back()];
+
+    Vec<I64> max_light(k + 1, NEG_INF);
+    FOR(i, k + 1) {
+      const I32 u = path[i];
+      const I32 nxt = (i < k ? path[i + 1] : 0);
+      for (I32 v : adj[u]) {
+        if (parent[v] != u || v == nxt) continue;
+
+        I64 best = NEG_INF;
+        Vec<I32> light_st;
+        light_st.eb(v);
+        while (!light_st.empty()) {
+          const I32 curr = light_st.back();
+          light_st.pop_back();
+
+          const I64 val = s[curr] * (as<I64>(d_max) + 1 - depth[curr]);
+          chmax(best, val);
+
+          for (I32 child : adj[curr]) {
+            if (parent[child] == curr) light_st.eb(child);
+          }
+        }
+        chmax(max_light[i], best);
+      }
+    }
+
+    Vec<I64> suf_max(k + 1, NEG_INF);
+    suf_max[k] = max_light[k];
+    FOR_R(i, 0, k) suf_max[i] = max(max_light[i], suf_max[i + 1]);
+
+    Vec<I64> ans_case2(k + 1, NEG_INF);
+    if (k > 0) {
+      Vec<Pair<I64, I64>> path_lines(k + 1, {0, 0});
+      FOR(i, k + 1) {
+        const I32 u = path[i];
+        path_lines[i] = {s[u], s[u] * (1 - depth[u])};
+      }
+
+      seg.init(k, path_lines);
+
+      Vec<tuple<I32, I32, I32>> mono_st;
+      mono_st.reserve(k);
+
+      FOR_R(i, 0, k) {
+        const I32 v_val = d2[path[i]];
+        I32 curr_l = i + 1;
+        I32 curr_r = i + 1;
+
+        while (!mono_st.empty() && get<0>(mono_st.back()) <= v_val) {
+          curr_r = get<2>(mono_st.back());
+          mono_st.pop_back();
+        }
+        mono_st.eb(v_val, curr_l, curr_r);
+
+        seg.range_assign(curr_l, curr_r, v_val);
+        ans_case2[i] = seg.range_max(i + 1, k);
+      }
+    }
+
+    FOR(i, k + 1) {
+      I64 max_inc = max<I64>(0, suf_max[i]);
+      if (k > 0 && i < k) chmax(max_inc, ans_case2[i]);
+      final_ans[path[i]] = c[path[i]] + max_inc;
+    }
+  }
+
+  FOR(i, 1, n + 1) {
+    if (i > 1) cout << ' ';
+    cout << final_ans[i];
+  }
+  cout << '\n';
 }
 
 //===----------------------------------------------------------------------===//
