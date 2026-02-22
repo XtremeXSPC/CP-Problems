@@ -8,11 +8,13 @@
 //===----------------------------------------------------------------------===//
 /* Main Solver Function */
 
+using namespace std;
+
 void solve() {
   INT(n, m);
   STR(s, t);
 
-  std::string all = s + "%" + t + "$";
+  String all = s + "%" + t + "$";
   SuffixArray sa(all);
   SparseTable<I32> lcp_st(sa.lcp);
 
@@ -20,7 +22,7 @@ void solve() {
     if (i == j) return as<I32>(all.size()) - i;
     I32 ri = sa.rank[i];
     I32 rj = sa.rank[j];
-    if (ri > rj) std::swap(ri, rj);
+    if (ri > rj) swap(ri, rj);
     return lcp_st.query(ri, rj - 1);
   };
 
@@ -80,8 +82,8 @@ void solve() {
       }
     }
     I32 res = 0;
-    res = std::max(res, compare_suffix(start, pos, ch, l - 1).second);
-    res = std::max(res, compare_suffix(start, pos, ch, l).second);
+    res = max(res, compare_suffix(start, pos, ch, l - 1).second);
+    res = max(res, compare_suffix(start, pos, ch, l).second);
     return res;
   };
 
@@ -91,8 +93,8 @@ void solve() {
 
   FOR(i, m) {
     I32 mx_len = 0;
-    FOR(ch, 'a', 'z' + 1) mx_len = std::max(mx_len, get_max_len(start, i, as<char>(ch)));
-    best = std::max(best, mx_len);
+    FOR(ch, 'a', 'z' + 1) mx_len = max(mx_len, get_max_len(start, i, as<char>(ch)));
+    best = max(best, mx_len);
 
     if (mx_len < i - start + 1) {
       ans++;
