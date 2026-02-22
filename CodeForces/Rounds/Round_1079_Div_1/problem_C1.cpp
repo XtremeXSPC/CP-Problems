@@ -6,6 +6,8 @@
 //===----------------------------------------------------------------------===//
 /* Main Solver Function */
 
+using namespace std;
+
 // Type aliases:
 using Edge  = Pair<I32, I32>;
 using Path  = Vec<I32>;
@@ -28,7 +30,7 @@ void solve() {
     return lex_compare(path.value(), seq);
   };
 
-  std::map<I32, MPath> cache;
+  Map<I32, MPath> cache;
   auto ask = [&](I32 k) -> const MPath& {
     if (cache.contains(k)) return cache[k];
 
@@ -36,8 +38,8 @@ void solve() {
     FLUSH();
 
     I32 len = 0;
-    if (!(std::cin >> len)) std::exit(0);
-    if (len == -1) std::exit(0);
+    if (!(cin >> len)) exit(0);
+    if (len == -1) exit(0);
     if (len == 0) {
       cache[k] = std::nullopt;
       return cache[k];
@@ -89,9 +91,9 @@ void solve() {
     I32 cur = start[u] + 1; // Skip singleton path [u].
     while (cur < end[u]) {
       const MPath& path_opt = ask(cur);
-      if (!path_opt.has_value()) std::exit(0);
+      if (!path_opt.has_value()) exit(0);
       const Path& path = path_opt.value();
-      if (path.size() < 2) std::exit(0);
+      if (path.size() < 2) exit(0);
 
       const I32 v = path[1];
       if (!seen[u][v]) {
@@ -118,7 +120,7 @@ auto main() -> int {
 #endif
 
   I32 T = 0;
-  if (!(std::cin >> T)) return 0;
+  if (!(cin >> T)) return 0;
   FOR(T) solve();
 
   return 0;

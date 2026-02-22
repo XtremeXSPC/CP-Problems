@@ -6,6 +6,8 @@
 //===----------------------------------------------------------------------===//
 /* Main Solver Function */
 
+using namespace std;
+
 // Type aliases:
 using Path = Vec<I32>;
 using Edge = Pair<I32, I32>;
@@ -14,7 +16,7 @@ void solve() {
   INT(n);
 
   constexpr I32 MAXK = 1 << 30;
-  std::unordered_map<I32, Path> cache; // k -> path (empty vec = nonexistent).
+  UnorderedMap<I32, Path> cache; // k -> path (empty vec = nonexistent).
 
   auto ask = [&](I32 k) -> const Path& {
     if (auto it = cache.find(k); it != cache.end()) return it->second;
@@ -22,7 +24,7 @@ void solve() {
     FLUSH();
 
     I32 len = 0;
-    if (!(std::cin >> len)) std::exit(0);
+    if (!(cin >> len)) exit(0);
     if (len == -1) {
       return cache[k]; // insert empty = nonexistent.
     }
@@ -34,7 +36,7 @@ void solve() {
 
   auto is_prefix = [](const Path& path, const Path& pref) -> bool {
     if (path.empty() || path.size() < pref.size()) return false;
-    FOR(i, static_cast<I32>(pref.size())) {
+    FOR(i, as<I32>(pref.size())) {
       if (path[i] != pref[i]) return false;
     }
     return true;
@@ -74,7 +76,7 @@ void solve() {
       if (nxt <= MAXK) {
         const Path& path = ask(nxt);
         if (is_prefix(path, fr.pref)) {
-          I32 to = path[static_cast<I32>(fr.pref.size())];
+          I32 to = path[as<I32>(fr.pref.size())];
           if (!has_edge[fr.v][to]) {
             has_edge[fr.v][to] = true;
             edges.eb(fr.v, to);
@@ -108,7 +110,7 @@ void solve() {
     pos += cnt[u];
   }
 
-  OUT("!", static_cast<I32>(edges.size()));
+  OUT("!", as<I32>(edges.size()));
   for (const auto& [a, b] : edges) OUT(a, b);
   FLUSH();
 }
@@ -122,7 +124,7 @@ auto main() -> int {
 #endif
 
   I32 T = 0;
-  if (!(std::cin >> T)) return 0;
+  if (!(cin >> T)) return 0;
   FOR(T) solve();
 
   return 0;

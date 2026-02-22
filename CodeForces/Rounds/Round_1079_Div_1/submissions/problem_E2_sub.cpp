@@ -183,7 +183,7 @@ using Array = std::array<T, N>;
 template <Size N>
 using BitSet = std::bitset<N>;
 
-// Associative containers (kept compatible with PCH aliases).
+// Associative containers.
 template <class T>
 using Set = std::set<T>;
 template <class T>
@@ -211,7 +211,7 @@ using HashedSetBy = std::unordered_set<T, Hash, Eq>;
 template <class K, class V, class Hash, class Eq = std::equal_to<K>>
 using HashedMapBy = std::unordered_map<K, V, Hash, Eq>;
 
-// Container adaptors (kept compatible with PCH aliases).
+// Container adaptors.
 template <class T>
 using Stack = std::stack<T, std::deque<T>>;
 template <class T>
@@ -555,6 +555,80 @@ using cp_io::writeln;
 #endif
 
 //===----------------------------------------------------------------------===//
+/* Mathematical Constants and Infinity Values */
+
+// High-precision mathematical constants:
+constexpr F80 PI   = 3.1415926535897932384626433832795028841971693993751L;
+constexpr F80 E    = 2.7182818284590452353602874713526624977572470937000L;
+constexpr F80 PHI  = 1.6180339887498948482045868343656381177203091798058L;
+constexpr F80 LN2  = 0.6931471805599453094172321214581765680755001343602L;
+constexpr F80 EPS  = 1e-9L;
+constexpr F80 DEPS = 1e-12L;
+
+// Robust infinity system:
+template <class T>
+constexpr T infinity = std::numeric_limits<T>::max() / 4;
+
+template <class T>
+constexpr T neg_infinity = std::numeric_limits<T>::lowest() / 4;
+
+template <>
+inline constexpr I32 infinity<I32> = 1'010'000'000;
+template <>
+inline constexpr I64 infinity<I64> = 2'020'000'000'000'000'000LL;
+template <>
+inline constexpr U32 infinity<U32> = 2'020'000'000U;
+template <>
+inline constexpr U64 infinity<U64> = 4'040'000'000'000'000'000ULL;
+template <>
+inline constexpr F64 infinity<F64> = 1e18;
+template <>
+inline constexpr F80 infinity<F80> = 1e18L;
+
+template <>
+inline constexpr I32 neg_infinity<I32> = -infinity<I32>;
+template <>
+inline constexpr I64 neg_infinity<I64> = -infinity<I64>;
+template <>
+inline constexpr U32 neg_infinity<U32> = 0U;
+template <>
+inline constexpr U64 neg_infinity<U64> = 0ULL;
+template <>
+inline constexpr F64 neg_infinity<F64> = -infinity<F64>;
+template <>
+inline constexpr F80 neg_infinity<F80> = -infinity<F80>;
+
+#if HAS_INT128
+  static_assert(sizeof(I128) > sizeof(I64), "I128 must be true 128-bit when HAS_INT128 is enabled.");
+  template <>
+  inline constexpr I128 infinity<I128> = I128(infinity<I64>) * 2'000'000'000'000'000'000LL;
+  template <>
+  inline constexpr I128 neg_infinity<I128> = -infinity<I128>;
+#endif
+
+constexpr I32 INF32 = infinity<I32>;
+constexpr I64 INF64 = infinity<I64>;
+constexpr I64 LINF  = INF64; // Legacy alias
+constexpr I32 NINF32 = neg_infinity<I32>;
+constexpr I64 NINF64 = neg_infinity<I64>;
+constexpr I64 NLINF  = NINF64; // Legacy-style alias
+
+// Powers of ten lookup table (10^k for k = 0..18):
+constexpr I64 POW10[] = {
+    1LL, 10LL, 100LL, 1000LL, 10000LL, 100000LL,
+    1000000LL, 10000000LL, 100000000LL, 1000000000LL,
+    10000000000LL, 100000000000LL, 1000000000000LL,
+    10000000000000LL, 100000000000000LL, 1000000000000000LL,
+    10000000000000000LL, 100000000000000000LL, 1000000000000000000LL,
+};
+
+// Modular arithmetic constants:
+constexpr I64 MOD  = 1'000'000'007LL;
+constexpr I64 MOD2 = 998'244'353LL;
+constexpr I64 MOD3 = 1'000'000'009LL;
+constexpr I64 INV2 = (MOD + 1) / 2;
+
+//===----------------------------------------------------------------------===//
 /* Mathematical Utilities */
 
 // Integer division and modulus with floor/ceil semantics:
@@ -674,13 +748,11 @@ constexpr const T& _max(const T& a, const T& b, const Args&... args) {
 //===----------------------------------------------------------------------===//
 /* Data Structures & Algorithms for the Problem */
 
-/// @brief Default min operation functor for SparseTable.
 template <typename T>
 struct SparseTableMinOp {
   constexpr T operator()(const T& a, const T& b) const { return a < b ? a : b; }
 };
 
-/// @brief Sparse table for static idempotent range queries.
 template <typename T, typename Op = SparseTableMinOp<T>>
 struct SparseTable {
   Vec<Vec<T>> table;
@@ -690,7 +762,6 @@ struct SparseTable {
   SparseTable() = default;
   explicit SparseTable(const Vec<T>& v, Op merge_op = Op{}) { build(v, merge_op); }
 
-  /// @brief Precomputes sparse table for input vector.
   void build(const Vec<T>& v, Op merge_op = Op{}) {
     op = merge_op;
     const I32 n = sz(v);
@@ -713,21 +784,12 @@ struct SparseTable {
     }
   }
 
-  /// @brief Query over inclusive range [l, r].
   T query(I32 l, I32 r) const {
     const I32 k = lg[r - l + 1];
     return op(table[k][l], table[k][r - (1 << k) + 1]);
   }
 };
 
-/**
- * @brief Suffix array + Kasai LCP with O(1) LCP queries.
- *
- * Construction:
- *  - suffix array in O(n log n) via counting-sort doubling on cyclic shifts
- *  - LCP in O(n) via Kasai
- *  - RMQ over LCP in O(n log n)
- */
 struct SuffixArray {
   std::string s;
   Vec<I32> sa;    // Sorted suffix start positions.
@@ -740,7 +802,6 @@ struct SuffixArray {
   SuffixArray() = default;
   explicit SuffixArray(const std::string& str) { build(str); }
 
-  /// @brief Rebuilds all structures for input string.
   void build(const std::string& str) {
     s = str;
     build_sa();
@@ -748,7 +809,6 @@ struct SuffixArray {
     build_rmq();
   }
 
-  /// @brief Returns LCP length of suffixes starting at i and j.
   I32 lcp_query(I32 i, I32 j) const {
     if (i == j) return sz(s) - i;
     I32 ri = rank[i];
@@ -757,7 +817,6 @@ struct SuffixArray {
     return rmq(ri, rj - 1);
   }
 
-  /// @brief Finds all occurrences of pattern using binary search on SA.
   Vec<I32> find_pattern(const std::string& pattern) const {
     Vec<I32> result;
     const I32 n = sz(s);
@@ -793,7 +852,7 @@ struct SuffixArray {
   }
 
 private:
-  /// @brief Builds suffix array and rank array for s.
+
   void build_sa() {
     const I32 n = sz(s);
     sa.clear();
@@ -856,7 +915,6 @@ private:
     FOR(i, n) rank[sa[i]] = i;
   }
 
-  /// @brief Builds LCP array using Kasai algorithm.
   void build_lcp() {
     const I32 n = sz(s);
     lcp.assign(n > 0 ? n - 1 : 0, 0);
@@ -875,7 +933,6 @@ private:
     }
   }
 
-  /// @brief Builds RMQ sparse table over LCP array.
   void build_rmq() {
     const I32 n = sz(lcp);
     lg.assign(n + 1, 0);
@@ -895,7 +952,6 @@ private:
     }
   }
 
-  /// @brief RMQ query on LCP array for range [l, r].
   I32 rmq(I32 l, I32 r) const {
     if (l > r) return 0;
     I32 k = lg[r - l + 1];
@@ -906,11 +962,13 @@ private:
 //===----------------------------------------------------------------------===//
 /* Main Solver Function */
 
+using namespace std;
+
 void solve() {
   INT(n, m);
   STR(s, t);
 
-  std::string all = s + "%" + t + "$";
+  String all = s + "%" + t + "$";
   SuffixArray sa(all);
   SparseTable<I32> lcp_st(sa.lcp);
 
@@ -918,7 +976,7 @@ void solve() {
     if (i == j) return as<I32>(all.size()) - i;
     I32 ri = sa.rank[i];
     I32 rj = sa.rank[j];
-    if (ri > rj) std::swap(ri, rj);
+    if (ri > rj) swap(ri, rj);
     return lcp_st.query(ri, rj - 1);
   };
 
@@ -978,8 +1036,8 @@ void solve() {
       }
     }
     I32 res = 0;
-    res = std::max(res, compare_suffix(start, pos, ch, l - 1).second);
-    res = std::max(res, compare_suffix(start, pos, ch, l).second);
+    res = max(res, compare_suffix(start, pos, ch, l - 1).second);
+    res = max(res, compare_suffix(start, pos, ch, l).second);
     return res;
   };
 
@@ -989,8 +1047,8 @@ void solve() {
 
   FOR(i, m) {
     I32 mx_len = 0;
-    FOR(ch, 'a', 'z' + 1) mx_len = std::max(mx_len, get_max_len(start, i, as<char>(ch)));
-    best = std::max(best, mx_len);
+    FOR(ch, 'a', 'z' + 1) mx_len = max(mx_len, get_max_len(start, i, as<char>(ch)));
+    best = max(best, mx_len);
 
     if (mx_len < i - start + 1) {
       ans++;

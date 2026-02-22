@@ -5,17 +5,19 @@
 //===----------------------------------------------------------------------===//
 /* Main Solver Function */
 
+using namespace std;
+
 void solve() {
   LL(n, m);
   using Edge = Pair<I32, I32>;
 
   auto encode = [](I32 u, I32 v) -> U64 {
-    if (u > v) std::swap(u, v);
+    if (u > v) swap(u, v);
     return (as<U64>(u) << 32) | as<U64>(as<U32>(v));
   };
 
   auto minimal_odd_k_for_m = [&](I64 need) -> I32 {
-    I64 d = as<I64>(std::sqrtl(1.0L + 8.0L * as<F80>(need)));
+    I64 d = as<I64>(sqrtl(1.0L + 8.0L * as<F80>(need)));
     while ((d + 1) * (d + 1) <= 1 + 8 * need) ++d;
     while (d * d > 1 + 8 * need) --d;
     I64 k = (1 + d) / 2;
@@ -27,7 +29,7 @@ void solve() {
   auto build_circulant = [&](I32 k, I32 deg_even) -> Vec<Edge> {
     const I32 half = deg_even / 2;
     Vec<Edge> edges;
-    edges.reserve(as<std::size_t>(as<I64>(k) * deg_even / 2));
+    edges.reserve(as<Size>(as<I64>(k) * deg_even / 2));
     FOR(d, 1, half + 1) {
       FOR(i, 1, k + 1) {
         I32 j = i + d;
@@ -49,7 +51,7 @@ void solve() {
     if ((q & 1) == 0) {
       Vec<Edge> edges = build_circulant(k, as<I32>(q));
       const I32 shift = k / 2;
-      edges.reserve(edges.size() + as<std::size_t>(r / 2));
+      edges.reserve(edges.size() + as<Size>(r / 2));
       FOR(i, 1, as<I32>(r / 2) + 1) edges.push_back({i, i + shift});
       return edges;
     }
@@ -57,7 +59,7 @@ void solve() {
     const Vec<Edge> base = build_circulant(k, as<I32>(q + 1));
     const I32 limit = k - as<I32>(r);
     UnorderedSet<U64> removed;
-    removed.reserve(as<std::size_t>(limit));
+    removed.reserve(as<Size>(limit));
     for (I32 i = 1; i < limit; i += 2) removed.insert(encode(i, i + 1));
 
     Vec<Edge> edges;
@@ -93,7 +95,7 @@ void solve() {
 
     Vec<Edge> edges;
     const I64 total = as<I64>(n_all) * (n_all - 1) / 2;
-    edges.reserve(as<std::size_t>(total - as<I64>(small.size())));
+    edges.reserve(as<Size>(total - as<I64>(small.size())));
 
     FOR(u, 1, n_all + 1) {
       FOR(v, u + 1, n_all + 1) {
@@ -119,7 +121,7 @@ void solve() {
 
     Vec<Edge> edges;
     const I64 total = as<I64>(n_all) * (n_all - 1) / 2;
-    edges.reserve(as<std::size_t>(total - 12));
+    edges.reserve(as<Size>(total - 12));
     FOR(u, 1, n_all + 1) {
       FOR(v, u + 1, n_all + 1) {
         if (!missing.contains(encode(as<I32>(u), as<I32>(v)))) {
@@ -171,7 +173,7 @@ void solve() {
 
 auto main() -> int {
   I32 T = 0;
-  if (!(std::cin >> T)) return 0;
+  if (!(cin >> T)) return 0;
   FOR(T) solve();
 
   return 0;
