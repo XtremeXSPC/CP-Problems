@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 import tempfile
@@ -248,6 +249,82 @@ class FlattenerAuditTests(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, msg=result.stderr)
             self.assertNotIn("\n\n\n", result.stdout)
+
+    def test_flattener_mode_safe_keeps_unreferenced_need_headers(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            src = Path(tmpdir) / "probe.cpp"
+            src.write_text(
+                textwrap.dedent(
+                    """\
+                    #define NEED_IO
+                    #include "templates/Base.hpp"
+                    auto main() -> int { return 0; }
+                    """
+                ),
+                encoding="utf-8",
+            )
+
+            compact = subprocess.run(
+                [sys.executable, str(FLATTENER_SCRIPT), str(src)],
+                capture_output=True,
+                text=True,
+                check=False,
+                env={**os.environ, "CP_FLATTENER_MODE": "compact"},
+            )
+            safe = subprocess.run(
+                [sys.executable, str(FLATTENER_SCRIPT), str(src)],
+                capture_output=True,
+                text=True,
+                check=False,
+                env={**os.environ, "CP_FLATTENER_MODE": "safe"},
+            )
+
+            self.assertEqual(compact.returncode, 0, msg=compact.stderr)
+            self.assertEqual(safe.returncode, 0, msg=safe.stderr)
+            self.assertNotIn("#define OUT(", compact.stdout)
+            self.assertIn("#define OUT(", safe.stdout)
+
+    def test_flattener_mode_auto_fallbacks_to_safe_on_compact_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            src = Path(tmpdir) / "probe.cpp"
+            src.write_text(
+                textwrap.dedent(
+                    """\
+                    #define NEED_IO
+                    #include "templates/Base.hpp"
+                    auto main() -> int { return 0; }
+                    """
+                ),
+                encoding="utf-8",
+            )
+
+            fake_compiler = Path(tmpdir) / "fake_compiler.sh"
+            fake_compiler.write_text(
+                textwrap.dedent(
+                    """\
+                    #!/bin/sh
+                    grep -q "#define OUT(" && exit 0
+                    exit 1
+                    """
+                ),
+                encoding="utf-8",
+            )
+            fake_compiler.chmod(0o755)
+
+            result = subprocess.run(
+                [sys.executable, str(FLATTENER_SCRIPT), str(src)],
+                capture_output=True,
+                text=True,
+                check=False,
+                env={
+                    **os.environ,
+                    "CP_FLATTENER_MODE": "auto",
+                    "CP_FLATTENER_VALIDATION_COMPILER": str(fake_compiler),
+                },
+            )
+
+            self.assertEqual(result.returncode, 0, msg=result.stderr)
+            self.assertIn("#define OUT(", result.stdout)
 
 
 if __name__ == "__main__":

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -18,7 +20,7 @@ from flattener_core.flattener_helpers import (
     inline_local_header,
     parse_project_include_line,
     process_file_content,
-    prune_template_headers,
+    prune_template_headers_with_policy,
     resolve_project_include,
     strip_comments,
     strip_non_code,
@@ -37,6 +39,8 @@ NEED_DEFINE_LINE_RE = re.compile(r"^\s*#\s*define\s+(NEED_\w+)\b")
 IF_DIRECTIVE_RE = re.compile(r"^\s*#\s*(if|ifdef|ifndef)\b")
 ENDIF_DIRECTIVE_RE = re.compile(r"^\s*#\s*endif\b")
 ELSE_OR_ELIF_DIRECTIVE_RE = re.compile(r"^\s*#\s*(else|elif)\b")
+VALID_FLATTENER_MODES = {"compact", "safe", "auto"}
+VALIDATION_COMPILER_CANDIDATES = ("g++-15", "g++-14", "g++-13", "g++", "clang++")
 
 
 def _parse_macro_value(
@@ -133,80 +137,95 @@ def extract_prefix_before_base_include(source_content: str) -> str:
     return "\n".join(prefix_lines)
 
 
-def main() -> None:
-    """Flatten one source file by expanding template and local project includes."""
-    if len(sys.argv) != 2:
-        sys.stderr.write(f"Usage: {sys.argv[0]} <source_file.cpp>\n")
-        sys.exit(1)
+def _resolve_flattener_mode() -> str:
+    raw_mode = os.environ.get("CP_FLATTENER_MODE", "compact").strip().lower()
+    if raw_mode in VALID_FLATTENER_MODES:
+        return raw_mode
 
-    source_file = Path(sys.argv[1])
-    if not source_file.is_file():
-        sys.stderr.write(f"Error: File not found: {source_file}\n")
-        sys.exit(1)
-
-    script_dir = Path(__file__).parent.resolve()
-    project_root = script_dir.parent
-    templates_dir = project_root / "templates"
-    base_template_path = templates_dir / "Base.hpp"
-    preamble_path = templates_dir / "Preamble.hpp"
-    preamble_resolved = preamble_path.resolve()
-
-    with open(source_file, "r", encoding="utf-8") as f:
-        source_content = f.read()
-    source_lines = source_content.splitlines(keepends=True)
-    source_masked_lines = strip_non_code(source_content).splitlines()
-
-    source_prefix = extract_prefix_before_base_include(source_content)
-    strict_profile_enabled = bool(
-        re.search(r"^\s*#\s*define\s+CP_TEMPLATE_PROFILE_STRICT\b", source_prefix, re.MULTILINE)
+    sys.stderr.write(
+        f"Warning: unknown CP_FLATTENER_MODE='{raw_mode}'. "
+        "Using 'compact'.\n"
     )
-    relaxed_profile_enabled = bool(
-        re.search(r"^\s*#\s*define\s+CP_TEMPLATE_PROFILE_RELAXED\b", source_prefix, re.MULTILINE)
-    )
-    macro_values = extract_macro_values_from_source(
-        source_prefix,
-        strict_profile_enabled=strict_profile_enabled,
-        relaxed_profile_enabled=relaxed_profile_enabled,
-    )
+    return "compact"
 
-    used_identifiers = extract_identifiers(source_content)
-    strip_module_docs = os.environ.get("CP_FLATTENER_STRIP_MODULE_DOCS", "") == "1"
-    strip_template_docs = os.environ.get("CP_FLATTENER_STRIP_TEMPLATE_DOCS", "") == "1"
-    if strict_profile_enabled and not relaxed_profile_enabled:
-        strip_template_docs = True
 
-    source_module_includes: list[Path] = []
-    has_module_umbrella_include = False
-    for idx, line in enumerate(source_lines):
-        masked_line = source_masked_lines[idx] if idx < len(source_masked_lines) else ""
-        include_name = parse_project_include_line(line, masked_line=masked_line)
-        if not include_name:
-            continue
-        include_target = resolve_project_include(
-            project_root, source_file, include_name
+def _parse_positive_int_env(name: str, default_value: int) -> int:
+    raw = os.environ.get(name, "").strip()
+    if not raw:
+        return default_value
+    try:
+        parsed = int(raw)
+    except ValueError:
+        return default_value
+    return parsed if parsed > 0 else default_value
+
+
+def _resolve_validation_compiler() -> str | None:
+    forced = os.environ.get("CP_FLATTENER_VALIDATION_COMPILER", "").strip()
+    if forced:
+        return forced
+
+    for candidate in VALIDATION_COMPILER_CANDIDATES:
+        resolved = shutil.which(candidate)
+        if resolved:
+            return resolved
+    return None
+
+
+def _validate_flattened_output(flattened_source: str) -> bool | None:
+    """
+    Compile-check flattened output.
+
+    Returns:
+    - True  : syntax validation succeeded
+    - False : validation ran and failed
+    - None  : validation unavailable/disabled
+    """
+    if os.environ.get("CP_FLATTENER_AUTO_VALIDATE", "1").strip() in {"0", "false", "False"}:
+        return None
+
+    compiler = _resolve_validation_compiler()
+    if not compiler:
+        return None
+
+    timeout_ms = _parse_positive_int_env("CP_FLATTENER_VALIDATION_TIMEOUT_MS", 3500)
+    command = [compiler, "-std=gnu++20", "-fsyntax-only", "-x", "c++", "-"]
+    try:
+        result = subprocess.run(
+            command,
+            input=flattened_source,
+            text=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+            timeout=timeout_ms / 1000.0,
         )
-        if not include_target:
-            continue
-        rel = include_target.relative_to(project_root).as_posix()
-        if not rel.startswith("modules/"):
-            continue
-        source_module_includes.append(include_target)
-        if rel.count("/") == 1:
-            has_module_umbrella_include = True
+    except (OSError, subprocess.TimeoutExpired):
+        return None
 
-    module_leaf_tokens = (
-        collect_module_leaf_trigger_tokens(project_root)
-        if has_module_umbrella_include
-        else None
-    )
+    return result.returncode == 0
 
-    need_mapping = load_need_mapping(base_template_path)
-    if not need_mapping:
-        sys.stderr.write(
-            f"Error: Unable to derive NEED_* mapping from {base_template_path}\n"
-        )
-        sys.exit(1)
 
+def _build_flattened_output(
+    *,
+    source_file: Path,
+    source_content: str,
+    source_lines: list[str],
+    source_masked_lines: list[str],
+    project_root: Path,
+    templates_dir: Path,
+    preamble_path: Path,
+    preamble_resolved: Path,
+    need_mapping: dict[str, list[str]],
+    used_identifiers: set[str],
+    source_module_includes: list[Path],
+    module_leaf_tokens: dict[str, set[str]] | None,
+    strip_module_docs: bool,
+    strip_template_docs: bool,
+    macro_values: dict[str, int | None],
+    enable_template_pruning: bool,
+    enable_module_pruning: bool,
+) -> str:
     need_macros_found = extract_need_macros_from_source(
         source_content, need_mapping.keys()
     )
@@ -224,7 +243,11 @@ def main() -> None:
             files_to_include.append(templates_dir / filename)
             included_names.add(filename)
 
-    files_to_include = prune_template_headers(files_to_include, source_content)
+    files_to_include = prune_template_headers_with_policy(
+        files_to_include,
+        source_content,
+        enable_pruning=enable_template_pruning,
+    )
 
     # Keep template deps from modules in template section (before module separator).
     included_paths = {p.resolve() for p in files_to_include}
@@ -244,7 +267,7 @@ def main() -> None:
     # Expand template headers recursively so template-level shared includes
     # (e.g. IO_Defs.hpp) are preserved in flattened output.
     inlined_headers = {preamble_resolved}
-    template_sections = []
+    template_sections: list[str] = []
     for filepath in files_to_include:
         content = inline_local_header(
             project_root,
@@ -255,6 +278,7 @@ def main() -> None:
             strip_module_docs=strip_module_docs,
             strip_template_docs=strip_template_docs,
             macro_values=macro_values,
+            enable_module_pruning=enable_module_pruning,
         )
         if content:
             template_sections.append(content)
@@ -294,7 +318,9 @@ def main() -> None:
             while output_lines and not output_lines[-1].strip():
                 output_lines.pop()
 
-            output_lines.append("\n")
+            if output_lines and output_lines[-1].strip():
+                output_lines.append("\n")
+
             output_lines.append(preamble_content)
             if preamble_content and not preamble_content.endswith("\n\n"):
                 output_lines.append("\n")
@@ -323,6 +349,7 @@ def main() -> None:
                         strip_module_docs=strip_module_docs,
                         strip_template_docs=strip_template_docs,
                         macro_values=macro_values,
+                        enable_module_pruning=enable_module_pruning,
                     )
                     if inlined:
                         if rel.startswith("modules/") and not module_section_emitted:
@@ -344,7 +371,141 @@ def main() -> None:
 
         output_lines.append(line)
 
-    print("".join(output_lines), end="")
+    return "".join(output_lines)
+
+
+def main() -> None:
+    """Flatten one source file by expanding template and local project includes."""
+    if len(sys.argv) != 2:
+        sys.stderr.write(f"Usage: {sys.argv[0]} <source_file.cpp>\n")
+        sys.exit(1)
+
+    source_file = Path(sys.argv[1])
+    if not source_file.is_file():
+        sys.stderr.write(f"Error: File not found: {source_file}\n")
+        sys.exit(1)
+
+    script_dir = Path(__file__).parent.resolve()
+    project_root = script_dir.parent
+    templates_dir = project_root / "templates"
+    base_template_path = templates_dir / "Base.hpp"
+    preamble_path = templates_dir / "Preamble.hpp"
+    preamble_resolved = preamble_path.resolve()
+
+    with open(source_file, "r", encoding="utf-8") as f:
+        source_content = f.read()
+    source_lines = source_content.splitlines(keepends=True)
+    source_masked_lines = strip_non_code(source_content).splitlines()
+
+    source_prefix = extract_prefix_before_base_include(source_content)
+    strict_profile_enabled = bool(
+        re.search(
+            r"^\s*#\s*define\s+CP_TEMPLATE_PROFILE_STRICT\b",
+            source_prefix,
+            re.MULTILINE,
+        )
+    )
+    relaxed_profile_enabled = bool(
+        re.search(
+            r"^\s*#\s*define\s+CP_TEMPLATE_PROFILE_RELAXED\b",
+            source_prefix,
+            re.MULTILINE,
+        )
+    )
+    macro_values = extract_macro_values_from_source(
+        source_prefix,
+        strict_profile_enabled=strict_profile_enabled,
+        relaxed_profile_enabled=relaxed_profile_enabled,
+    )
+
+    used_identifiers = extract_identifiers(source_content)
+    strip_module_docs = os.environ.get("CP_FLATTENER_STRIP_MODULE_DOCS", "") == "1"
+    strip_template_docs = os.environ.get("CP_FLATTENER_STRIP_TEMPLATE_DOCS", "") == "1"
+    if strict_profile_enabled and not relaxed_profile_enabled:
+        strip_template_docs = True
+
+    source_module_includes: list[Path] = []
+    has_module_umbrella_include = False
+    for idx, line in enumerate(source_lines):
+        masked_line = source_masked_lines[idx] if idx < len(source_masked_lines) else ""
+        include_name = parse_project_include_line(line, masked_line=masked_line)
+        if not include_name:
+            continue
+        include_target = resolve_project_include(project_root, source_file, include_name)
+        if not include_target:
+            continue
+        rel = include_target.relative_to(project_root).as_posix()
+        if not rel.startswith("modules/"):
+            continue
+        source_module_includes.append(include_target)
+        if rel.count("/") == 1:
+            has_module_umbrella_include = True
+
+    module_leaf_tokens = (
+        collect_module_leaf_trigger_tokens(project_root)
+        if has_module_umbrella_include
+        else None
+    )
+
+    need_mapping = load_need_mapping(base_template_path)
+    if not need_mapping:
+        sys.stderr.write(
+            f"Error: Unable to derive NEED_* mapping from {base_template_path}\n"
+        )
+        sys.exit(1)
+
+    mode = _resolve_flattener_mode()
+    build_kwargs = dict(
+        source_file=source_file,
+        source_content=source_content,
+        source_lines=source_lines,
+        source_masked_lines=source_masked_lines,
+        project_root=project_root,
+        templates_dir=templates_dir,
+        preamble_path=preamble_path,
+        preamble_resolved=preamble_resolved,
+        need_mapping=need_mapping,
+        used_identifiers=used_identifiers,
+        source_module_includes=source_module_includes,
+        module_leaf_tokens=module_leaf_tokens,
+        strip_module_docs=strip_module_docs,
+        strip_template_docs=strip_template_docs,
+        macro_values=macro_values,
+    )
+
+    if mode == "safe":
+        flattened_output = _build_flattened_output(
+            **build_kwargs,
+            enable_template_pruning=False,
+            enable_module_pruning=False,
+        )
+        print(flattened_output, end="")
+        return
+
+    compact_output = _build_flattened_output(
+        **build_kwargs,
+        enable_template_pruning=True,
+        enable_module_pruning=True,
+    )
+
+    if mode == "compact":
+        print(compact_output, end="")
+        return
+
+    # Auto mode: prefer compact output, fallback to safe only on proven validation failure.
+    compact_valid = _validate_flattened_output(compact_output)
+    if compact_valid is False:
+        safe_output = _build_flattened_output(
+            **build_kwargs,
+            enable_template_pruning=False,
+            enable_module_pruning=False,
+        )
+        safe_valid = _validate_flattened_output(safe_output)
+        if safe_valid is not False:
+            print(safe_output, end="")
+            return
+
+    print(compact_output, end="")
 
 
 if __name__ == "__main__":
