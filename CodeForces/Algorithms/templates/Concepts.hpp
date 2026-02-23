@@ -36,4 +36,25 @@ concept Enum = std::is_enum_v<remove_cvref_t<T>>;
 template <class F, class... Args>
 concept Predicate = std::predicate<F, Args...>;
 
+template <class R>
+concept Range = std::ranges::range<remove_cvref_t<R>>;
+
+template <class R>
+concept SizedRange = Range<R> && requires(remove_cvref_t<R> r) { std::ranges::size(r); };
+
+template <class T>
+concept StreamReadable = requires(std::istream& is, T& value) {
+  { is >> value } -> std::same_as<std::istream&>;
+};
+
+template <class T>
+concept StreamWritable = requires(std::ostream& os, const T& value) {
+  { os << value } -> std::same_as<std::ostream&>;
+};
+
+template <class T>
+concept Hashable = requires(const remove_cvref_t<T>& value) {
+  { std::hash<remove_cvref_t<T>>{}(value) } -> std::convertible_to<std::size_t>;
+};
+
 } // namespace cp

@@ -28,6 +28,7 @@ DEFAULT_NEED_MACROS = [
     "NEED_MOD_INT",
     "NEED_CONTAINERS",
     "NEED_TYPE_SAFETY",
+    "NEED_HASHING",
 ]
 
 DEFAULT_EMPTY_MAIN = "int main() { return 0; }"
@@ -39,7 +40,17 @@ INDIVIDUAL_TEST_SNIPPETS = {
     "NEED_BIT_OPS": "int main() { I32 x = popcount(15); return x == 4 ? 0 : 1; }",
     "NEED_MOD_INT": "int main() { mint x(5), y(3); mint z = x * y; return (int)I64(z); }",
     "NEED_CONTAINERS": "int main() { VI v = {3,1,2}; auto idx = argsort(v); return (int)idx.size(); }",
-    "NEED_TYPE_SAFETY": "struct NodeTag {}; int main() { cp::StrongType<I32, NodeTag> id(3); auto v = cp::cast::as<I64>(cp::unwrap(id)); return v == 3 ? 0 : 1; }",
+    "NEED_TYPE_SAFETY": (
+        "CP_DECLARE_STRONG_TYPE(NodeId, I32); "
+        "int main() { NodeId id(3); ++id; auto sum = id + NodeId(2); "
+        "auto maybe = cp::cast::try_narrow<I32>(cp::unwrap(sum)); "
+        "return maybe && *maybe == 6 ? 0 : 1; }"
+    ),
+    "NEED_HASHING": (
+        "int main() { cp::hashing::FastHashMap<I64, I32> freq; freq[42] = 1; "
+        "cp::hashing::FastHashSet<I64> st; st.insert(42); "
+        "return (freq[42] == 1 && st.contains(42)) ? 0 : 1; }"
+    ),
 }
 
 COMBINATION_CANDIDATES = [
@@ -66,7 +77,12 @@ COMBINATION_CANDIDATES = [
     (
         ["NEED_CORE", "NEED_TYPE_SAFETY"],
         "Core + Type Safety",
-        "struct NodeTag {}; int main() { cp::StrongType<I32, NodeTag> id(7); return cp::unwrap(id) == 7 ? 0 : 1; }",
+        "CP_DECLARE_STRONG_TYPE(NodeId, I32); int main() { NodeId id(7); return cp::unwrap(id) == 7 ? 0 : 1; }",
+    ),
+    (
+        ["NEED_CORE", "NEED_HASHING"],
+        "Core + Hashing",
+        "int main() { cp::hashing::FastHashMap<I64, I64> mp; mp[1] = 2; return mp[1] == 2 ? 0 : 1; }",
     ),
     (
         ["NEED_CORE", "NEED_IO", "NEED_CONTAINERS"],
@@ -95,7 +111,7 @@ STRICT_PROFILE_CANDIDATES = [
     (
         ["NEED_CORE", "NEED_FAST_IO", "NEED_TYPE_SAFETY"],
         "Strict + Fast I/O + Type Safety",
-        "struct NodeTag {}; int main() { cp::StrongType<I32, NodeTag> id(9); OUT(cp::unwrap(id)); return 0; }",
+        "CP_DECLARE_STRONG_TYPE(NodeId, I32); int main() { NodeId id(9); OUT(cp::unwrap(id)); return 0; }",
     ),
 ]
 

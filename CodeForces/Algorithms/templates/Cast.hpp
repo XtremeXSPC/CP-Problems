@@ -14,13 +14,38 @@ template <class To, class From>
 
 template <class To, class From>
 [[gnu::always_inline]] constexpr To narrow(From value) {
-  To converted = static_cast<To>(value);
+  using Src = remove_cvref_t<From>;
+  using Dst = remove_cvref_t<To>;
+  if constexpr (std::integral<Src> && std::integral<Dst>) {
 #ifdef LOCAL
-  if constexpr (std::is_integral_v<From> && std::is_integral_v<To>) {
-    my_assert(static_cast<From>(converted) == value && "narrow(): lossy integral conversion detected.");
-  }
+    my_assert(std::in_range<Dst>(value) && "narrow(): integral value out of destination range.");
 #endif
-  return converted;
+  }
+  return static_cast<To>(value);
+}
+
+template <class To, class From>
+[[nodiscard]] constexpr auto try_narrow(From value) -> Optional<remove_cvref_t<To>> {
+  using Src = remove_cvref_t<From>;
+  using Dst = remove_cvref_t<To>;
+  if constexpr (std::integral<Src> && std::integral<Dst>) {
+    if (!std::in_range<Dst>(value)) return std::nullopt;
+  }
+  return static_cast<Dst>(value);
+}
+
+template <class To, class From>
+[[gnu::always_inline]] constexpr To saturate(From value) {
+  using Src = remove_cvref_t<From>;
+  using Dst = remove_cvref_t<To>;
+  if constexpr (std::integral<Src> && std::integral<Dst>) {
+    if (std::in_range<Dst>(value)) return static_cast<To>(value);
+    if (std::cmp_less(value, std::numeric_limits<Dst>::min())) {
+      return static_cast<To>(std::numeric_limits<Dst>::min());
+    }
+    return static_cast<To>(std::numeric_limits<Dst>::max());
+  }
+  return static_cast<To>(value);
 }
 
 template <Enum E>
