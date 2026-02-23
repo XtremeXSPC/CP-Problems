@@ -110,6 +110,18 @@ template <class F>
 
 // Type-safe cast alias:
 template <typename To>
-[[gnu::always_inline]] constexpr To as(auto x) noexcept {
-  return static_cast<To>(x);
+[[gnu::always_inline]] constexpr To as(auto&& x) noexcept {
+  return static_cast<To>(std::forward<decltype(x)>(x));
+}
+
+template <typename To>
+[[gnu::always_inline]] constexpr To narrow_as(auto x) {
+  To converted = static_cast<To>(x);
+#ifdef LOCAL
+  using From = std::remove_cvref_t<decltype(x)>;
+  if constexpr (std::is_integral_v<From> && std::is_integral_v<To>) {
+    my_assert(static_cast<From>(converted) == x && "narrow_as(): lossy integral conversion detected.");
+  }
+#endif
+  return converted;
 }

@@ -3,12 +3,13 @@
 #include <utility>
 
 #include "Macros.hpp"
-#include "Types.hpp"
+#include "Concepts.hpp"
 
 //===----------------------------------------------------------------------===//
 /* Container Utilities and Algorithms */
 
 template <typename F>
+  requires cp::Predicate<F&, I64>
 I64 binary_search(F&& predicate, I64 left, I64 right) {
   my_assert(left < right);
   while (left + 1 < right) {
@@ -19,6 +20,7 @@ I64 binary_search(F&& predicate, I64 left, I64 right) {
 }
 
 template <typename F>
+  requires cp::Predicate<F&, F64>
 F64 binary_search_real(F&& predicate, F64 left, F64 right, I32 iterations = 100) {
   FOR(iterations) {
     F64 mid = left + (right - left) / 2;
