@@ -459,216 +459,47 @@
 //===----------------------------------------------------------------------===//
 //================== ENHANCED COMPETITIVE PROGRAMMING TYPES ==================//
 
-#ifndef __TYPES__
-#define __TYPES__
-  // Fundamental type aliases with explicit sizes:
-  using I8  = std::int8_t;
-  using I16 = std::int16_t;
-  using I32 = std::int32_t;
-  using I64 = std::int64_t;
-  using U8  = std::uint8_t;
-  using U16 = std::uint16_t;
-  using U32 = std::uint32_t;
-  using U64 = std::uint64_t;
+#ifndef CP_TYPES_NO_PREAMBLE
+  #define CP_TYPES_NO_PREAMBLE 1
+  #define CP_TYPES_NO_PREAMBLE_LOCAL_SCOPE 1
+#endif
+#include "templates/Types.hpp"
+#ifdef CP_TYPES_NO_PREAMBLE_LOCAL_SCOPE
+  #undef CP_TYPES_NO_PREAMBLE
+  #undef CP_TYPES_NO_PREAMBLE_LOCAL_SCOPE
+#endif
 
-  // Extended precision types (when available):
-  #ifdef __SIZEOF_INT128__
-    using I128 = __int128;
-    using U128 = unsigned __int128;
-    #define HAS_INT128 1
-  #else
-    // Fallback for compilers that don't support 128-bit integers.
-    using I128 = std::int64_t;
-    using U128 = std::uint64_t;
-    #define HAS_INT128 0
-  #endif
+// Legacy aliases for older round sources that include PCH directly.
+#ifndef CP_PCH_ENABLE_SHORT_ALIASES
+  #define CP_PCH_ENABLE_SHORT_ALIASES 1
+#endif
+#if CP_PCH_ENABLE_SHORT_ALIASES
+  using ll  = I64;
+  using ull = U64;
+  using ld  = F80;
+  using LL  = I64;
+  using ULL = U64;
+  using LD  = F80;
+#endif
 
-  // Floating point types:
-  using F32 = float;
-  using F64 = double;
-  using F80 = long double;
-
-  #ifdef __FLOAT128__
-    using F128 = __float128;
-    #define HAS_FLOAT128 1
-  #else
-    // Fallback for compilers that don't support 128-bit floats.
-    using F128 = long double;
-    #define HAS_FLOAT128 0
-  #endif
-
-  // Common standard scalar/string aliases.
-  using Size = std::size_t;
-  using Diff = std::ptrdiff_t;
-  using Byte = std::byte;
-  using String = std::string;
-  using StringView = std::string_view;
-
-  // Legacy short aliases are enabled by default for compatibility.
-  // Define CP_ENABLE_LEGACY_SHORT_ALIASES=0 to hard-disable them.
-  #ifndef CP_ENABLE_LEGACY_SHORT_ALIASES
-    #define CP_ENABLE_LEGACY_SHORT_ALIASES 1
-  #endif
-
-  #if CP_ENABLE_LEGACY_SHORT_ALIASES
-    using ll  [[deprecated("use I64 instead")]] = I64;
-    using ull [[deprecated("use U64 instead")]] = U64;
-    using ld  [[deprecated("use F80 instead")]] = F80;
-    using LL  [[deprecated("use I64 instead")]] = I64;
-    using ULL [[deprecated("use U64 instead")]] = U64;
-    using LD  [[deprecated("use F80 instead")]] = F80;
-  #endif
-
-  // Container type aliases:
+#ifndef CP_PCH_ENABLE_CONTAINER_ALIASES
+  #define CP_PCH_ENABLE_CONTAINER_ALIASES 1
+#endif
+#if CP_PCH_ENABLE_CONTAINER_ALIASES
   template <class T>
-  using Vec = std::vector<T>;
+  using VC = Vec<T>;
   template <class T>
-  using Deque = std::deque<T>;
+  using VVC = Vec2<T>;
   template <class T>
-  using List = std::list<T>;
-  template <class T, Size N>
-  using Array = std::array<T, N>;
-  template <Size N>
-  using BitSet = std::bitset<N>;
-  template <class T>
-  using Set = std::set<T>;
-  template <class T>
-  using MultiSet = std::multiset<T>;
-  template <class T>
-  using UnorderedSet = std::unordered_set<T>;
-  template <class K, class V>
-  using Map = std::map<K, V>;
-  template <class K, class V>
-  using MultiMap = std::multimap<K, V>;
-  template <class K, class V>
-  using UnorderedMap = std::unordered_map<K, V>;
-
-  // Extended associative aliases.
-  template <class T, class Compare>
-  using OrderedSetBy = std::set<T, Compare>;
-  template <class T, class Compare>
-  using OrderedMultiSetBy = std::multiset<T, Compare>;
-  template <class K, class V, class Compare>
-  using OrderedMapBy = std::map<K, V, Compare>;
-  template <class K, class V, class Compare>
-  using OrderedMultiMapBy = std::multimap<K, V, Compare>;
-  template <class T, class Hash, class Eq = std::equal_to<T>>
-  using HashedSetBy = std::unordered_set<T, Hash, Eq>;
-  template <class K, class V, class Hash, class Eq = std::equal_to<K>>
-  using HashedMapBy = std::unordered_map<K, V, Hash, Eq>;
-
-  template <class T>
-  using Stack = std::stack<T, std::deque<T>>;
-  template <class T>
-  using Queue = std::queue<T, std::deque<T>>;
-  template <class T>
-  using PriorityQueue = std::priority_queue<T, std::vector<T>>;
-  template <class T>
-  using MinPriorityQueue = std::priority_queue<T, std::vector<T>, std::greater<T>>;
-
-  // Extended adaptor aliases.
-  template <class T, class Container>
-  using StackIn = std::stack<T, Container>;
-  template <class T, class Container>
-  using QueueIn = std::queue<T, Container>;
-  template <class T, class Container, class Compare>
-  using PriorityQueueBy = std::priority_queue<T, Container, Compare>;
-  template <class T, class Container = std::vector<T>>
-  using MinPriorityQueueIn = std::priority_queue<T, Container, std::greater<T>>;
-
-  // Canonical multidimensional aliases:
-  template <class T>
-  using Vec2 = Vec<Vec<T>>;
-  template <class T>
-  using Vec3 = Vec<Vec2<T>>;
-  template <class T>
-  using Vec4 = Vec<Vec3<T>>;
-
-  // Legacy container aliases are enabled by default for compatibility.
-  // Define CP_ENABLE_LEGACY_CONTAINER_ALIASES=0 to hard-disable them.
-  #ifndef CP_ENABLE_LEGACY_CONTAINER_ALIASES
-    #define CP_ENABLE_LEGACY_CONTAINER_ALIASES 1
-  #endif
-
-  #if CP_ENABLE_LEGACY_CONTAINER_ALIASES
-    template <class T>
-    using VC [[deprecated("use Vec<T> instead")]] = Vec<T>;
-    template <class T>
-    using VVC [[deprecated("use Vec2<T> instead")]] = Vec2<T>;
-    template <class T>
-    using VVVC [[deprecated("use Vec3<T> instead")]] = Vec3<T>;
-  #endif
-
-  // Pair and tuple aliases:
-  template <class T, class U>
-  using Pair = std::pair<T, U>;
+  using VVVC = Vec3<T>;
   template <class T, class U>
   using P = Pair<T, U>;
-  template <class... Args>
-  using Tuple = std::tuple<Args...>;
-  template <class T>
-  using Optional = std::optional<T>;
-  template <class... Ts>
-  using Variant = std::variant<Ts...>;
-  template <class Signature>
-  using Function = std::function<Signature>;
-  template <class T>
-  using Span = std::span<T>;
-
-  using PII = Pair<I32, I32>;
-  using PLL = Pair<I64, I64>;
-  using PLD = Pair<F80, F80>;
-
-  // Specialized container aliases:
-  using VI   = Vec<I32>;
-  using VVI  = Vec2<I32>;
-  using VVVI = Vec3<I32>;
-  using VL   = Vec<I64>;
-  using VVL  = Vec2<I64>;
-  using VVVL = Vec3<I64>;
-  using VB   = Vec<bool>;
-  using VS   = Vec<String>;
-  using VU8  = Vec<U8>;
-  using VU16 = Vec<U16>;
-  using VU32 = Vec<U32>;
-  using VU64 = Vec<U64>;
-  using VF   = Vec<F64>;
-  using VLD  = Vec<F80>;
-
-  // Vector of pairs:
-  template <class T, class U>
-  using VecPair = Vec<Pair<T, U>>;
-  using VPII = Vec<PII>;
-  using VPLL = Vec<PLL>;
   template <class T, class U>
   using VP = VecPair<T, U>;
   template <class T, class U>
   using TP = Pair<T, U>;
-
-  // Policy-based data structures:
-  #if defined(PBDS_AVAILABLE) && PBDS_AVAILABLE
-    using namespace __gnu_pbds;
-
-    template <typename T>
-    using ordered_set = tree<T, null_type, std::less<T>, rb_tree_tag, tree_order_statistics_node_update>;
-
-    template <typename T>
-    using ordered_multiset = tree<T, null_type, std::less_equal<T>, rb_tree_tag, tree_order_statistics_node_update>;
-
-    template <typename K, typename V>
-    using ordered_map = tree<K, V, std::less<K>, rb_tree_tag, tree_order_statistics_node_update>;
-
-    template <typename K, typename V>
-    using gp_hash_table = __gnu_pbds::gp_hash_table<
-        K,
-        V,
-        std::hash<K>,
-        std::equal_to<K>,
-        direct_mask_range_hashing<>,
-        linear_probe_fn<>,
-        hash_standard_resize_policy<hash_exponential_size_policy<>, hash_load_check_resize_trigger<>, true>>;
-  #endif
 #endif
+
 
 //===----------------------------------------------------------------------===//
 //========================== MATHEMATICAL CONSTANTS ==========================//
