@@ -36,6 +36,9 @@ EOF
     echo '#line 1 "Strong_Type.hpp"' >>"$output_file"
     cat "$TEMPLATE_DIR/Strong_Type.hpp" >>"$output_file"
 
+    echo '#line 1 "Hashing.hpp"' >>"$output_file"
+    cat "$TEMPLATE_DIR/Hashing.hpp" >>"$output_file"
+
     echo '#line 1 "PBDS.hpp"' >>"$output_file"
     cat "$TEMPLATE_DIR/PBDS.hpp" >>"$output_file"
 
