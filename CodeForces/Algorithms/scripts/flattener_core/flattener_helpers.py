@@ -53,6 +53,7 @@ MOD_INT_HPP = "Mod_Int.hpp"
 CONCEPTS_HPP = "Concepts.hpp"
 CAST_HPP = "Cast.hpp"
 STRONG_TYPE_HPP = "Strong_Type.hpp"
+HASHING_HPP = "Hashing.hpp"
 
 OPTIONAL_HEADER_TRIGGER_TOKENS = {
     TYPES_HPP: {
@@ -111,12 +112,17 @@ OPTIONAL_HEADER_TRIGGER_TOKENS = {
     CONCEPTS_HPP: {
         "remove_cvref_t", "Integral", "SignedIntegral", "UnsignedIntegral",
         "NonBoolIntegral", "Floating", "Arithmetic", "IndexLike", "Enum", "Predicate",
+        "Range", "SizedRange", "StreamReadable", "StreamWritable", "Hashable",
     },
     CAST_HPP: {
-        "to_underlying", "enum_cast", "narrow",
+        "as", "to_underlying", "enum_cast", "narrow", "try_narrow", "saturate",
     },
     STRONG_TYPE_HPP: {
-        "StrongType", "unwrap", "make_strong",
+        "StrongType", "unwrap", "make_strong", "strong", "StrongInt",
+    },
+    HASHING_HPP: {
+        "splitmix64", "SplitMixHash", "PairHash", "FastHashMap", "FastHashSet",
+        "FastHashMap2", "hash_combine", "raw_hash",
     },
 }
 # fmt: on
@@ -134,6 +140,7 @@ HEADER_DEPENDENCIES = {
     CONCEPTS_HPP: {TYPES_HPP},
     CAST_HPP: {CONCEPTS_HPP},
     STRONG_TYPE_HPP: {TYPES_HPP},
+    HASHING_HPP: {CONCEPTS_HPP},
 }
 
 MODULE_SECTION_SEPARATOR = (
@@ -391,7 +398,23 @@ def prune_template_headers(files_to_include: list[Path], source_content: str) ->
     Keeps only headers whose symbols/macros appear in user code, while honoring
     hard dependencies between template headers.
     """
-    if os.environ.get("CP_FLATTENER_DISABLE_PRUNING", "") == "1":
+    return prune_template_headers_with_policy(
+        files_to_include,
+        source_content,
+        enable_pruning=True,
+    )
+
+
+def prune_template_headers_with_policy(
+    files_to_include: list[Path],
+    source_content: str,
+    *,
+    enable_pruning: bool,
+) -> list[Path]:
+    """
+    Tree-shaking for template headers with explicit policy control.
+    """
+    if not enable_pruning or os.environ.get("CP_FLATTENER_DISABLE_PRUNING", "") == "1":
         return files_to_include
 
     used_identifiers = extract_identifiers(source_content)
@@ -665,6 +688,7 @@ def inline_local_header(
     strip_module_docs: bool = False,
     strip_template_docs: bool = False,
     macro_values: dict[str, int | None] | None = None,
+    enable_module_pruning: bool = True,
 ) -> str:
     """Inline project-local headers recursively and strip local includes/pragma once."""
     resolved = header_path.resolve()
@@ -680,6 +704,8 @@ def inline_local_header(
     rel_self = resolved.relative_to(project_root).as_posix()
     is_module_umbrella = rel_self.startswith("modules/") and rel_self.count("/") == 1
     module_pruning_enabled = (
+        enable_module_pruning
+        and
         os.environ.get("CP_FLATTENER_DISABLE_MODULE_PRUNING", "") != "1"
         and used_identifiers is not None
         and module_leaf_tokens is not None
@@ -721,6 +747,7 @@ def inline_local_header(
                         strip_module_docs=strip_module_docs,
                         strip_template_docs=strip_template_docs,
                         macro_values=macro_values,
+                        enable_module_pruning=enable_module_pruning,
                     )
                     if nested_content:
                         # Keep include replacement tight. Avoid adding extra blank lines.
@@ -729,7 +756,7 @@ def inline_local_header(
                         content_lines.append(nested_content)
                         if not nested_content.endswith("\n"):
                             content_lines.append("\n")
-                continue
+                    continue
 
             content_lines.append(line)
             continue
