@@ -8,6 +8,7 @@
 // Modular integer class with operator overloading and optimizations:
 template <I64 MOD>
 struct ModInt {
+  static_assert(MOD > 0, "ModInt requires MOD > 0.");
   U64 value;
 
   static constexpr I64  mod() { return MOD; }

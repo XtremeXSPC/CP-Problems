@@ -1,37 +1,76 @@
 #pragma once
-#include "Types.hpp"
+#include "Concepts.hpp"
 
 //===----------------------------------------------------------------------===//
 /* Mathematical Utilities */
 
-// Integer division and modulus with floor/ceil semantics:
-template <typename T>
-[[gnu::always_inline]] constexpr T div_floor(T a, T b) {
-  return a / b - (a % b != 0 && (a ^ b) < 0);
+namespace cp::detail {
+
+template <std::unsigned_integral T>
+[[gnu::always_inline]] constexpr T mul_mod_unsigned(T a, T b, T mod) {
+#if HAS_INT128
+  if constexpr (sizeof(T) <= sizeof(U64)) {
+    return static_cast<T>((static_cast<U128>(a) * static_cast<U128>(b)) % static_cast<U128>(mod));
+  }
+#endif
+
+  // Portable fallback for toolchains without native 128-bit multiplication.
+  T result = 0;
+  while (b > 0) {
+    if ((b & 1U) != 0U) {
+      if (result >= mod - a) result -= (mod - a);
+      else result += a;
+    }
+    b >>= 1U;
+    if (b == 0) break;
+    if (a >= mod - a) a -= (mod - a);
+    else a += a;
+  }
+  return result;
 }
 
-template <typename T>
-[[gnu::always_inline]] constexpr T div_ceil(T a, T b) {
+} // namespace cp::detail
+
+// Integer division and modulus with floor/ceil semantics:
+template <cp::NonBoolIntegral T>
+[[gnu::always_inline]] constexpr T div_floor(T a, T b) {
+  my_assert(b != 0);
   if constexpr (std::is_signed_v<T>) {
-    return a / b + ((a % b != 0) && ((a ^ b) >= 0));
+    T q = a / b;
+    T r = a % b;
+    if (r != 0 && ((r > 0) != (b > 0))) --q;
+    return q;
+  } else {
+    return a / b;
+  }
+}
+
+template <cp::NonBoolIntegral T>
+[[gnu::always_inline]] constexpr T div_ceil(T a, T b) {
+  my_assert(b != 0);
+  if constexpr (std::is_signed_v<T>) {
+    T q = a / b;
+    T r = a % b;
+    if (r != 0 && ((r > 0) == (b > 0))) ++q;
+    return q;
   } else {
     return a / b + (a % b != 0);
   }
 }
 
-template <typename T>
+template <cp::NonBoolIntegral T>
 [[gnu::always_inline]] constexpr T mod_floor(T a, T b) {
   return a - b * div_floor(a, b);
 }
 
-template <typename T>
+template <cp::NonBoolIntegral T>
 [[gnu::always_inline]] constexpr std::pair<T, T> divmod(T a, T b) {
   T q = div_floor(a, b);
   return {q, a - q * b};
 }
 
 // Exponentiation without modulus:
-template <typename T>
+template <cp::NonBoolIntegral T>
 [[gnu::always_inline]] constexpr T power(T base, T exp) {
   T result = 1;
   while (exp > 0) {
@@ -43,16 +82,30 @@ template <typename T>
 }
 
 // Modular exponentiation:
-template <typename T>
+template <cp::NonBoolIntegral T>
 [[gnu::always_inline]] constexpr T mod_pow(T base, T exp, T mod) {
-  T result = 1 % mod;
-  base %= mod;
-  while (exp > 0) {
-    if (exp & 1) result = (__int128)result * base % mod;
-    base = (__int128)base * base % mod;
-    exp >>= 1;
+  my_assert(mod != 0);
+  if constexpr (std::is_signed_v<T>) {
+    my_assert(mod > 0);
+    my_assert(exp >= 0);
+    if (mod <= 0) return 0;
+    if (exp < 0) return 0;
   }
-  return result;
+
+  using U = std::make_unsigned_t<T>;
+  U umod = static_cast<U>(mod);
+  U uexp = static_cast<U>(exp);
+  U ubase = static_cast<U>(mod_floor(base, mod));
+  U result = static_cast<U>(1) % umod;
+
+  while (uexp > 0) {
+    if ((uexp & 1U) != 0U) {
+      result = cp::detail::mul_mod_unsigned(result, ubase, umod);
+    }
+    ubase = cp::detail::mul_mod_unsigned(ubase, ubase, umod);
+    uexp >>= 1U;
+  }
+  return static_cast<T>(result);
 }
 
 #ifndef __UTILITY_FUNCTIONS__
@@ -71,14 +124,12 @@ template <class T, class S, class Compare = std::less<>>
 inline std::mt19937_64 rng(
     static_cast<U64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
 
-template <typename T>
-  requires std::integral<T>
+template <cp::Integral T>
 inline T rnd(T a, T b) {
   return std::uniform_int_distribution<T>(a, b)(rng);
 }
 
-template <typename T>
-  requires std::floating_point<T>
+template <cp::Floating T>
 inline T rnd(T a, T b) {
   return std::uniform_real_distribution<T>(a, b)(rng);
 }

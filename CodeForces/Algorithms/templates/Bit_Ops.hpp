@@ -1,70 +1,70 @@
 #pragma once
-#include "Types.hpp"
+#include "Concepts.hpp"
 
 //===----------------------------------------------------------------------===//
 /* Advanced Bitwise Operations */
 
-template <typename T>
+template <cp::Integral T>
 [[gnu::always_inline]] constexpr I32 popcount(T x) {
   using Raw = std::remove_cv_t<T>;
   using U = std::conditional_t<std::is_same_v<Raw, bool>, U8, std::make_unsigned_t<Raw>>;
-  if constexpr (sizeof(T) <= 4) return __builtin_popcount(static_cast<U32>(static_cast<U>(x)));
+  if constexpr (sizeof(Raw) <= 4) return __builtin_popcount(static_cast<U32>(static_cast<U>(x)));
   else return __builtin_popcountll(static_cast<U64>(static_cast<U>(x)));
 }
 
-template <typename T>
+template <cp::Integral T>
 [[gnu::always_inline]] constexpr I32 leading_zeros(T x) {
   using Raw = std::remove_cv_t<T>;
   using U = std::conditional_t<std::is_same_v<Raw, bool>, U8, std::make_unsigned_t<Raw>>;
   U ux = static_cast<U>(x);
-  if (ux == 0) return sizeof(T) * 8;
-  if constexpr (sizeof(T) <= 4) {
-    return __builtin_clz(static_cast<U32>(ux)) - (32 - static_cast<I32>(sizeof(T) * 8));
+  if (ux == 0) return sizeof(Raw) * 8;
+  if constexpr (sizeof(Raw) <= 4) {
+    return __builtin_clz(static_cast<U32>(ux)) - (32 - static_cast<I32>(sizeof(Raw) * 8));
   } else {
-    return __builtin_clzll(static_cast<U64>(ux)) - (64 - static_cast<I32>(sizeof(T) * 8));
+    return __builtin_clzll(static_cast<U64>(ux)) - (64 - static_cast<I32>(sizeof(Raw) * 8));
   }
 }
 
-template <typename T>
+template <cp::Integral T>
 [[gnu::always_inline]] constexpr I32 trailing_zeros(T x) {
   using Raw = std::remove_cv_t<T>;
   using U = std::conditional_t<std::is_same_v<Raw, bool>, U8, std::make_unsigned_t<Raw>>;
   U ux = static_cast<U>(x);
-  if (ux == 0) return sizeof(T) * 8;
-  if constexpr (sizeof(T) <= 4) return __builtin_ctz(static_cast<U32>(ux));
+  if (ux == 0) return sizeof(Raw) * 8;
+  if constexpr (sizeof(Raw) <= 4) return __builtin_ctz(static_cast<U32>(ux));
   else return __builtin_ctzll(static_cast<U64>(ux));
 }
 
-template <typename T>
+template <cp::Integral T>
 [[gnu::always_inline]] constexpr I32 bit_width(T x) {
   return sizeof(T) * 8 - leading_zeros(x);
 }
 
-template <typename T>
+template <cp::Integral T>
 [[gnu::always_inline]] constexpr T bit_floor(T x) {
   if (x == 0) return 0;
   return T(1) << (bit_width(x) - 1);
 }
 
-template <typename T>
+template <cp::Integral T>
 [[gnu::always_inline]] constexpr T bit_ceil(T x) {
   if (x <= 1) return 1;
   return T(1) << bit_width(x - 1);
 }
 
-template <typename T>
+template <cp::Integral T>
 [[gnu::always_inline]] constexpr I32 parity_sign(T x) {
   return (popcount(x) & 1) ? -1 : 1;
 }
 
-template <typename T>
+template <cp::Integral T>
 constexpr T kth_bit(I32 k) { return T(1) << k; }
 
-template <typename T>
+template <cp::Integral T>
 constexpr bool has_kth_bit(T x, I32 k) { return (x >> k) & 1; }
 
 /// @brief Iterate over set bits in a mask, yielding their 0-based indices.
-template <typename T>
+template <cp::Integral T>
 struct bit_range {
   T mask;
   struct iterator {
@@ -79,7 +79,7 @@ struct bit_range {
   iterator end() const { return iterator(0); }
 };
 
-template <typename T>
+template <cp::Integral T>
 struct subset_range {
   T mask;
   struct iterator {

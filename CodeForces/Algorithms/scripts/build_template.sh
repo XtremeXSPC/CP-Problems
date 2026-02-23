@@ -27,6 +27,15 @@ EOF
     echo '#line 1 "Types.hpp"' >>"$output_file"
     cat "$TEMPLATE_DIR/Types.hpp" >>"$output_file"
 
+    echo '#line 1 "Concepts.hpp"' >>"$output_file"
+    cat "$TEMPLATE_DIR/Concepts.hpp" >>"$output_file"
+
+    echo '#line 1 "Cast.hpp"' >>"$output_file"
+    cat "$TEMPLATE_DIR/Cast.hpp" >>"$output_file"
+
+    echo '#line 1 "Strong_Type.hpp"' >>"$output_file"
+    cat "$TEMPLATE_DIR/Strong_Type.hpp" >>"$output_file"
+
     echo '#line 1 "PBDS.hpp"' >>"$output_file"
     cat "$TEMPLATE_DIR/PBDS.hpp" >>"$output_file"
 

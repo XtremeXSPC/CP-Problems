@@ -22,20 +22,24 @@ from need_resolver import load_need_mapping
 
 DEFAULT_NEED_MACROS = [
     "NEED_CORE",
+    "NEED_MATH",
     "NEED_IO",
     "NEED_BIT_OPS",
     "NEED_MOD_INT",
     "NEED_CONTAINERS",
+    "NEED_TYPE_SAFETY",
 ]
 
 DEFAULT_EMPTY_MAIN = "int main() { return 0; }"
 
 INDIVIDUAL_TEST_SNIPPETS = {
     "NEED_CORE": "int main() { VI v; return (int)v.size(); }",
+    "NEED_MATH": "int main() { return div_floor<I64>(-3, 2) == -2 ? 0 : 1; }",
     "NEED_IO": "int main() { LL(n); OUT(n); return 0; }",
     "NEED_BIT_OPS": "int main() { I32 x = popcount(15); return x == 4 ? 0 : 1; }",
     "NEED_MOD_INT": "int main() { mint x(5), y(3); mint z = x * y; return (int)I64(z); }",
     "NEED_CONTAINERS": "int main() { VI v = {3,1,2}; auto idx = argsort(v); return (int)idx.size(); }",
+    "NEED_TYPE_SAFETY": "struct NodeTag {}; int main() { cp::StrongType<I32, NodeTag> id(3); auto v = cp::cast::as<I64>(cp::unwrap(id)); return v == 3 ? 0 : 1; }",
 }
 
 COMBINATION_CANDIDATES = [
@@ -60,6 +64,11 @@ COMBINATION_CANDIDATES = [
         "int main() { VI v = {3,1,2}; auto idx = argsort(v); return (int)idx.size(); }",
     ),
     (
+        ["NEED_CORE", "NEED_TYPE_SAFETY"],
+        "Core + Type Safety",
+        "struct NodeTag {}; int main() { cp::StrongType<I32, NodeTag> id(7); return cp::unwrap(id) == 7 ? 0 : 1; }",
+    ),
+    (
         ["NEED_CORE", "NEED_IO", "NEED_CONTAINERS"],
         "Core + I/O + Containers",
         "int main() { VI v = {1,2,3}; OUT((I64)v.size()); return 0; }",
@@ -74,6 +83,19 @@ COMBINATION_CANDIDATES = [
         ],
         "All modules",
         "int main() { mint x(5); I32 bits = popcount(15); VI v = {1,2}; OUT(bits); return (int)v.size(); }",
+    ),
+]
+
+STRICT_PROFILE_CANDIDATES = [
+    (
+        ["NEED_CORE", "NEED_IO"],
+        "Strict + Core + I/O",
+        "int main() { LL(n); OUT(n); return 0; }",
+    ),
+    (
+        ["NEED_CORE", "NEED_FAST_IO", "NEED_TYPE_SAFETY"],
+        "Strict + Fast I/O + Type Safety",
+        "struct NodeTag {}; int main() { cp::StrongType<I32, NodeTag> id(9); OUT(cp::unwrap(id)); return 0; }",
     ),
 ]
 
@@ -165,10 +187,20 @@ class ModuleTester:
             return dict(mapping)
         return {macro: [] for macro in DEFAULT_NEED_MACROS}
 
-    def create_test_file(self, macros: List[str], test_code: str = "") -> str:
+    def create_test_file(
+        self,
+        macros: List[str],
+        test_code: str = "",
+        extra_defines: List[str] | None = None,
+    ) -> str:
         """Create a temporary test file with specified NEED_* macros."""
         content: List[str] = []
         seen = set()
+        for define in extra_defines or []:
+            if define in seen:
+                continue
+            content.append(f"#define {define}")
+            seen.add(define)
         for macro in macros:
             if not macro.startswith("NEED_"):
                 continue
@@ -278,6 +310,39 @@ class ModuleTester:
                 }
             )
 
+    def test_strict_profile_combinations(self):
+        """Compile-check strict profile combinations when their macros are available."""
+        print("\nTesting strict-profile combinations...")
+        print("-" * 50)
+
+        combinations = self._available_candidates(STRICT_PROFILE_CANDIDATES)
+        if not combinations:
+            print("No strict-profile candidates available for current NEED_* set.")
+            return
+
+        for macros, description, test_code in combinations:
+            test_content = self.create_test_file(
+                list(macros),
+                test_code,
+                extra_defines=["CP_TEMPLATE_PROFILE_STRICT"],
+            )
+            success, error = self.compile_test(test_content)
+            status = "PASS" if success else "FAIL"
+            print(f"{description:30} {status}")
+            if not success and error:
+                print(f"  Error: {error[:200]}...")
+
+            self._record(
+                {
+                    "kind": "strict_profile",
+                    "description": description,
+                    "macros": list(macros),
+                    "defines": ["CP_TEMPLATE_PROFILE_STRICT"],
+                    "success": success,
+                    "error": error if not success else None,
+                }
+            )
+
     def test_performance_benchmarks(self):
         """Benchmark compilation time for available combinations."""
         print("\nBenchmarking compilation times...")
@@ -331,6 +396,7 @@ class ModuleTester:
 
         self.test_individual_modules()
         self.test_module_combinations()
+        self.test_strict_profile_combinations()
         self.test_performance_benchmarks()
 
         passed = sum(1 for r in self.test_results if r.get("success", False))

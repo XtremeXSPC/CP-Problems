@@ -1,3 +1,10 @@
+#if !defined(CP_TEMPLATE_PROFILE_RELAXED)
+  #define CP_TEMPLATE_PROFILE_STRICT
+#endif
+#ifndef CP_USE_GLOBAL_STD_NAMESPACE
+  #define CP_USE_GLOBAL_STD_NAMESPACE 1
+#endif
+
 #define NEED_CORE
 #define NEED_IO
 

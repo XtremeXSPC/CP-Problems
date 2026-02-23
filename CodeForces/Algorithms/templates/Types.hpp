@@ -1,5 +1,10 @@
 #pragma once
-#include "Preamble.hpp"
+#ifndef CP_TYPES_NO_PREAMBLE
+  #include "Preamble.hpp"
+#endif
+
+#ifndef __TYPES__
+#define __TYPES__
 
 //===----------------------------------------------------------------------===//
 /* Core Type System and Aliases */
@@ -154,3 +159,5 @@ using PLL = Pair<I64, I64>;
 using PLD = Pair<F80, F80>;
 using VPII = Vec<PII>;
 using VPLL = Vec<PLL>;
+
+#endif // __TYPES__
