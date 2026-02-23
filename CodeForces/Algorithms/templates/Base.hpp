@@ -68,6 +68,14 @@
   #include "Strong_Type.hpp"
 #endif
 
+// Randomized hash utilities for unordered containers (anti-collision).
+#ifdef NEED_HASHING
+  #if !defined(NEED_CORE) && !CP_STRICT_TEMPLATE_NEEDS
+    #include "Types.hpp"
+  #endif
+  #include "Hashing.hpp"
+#endif
+
 // Policy-based data structures (optional).
 #ifdef NEED_PBDS
   #if !defined(NEED_CORE) && !CP_STRICT_TEMPLATE_NEEDS
