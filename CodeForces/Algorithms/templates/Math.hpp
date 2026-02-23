@@ -121,18 +121,13 @@ template <class T, class S, class Compare = std::less<>>
 #endif
 
 // Seeded random number generator:
-inline std::mt19937_64 rng(
-    static_cast<U64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
+inline std::mt19937_64 rng(static_cast<U64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
 
 template <cp::Integral T>
-inline T rnd(T a, T b) {
-  return std::uniform_int_distribution<T>(a, b)(rng);
-}
+inline T rnd(T a, T b) { return std::uniform_int_distribution<T>(a, b)(rng); }
 
 template <cp::Floating T>
-inline T rnd(T a, T b) {
-  return std::uniform_real_distribution<T>(a, b)(rng);
-}
+inline T rnd(T a, T b) { return std::uniform_real_distribution<T>(a, b)(rng); }
 
 // High-resolution timer for time-limited heuristics:
 struct Stopwatch {
@@ -141,15 +136,11 @@ struct Stopwatch {
 
   Stopwatch() : start(Clock::now()) {}
 
-  [[gnu::always_inline]] F64 elapsed() const {
-    return std::chrono::duration<F64>(Clock::now() - start).count();
-  }
+  [[gnu::always_inline]] F64 elapsed() const { return std::chrono::duration<F64>(Clock::now() - start).count(); }
 
   void reset() { start = Clock::now(); }
 
-  [[gnu::always_inline]] bool within(F64 limit) const {
-    return elapsed() < limit;
-  }
+  [[gnu::always_inline]] bool within(F64 limit) const { return elapsed() < limit; }
 };
 
 // Variadic min/max:
@@ -160,11 +151,7 @@ template <typename T>
 constexpr const T& _max(const T& a, const T& b) { return (a < b) ? b : a; }
 
 template <typename T, typename... Args>
-constexpr const T& _min(const T& a, const T& b, const Args&... args) {
-  return _min(a, _min(b, args...));
-}
+constexpr const T& _min(const T& a, const T& b, const Args&... args) { return _min(a, _min(b, args...)); }
 
 template <typename T, typename... Args>
-constexpr const T& _max(const T& a, const T& b, const Args&... args) {
-  return _max(a, _max(b, args...));
-}
+constexpr const T& _max(const T& a, const T& b, const Args&... args) { return _max(a, _max(b, args...)); }
