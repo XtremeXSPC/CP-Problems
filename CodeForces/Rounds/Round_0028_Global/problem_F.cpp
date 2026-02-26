@@ -62,37 +62,49 @@ constexpr U64 INF_REQ = 4'000'000'000'000'000'000ULL;
 
     Array<U64, K_MAX + 1> merged {};
     Array<U64, K_MAX + 1> base_req {};
-    Array<U64, K_MAX + 1> pow_b {};
+    Array<U64, K_MAX + 1> left_req {};
+    Array<U64, K_MAX + 1> right_req {};
 
+    if (left[u] == -1) {
+      left_req.fill(1);
+    } else {
+      left_req = dp[left[u]];
+    }
+    if (right[u] == -1) {
+      right_req.fill(1);
+    } else {
+      right_req = dp[right[u]];
+    }
+
+    auto& row = dp[u];
+    // Child merge in O(K log K): for fixed k, objective max(L[j], R[k-j])
+    // is minimized around the crossing point of decreasing/increasing curves.
     for (I32 k = 0; k <= K_MAX; ++k) {
-      U64 best = INF_REQ;
-      for (I32 j = 0; j <= k; ++j) {
-        const U64 req_l = (left[u] == -1 ? 1ULL : dp[left[u]][j]);
-        const U64 req_r = (right[u] == -1 ? 1ULL : dp[right[u]][k - j]);
-        const U64 cand = std::max(req_l, req_r);
+      I32 lo = 0;
+      I32 hi = k;
+      while (lo < hi) {
+        const I32 mid = (lo + hi) >> 1;
+        if (left_req[mid] <= right_req[k - mid]) {
+          hi = mid;
+        } else {
+          lo = mid + 1;
+        }
+      }
+
+      U64 best = std::max(left_req[lo], right_req[k - lo]);
+      if (lo > 0) {
+        const U64 cand = std::max(left_req[lo - 1], right_req[k - (lo - 1)]);
         if (cand < best) best = cand;
       }
       merged[k] = best;
       base_req[k] = std::max(a[u], merged[k]);
     }
 
-    pow_b[0] = 1;
-    for (I32 c = 1; c <= K_MAX; ++c) {
-      if (pow_b[c - 1] >= ceil_div_u64(REQ_CAP, b[u])) {
-        pow_b[c] = REQ_CAP;
-      } else {
-        pow_b[c] = pow_b[c - 1] * b[u];
-      }
-    }
-
-    auto& row = dp[u];
-    row.fill(INF_REQ);
-
-    for (I32 k = 0; k <= K_MAX; ++k) {
-      for (I32 c = 0; c <= k; ++c) {
-        const U64 req = ceil_div_u64(base_req[k - c], pow_b[c]);
-        if (req < row[k]) row[k] = req;
-      }
+    // Local transition in O(K).
+    row[0] = base_req[0];
+    for (I32 k = 1; k <= K_MAX; ++k) {
+      const U64 using_more_here = ceil_div_u64(row[k - 1], b[u]);
+      row[k] = std::min(base_req[k], using_more_here);
     }
 
     const I32 p = parent[u];
