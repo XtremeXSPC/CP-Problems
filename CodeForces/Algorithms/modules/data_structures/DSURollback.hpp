@@ -21,8 +21,8 @@ private:
   Vec<Change> history;
 
 public:
-  VI parent;
-  VI size;
+  VecI32 parent;
+  VecI32 size;
   I32 components = 0;
 
   explicit DSURollback(I32 n = 0) { init(n); }

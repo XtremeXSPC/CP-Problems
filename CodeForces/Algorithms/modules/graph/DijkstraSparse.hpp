@@ -13,7 +13,7 @@
 template <typename Weight = I64>
 struct DijkstraResult {
   Vec<Weight> dist;
-  VI parent;
+  VecI32 parent;
 };
 
 template <typename Weight = I64>
@@ -54,8 +54,8 @@ DijkstraResult<Weight> dijkstra_sparse(const Graph<Weight>& g, I32 source) {
 }
 
 /// @brief Restores source->target path from Dijkstra parent array.
-inline VI restore_path(I32 target, const VI& parent) {
-  VI path;
+inline VecI32 restore_path(I32 target, const VecI32& parent) {
+  VecI32 path;
   if (target < 0 || target >= as<I32>(parent.size())) return path;
   for (I32 v = target; v != -1; v = parent[as<Size>(v)]) {
     path.push_back(v);

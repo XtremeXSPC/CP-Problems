@@ -13,14 +13,14 @@
 template <typename Weight = I64>
 struct EulerTour {
   I32 n, timer;
-  VI tin, tout, order, depth, parent;
+  VecI32 tin, tout, order, depth, parent;
 
   /// @brief Builds Euler Tour from the given tree rooted at root.
   EulerTour(const Graph<Weight>& g, I32 root = 0)
       : n(g.n), timer(0), tin(n, -1), tout(n, -1), depth(n, 0), parent(n, -1) {
     order.reserve(n);
     // Iterative DFS using explicit stack of (vertex, edge_index).
-    Stack<PII> stk;
+    Stack<PairI32> stk;
     stk.push({root, 0});
     tin[root] = timer++;
     order.push_back(root);
@@ -53,7 +53,7 @@ struct EulerTour {
   }
 
   /// @brief Returns half-open subtree range [tin[v], tout[v]) in DFS order.
-  PII subtree_range(I32 v) const {
+  PairI32 subtree_range(I32 v) const {
     return {tin[v], tout[v]};
   }
 };

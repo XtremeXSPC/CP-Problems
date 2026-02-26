@@ -10,8 +10,8 @@
  * @Complexity: O(V^3).
  */
 template <typename Weight = I64>
-Vec2<Weight> floyd_warshall(I32 n, const Vec<std::tuple<I32, I32, Weight>>& edges) {
-  Vec2<Weight> dist(n, Vec<Weight>(n, infinity<Weight>));
+Vec2D<Weight> floyd_warshall(I32 n, const Vec<std::tuple<I32, I32, Weight>>& edges) {
+  Vec2D<Weight> dist(n, Vec<Weight>(n, infinity<Weight>));
 
   FOR(i, n) dist[i][i] = 0;
 

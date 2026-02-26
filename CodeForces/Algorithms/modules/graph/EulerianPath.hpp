@@ -13,13 +13,13 @@
  * @returns std::nullopt when Eulerian path/cycle does not exist.
  * @Complexity: O(V + E).
  */
-inline Optional<VI> eulerian_path_undirected(I32 n, const Vec<PII>& edges) {
+inline Optional<VecI32> eulerian_path_undirected(I32 n, const Vec<PairI32>& edges) {
   if (n < 0) return std::nullopt;
-  if (n == 0) return VI{};
+  if (n == 0) return VecI32{};
 
   const I32 m = as<I32>(edges.size());
-  Vec<Vec<PII>> adj(as<Size>(n));  // {to, edge_id}
-  VI deg(as<Size>(n), 0);
+  Vec2D<PairI32> adj(as<Size>(n));  // {to, edge_id}
+  VecI32 deg(as<Size>(n), 0);
 
   FOR(id, m) {
     auto [u, v] = edges[as<Size>(id)];
@@ -30,7 +30,7 @@ inline Optional<VI> eulerian_path_undirected(I32 n, const Vec<PII>& edges) {
     ++deg[as<Size>(v)];
   }
 
-  VI odd;
+  VecI32 odd;
   odd.reserve(2);
   FOR(v, n) {
     if (deg[as<Size>(v)] & 1) odd.push_back(v);
@@ -47,11 +47,11 @@ inline Optional<VI> eulerian_path_undirected(I32 n, const Vec<PII>& edges) {
         break;
       }
     }
-    if (start == -1) return VI{0};
+    if (start == -1) return VecI32{0};
   }
 
   // Connectivity check on vertices with deg > 0.
-  VB vis(as<Size>(n), false);
+  VecBool vis(as<Size>(n), false);
   Stack<I32> dfs;
   dfs.push(start);
   vis[as<Size>(start)] = true;
@@ -72,9 +72,9 @@ inline Optional<VI> eulerian_path_undirected(I32 n, const Vec<PII>& edges) {
     }
   }
 
-  VB used(as<Size>(m), false);
-  VI it(as<Size>(n), 0);
-  VI path;
+  VecBool used(as<Size>(m), false);
+  VecI32 it(as<Size>(n), 0);
+  VecI32 path;
   path.reserve(as<Size>(m + 1));
 
   Stack<I32> st;
@@ -104,15 +104,15 @@ inline Optional<VI> eulerian_path_undirected(I32 n, const Vec<PII>& edges) {
   return path;
 }
 
-inline Optional<VI> eulerian_path_directed(I32 n, const Vec<PII>& edges) {
+inline Optional<VecI32> eulerian_path_directed(I32 n, const Vec<PairI32>& edges) {
   if (n < 0) return std::nullopt;
-  if (n == 0) return VI{};
+  if (n == 0) return VecI32{};
 
   const I32 m = as<I32>(edges.size());
-  Vec<Vec<PII>> adj(as<Size>(n));      // {to, edge_id}
-  Vec<VI> und_adj(as<Size>(n));        // weak connectivity check
-  VI in_deg(as<Size>(n), 0);
-  VI out_deg(as<Size>(n), 0);
+  Vec2D<PairI32> adj(as<Size>(n));      // {to, edge_id}
+  Vec2D<I32> und_adj(as<Size>(n));        // weak connectivity check
+  VecI32 in_deg(as<Size>(n), 0);
+  VecI32 out_deg(as<Size>(n), 0);
 
   FOR(id, m) {
     auto [u, v] = edges[as<Size>(id)];
@@ -147,11 +147,11 @@ inline Optional<VI> eulerian_path_directed(I32 n, const Vec<PII>& edges) {
         break;
       }
     }
-    if (start == -1) return VI{0};
+    if (start == -1) return VecI32{0};
   }
 
   /// @brief Weak connectivity check on active vertices (in_deg + out_deg > 0).
-  VB vis(as<Size>(n), false);
+  VecBool vis(as<Size>(n), false);
   Stack<I32> dfs;
   dfs.push(start);
   vis[as<Size>(start)] = true;
@@ -172,9 +172,9 @@ inline Optional<VI> eulerian_path_directed(I32 n, const Vec<PII>& edges) {
     }
   }
 
-  VB used(as<Size>(m), false);
-  VI it(as<Size>(n), 0);
-  VI path;
+  VecBool used(as<Size>(m), false);
+  VecI32 it(as<Size>(n), 0);
+  VecI32 path;
   path.reserve(as<Size>(m + 1));
 
   Stack<I32> st;

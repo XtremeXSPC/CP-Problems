@@ -14,14 +14,14 @@
 template <typename Weight = I64>
 struct LCA_RMQ {
   I32 n;
-  VI first_occ;
-  VI euler;
-  VI euler_dep;
-  VI depth;
-  VI parent;
-  VI component;
-  Vec2<I32> sparse;
-  VI lg;
+  VecI32 first_occ;
+  VecI32 euler;
+  VecI32 euler_dep;
+  VecI32 depth;
+  VecI32 parent;
+  VecI32 component;
+  Vec2D<I32> sparse;
+  VecI32 lg;
 
   LCA_RMQ(const Graph<Weight>& g, I32 root = 0)
       : n(g.n), first_occ(n, -1), depth(n, 0), parent(n, -1), component(n, -1) {
@@ -30,7 +30,7 @@ struct LCA_RMQ {
     euler_dep.reserve(2 * n);
 
     // Iterative DFS building full Euler tour for each connected component.
-    VB visited(n, false);
+    VecBool visited(n, false);
     auto build_component = [&](I32 start) {
       Stack<Pair<I32, I32>> stk;
       stk.push({start, 0});
@@ -77,7 +77,7 @@ struct LCA_RMQ {
     lg.assign(m + 1, 0);
     FOR(i, 2, m + 1) lg[i] = lg[i / 2] + 1;
 
-    sparse.assign(max_log, VI(m));
+    sparse.assign(max_log, VecI32(m));
     FOR(i, m) sparse[0][i] = i;
 
     FOR(k, 1, max_log) {

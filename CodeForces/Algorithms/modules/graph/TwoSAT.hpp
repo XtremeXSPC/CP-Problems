@@ -11,10 +11,10 @@
  */
 struct TwoSAT {
   I32 n = 0;
-  Vec<VI> g, rg;
-  VI comp;
-  VI order;
-  VI assignment;
+  Vec2D<I32> g, rg;
+  VecI32 comp;
+  VecI32 order;
+  VecI32 assignment;
 
   explicit TwoSAT(I32 variables = 0)
       : n(std::max<I32>(variables, 0)),
@@ -63,7 +63,7 @@ struct TwoSAT {
     order.clear();
     order.reserve(as<Size>(vertices));
 
-    VB visited(as<Size>(vertices), false);
+    VecBool visited(as<Size>(vertices), false);
 
     // Iterative DFS for topological order by exit time.
     FOR(start, vertices) {

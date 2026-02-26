@@ -19,8 +19,8 @@ struct MCMF {
   I32 n;
   Vec<Vec<Edge>> g;
   Vec<Cost> dist;
-  VI prev_v, prev_e;
-  VB in_queue;
+  VecI32 prev_v, prev_e;
+  VecBool in_queue;
 
   MCMF(I32 n) : n(n), g(n), dist(n), prev_v(n), prev_e(n), in_queue(n) {}
 

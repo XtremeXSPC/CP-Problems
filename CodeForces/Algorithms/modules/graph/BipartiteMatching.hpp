@@ -11,8 +11,8 @@
  */
 struct BipartiteMatching {
   I32 left_sz, right_sz;
-  Vec<VI> adj;
-  VI match_left, match_right, dist_left;
+  Vec2D<I32> adj;
+  VecI32 match_left, match_right, dist_left;
 
   BipartiteMatching(I32 left_size, I32 right_size)
       : left_sz(left_size), right_sz(right_size), adj(left_size),

@@ -19,14 +19,14 @@ struct PrefixAutomaton {
 
   using Row = std::array<I32, as<Size>(ALPHABET)>;
 
-  std::string pattern;
-  VI pi;
+  String pattern;
+  VecI32 pi;
   Vec<Row> next_state_table;
 
   PrefixAutomaton() = default;
-  explicit PrefixAutomaton(const std::string& p) { build(p); }
+  explicit PrefixAutomaton(const String& p) { build(p); }
 
-  void build(const std::string& p) {
+  void build(const String& p) {
     pattern = p;
     pi = prefix_function(pattern);
 
@@ -57,8 +57,8 @@ struct PrefixAutomaton {
   }
 
   /// @brief Returns starting positions of all pattern occurrences in text.
-  VI find_occurrences(const std::string& text) const {
-    VI occ;
+  VecI32 find_occurrences(const String& text) const {
+    VecI32 occ;
     const I32 m = as<I32>(pattern.size());
     const I32 n = as<I32>(text.size());
     if (m == 0) {
