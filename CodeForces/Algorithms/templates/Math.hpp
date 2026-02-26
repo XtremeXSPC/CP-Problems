@@ -1,5 +1,6 @@
 #pragma once
 #include "Concepts.hpp"
+#include "Timer.hpp"
 
 //===----------------------------------------------------------------------===//
 /* Mathematical Utilities */
@@ -108,6 +109,35 @@ template <cp::NonBoolIntegral T>
   return static_cast<T>(result);
 }
 
+template <cp::NonBoolIntegral T>
+[[gnu::always_inline]] inline T floor_sqrt(T x) {
+  if constexpr (std::is_signed_v<T>) {
+    my_assert(x >= 0);
+    if (x < 0) return 0;
+  }
+
+  using U = std::make_unsigned_t<T>;
+  const U ux = static_cast<U>(x);
+  if (ux <= 1) return static_cast<T>(ux);
+
+  U r = static_cast<U>(std::sqrt(static_cast<F80>(ux)));
+  while ((r + 1) <= ux / (r + 1)) ++r;
+  while (r > ux / r) --r;
+  return static_cast<T>(r);
+}
+
+template <cp::NonBoolIntegral T>
+[[gnu::always_inline]] inline T ceil_sqrt(T x) {
+  using U = std::make_unsigned_t<T>;
+  const T root = floor_sqrt(x);
+  const U uf = static_cast<U>(root);
+  if (uf == 0) return 0;
+
+  const U ux = static_cast<U>(x);
+  if (ux / uf == uf && ux % uf == 0) return root;
+  return static_cast<T>(uf + 1);
+}
+
 #ifndef __UTILITY_FUNCTIONS__
 template <class T, class S, class Compare = std::less<>>
 [[gnu::always_inline]] inline bool chmax(T& a, const S& b, const Compare& cmp = {}) {
@@ -128,20 +158,6 @@ inline T rnd(T a, T b) { return std::uniform_int_distribution<T>(a, b)(rng); }
 
 template <cp::Floating T>
 inline T rnd(T a, T b) { return std::uniform_real_distribution<T>(a, b)(rng); }
-
-// High-resolution timer for time-limited heuristics:
-struct Stopwatch {
-  using Clock = std::chrono::high_resolution_clock;
-  Clock::time_point start;
-
-  Stopwatch() : start(Clock::now()) {}
-
-  [[gnu::always_inline]] F64 elapsed() const { return std::chrono::duration<F64>(Clock::now() - start).count(); }
-
-  void reset() { start = Clock::now(); }
-
-  [[gnu::always_inline]] bool within(F64 limit) const { return elapsed() < limit; }
-};
 
 // Variadic min/max:
 template <typename T>
