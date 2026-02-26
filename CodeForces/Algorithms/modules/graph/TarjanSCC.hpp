@@ -12,19 +12,19 @@
  */
 struct TarjanSCC {
   I32 n = 0;
-  Vec<VI> adj;
-  VI index;
-  VI low;
-  VI comp;
-  VB on_stack;
+  Vec2D<I32> adj;
+  VecI32 index;
+  VecI32 low;
+  VecI32 comp;
+  VecBool on_stack;
   Stack<I32> st;
   I32 timer = 0;
   I32 comp_cnt = 0;
-  Vec<VI> components;
+  Vec2D<I32> components;
 
   explicit TarjanSCC(I32 n = 0) { init(n); }
 
-  explicit TarjanSCC(const Vec<VI>& g) {
+  explicit TarjanSCC(const Vec2D<I32>& g) {
     init(as<I32>(g.size()));
     adj = g;
   }
@@ -41,7 +41,7 @@ struct TarjanSCC {
 
   void init(I32 vertices) {
     n = std::max<I32>(vertices, 0);
-    adj.assign(as<Size>(n), VI{});
+    adj.assign(as<Size>(n), VecI32{});
     index.assign(as<Size>(n), -1);
     low.assign(as<Size>(n), 0);
     comp.assign(as<Size>(n), -1);
@@ -58,7 +58,7 @@ struct TarjanSCC {
   }
 
   /// @brief Runs SCC decomposition and returns comp[v] for each vertex.
-  const VI& build() {
+  const VecI32& build() {
     index.assign(as<Size>(n), -1);
     low.assign(as<Size>(n), 0);
     comp.assign(as<Size>(n), -1);

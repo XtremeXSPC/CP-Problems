@@ -188,8 +188,8 @@ struct Graph {
   }
 
   ///@brief Finds all bridges (cut edges) in an undirected graph.
-  Vec<PII> find_bridges() const {
-    Vec<PII> bridges;
+  Vec<PairI32> find_bridges() const {
+    Vec<PairI32> bridges;
     Vec<I32> disc(n, -1), low(n, -1);
     I32 timer = 0;
 

@@ -37,8 +37,8 @@ struct Sieve {
   }
 
   /// @brief Prime factorization of x as (prime, exponent) pairs.
-  Vec<PII> factorize(I32 x) const {
-    Vec<PII> factors;
+  Vec<PairI32> factorize(I32 x) const {
+    Vec<PairI32> factors;
     if (x <= 1) return factors;
 
     if (x > n) {

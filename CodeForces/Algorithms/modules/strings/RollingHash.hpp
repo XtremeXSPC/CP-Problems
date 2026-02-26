@@ -32,7 +32,7 @@ struct RollingHash {
   }
 
   /// @brief Returns pair hash of substring [l, r).
-  PLL get_hash(I32 l, I32 r) const {
+  PairI64 get_hash(I32 l, I32 r) const {
     I64 h1 = (hash1[r] - hash1[l] * pow1[r - l] % MOD1 + MOD1) % MOD1;
     I64 h2 = (hash2[r] - hash2[l] * pow2[r - l] % MOD2 + MOD2) % MOD2;
     return {h1, h2};

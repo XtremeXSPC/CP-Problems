@@ -28,7 +28,7 @@ struct AhoCorasickAdvanced {
   Vec<Node> nodes;
   Vec<I32> pattern_len;
   bool built = false;
-  VI bfs_order;
+  VecI32 bfs_order;
 
   AhoCorasickAdvanced() { reset(); }
 
@@ -105,9 +105,9 @@ struct AhoCorasickAdvanced {
   }
 
   /// @brief Returns all matches as {end_position, pattern_id}.
-  Vec<PII> all_matches(const std::string& text) {
+  Vec<PairI32> all_matches(const std::string& text) {
     if (!built) build();
-    Vec<PII> matches;
+    Vec<PairI32> matches;
     I32 v = 0;
     FOR(i, as<I32>(text.size())) {
       char ch = text[as<Size>(i)];

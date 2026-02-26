@@ -9,9 +9,9 @@
  * @details Computes pi[i] = length of the longest proper prefix of s
  * which is also a suffix of s[0..i]. Complexity: O(n).
  */
-inline VI prefix_function(const std::string& s) {
+inline VecI32 prefix_function(const String& s) {
   I32 n = as<I32>(s.size());
-  VI pi(as<Size>(n), 0);
+  VecI32 pi(as<Size>(n), 0);
   FOR(i, 1, n) {
     I32 j = pi[as<Size>(i - 1)];
     while (j > 0 && s[as<Size>(i)] != s[as<Size>(j)]) {

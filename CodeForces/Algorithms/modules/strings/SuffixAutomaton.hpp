@@ -107,13 +107,13 @@ struct SuffixAutomaton {
     I32 max_len = 0;
     for (const auto& s : st) max_len = std::max(max_len, s.len);
 
-    VI cnt(as<Size>(max_len + 1), 0);
+    VecI32 cnt(as<Size>(max_len + 1), 0);
     for (const auto& s : st) ++cnt[as<Size>(s.len)];
     FOR(i, 1, as<I32>(cnt.size())) {
       cnt[as<Size>(i)] += cnt[as<Size>(i - 1)];
     }
 
-    VI order(as<Size>(st.size()), 0);
+    VecI32 order(as<Size>(st.size()), 0);
     FOR(v, as<I32>(st.size())) {
       I32 len = st[as<Size>(v)].len;
       order[as<Size>(--cnt[as<Size>(len)])] = v;

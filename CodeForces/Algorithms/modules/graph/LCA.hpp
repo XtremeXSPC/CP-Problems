@@ -7,18 +7,18 @@
 /// @brief Lowest Common Ancestor via binary lifting.
 struct LCA {
   I32 n, log_n;
-  VVI parent;
-  VI depth, component;
+  Vec2D<I32> parent;
+  VecI32 depth, component;
 
   /// @brief Builds lifting table from a rooted tree.
   LCA(const Graph<>& g, I32 root = 0) : n(g.n) {
     log_n = 0;
     while ((1 << log_n) < n) log_n++;
 
-    parent.assign(log_n + 1, VI(n, -1));
+    parent.assign(log_n + 1, VecI32(n, -1));
     depth.assign(n, 0);
     component.assign(n, -1);
-    VB visited(n, false);
+    VecBool visited(n, false);
 
     // DFS to set up parent[0], depth and component id.
     std::function<void(I32, I32, I32)> dfs = [&](I32 u, I32 p, I32 comp_id) {

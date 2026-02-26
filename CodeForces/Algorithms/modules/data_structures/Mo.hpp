@@ -16,9 +16,9 @@ struct Mo {
 
   /// @brief Processes range queries offline.
   template <typename Add, typename Remove, typename Answer>
-  void process(const Vec<PII>& queries, Add add, Remove remove, Answer answer) {
+  void process(const Vec<PairI32>& queries, Add add, Remove remove, Answer answer) {
     I32 q = sz(queries);
-    VI order(q);
+    VecI32 order(q);
     std::iota(all(order), 0);
     std::sort(all(order), [&](I32 a, I32 b) {
       I32 ba = queries[a].first / block_sz, bb = queries[b].first / block_sz;

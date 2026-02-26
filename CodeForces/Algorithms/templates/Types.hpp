@@ -130,34 +130,32 @@ using Span = std::span<T>;
 
 // Canonical multidimensional aliases.
 template <class T>
-using Vec2 = Vec<Vec<T>>;
+using Vec2D = Vec<Vec<T>>;
 template <class T>
-using Vec3 = Vec<Vec2<T>>;
+using Vec3D = Vec<Vec2D<T>>;
 template <class T>
-using Vec4 = Vec<Vec3<T>>;
+using Vec4D = Vec<Vec3D<T>>;
 
 // Specialized frequently-used aliases.
-using VI   = Vec<I32>;
-using VLL  = Vec<I64>;
-using VVI  = Vec<VI>;
-using VVLL = Vec<VLL>;
-using VB   = Vec<bool>;
-using VS   = Vec<String>;
-using VU8  = Vec<U8>;
-using VU16 = Vec<U16>;
-using VU32 = Vec<U32>;
-using VU64 = Vec<U64>;
-using VF   = Vec<F64>;
-using VLD  = Vec<F80>;
+using VecI32  = Vec<I32>;
+using VecI64  = Vec<I64>;
+using VecBool = Vec<bool>;
+using VecStr  = Vec<String>;
+using VecU8   = Vec<U8>;
+using VecU16  = Vec<U16>;
+using VecU32  = Vec<U32>;
+using VecU64  = Vec<U64>;
+using VecF64  = Vec<F64>;
+using VecF80  = Vec<F80>;
 
 // Common pair aliases.
 template <class T, class U>
 using VecPair = Vec<Pair<T, U>>;
 
-using PII = Pair<I32, I32>;
-using PLL = Pair<I64, I64>;
-using PLD = Pair<F80, F80>;
-using VPII = Vec<PII>;
-using VPLL = Vec<PLL>;
+using PairI32    = Pair<I32, I32>;
+using PairI64    = Pair<I64, I64>;
+using PairF80    = Pair<F80, F80>;
+using VecPairI32 = Vec<PairI32>;
+using VecPairI64 = Vec<PairI64>;
 
 #endif // __TYPES__

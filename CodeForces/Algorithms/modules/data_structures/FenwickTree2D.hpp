@@ -7,7 +7,7 @@
 template <typename T>
 struct FenwickTree2D {
   I32 n, m;
-  Vec2<T> tree;
+  Vec2D<T> tree;
 
   /// @brief Constructs rows x cols empty BIT.
   FenwickTree2D(I32 rows, I32 cols) : n(rows), m(cols), tree(n + 1, Vec<T>(m + 1)) {}

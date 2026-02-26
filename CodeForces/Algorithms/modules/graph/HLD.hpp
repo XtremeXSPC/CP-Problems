@@ -15,7 +15,7 @@ template <typename Weight = I64>
 struct HLD {
   I32 n;
   const Graph<Weight>& g;
-  VI parent, depth, heavy, head, pos, subtree_size, order, component;
+  VecI32 parent, depth, heavy, head, pos, subtree_size, order, component;
   I32 cur_pos;
 
   /// @brief Builds decomposition for every connected component.
@@ -23,7 +23,7 @@ struct HLD {
     : n(g.n), g(g), parent(n, -1), depth(n, 0), heavy(n, -1),
       head(n, 0), pos(n, -1), subtree_size(n, 0), order(n),
       component(n, -1), cur_pos(0) {
-    VB visited(n, false);
+    VecBool visited(n, false);
 
     auto dfs = [&](auto&& self, I32 v, I32 p, I32 comp_id) -> I32 {
       visited[v] = true;

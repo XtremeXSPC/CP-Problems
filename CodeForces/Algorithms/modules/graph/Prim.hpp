@@ -12,12 +12,12 @@
  * @Complexity: O((V + E) log V).
  */
 template <typename Weight = I64>
-Pair<Weight, Vec<PII>> prim_mst(const Graph<Weight>& g) {
+Pair<Weight, Vec<PairI32>> prim_mst(const Graph<Weight>& g) {
   Weight total = 0;
-  Vec<PII> used_edges;
+  Vec<PairI32> used_edges;
   if (g.n == 0) return {total, used_edges};
 
-  VB used(as<Size>(g.n), false);
+  VecBool used(as<Size>(g.n), false);
 
   using State = std::tuple<Weight, I32, I32>;  // w, to, parent
   MinPriorityQueue<State> pq;

@@ -13,9 +13,9 @@
 template <typename Weight = I64>
 struct CentroidDecomposition {
   I32 n;
-  Vec<Vec<I32>> tree;
-  VI parent, subtree_size;
-  VB used;
+  Vec2D<I32> tree;
+  VecI32 parent, subtree_size;
+  VecBool used;
 
   /// @brief Constructs centroid decomposition for each connected component.
   explicit CentroidDecomposition(const Graph<Weight>& g)
