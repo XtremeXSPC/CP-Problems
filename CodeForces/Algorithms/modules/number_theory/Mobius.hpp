@@ -6,34 +6,37 @@
 /// @brief Mobius function precomputation and inversion helper.
 struct Mobius {
   Vec<I32> mu;
+  Vec<I32> primes;
   I32 n;
 
   /// @brief Computes mu[1..size] in O(size).
-  Mobius(I32 size) : mu(size + 1), n(size) {
+  explicit Mobius(const I32 size) : mu(size + 1, 0), n(size) {
+    my_assert(size >= 1);
     mu[1] = 1;
-    Vec<bool> is_prime(n + 1, true);
-    Vec<I32> primes;
+    Vec<I32> min_prime(n + 1, 0);
 
     FOR(i, 2, n + 1) {
-      if (is_prime[i]) {
+      if (min_prime[i] == 0) {
+        min_prime[i] = i;
         primes.push_back(i);
         mu[i] = -1;
       }
 
-      for (I32 p : primes) {
-        if (i * p > n) break;
-        is_prime[i * p] = false;
+      for (const I32 p : primes) {
+        const I64 nxt = as<I64>(i) * p;
+        if (nxt > n) break;
+        min_prime[nxt] = p;
         if (i % p == 0) {
-          mu[i * p] = 0;
+          mu[nxt] = 0;
           break;
         }
-        mu[i * p] = -mu[i];
+        mu[nxt] = -mu[i];
       }
     }
   }
 
   /// @brief Mobius inversion: f(n) = sum_{d|n} mu(d) * g(n/d), given g(n) = sum_{d|n} f(d).
-   Vec<I64> invert(const Vec<I64>& g) {
+  [[nodiscard]] auto invert(const Vec<I64>& g) const -> Vec<I64> {
     Vec<I64> f(sz(g));
     FOR(i, 1, sz(g)) {
       for (I32 j = i; j < sz(g); j += i) {
@@ -41,6 +44,72 @@ struct Mobius {
       }
     }
     return f;
+  }
+
+  /// @brief Returns all positive divisors of @p value not exceeding @p limit.
+  [[nodiscard]] auto divisors_up_to_limit(const I64 value, const I32 limit) const -> Vec<I32> {
+    Vec<I32> divisors;
+    if (value <= 0 || limit <= 0) return divisors;
+
+    const Vec<Pair<I64, I32>> factors = factorize(value);
+    divisors.reserve(2048);
+
+    const auto dfs = [&](const auto& self, const I32 idx, const I64 cur) -> void {
+      if (idx == sz(factors)) {
+        if (cur <= limit) divisors.push_back(as<I32>(cur));
+        return;
+      }
+
+      const auto [prime, exponent] = factors[idx];
+      I64 val = cur;
+      for (I32 e = 0; e <= exponent; ++e) {
+        if (val > limit) break;
+        self(self, idx + 1, val);
+        if (e == exponent) break;
+        val *= prime;
+      }
+    };
+
+    dfs(dfs, 0, 1);
+    std::sort(divisors.begin(), divisors.end());
+    return divisors;
+  }
+
+  /// @brief Computes weights w[T] = sum_{d|gcd(T, value)} mu(T/d) for T in [1..limit].
+  [[nodiscard]] auto build_divisibility_weights(const I64 value, const I32 limit) const -> Vec<I32> {
+    my_assert(limit <= n);
+    Vec<I32> weights(as<Size>(limit + 1), 0);
+    if (value <= 0 || limit <= 0) return weights;
+
+    const Vec<I32> divisors = divisors_up_to_limit(value, limit);
+    for (const I32 g : divisors) {
+      for (I32 t = 1; t * g <= limit; ++t) {
+        weights[t * g] += mu[t];
+      }
+    }
+    return weights;
+  }
+
+private:
+  [[nodiscard]] auto factorize(const I64 value) const -> Vec<Pair<I64, I32>> {
+    Vec<Pair<I64, I32>> factors;
+    I64 x = value;
+
+    for (const I32 p32 : primes) {
+      const I64 p = as<I64>(p32);
+      if (p * p > x) break;
+      if (x % p != 0) continue;
+
+      I32 cnt = 0;
+      while (x % p == 0) {
+        x /= p;
+        ++cnt;
+      }
+      factors.push_back({p, cnt});
+    }
+
+    if (x > 1) factors.push_back({x, 1});
+    return factors;
   }
 };
 

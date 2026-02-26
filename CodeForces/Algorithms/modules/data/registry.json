@@ -77,7 +77,8 @@
         "factorization",
         "euler_phi",
         "chinese_remainder",
-        "discrete_log"
+        "discrete_log",
+        "fwht"
       ],
       "size_kb": 10.3,
       "compile_time_impact": "low"
@@ -98,6 +99,20 @@
       ],
       "size_kb": 14.7,
       "compile_time_impact": "medium"
+    },
+    "bitwise": {
+      "files": [
+        "Bitwise.hpp"
+      ],
+      "dependencies": [
+        "core"
+      ],
+      "description": "Bitwise-oriented helpers and interval primitives",
+      "features": [
+        "xor_bound_intervals"
+      ],
+      "size_kb": 4.2,
+      "compile_time_impact": "low"
     }
   },
   "updated": "2025-09-01T15:47:41.583014"
