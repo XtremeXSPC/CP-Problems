@@ -58,6 +58,14 @@
   #include "Math.hpp"
 #endif
 
+// Timer utilities (Stopwatch).
+#ifdef NEED_TIMER
+  #if !defined(NEED_CORE) && !defined(NEED_MATH) && !CP_STRICT_TEMPLATE_NEEDS
+    #include "Types.hpp"
+  #endif
+  #include "Timer.hpp"
+#endif
+
 // Type-safety utilities are optional to avoid increasing default flatten size.
 #ifdef NEED_TYPE_SAFETY
   #if !defined(NEED_CORE) && !CP_STRICT_TEMPLATE_NEEDS
