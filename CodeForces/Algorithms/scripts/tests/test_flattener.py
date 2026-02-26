@@ -193,6 +193,7 @@ class FlattenerAuditTests(unittest.TestCase):
                 capture_output=True,
                 text=True,
                 check=False,
+                env={**os.environ, "CP_FLATTENER_MODE": "safe"},
             )
 
             self.assertEqual(result.returncode, 0, msg=result.stderr)
@@ -218,6 +219,7 @@ class FlattenerAuditTests(unittest.TestCase):
                 capture_output=True,
                 text=True,
                 check=False,
+                env={**os.environ, "CP_FLATTENER_MODE": "safe"},
             )
 
             self.assertEqual(result.returncode, 0, msg=result.stderr)
@@ -245,6 +247,7 @@ class FlattenerAuditTests(unittest.TestCase):
                 capture_output=True,
                 text=True,
                 check=False,
+                env={**os.environ, "CP_FLATTENER_MODE": "safe"},
             )
 
             self.assertEqual(result.returncode, 0, msg=result.stderr)
@@ -325,6 +328,93 @@ class FlattenerAuditTests(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, msg=result.stderr)
             self.assertIn("#define OUT(", result.stdout)
+
+    def test_nested_template_section_header_has_blank_line_separator(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            src = Path(tmpdir) / "probe.cpp"
+            src.write_text(
+                textwrap.dedent(
+                    """\
+                    #define NEED_CORE
+                    #define NEED_MATH
+                    #include "templates/Base.hpp"
+                    auto main() -> int { return 0; }
+                    """
+                ),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [sys.executable, str(FLATTENER_SCRIPT), str(src)],
+                capture_output=True,
+                text=True,
+                check=False,
+                env={**os.environ, "CP_FLATTENER_MODE": "safe"},
+            )
+
+            self.assertEqual(result.returncode, 0, msg=result.stderr)
+            self.assertIn(
+                "} // namespace cp\n\n//===----------------------------------------------------------------------===//\n/* Lightweight Stopwatch Utility */",
+                result.stdout,
+            )
+
+    def test_fast_io_internal_define_not_emitted_when_need_fast_io(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            src = Path(tmpdir) / "probe.cpp"
+            src.write_text(
+                textwrap.dedent(
+                    """\
+                    #define NEED_CORE
+                    #define NEED_FAST_IO
+                    #include "templates/Base.hpp"
+                    auto main() -> int { return 0; }
+                    """
+                ),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [sys.executable, str(FLATTENER_SCRIPT), str(src)],
+                capture_output=True,
+                text=True,
+                check=False,
+                env={**os.environ, "CP_FLATTENER_MODE": "safe"},
+            )
+
+            self.assertEqual(result.returncode, 0, msg=result.stderr)
+            self.assertNotIn("#define CP_FAST_IO_NAMESPACE_DEFINED", result.stdout)
+            self.assertIn("namespace fast_io {", result.stdout)
+
+    def test_fast_io_macro_state_applies_to_io_header_when_included(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            src = Path(tmpdir) / "probe.cpp"
+            src.write_text(
+                textwrap.dedent(
+                    """\
+                    #define NEED_CORE
+                    #define NEED_FAST_IO
+                    #include "templates/Base.hpp"
+                    #include "templates/IO.hpp"
+                    auto main() -> int { return 0; }
+                    """
+                ),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [sys.executable, str(FLATTENER_SCRIPT), str(src)],
+                capture_output=True,
+                text=True,
+                check=False,
+                env={**os.environ, "CP_FLATTENER_MODE": "safe"},
+            )
+
+            self.assertEqual(result.returncode, 0, msg=result.stderr)
+            self.assertNotIn("#define CP_FAST_IO_NAMESPACE_DEFINED", result.stdout)
+            self.assertIn(
+                "#define CP_IO_IMPL_READ(...) fast_io::read(__VA_ARGS__)",
+                result.stdout,
+            )
 
 
 if __name__ == "__main__":

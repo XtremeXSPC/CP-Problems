@@ -232,6 +232,10 @@ def _build_flattened_output(
     if "NEED_FAST_IO" in need_macros_found and "NEED_IO" in need_macros_found:
         need_macros_found.remove("NEED_IO")
 
+    effective_macro_values = dict(macro_values)
+    if "NEED_FAST_IO" in need_macros_found:
+        effective_macro_values["CP_FAST_IO_NAMESPACE_DEFINED"] = 1
+
     files_to_include: list[Path] = []
     included_names = set()
     for macro, files in need_mapping.items():
@@ -277,7 +281,7 @@ def _build_flattened_output(
             module_leaf_tokens=module_leaf_tokens,
             strip_module_docs=strip_module_docs,
             strip_template_docs=strip_template_docs,
-            macro_values=macro_values,
+            macro_values=effective_macro_values,
             enable_module_pruning=enable_module_pruning,
         )
         if content:
@@ -348,7 +352,7 @@ def _build_flattened_output(
                         module_leaf_tokens=module_leaf_tokens,
                         strip_module_docs=strip_module_docs,
                         strip_template_docs=strip_template_docs,
-                        macro_values=macro_values,
+                        macro_values=effective_macro_values,
                         enable_module_pruning=enable_module_pruning,
                     )
                     if inlined:

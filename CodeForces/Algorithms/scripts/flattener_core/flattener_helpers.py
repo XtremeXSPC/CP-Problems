@@ -44,6 +44,7 @@ TYPES_HPP = "Types.hpp"
 CONSTANTS_HPP = "Constants.hpp"
 MACROS_HPP = "Macros.hpp"
 MATH_HPP = "Math.hpp"
+TIMER_HPP = "Timer.hpp"
 IO_HPP = "IO.hpp"
 FAST_IO_HPP = "Fast_IO.hpp"
 PBDS_HPP = "PBDS.hpp"
@@ -81,7 +82,11 @@ OPTIONAL_HEADER_TRIGGER_TOKENS = {
     },
     MATH_HPP: {
         "_gcd", "_lcm", "div_floor", "div_ceil", "mod_floor", "divmod", "_power",
-        "chmax", "chmin", "_min", "_max",
+        "power", "mod_pow", "floor_sqrt", "ceil_sqrt",
+        "chmax", "chmin", "_min", "_max", "rnd", "rng",
+    },
+    TIMER_HPP: {
+        "Stopwatch",
     },
     IO_HPP: {
         "fast_io", "IN", "OUT", "FLUSH", "INT", "LL", "ULL", "STR", "CHR",
@@ -130,7 +135,8 @@ OPTIONAL_HEADER_TRIGGER_TOKENS = {
 HEADER_DEPENDENCIES = {
     CONSTANTS_HPP: {TYPES_HPP},
     MACROS_HPP: {TYPES_HPP},
-    MATH_HPP: {TYPES_HPP},
+    MATH_HPP: {TYPES_HPP, TIMER_HPP},
+    TIMER_HPP: {TYPES_HPP},
     IO_HPP: {TYPES_HPP, MACROS_HPP},
     FAST_IO_HPP: {IO_HPP, TYPES_HPP},
     PBDS_HPP: {TYPES_HPP},
@@ -701,6 +707,18 @@ def inline_local_header(
 
     inlined_headers.add(resolved)
     content_lines: list[str] = []
+
+    def trailing_newline_count(chunks: list[str]) -> int:
+        count = 0
+        for chunk in reversed(chunks):
+            idx = len(chunk) - 1
+            while idx >= 0 and chunk[idx] == "\n":
+                count += 1
+                idx -= 1
+            if idx >= 0:
+                break
+        return count
+
     rel_self = resolved.relative_to(project_root).as_posix()
     is_module_umbrella = rel_self.startswith("modules/") and rel_self.count("/") == 1
     module_pruning_enabled = (
@@ -750,9 +768,12 @@ def inline_local_header(
                         enable_module_pruning=enable_module_pruning,
                     )
                     if nested_content:
-                        # Keep include replacement tight. Avoid adding extra blank lines.
+                        # Keep include replacement tight while preserving section readability.
                         if content_lines and not content_lines[-1].endswith("\n"):
                             content_lines.append("\n")
+                        if nested_content.startswith("//===----------------------------------------------------------------------===//"):
+                            if trailing_newline_count(content_lines) < 2:
+                                content_lines.append("\n")
                         content_lines.append(nested_content)
                         if not nested_content.endswith("\n"):
                             content_lines.append("\n")
