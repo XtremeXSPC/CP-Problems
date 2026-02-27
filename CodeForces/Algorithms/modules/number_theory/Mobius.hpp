@@ -5,15 +5,15 @@
 
 /// @brief Mobius function precomputation and inversion helper.
 struct Mobius {
-  Vec<I32> mu;
-  Vec<I32> primes;
+  VecI32 mu;
+  VecI32 primes;
   I32 n;
 
   /// @brief Computes mu[1..size] in O(size).
   explicit Mobius(const I32 size) : mu(size + 1, 0), n(size) {
     my_assert(size >= 1);
     mu[1] = 1;
-    Vec<I32> min_prime(n + 1, 0);
+    VecI32 min_prime(n + 1, 0);
 
     FOR(i, 2, n + 1) {
       if (min_prime[i] == 0) {
@@ -36,8 +36,8 @@ struct Mobius {
   }
 
   /// @brief Mobius inversion: f(n) = sum_{d|n} mu(d) * g(n/d), given g(n) = sum_{d|n} f(d).
-  [[nodiscard]] auto invert(const Vec<I64>& g) const -> Vec<I64> {
-    Vec<I64> f(sz(g));
+  [[nodiscard]] auto invert(const VecI64& g) const -> VecI64 {
+    VecI64 f(sz(g));
     FOR(i, 1, sz(g)) {
       for (I32 j = i; j < sz(g); j += i) {
         f[j] += mu[i] * g[j / i];
@@ -47,8 +47,8 @@ struct Mobius {
   }
 
   /// @brief Returns all positive divisors of @p value not exceeding @p limit.
-  [[nodiscard]] auto divisors_up_to_limit(const I64 value, const I32 limit) const -> Vec<I32> {
-    Vec<I32> divisors;
+  [[nodiscard]] auto divisors_up_to_limit(const I64 value, const I32 limit) const -> VecI32 {
+    VecI32 divisors;
     if (value <= 0 || limit <= 0) return divisors;
 
     const Vec<Pair<I64, I32>> factors = factorize(value);
@@ -76,12 +76,12 @@ struct Mobius {
   }
 
   /// @brief Computes weights w[T] = sum_{d|gcd(T, value)} mu(T/d) for T in [1..limit].
-  [[nodiscard]] auto build_divisibility_weights(const I64 value, const I32 limit) const -> Vec<I32> {
+  [[nodiscard]] auto build_divisibility_weights(const I64 value, const I32 limit) const -> VecI32 {
     my_assert(limit <= n);
-    Vec<I32> weights(as<Size>(limit + 1), 0);
+    VecI32 weights(as<Size>(limit + 1), 0);
     if (value <= 0 || limit <= 0) return weights;
 
-    const Vec<I32> divisors = divisors_up_to_limit(value, limit);
+    const VecI32 divisors = divisors_up_to_limit(value, limit);
     for (const I32 g : divisors) {
       for (I32 t = 1; t * g <= limit; ++t) {
         weights[t * g] += mu[t];

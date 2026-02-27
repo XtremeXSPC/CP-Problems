@@ -79,9 +79,9 @@ using namespace std;
   template <class T>
   using VC = Vec<T>;
   template <class T>
-  using VVC = Vec2<T>;
+  using VVC = Vec2D<T>;
   template <class T>
-  using VVVC = Vec3<T>;
+  using VVVC = Vec3D<T>;
   template <class T, class U>
   using P = Pair<T, U>;
   template <class T, class U>
@@ -89,7 +89,6 @@ using namespace std;
   template <class T, class U>
   using TP = Pair<T, U>;
 #endif
-
 
 // Fast I/O and precision macros.
 #define FAST_IO() \
