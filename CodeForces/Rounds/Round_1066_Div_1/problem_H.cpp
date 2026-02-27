@@ -1,327 +1,208 @@
-//===----------------------------------------------------------------------===//
-/**
- * @file: Sol_H.cpp
- * @brief Codeforces Round - Problem H - Keygen 3
- * @author: Costantino Lombardi
- *
- * @status: PASSED
- */
-//===----------------------------------------------------------------------===//
-/* Included library */
-
-// clang-format off
-// Compiler optimizations:
-#if defined(__GNUC__) && !defined(__clang__)
-  #pragma GCC optimize("Ofast,unroll-loops,fast-math,O3")
-  #ifdef __aarch64__
-    #pragma GCC target("+simd")
-  #endif
+#if !defined(CP_TEMPLATE_PROFILE_RELAXED)
+  #define CP_TEMPLATE_PROFILE_STRICT
+#endif
+#ifndef CP_USE_GLOBAL_STD_NAMESPACE
+  #define CP_USE_GLOBAL_STD_NAMESPACE 1
 #endif
 
-#ifdef __clang__
-  #pragma clang optimize on
-#endif
+#define NEED_CORE
+#define NEED_IO
 
-// Sanitize/Debug macro:
-#if defined(USE_CLANG_SANITIZE) || defined(LOCAL)
-  #define SHOW_COMPILATION_INFO
-  #include "PCH.h"
-#else
-  #include <bits/stdc++.h>
-#endif
-
-// Debug macro:
-#ifdef LOCAL
-  #include "debug.h"
-#else
-  #define debug(...) 42
-#endif
+#include "templates/Base.hpp"
 
 //===----------------------------------------------------------------------===//
-/* Type Aliases and Constants */
-
-#ifndef __TYPES__
-#define __TYPES__
-  // Fundamental type aliases with explicit sizes:
-  using I8  = std::int8_t;
-  using I16 = std::int16_t;
-  using I32 = std::int32_t;
-  using I64 = std::int64_t;
-  using U8  = std::uint8_t;
-  using U16 = std::uint16_t;
-  using U32 = std::uint32_t;
-  using U64 = std::uint64_t;
-  using F32 = float;
-  using F64 = double;
-  using F80 = long double;
-
-  using LL  = I64;
-  using ULL = U64;
-  using LD  = F80;
-
-  // Extended precision types:
-  #ifdef __SIZEOF_INT128__
-    using I128 = __int128;
-    using U128 = unsigned __int128;
-  #else
-    using I128 = std::int64_t;
-    using U128 = std::uint64_t;
-  #endif
-
-  // Legacy aliases for backward compatibility:
-  #ifdef __FLOAT128__
-    using F128 = __float128;
-  #else
-    using F128 = long double;
-  #endif
-
-  // Container type aliases:
-  template <class T>
-  using VC = std::vector<T>;
-  template <class T>
-  using VVC = VC<VC<T>>;
-  template <class T>
-  using VVVC = VC<VVC<T>>;
-  template <class T>
-  using VVVVC = VC<VVVC<T>>;
-
-  // Specialized container aliases:
-  using VI   = VC<I32>;
-  using VVI  = VVC<I32>;
-  using VVVI = VVVC<I32>;
-  using VL   = VC<I64>;
-  using VVL  = VVC<I64>;
-  using VVVL = VVVC<I64>;
-  using VB   = VC<bool>;
-  using VS   = VC<std::string>;
-  using VU8  = VC<U8>;
-  using VU32 = VC<U32>;
-  using VU64 = VC<U64>;
-  using VF   = VC<F64>;
-
-  // Queue and stack aliases:
-  template <class T>
-  using Deque = std::deque<T>;
-  template <class T>
-  using Stack = std::stack<T, std::deque<T>>;
-  template <class T>
-  using Queue = std::queue<T, std::deque<T>>;
-
-  // Pair and tuple aliases:
-  template <class T, class U>
-  using P = std::pair<T, U>;
-  using PII = std::pair<I32, I32>;
-  using PLL = std::pair<I64, I64>;
-  using PLD = std::pair<ld, ld>;
-
-  template <class T, class U>
-  using VP = VC<P<T, U>>;
-  using VPII = VC<PII>;
-  using VPLL = VC<PLL>;
-
-  // Priority queue aliases
-  template <class T>
-  using PQ_max = std::priority_queue<T>;
-  template <class T>
-  using PQ_min = std::priority_queue<T, VC<T>, std::greater<T>>;
-
-  // Map and set aliases:
-  template <class K, class V>
-  using UMap = std::unordered_map<K, V>;
-  template <class T>
-  using USet = std::unordered_set<T>;
-  template <class T>
-  using MSet = std::multiset<T>;
-#endif  // __TYPES__
-
-// Advanced FOR loop system:
-#define FOR1(a) for (I64 _ = 0; _ < (a); ++_)
-#define FOR2(i, a) for (I64 i = 0; i < (a); ++i)
-#define FOR3(i, a, b) for (I64 i = (a); i < (b); ++i)
-#define FOR4(i, a, b, c) for (I64 i = (a); i < (b); i += (c))
-#define FOR1_R(a) for (I64 i = (a) - 1; i >= 0; --i)
-#define FOR2_R(i, a) for (I64 i = (a) - 1; i >= 0; --i)
-#define FOR3_R(i, a, b) for (I64 i = (b) - 1; i >= (a); --i)
-
-#define overload4(a, b, c, d, e, ...) e
-#define overload3(a, b, c, d, ...) d
-#define FOR(...) overload4(__VA_ARGS__, FOR4, FOR3, FOR2, FOR1)(__VA_ARGS__)
-#define FOR_R(...) overload3(__VA_ARGS__, FOR3_R, FOR2_R, FOR1_R)(__VA_ARGS__)
+/* Main Solver Function */
 
 using namespace std;
-// clang-format on
+constexpr I32 CAP = 2000;
 
-//===----------------------------------------------------------------------===//
-/* Data Types and Function Definitions */
+struct ActiveMap {
+  Vec<Pair<U8, U8>> edges;
 
-static const int LIMIT = 2000;
+  auto get(U8 key) const -> U8 {
+    const auto it = lower_bound(all(edges), Pair<U8, U8>{key, 0},
+        [](const auto& lhs, const auto& rhs) { return lhs.first < rhs.first; });
+    if (it != edges.end() && it->first == key) return it->second;
+    return key;
+  }
 
-// DSU to track connected components (cycles) while building permutation.
-struct DSU {
-  int n;
-  VI  parent;
+  void erase_key(U8 key) {
+    const auto it = lower_bound(all(edges), Pair<U8, U8>{key, 0},
+        [](const auto& lhs, const auto& rhs) { return lhs.first < rhs.first; });
+    if (it != edges.end() && it->first == key) edges.erase(it);
+  }
 
-  explicit DSU(int n_) : n(n_), parent(n_) { iota(parent.begin(), parent.end(), 0); }
+  auto find_key_by_value(U8 value) const -> U8 {
+    for (const auto& [key, mapped] : edges) {
+      if (mapped == value) return key;
+    }
+    return value;
+  }
 
-  int find(int x) { return (parent[x] == x ? x : parent[x] = find(parent[x])); }
+  void set_map(U8 key, U8 value) {
+    erase_key(key);
+    if (key == value) return;
+    const auto it = lower_bound(all(edges), Pair<U8, U8>{key, 0},
+        [](const auto& lhs, const auto& rhs) { return lhs.first < rhs.first; });
+    edges.insert(it, {key, value});
+  }
 
-  // Returns true if merge happened (components decreased), false otherwise.
-  bool unite(int x, int y) {
-    x = find(x);
-    y = find(y);
-    if (x == y) return false;
-    parent[x] = y;
-    return true;
+  auto pack() const -> String {
+    String out;
+    out.resize(1 + 2 * edges.size());
+    out[0] = as<char>(edges.size());
+    FOR(i, sz(edges)) {
+      out[1 + 2 * i] = as<char>(edges[i].first);
+      out[1 + 2 * i + 1] = as<char>(edges[i].second);
+    }
+    return out;
   }
 };
 
-// Generate up to LIMIT bitonic permutations of length N with exactly M cycles.
-VVI solve_bitonic(int N, int M) {
-  VVI res;
+struct Solver {
+  I32 n = 0, m = 0;
+  UnorderedMap<String, I32> memo;
+  I32 printed = 0;
+  I32 limit = 0;
 
-  // Build permutations with "core" length n, target m cycles,
-  // then lift to size N by adding prefix fixed points (k) and optional internal fixed point.
-  auto build_core = [&](auto&& self, int n, int m, int k, int extra) -> void {
-    if ((int)res.size() == LIMIT) return;
-
-    // x is length of middle segment; require 2*x <= n.
-    FOR3(x, m, n / 2 + 1) {
-      if ((int)res.size() == LIMIT) return;
-
-      VI perm(n, -1);  // core permutation [0..n-1]
-      VI u;            // helper for middle segment
-      u.push_back(n - 1);
-
-      // DFS: place values 1..(n-x-1) on two wings.
-      auto dfs_wings = [&](auto&& self2, int v, int w, int left_pos, int right_pos) -> void {
-        if ((int)res.size() == LIMIT) return;
-
-        if (v == n - x) {
-          // All wing values placed.
-          assert(w == x);
-
-          // Fill middle block [L,R) = [n-2x, n-x) with values [n-x..n-1].
-          auto fill_middle = [&](auto&& self3, int L, int R, int at, int comps, DSU d) -> void {
-            if ((int)res.size() == LIMIT) return;
-
-            if (L == R) {
-              // All middle positions assigned.
-              if (comps == m) {
-                // Build final permutation of size N.
-                VI out = perm;
-                // Shift values by k (prefix fixed points).
-                for (int& val : out) val += k;
-                // Add prefix 0..k-1.
-                FOR(k) out.insert(out.begin(), k - 1 - _);
-                // Optional internal fixed point.
-                if (extra) {
-                  int where = N - 1 - x;
-                  for (int& val : out) {
-                    if (val >= where) ++val;
-                  }
-                  out.insert(out.begin() + where, where);
-                }
-                res.push_back(out);
-              }
-              return;
-            }
-
-            // Try placing value "at" at position L.
-            DSU backup    = d;
-            int new_comps = comps - (d.unite(L, at) ? 1 : 0);
-            if (comps >= m) {
-              perm[L] = at;
-              self3(self3, L + 1, R, at + 1, new_comps, d);
-            }
-
-            // Try placing "at" at position R-1.
-            if (L + 1 < R) {
-              d         = backup;
-              new_comps = comps - (d.unite(R - 1, at) ? 1 : 0);
-              if (comps >= m) {
-                perm[R - 1] = at;
-                self3(self3, L, R - 1, at + 1, new_comps, d);
-              }
-            }
-          };
-
-          // Initialize DSU on entire core [0..n-1].
-          DSU d(n);
-          // Connect middle segment positions with u structure.
-          FOR3(pos, n - 2 * x, n - x) {
-            int idx = pos - (n - 2 * x);
-            d.unite(pos, u[idx]);
-          }
-          fill_middle(fill_middle, n - 2 * x, n - x, n - x, x, d);
-          return;
-        }
-
-        // Place value v: w is count pushed into 'u'.
-
-        // Option 1: put v on right wing at right_pos.
-        if ((v + 1) - w <= n - 2 * x) {
-          perm[right_pos] = v;
-          rotate(u.begin(), u.begin() + 1, u.end());
-          self2(self2, v + 1, w, left_pos, right_pos + 1);
-          rotate(u.begin(), u.end() - 1, u.end());
-        }
-
-        // Option 2: put v on left wing at left_pos.
-        if (w < x) {
-          perm[left_pos] = v;
-          u.push_back(n - 1 - w);
-          self2(self2, v + 1, w + 1, left_pos - 1, right_pos);
-          u.pop_back();
-        }
-      };
-
-      // Smallest value 0 fixed at end (ensures bitonic shape).
-      perm[n - 1] = 0;
-      dfs_wings(dfs_wings, 1, 1, n - 2, 0);
-    }
-  };
-
-  // Special case: M == N means identity permutation only.
-  if (M == N) {
-    VI id(N);
-    iota(id.begin(), id.end(), 0);
-    res.push_back(id);
-    return res;
+  static auto make_key(U8 t, U8 left, U8 cycles, const String& packed) -> String {
+    String key;
+    key.reserve(3 + packed.size());
+    key.push_back(as<char>(t));
+    key.push_back(as<char>(left));
+    key.push_back(as<char>(cycles));
+    key += packed;
+    return key;
   }
 
-  // General case: strip k fixed points at front and optional extra inside.
-  FOR3_R(k, 0, M) {
-    FOR(extra, 2) {
-      if (k + extra >= M) continue;
-      int core_n = N - k - extra;
-      int core_m = M - k - extra;
-      if (core_n <= 0 || core_m <= 0) continue;
-      build_core(build_core, core_n, core_m, k, extra);
+  auto transition(U8 t, U8 left, U8 cycles, const ActiveMap& state, bool take_left,
+                  U8& next_left, U8& next_cycles, ActiveMap& next_state) const -> bool {
+    const U8 value = as<U8>(t + 1);
+    const U8 right = as<U8>(t - left);
+    const U8 idx = take_left ? as<U8>(left + 1) : as<U8>(n - right);
+
+    const U8 endpoint = state.get(value);
+    next_state = state;
+    next_state.erase_key(value);
+
+    const bool closes_cycle = (idx == endpoint);
+    next_cycles = as<U8>(cycles + (closes_cycle ? 1 : 0));
+    if (next_cycles > as<U8>(m)) return false;
+
+    if (!closes_cycle) {
+      const U8 key = next_state.find_key_by_value(idx);
+      next_state.set_map(key, endpoint);
+    }
+
+    next_left = take_left ? as<U8>(left + 1) : left;
+    return true;
+  }
+
+  auto count_from(U8 t, U8 left, U8 cycles, const ActiveMap& state) -> I32 {
+    if (as<I32>(cycles) + 1 > m) return 0;
+    if (as<I32>(cycles) + (n - as<I32>(t)) < m) return 0;
+
+    if (t == as<U8>(n - 1)) {
+      return (as<I32>(cycles) + 1 == m) ? 1 : 0;
+    }
+
+    const String packed = state.pack();
+    const String key = make_key(t, left, cycles, packed);
+    if (const auto it = memo.find(key); it != memo.end()) return it->second;
+
+    I32 ways = 0;
+    FOR(branch, 2) {
+      if (ways == CAP) break;
+      const bool take_left = (branch == 0);
+      U8 next_left = 0, next_cycles = 0;
+      ActiveMap next_state;
+      if (!transition(t, left, cycles, state, take_left, next_left, next_cycles, next_state)) {
+        continue;
+      }
+      ways += count_from(as<U8>(t + 1), next_left, next_cycles, next_state);
+      if (ways > CAP) ways = CAP;
+    }
+
+    memo.emplace(key, ways);
+    return ways;
+  }
+
+  void emit(U8 t, U8 left, U8 cycles, const ActiveMap& state, Vec<I32>& p) {
+    if (printed >= limit) return;
+    if (t == as<U8>(n - 1)) {
+      p[left + 1] = n;
+      FOR(i, 1, n + 1) {
+        if (i > 1) cout << ' ';
+        cout << p[i];
+      }
+      cout << '\n';
+      ++printed;
+      p[left + 1] = 0;
+      return;
+    }
+
+    const U8 value = as<U8>(t + 1);
+    const U8 right = as<U8>(t - left);
+    const U8 idx_left = as<U8>(left + 1);
+    const U8 idx_right = as<U8>(n - right);
+
+    FOR(branch, 2) {
+      const bool take_left = (branch == 0);
+      U8 next_left = 0, next_cycles = 0;
+      ActiveMap next_state;
+      if (!transition(t, left, cycles, state, take_left, next_left, next_cycles,
+                      next_state)) {
+        continue;
+      }
+
+      if (count_from(as<U8>(t + 1), next_left, next_cycles, next_state) ==
+          0) {
+        continue;
+      }
+
+      p[take_left ? idx_left : idx_right] = value;
+      emit(as<U8>(t + 1), next_left, next_cycles, next_state, p);
+      p[take_left ? idx_left : idx_right] = 0;
+      if (printed >= limit) return;
     }
   }
 
-  return res;
+  void run() {
+    if (m < 1 || m > n) {
+      OUT(0);
+      return;
+    }
+
+    const ActiveMap empty;
+    const I32 total = count_from(0, 0, 0, empty);
+    limit = min(total, CAP);
+    OUT(limit);
+    if (limit == 0) return;
+
+    Vec<I32> permutation(n + 1, 0);
+    emit(0, 0, 0, empty, permutation);
+  }
+};
+
+void solve() {
+  INT(n, m);
+  Solver solver;
+  solver.n = n;
+  solver.m = m;
+  solver.memo.reserve(1 << 20);
+  solver.run();
 }
 
 //===----------------------------------------------------------------------===//
-/* Main function */
+/* Main Function */
 
 auto main() -> int {
-  ios_base::sync_with_stdio(false);
-  cin.tie(nullptr);
+#ifdef LOCAL
+  Timer timer;
+  // init_debug_log();
+#endif
 
-  int n, m;
-  if (!(cin >> n >> m)) return 0;
-
-  auto perms = solve_bitonic(n, m);
-  cout << perms.size() << '\n';
-
-  // Print permutations.
-  for (const auto& p : perms) {
-    FOR(i, n) {
-      cout << p[i] + 1 << (i + 1 == n ? '\n' : ' ');
-    }
-  }
+  solve();
 
   return 0;
 }
