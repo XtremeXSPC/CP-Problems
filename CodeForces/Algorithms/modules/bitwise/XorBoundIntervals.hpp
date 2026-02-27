@@ -8,9 +8,9 @@ struct XorBoundIntervals {
   I32 m = 0;
   I32 limit = 0;
   I32 top_bit = 0;
-  Vec<I32> overlap;
-  Vec<I32> offset;
-  Vec<Pair<I32, I32>> intervals;
+  VecI32 overlap;
+  VecI32 offset;
+  Vec<PairI32> intervals;
 
   XorBoundIntervals() = default;
 
@@ -29,7 +29,7 @@ struct XorBoundIntervals {
     intervals.clear();
     intervals.reserve(as<Size>(limit) * 10);
 
-    Vec<Pair<I32, I32>> tmp;
+    Vec<PairI32> tmp;
     tmp.reserve(32);
 
     FOR(x, limit) {
@@ -58,12 +58,12 @@ struct XorBoundIntervals {
     return offset[x + 1];
   }
 
-  [[nodiscard]] inline auto interval_at(const I32 idx) const -> Pair<I32, I32> {
+  [[nodiscard]] inline auto interval_at(const I32 idx) const -> PairI32 {
     return intervals[idx];
   }
 
 private:
-  void collect_for_x(const I32 x, Vec<Pair<I32, I32>>& out) const {
+  void collect_for_x(const I32 x, Vec<PairI32>& out) const {
     out.clear();
     if ((x >> (top_bit + 1)) != 0) return;
 
@@ -101,7 +101,7 @@ private:
     dfs(dfs, top_bit, true, true, 0);
     if (out.empty()) return;
 
-    Vec<Pair<I32, I32>> merged;
+    Vec<PairI32> merged;
     merged.reserve(out.size());
     for (const auto [l, r] : out) {
       if (!merged.empty() && l <= merged.back().second + 1) {
