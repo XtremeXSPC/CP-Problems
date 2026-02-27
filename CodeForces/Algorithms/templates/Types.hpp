@@ -45,6 +45,9 @@ using F80 = long double;
   #define HAS_FLOAT128 0
 #endif
 
+template <typename T>
+using Limits = std::numeric_limits<T>;
+
 // Common standard scalar aliases.
 using Size = std::size_t;
 using Diff = std::ptrdiff_t;

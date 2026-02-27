@@ -21,5 +21,6 @@
 #include "data_structures/LinkCutTree.hpp"
 #include "data_structures/DSURollback.hpp"
 #include "data_structures/Mo.hpp"
+#include "data_structures/SparseDeltaSweep.hpp"
 
 #endif
