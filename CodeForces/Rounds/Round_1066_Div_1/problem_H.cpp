@@ -150,13 +150,11 @@ struct Solver {
       const bool take_left = (branch == 0);
       U8 next_left = 0, next_cycles = 0;
       ActiveMap next_state;
-      if (!transition(t, left, cycles, state, take_left, next_left, next_cycles,
-                      next_state)) {
+      if (!transition(t, left, cycles, state, take_left, next_left, next_cycles, next_state)) {
         continue;
       }
 
-      if (count_from(as<U8>(t + 1), next_left, next_cycles, next_state) ==
-          0) {
+      if (count_from(as<U8>(t + 1), next_left, next_cycles, next_state) == 0) {
         continue;
       }
 
