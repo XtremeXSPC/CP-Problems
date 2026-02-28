@@ -33,8 +33,7 @@ inline void shift_solution(I64& x, I64& y, I64 a, I64 b, I64 k) {
 }
 
 /// @brief Counts integer solutions in box constraints.
-inline I64 count_solutions(
-    I64 a, I64 b, I64 c, I64 min_x, I64 max_x, I64 min_y, I64 max_y) {
+inline I64 count_solutions(I64 a, I64 b, I64 c, I64 min_x, I64 max_x, I64 min_y, I64 max_y) {
   if (min_x > max_x || min_y > max_y) return 0;
   if (a == 0 && b == 0) {
     if (c != 0) return 0;

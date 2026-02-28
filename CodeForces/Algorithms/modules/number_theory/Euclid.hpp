@@ -5,7 +5,7 @@
 
 /// @brief Extended Euclidean Algorithm returning gcd and coefficients.
 template <typename T>
-std::tuple<T, T, T> extended_gcd(T a, T b) {
+Tuple<T, T, T> extended_gcd(T a, T b) {
   if (b == 0) return {a, 1, 0};
   auto [g, x1, y1] = extended_gcd(b, a % b);
   T x = y1;
@@ -23,7 +23,7 @@ T mod_inverse(T a, T m) {
 
 /// @brief General Chinese Remainder Theorem for possibly non-coprime moduli.
 template <typename T>
-std::pair<T, T> chinese_remainder(const Vec<T>& a, const Vec<T>& m) {
+Pair<T, T> chinese_remainder(const Vec<T>& a, const Vec<T>& m) {
   if (a.size() != m.size()) return {-1, -1};
 
   T x = 0, M = 1;
@@ -44,7 +44,7 @@ std::pair<T, T> chinese_remainder(const Vec<T>& a, const Vec<T>& m) {
 
     __int128 next_x = as<__int128>(x) + as<__int128>(M) * t;
     __int128 next_M = as<__int128>(M) * mod;
-    if (next_M > std::numeric_limits<T>::max()) return {-1, -1};
+    if (next_M > Limits<T>::max()) return {-1, -1};
 
     x = as<T>(next_x % next_M);
     M = as<T>(next_M);
