@@ -20,13 +20,13 @@ struct AhoCorasickAdvanced {
     I32 link = 0;
     I32 parent = -1;
     char parent_char = 0;
-    Vec<I32> out;
+    VecI32 out;
 
     Node() { next.fill(-1); }
   };
 
   Vec<Node> nodes;
-  Vec<I32> pattern_len;
+  VecI32 pattern_len;
   bool built = false;
   VecI32 bfs_order;
 
@@ -40,7 +40,7 @@ struct AhoCorasickAdvanced {
   }
 
   /// @brief Adds one pattern and returns its id.
-  I32 add_pattern(const std::string& pattern) {
+  I32 add_pattern(const String& pattern) {
     I32 id = as<I32>(pattern_len.size());
     pattern_len.push_back(as<I32>(pattern.size()));
 
@@ -105,9 +105,9 @@ struct AhoCorasickAdvanced {
   }
 
   /// @brief Returns all matches as {end_position, pattern_id}.
-  Vec<PairI32> all_matches(const std::string& text) {
+  VecPairI32 all_matches(const String& text) {
     if (!built) build();
-    Vec<PairI32> matches;
+    VecPairI32 matches;
     I32 v = 0;
     FOR(i, as<I32>(text.size())) {
       char ch = text[as<Size>(i)];
@@ -125,9 +125,9 @@ struct AhoCorasickAdvanced {
   }
 
   /// @brief Counts pattern occurrences in text.
-  Vec<I64> count_occurrences(const std::string& text) {
+  VecI64 count_occurrences(const String& text) {
     if (!built) build();
-    Vec<I64> ans(pattern_len.size(), 0);
+    VecI64 ans(pattern_len.size(), 0);
     I32 v = 0;
     for (char ch : text) {
       I32 c = ch - BASE;

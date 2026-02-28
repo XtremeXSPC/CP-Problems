@@ -12,19 +12,19 @@
  *  - RMQ over LCP in O(n log n)
  */
 struct SuffixArray {
-  std::string s;
-  Vec<I32> sa;    // Sorted suffix start positions.
-  Vec<I32> rank;  // rank[i] = position of suffix i in sa.
-  Vec<I32> lcp;   // lcp[k] = LCP(sa[k], sa[k+1]), size n-1.
+  String s;
+  VecI32 sa;    // Sorted suffix start positions.
+  VecI32 rank;  // rank[i] = position of suffix i in sa.
+  VecI32 lcp;   // lcp[k] = LCP(sa[k], sa[k+1]), size n-1.
 
-  Vec<I32> lg;
-  Vec<Vec<I32>> st;
+  VecI32 lg;
+  Vec2D<I32> st;
 
   SuffixArray() = default;
-  explicit SuffixArray(const std::string& str) { build(str); }
+  explicit SuffixArray(const String& str) { build(str); }
 
   /// @brief Rebuilds all structures for input string.
-  void build(const std::string& str) {
+  void build(const String& str) {
     s = str;
     build_sa();
     build_lcp();
@@ -41,8 +41,8 @@ struct SuffixArray {
   }
 
   /// @brief Finds all occurrences of pattern using binary search on SA.
-  Vec<I32> find_pattern(const std::string& pattern) const {
-    Vec<I32> result;
+  VecI32 find_pattern(const String& pattern) const {
+    VecI32 result;
     const I32 n = sz(s);
 
     auto cmp_suffix_pattern = [&](I32 suffix_pos) -> I32 {
@@ -85,14 +85,14 @@ private:
 
     // Build SA on s + sentinel(0) as cyclic shifts.
     const I32 m = n + 1;
-    Vec<I32> a(m);
+    VecI32 a(m);
     FOR(i, n) a[i] = as<U8>(s[i]) + 1;
     a[n] = 0;
 
-    Vec<I32> p(m), c(m);
+    VecI32 p(m), c(m);
     {
       const I32 alphabet = std::max<I32>(256 + 1, m);
-      Vec<I32> cnt(alphabet, 0);
+      VecI32 cnt(alphabet, 0);
       FOR(i, m) cnt[a[i]]++;
       FOR(i, 1, alphabet) cnt[i] += cnt[i - 1];
       FOR_R(i, m) p[--cnt[a[i]]] = i;
@@ -111,15 +111,15 @@ private:
 
       I32 classes = 0;
       FOR(i, m) classes = std::max(classes, c[i] + 1);
-      Vec<I32> cnt(classes, 0);
+      VecI32 cnt(classes, 0);
       FOR(i, m) cnt[c[p[i]]]++;
       FOR(i, 1, classes) cnt[i] += cnt[i - 1];
 
-      Vec<I32> pn(m);
+      VecI32 pn(m);
       FOR_R(i, m) pn[--cnt[c[p[i]]]] = p[i];
       p.swap(pn);
 
-      Vec<I32> cn(m);
+      VecI32 cn(m);
       cn[p[0]] = 0;
       classes = 1;
       FOR(i, 1, m) {
@@ -169,7 +169,7 @@ private:
     }
 
     const I32 max_log = lg[n] + 1;
-    st.assign(max_log, Vec<I32>(n));
+    st.assign(max_log, VecI32(n));
     FOR(i, n) st[0][i] = lcp[i];
     FOR(k, 1, max_log) {
       FOR(i, n - (1 << k) + 1) {

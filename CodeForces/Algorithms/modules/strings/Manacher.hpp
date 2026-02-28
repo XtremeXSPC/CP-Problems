@@ -5,11 +5,11 @@
 
 /// @brief Manacher algorithm for palindromic substrings in linear time.
 struct Manacher {
-  std::string s;
-  Vec<I32> p;  // p[i] = radius of palindrome centered at 'i'.
+  String s;
+  VecI32 p;  // p[i] = radius of palindrome centered at 'i'.
 
   /// @brief Builds transformed string and palindrome radii.
-  Manacher(const std::string& str) {
+  Manacher(const String& str) {
     // Transform string: "abc" -> "^#a#b#c#$".
     s = "^";
     for (char c : str) {

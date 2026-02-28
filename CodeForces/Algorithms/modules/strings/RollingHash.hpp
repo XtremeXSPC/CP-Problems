@@ -10,11 +10,11 @@ struct RollingHash {
   static constexpr I64 BASE1 = 31;
   static constexpr I64 BASE2 = 37;
 
-  std::string s;
-  Vec<I64> hash1, hash2, pow1, pow2;
+  String s;
+  VecI64 hash1, hash2, pow1, pow2;
 
   /// @brief Precomputes prefix hashes and powers.
-  RollingHash(const std::string& str) : s(str) {
+  RollingHash(const String& str) : s(str) {
     I32 n = sz(s);
     hash1.resize(n + 1);
     hash2.resize(n + 1);
@@ -26,8 +26,8 @@ struct RollingHash {
       I64 ch = as<U8>(s[i]);
       hash1[i + 1] = (hash1[i] * BASE1 + ch) % MOD1;
       hash2[i + 1] = (hash2[i] * BASE2 + ch) % MOD2;
-      pow1[i + 1] = (pow1[i] * BASE1) % MOD1;
-      pow2[i + 1] = (pow2[i] * BASE2) % MOD2;
+      pow1[i + 1]  = (pow1[i] * BASE1) % MOD1;
+      pow2[i + 1]  = (pow2[i] * BASE2) % MOD2;
     }
   }
 

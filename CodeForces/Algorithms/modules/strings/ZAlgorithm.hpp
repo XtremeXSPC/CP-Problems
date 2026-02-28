@@ -4,9 +4,9 @@
 #include "_Common.hpp"
 
 /// @brief Computes Z-array where z[i] is LCP(s, s[i..]).
-inline Vec<I32> z_algorithm(const std::string& s) {
+inline VecI32 z_algorithm(const String& s) {
   I32 n = sz(s);
-  Vec<I32> z(n);
+  VecI32 z(n);
   if (n == 0) return z;
   z[0] = n;
 

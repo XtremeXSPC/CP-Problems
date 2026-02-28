@@ -25,7 +25,7 @@ struct SuffixAutomaton {
 
   SuffixAutomaton() { reset(); }
 
-  explicit SuffixAutomaton(const std::string& s) {
+  explicit SuffixAutomaton(const String& s) {
     reset();
     build(s);
   }
@@ -77,12 +77,12 @@ struct SuffixAutomaton {
   }
 
   /// @brief Builds SAM from whole string.
-  void build(const std::string& s) {
+  void build(const String& s) {
     for (char c : s) extend(c);
   }
 
   /// @brief Checks if pattern is a substring of the built text.
-  bool contains(const std::string& pattern) const {
+  bool contains(const String& pattern) const {
     I32 v = 0;
     for (char c : pattern) {
       auto it = st[as<Size>(v)].next.find(c);
@@ -129,7 +129,7 @@ struct SuffixAutomaton {
   }
 
   /// @brief Returns number of occurrences of pattern in the text.
-  I64 occurrences(const std::string& pattern) {
+  I64 occurrences(const String& pattern) {
     if (!occ_ready) build_occurrences();
     I32 v = 0;
     for (char c : pattern) {

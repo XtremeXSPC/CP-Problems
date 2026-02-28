@@ -12,8 +12,8 @@
  */
 
 /// @brief Returns factor ranges [l, r) of Lyndon factorization.
-inline Vec<PairI32> lyndon_factor_ranges(const String& s) {
-  Vec<PairI32> ranges;
+inline VecPairI32 lyndon_factor_ranges(const String& s) {
+  VecPairI32 ranges;
   const I32 n = as<I32>(s.size());
   I32 i = 0;
   while (i < n) {

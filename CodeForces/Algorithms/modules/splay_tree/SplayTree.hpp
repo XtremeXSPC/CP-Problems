@@ -32,7 +32,7 @@ struct SplayTree {
   };
 
   Vec<Node> nodes;
-  Vec<I32> free_list;
+  VecI32 free_list;
 
   SplayTree() = default;
 
@@ -126,7 +126,7 @@ struct SplayTree {
 
   /// @brief Splays node x to the root of its tree.
   void splay(I32 x) {
-    static Vec<I32> anc;
+    static VecI32 anc;
     anc.clear();
     for (I32 v = x; v != -1; v = nodes[v].par) anc.push_back(v);
     FOR_R(i, sz(anc)) push(anc[i]);
@@ -156,7 +156,7 @@ struct SplayTree {
   //===-------------------- AUXILIARY TREE OPERATIONS ---------------------===//
 
   /// @brief Splits tree into left (k elements) and right (rest).
-  Pair<I32, I32> split(I32 root, I32 k) {
+  PairI32 split(I32 root, I32 k) {
     if (k <= 0) return {-1, root};
     if (root == -1 || k >= size(root)) return {root, -1};
 

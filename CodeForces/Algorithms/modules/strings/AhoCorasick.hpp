@@ -14,7 +14,7 @@ struct AhoCorasick {
 
   /// @brief Automaton node with goto transitions, suffix link and output list.
   struct Node {
-    std::array<I32, ALPHABET> next;
+    Array<I32, ALPHABET> next;
     I32 link;
     Vec<I32> out;
 
@@ -31,7 +31,7 @@ struct AhoCorasick {
   }
 
   /// @brief Adds one pattern to trie backbone.
-  void add_pattern(const std::string& pattern, I32 id) {
+  void add_pattern(const String& pattern, I32 id) {
     I32 v = 0;
     for (char ch : pattern) {
       I32 c = ch - BASE;
@@ -49,7 +49,7 @@ struct AhoCorasick {
   }
 
   /// @brief Builds full automaton from a pattern set.
-  void build(const Vec<std::string>& patterns) {
+  void build(const Vec<String>& patterns) {
     nodes.assign(1, Node{});
     FOR(i, sz(patterns)) add_pattern(patterns[i], i);
 
@@ -83,8 +83,8 @@ struct AhoCorasick {
   }
 
   /// @brief Matches text and returns output ids at each end position.
-  Vec<Vec<I32>> match(const std::string& text) const {
-    Vec<Vec<I32>> result(sz(text));
+  Vec2D<I32> match(const String& text) const {
+    Vec2D<I32> result(sz(text));
     I32 v = 0;
 
     FOR(i, sz(text)) {
