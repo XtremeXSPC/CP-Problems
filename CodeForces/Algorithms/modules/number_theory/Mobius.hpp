@@ -51,7 +51,7 @@ struct Mobius {
     VecI32 divisors;
     if (value <= 0 || limit <= 0) return divisors;
 
-    const Vec<Pair<I64, I32>> factors = factorize(value);
+    const VecPair<I64, I32> factors = factorize(value);
     divisors.reserve(2048);
 
     const auto dfs = [&](const auto& self, const I32 idx, const I64 cur) -> void {
@@ -91,8 +91,8 @@ struct Mobius {
   }
 
 private:
-  [[nodiscard]] auto factorize(const I64 value) const -> Vec<Pair<I64, I32>> {
-    Vec<Pair<I64, I32>> factors;
+  [[nodiscard]] auto factorize(const I64 value) const -> VecPair<I64, I32> {
+    VecPair<I64, I32> factors;
     I64 x = value;
 
     for (const I32 p32 : primes) {

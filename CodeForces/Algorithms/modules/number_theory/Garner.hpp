@@ -50,12 +50,8 @@ inline I64 garner(const Vec<I64>& residues, const Vec<I64>& moduli, I64 result_m
 
     FOR(j, i + 1, k + 1) {
       I64 mj = mods[j];
-      constants[j] = as<I64>(
-          (as<__int128>(constants[j]) +
-           as<__int128>(coeffs[j]) * t) %
-          mj);
-      coeffs[j] =
-          as<I64>((as<__int128>(coeffs[j]) * mi) % mj);
+      constants[j] = as<I64>((as<__int128>(constants[j]) + as<__int128>(coeffs[j]) * t) % mj);
+      coeffs[j] = as<I64>((as<__int128>(coeffs[j]) * mi) % mj);
     }
   }
 

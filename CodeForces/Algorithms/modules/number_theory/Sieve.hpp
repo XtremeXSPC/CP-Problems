@@ -6,9 +6,9 @@
 /// @brief Prime sieve with smallest prime factor table.
 struct Sieve {
   I32 n;
-  Vec<bool> is_prime;
-  Vec<I32> primes;
-  Vec<I32> smallest_factor;
+  VecBool is_prime;
+  VecI32 primes;
+  VecI32 smallest_factor;
 
   /// @brief Builds sieve up to @p size.
   Sieve(I32 size)
@@ -37,8 +37,8 @@ struct Sieve {
   }
 
   /// @brief Prime factorization of x as (prime, exponent) pairs.
-  Vec<PairI32> factorize(I32 x) const {
-    Vec<PairI32> factors;
+  VecPairI32 factorize(I32 x) const {
+    VecPairI32 factors;
     if (x <= 1) return factors;
 
     if (x > n) {
