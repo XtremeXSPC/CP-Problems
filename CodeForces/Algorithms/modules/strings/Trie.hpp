@@ -7,7 +7,7 @@
 struct Trie {
   /// @brief Trie node keyed by character transitions.
   struct Node {
-    std::unordered_map<char, I32> children;
+    UnorderedMap<char, I32> children;
     bool is_end = false;
     I32 count = 0;         // Number of words ending at this node.
     I32 prefix_count = 0;  // Number of words with this prefix.
@@ -21,7 +21,7 @@ struct Trie {
   }
 
   /// @brief Inserts one word occurrence.
-  void insert(const std::string& word) {
+  void insert(const String& word) {
     I32 current = 0;
     for (char c : word) {
       nodes[current].prefix_count++;
@@ -37,7 +37,7 @@ struct Trie {
   }
 
   /// @brief Checks exact word existence.
-  bool search(const std::string& word) {
+  bool search(const String& word) {
     I32 current = 0;
     for (char c : word) {
       if (!nodes[current].children.count(c)) return false;
@@ -47,7 +47,7 @@ struct Trie {
   }
 
   /// @brief Counts inserted words sharing given prefix.
-  I32 count_prefix(const std::string& prefix) {
+  I32 count_prefix(const String& prefix) {
     I32 current = 0;
     for (char c : prefix) {
       if (!nodes[current].children.count(c)) return 0;
@@ -57,8 +57,8 @@ struct Trie {
   }
 
   /// @brief Enumerates all stored words with given prefix.
-  Vec<std::string> find_with_prefix(const std::string& prefix) {
-    Vec<std::string> result;
+  Vec<String> find_with_prefix(const String& prefix) {
+    Vec<String> result;
     I32 current = 0;
 
     for (char c : prefix) {
@@ -66,7 +66,7 @@ struct Trie {
       current = nodes[current].children[c];
     }
 
-    std::function<void(I32, std::string)> dfs = [&](I32 node, std::string word) {
+    Function<void(I32, String)> dfs = [&](I32 node, String word) {
       if (nodes[node].is_end) {
         FOR(nodes[node].count) result.push_back(word);
       }
