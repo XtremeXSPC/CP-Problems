@@ -93,7 +93,7 @@ void solve() {
 
   Vec<PairI32> queries(t);
   UnorderedMap<I32, VecI32> idx_by_m;
-  idx_by_m.reserve(as<size_t>(t) * 2U + 16U);
+  idx_by_m.reserve(as<Size>(t) * 2U + 16U);
   I32 global_max_n = 0;
   FOR(i, t) {
     INT(n, m);
