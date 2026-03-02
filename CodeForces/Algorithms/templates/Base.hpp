@@ -40,6 +40,45 @@
   #define CP_USE_GLOBAL_STD_NAMESPACE 1
 #endif
 
+// Optional I/O profile shortcuts.
+// - CP_IO_PROFILE_SIMPLE:        enables NEED_IO
+// - CP_IO_PROFILE_FAST_MINIMAL:  enables NEED_FAST_IO
+// - CP_IO_PROFILE_FAST_EXTENDED: enables NEED_FAST_IO + NEED_MOD_INT + NEED_TYPE_SAFETY
+//                                and turns on Fast_IO ModInt/StrongType extensions.
+#if (defined(CP_IO_PROFILE_SIMPLE) + defined(CP_IO_PROFILE_FAST_MINIMAL) + defined(CP_IO_PROFILE_FAST_EXTENDED)) > 1
+  #error "Choose only one I/O profile macro: CP_IO_PROFILE_SIMPLE, CP_IO_PROFILE_FAST_MINIMAL, or CP_IO_PROFILE_FAST_EXTENDED."
+#endif
+
+#ifdef CP_IO_PROFILE_SIMPLE
+  #ifndef NEED_IO
+    #define NEED_IO
+  #endif
+#endif
+
+#ifdef CP_IO_PROFILE_FAST_MINIMAL
+  #ifndef NEED_FAST_IO
+    #define NEED_FAST_IO
+  #endif
+#endif
+
+#ifdef CP_IO_PROFILE_FAST_EXTENDED
+  #ifndef NEED_FAST_IO
+    #define NEED_FAST_IO
+  #endif
+  #ifndef NEED_MOD_INT
+    #define NEED_MOD_INT
+  #endif
+  #ifndef NEED_TYPE_SAFETY
+    #define NEED_TYPE_SAFETY
+  #endif
+  #ifndef CP_FAST_IO_ENABLE_MODINT
+    #define CP_FAST_IO_ENABLE_MODINT 1
+  #endif
+  #ifndef CP_FAST_IO_ENABLE_STRONG_TYPE
+    #define CP_FAST_IO_ENABLE_STRONG_TYPE 1
+  #endif
+#endif
+
 // Core modules: fundamental types and utilities.
 #ifdef NEED_CORE
   #include "Types.hpp"
@@ -94,6 +133,9 @@
 #endif
 
 // High-performance buffered I/O (opt-in).
+// Optional Fast_IO extensions:
+// - CP_FAST_IO_ENABLE_MODINT defaults to 1 when NEED_MOD_INT is defined.
+// - CP_FAST_IO_ENABLE_STRONG_TYPE defaults to 0 (enable explicitly when needed).
 #ifdef NEED_FAST_IO
   #if !defined(NEED_CORE) && !CP_STRICT_TEMPLATE_NEEDS
     #include "Types.hpp"

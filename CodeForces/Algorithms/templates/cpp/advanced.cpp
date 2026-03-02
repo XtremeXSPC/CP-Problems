@@ -18,12 +18,10 @@
 #endif
 
 #define NEED_CORE
-#define NEED_FAST_IO
+#define CP_IO_PROFILE_FAST_EXTENDED
 #define NEED_PBDS
 #define NEED_BIT_OPS
-#define NEED_MOD_INT
 #define NEED_CONTAINERS
-#define NEED_TYPE_SAFETY
 
 #include "templates/Base.hpp"
 

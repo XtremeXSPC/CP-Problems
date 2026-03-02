@@ -8,6 +8,14 @@
   #define CP_FAST_IO_NAMESPACE_DEFINED 1
 #endif
 
+template <I64 MOD>
+struct ModInt;
+
+namespace cp {
+template <class T, class Tag>
+class StrongType;
+}
+
 namespace fast_io {
 
 static constexpr U32 BUFFER_SIZE = 1U << 17; // 128 KB
@@ -18,6 +26,16 @@ alignas(64) inline char number_buffer[128];
 inline U32 input_pos = 0;
 inline U32 input_end = 0;
 inline U32 output_pos = 0;
+
+template <class T>
+using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
+
+template <class T>
+concept FastIntegral = std::integral<remove_cvref_t<T>> && !std::same_as<remove_cvref_t<T>, bool>
+    && !std::same_as<remove_cvref_t<T>, char>;
+
+template <class T>
+concept FastFloating = std::floating_point<remove_cvref_t<T>>;
 
 /* ------------------------------- INPUT API -------------------------------- */
 
@@ -45,24 +63,25 @@ inline void read_char(char& c) {
 
 template <typename T>
 inline void read_integer(T& x) {
-  if (input_pos + 64 >= input_end) load_input();
-
   char c;
   do {
+    if (input_pos >= input_end) load_input();
     c = input_buffer[input_pos++];
-  } while (c < '-');
+  } while (std::isspace(static_cast<unsigned char>(c)));
 
   bool negative = false;
   if constexpr (std::is_signed_v<T>) {
     if (c == '-') {
       negative = true;
+      if (input_pos >= input_end) load_input();
       c = input_buffer[input_pos++];
     }
   }
 
   x = 0;
-  while (c >= '0') {
+  while (c >= '0' && c <= '9') {
     x = x * 10 + (c - '0');
+    if (input_pos >= input_end) load_input();
     c = input_buffer[input_pos++];
   }
 
@@ -71,8 +90,9 @@ inline void read_integer(T& x) {
   }
 }
 
-inline void read_string(std::string& s) {
+inline void read_string(String& s) {
   s.clear();
+  s.reserve(32);
   char c;
   do {
     if (input_pos >= input_end) load_input();
@@ -86,34 +106,32 @@ inline void read_string(std::string& s) {
   } while (!std::isspace(static_cast<unsigned char>(c)));
 }
 
-inline void read(I32& x) { read_integer(x); }
-inline void read(I64& x) { read_integer(x); }
-inline void read(U32& x) { read_integer(x); }
-inline void read(U64& x) { read_integer(x); }
+template <typename T>
+inline void read_floating(T& x) {
+  String token;
+  read_string(token);
+  const char* ptr = token.c_str();
+  char* end = nullptr;
+  if constexpr (std::same_as<remove_cvref_t<T>, F32>) {
+    x = std::strtof(ptr, &end);
+  } else if constexpr (std::same_as<remove_cvref_t<T>, F64>) {
+    x = std::strtod(ptr, &end);
+  } else {
+    x = std::strtold(ptr, &end);
+  }
+  if (end == ptr || *end != '\0') x = static_cast<T>(0);
+}
+
+template <FastIntegral T>
+inline void read(T& x) {
+  read_integer(x);
+}
+template <FastFloating T>
+inline void read(T& x) {
+  read_floating(x);
+}
 inline void read(char& x) { read_char(x); }
-inline void read(std::string& x) { read_string(x); }
-
-template <class T, class U>
-void read(std::pair<T, U>& p) {
-  read(p.first);
-  read(p.second);
-}
-
-template <class T>
-void read(Vec<T>& v) {
-  for (auto& x : v) read(x);
-}
-
-template <typename... Args>
-void read(std::tuple<Args...>& t) {
-  std::apply([](auto&... args) { (read(args), ...); }, t);
-}
-
-template <class Head, class... Tail>
-void read(Head& head, Tail&... tail) {
-  read(head);
-  if constexpr (sizeof...(tail) > 0) read(tail...);
-}
+inline void read(String& x) { read_string(x); }
 
 /* ------------------------------- OUTPUT API ------------------------------- */
 
@@ -146,6 +164,23 @@ inline void write_integer(T x) {
   }
 }
 
+template <typename T>
+inline void write_floating(T x) {
+  char local_buffer[128];
+  const int n = std::snprintf(local_buffer, sizeof(local_buffer), "%.10Lf", static_cast<long double>(x));
+  if (n <= 0) return;
+
+  U32 len = static_cast<U32>(std::min(n, static_cast<int>(sizeof(local_buffer) - 1)));
+  if (len >= BUFFER_SIZE) {
+    flush_output();
+    std::fwrite(local_buffer, 1, len, stdout);
+    return;
+  }
+  if (output_pos + len >= BUFFER_SIZE) flush_output();
+  std::memcpy(output_buffer + output_pos, local_buffer, len);
+  output_pos += len;
+}
+
 inline void write_char(char c) {
   if (output_pos >= BUFFER_SIZE) flush_output();
   output_buffer[output_pos++] = c;
@@ -155,53 +190,45 @@ inline void write_string(std::string_view s) {
   for (char c : s) write_char(c);
 }
 
-inline void write(I32 x) { write_integer(x); }
-inline void write(I64 x) { write_integer(x); }
-inline void write(U32 x) { write_integer(x); }
-inline void write(U64 x) { write_integer(x); }
+template <FastIntegral T>
+inline void write(T x) {
+  write_integer(x);
+}
+template <FastFloating T>
+inline void write(T x) {
+  write_floating(x);
+}
 inline void write(char x) { write_char(x); }
-inline void write(const std::string& x) { write_string(x); }
+inline void write(const String& x) { write_string(x); }
 inline void write(const char* x) { write_string(x); }
 
-template <class T, class U>
-void write(const std::pair<T, U>& p) {
-  write(p.first);
-  write(' ');
-  write(p.second);
-}
+#ifndef CP_FAST_IO_ENABLE_MODINT
+  #ifdef NEED_MOD_INT
+    #define CP_FAST_IO_ENABLE_MODINT 1
+  #else
+    #define CP_FAST_IO_ENABLE_MODINT 0
+  #endif
+#endif
+
+#ifndef CP_FAST_IO_ENABLE_STRONG_TYPE
+  #define CP_FAST_IO_ENABLE_STRONG_TYPE 0
+#endif
+
+#if CP_FAST_IO_ENABLE_MODINT
+  #include "Fast_IO_Ext_ModInt.hpp"
+#endif
+
+#if CP_FAST_IO_ENABLE_STRONG_TYPE
+  #include "Fast_IO_Ext_StrongType.hpp"
+#endif
+
+#include "IO_Composite.hpp"
 
 template <class T>
-void write(const Vec<T>& v) {
-  for (I64 i = 0; i < static_cast<I64>(v.size()); ++i) {
-    if (i) write(' ');
-    write(v[i]);
-  }
-}
+void read(T&) = delete;
 
-template <typename... Args>
-void write(const std::tuple<Args...>& t) {
-  I32 i = 0;
-  std::apply([&i](const auto&... args) {
-    ((i++ > 0 ? (write(' '), 0) : 0, write(args)), ...);
-  }, t);
-}
-
-template <class Head, class... Tail>
-void write(const Head& head, const Tail&... tail) {
-  write(head);
-  if constexpr (sizeof...(tail) > 0) {
-    write(' ');
-    write(tail...);
-  }
-}
-
-inline void writeln() { write_char('\n'); }
-
-template <class... Args>
-void writeln(const Args&... args) {
-  if constexpr (sizeof...(args) > 0) write(args...);
-  write_char('\n');
-}
+template <class T>
+void write(const T&) = delete;
 
 struct IOFlusher {
   ~IOFlusher() { flush_output(); }
