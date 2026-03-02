@@ -24,6 +24,21 @@ ENDIF_DIRECTIVE_RE = re.compile(r"^\s*#\s*endif\b")
 ELSE_OR_ELIF_DIRECTIVE_RE = re.compile(r"^\s*#\s*(else|elif)\b")
 NEED_DEFINE_RE = re.compile(r"^\s*#\s*define\s+(NEED_\w+)\b")
 NEED_UNDEF_RE = re.compile(r"^\s*#\s*undef\s+(NEED_\w+)\b")
+IO_PROFILE_DEFINE_RE = re.compile(
+    r"^\s*#\s*define\s+"
+    r"(CP_IO_PROFILE_(?:SIMPLE|FAST_MINIMAL|FAST_EXTENDED))\b"
+)
+IO_PROFILE_UNDEF_RE = re.compile(
+    r"^\s*#\s*undef\s+"
+    r"(CP_IO_PROFILE_(?:SIMPLE|FAST_MINIMAL|FAST_EXTENDED))\b"
+)
+
+IO_PROFILE_TO_NEEDS: dict[str, tuple[str, ...]] = {
+    "CP_IO_PROFILE_SIMPLE": ("NEED_IO",),
+    "CP_IO_PROFILE_FAST_MINIMAL": ("NEED_FAST_IO",),
+    # Extended profile enables Fast I/O plus optional type ecosystems.
+    "CP_IO_PROFILE_FAST_EXTENDED": ("NEED_FAST_IO", "NEED_MOD_INT", "NEED_TYPE_SAFETY"),
+}
 
 
 def load_need_mapping(base_header: Path) -> OrderedDict[str, list[str]]:
@@ -97,6 +112,7 @@ def extract_need_macros_from_source(
     """Extract enabled NEED_* macros from a source file content."""
     known = set(known_macros)
     found: set[str] = set()
+    enabled_io_profiles: set[str] = set()
 
     comments_stripped = strip_comments(source_content)
     masked_lines = strip_non_code(source_content).splitlines()
@@ -145,12 +161,27 @@ def extract_need_macros_from_source(
                 found.discard(macro)
             continue
 
-        define_match = NEED_DEFINE_RE.match(stripped)
-        if not define_match:
+        profile_undef_match = IO_PROFILE_UNDEF_RE.match(stripped)
+        if profile_undef_match:
+            enabled_io_profiles.discard(profile_undef_match.group(1))
             continue
-        macro = define_match.group(1)
-        if macro in known:
-            found.add(macro)
+
+        define_match = NEED_DEFINE_RE.match(stripped)
+        if define_match:
+            macro = define_match.group(1)
+            if macro in known:
+                found.add(macro)
+            continue
+
+        profile_define_match = IO_PROFILE_DEFINE_RE.match(stripped)
+        if profile_define_match:
+            enabled_io_profiles.add(profile_define_match.group(1))
+            continue
+
+    for profile_name in enabled_io_profiles:
+        for macro in IO_PROFILE_TO_NEEDS.get(profile_name, ()):
+            if macro in known:
+                found.add(macro)
 
     # Core should be included whenever any module macro is enabled.
     if found and "NEED_CORE" in known:

@@ -124,6 +124,7 @@ OPTIONAL_HEADER_TRIGGER_TOKENS = {
     },
     STRONG_TYPE_HPP: {
         "StrongType", "unwrap", "make_strong", "strong", "StrongInt",
+        "CP_DECLARE_STRONG_TYPE",
     },
     HASHING_HPP: {
         "splitmix64", "SplitMixHash", "PairHash", "FastHashMap", "FastHashSet",

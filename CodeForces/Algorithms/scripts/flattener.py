@@ -117,6 +117,25 @@ def extract_macro_values_from_source(
         for name, value in strict_defaults.items():
             macro_values.setdefault(name, value)
 
+    def _is_enabled(name: str) -> bool:
+        value = macro_values.get(name)
+        return value is not None and value != 0
+
+    # Mirror templates/Base.hpp I/O profile shorthands so conditional folding
+    # can preserve profile-driven includes in flattened output.
+    if _is_enabled("CP_IO_PROFILE_SIMPLE"):
+        macro_values.setdefault("NEED_IO", 1)
+
+    if _is_enabled("CP_IO_PROFILE_FAST_MINIMAL"):
+        macro_values.setdefault("NEED_FAST_IO", 1)
+
+    if _is_enabled("CP_IO_PROFILE_FAST_EXTENDED"):
+        macro_values.setdefault("NEED_FAST_IO", 1)
+        macro_values.setdefault("NEED_MOD_INT", 1)
+        macro_values.setdefault("NEED_TYPE_SAFETY", 1)
+        macro_values.setdefault("CP_FAST_IO_ENABLE_MODINT", 1)
+        macro_values.setdefault("CP_FAST_IO_ENABLE_STRONG_TYPE", 1)
+
     return macro_values
 
 

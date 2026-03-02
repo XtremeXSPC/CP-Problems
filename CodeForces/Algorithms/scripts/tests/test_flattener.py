@@ -25,6 +25,36 @@ from need_resolver import extract_need_macros_from_source, load_need_mapping  # 
 
 
 class FlattenerAuditTests(unittest.TestCase):
+    def test_extract_need_macros_expands_io_profile_simple(self) -> None:
+        source = textwrap.dedent(
+            """\
+            #define CP_IO_PROFILE_SIMPLE
+            #include "templates/Base.hpp"
+            """
+        )
+        known = {"NEED_CORE", "NEED_IO", "NEED_FAST_IO", "NEED_MOD_INT", "NEED_TYPE_SAFETY"}
+
+        found = extract_need_macros_from_source(source, known)
+
+        self.assertEqual(found, {"NEED_CORE", "NEED_IO"})
+
+    def test_extract_need_macros_expands_io_profile_fast_extended(self) -> None:
+        source = textwrap.dedent(
+            """\
+            #define CP_IO_PROFILE_FAST_EXTENDED 1
+            #undef CP_IO_PROFILE_FAST_EXTENDED
+            #define CP_IO_PROFILE_FAST_EXTENDED 1
+            #include "templates/Base.hpp"
+            """
+        )
+        known = {"NEED_CORE", "NEED_IO", "NEED_FAST_IO", "NEED_MOD_INT", "NEED_TYPE_SAFETY"}
+
+        found = extract_need_macros_from_source(source, known)
+
+        self.assertEqual(
+            found, {"NEED_CORE", "NEED_FAST_IO", "NEED_MOD_INT", "NEED_TYPE_SAFETY"}
+        )
+
     def test_extract_need_macros_handles_values_undef_and_comments(self) -> None:
         source = textwrap.dedent(
             """\
@@ -98,6 +128,24 @@ class FlattenerAuditTests(unittest.TestCase):
         )
 
         self.assertEqual(values.get("CP_ENABLE_LEGACY_IO_VEC_MACROS"), 0)
+
+    def test_extract_macro_values_expands_io_profile_fast_extended(self) -> None:
+        source = textwrap.dedent(
+            """\
+            #define CP_IO_PROFILE_FAST_EXTENDED
+            #include "templates/Base.hpp"
+            """
+        )
+        prefix = extract_prefix_before_base_include(source)
+        values = extract_macro_values_from_source(
+            prefix, strict_profile_enabled=False, relaxed_profile_enabled=False
+        )
+
+        self.assertEqual(values.get("NEED_FAST_IO"), 1)
+        self.assertEqual(values.get("NEED_MOD_INT"), 1)
+        self.assertEqual(values.get("NEED_TYPE_SAFETY"), 1)
+        self.assertEqual(values.get("CP_FAST_IO_ENABLE_MODINT"), 1)
+        self.assertEqual(values.get("CP_FAST_IO_ENABLE_STRONG_TYPE"), 1)
 
     def test_fold_simple_conditionals_supports_numeric_literals(self) -> None:
         content = textwrap.dedent(
