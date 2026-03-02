@@ -56,9 +56,7 @@ struct SplayTree {
   }
 
   /// @brief Returns a node to the free list for reuse.
-  void del_node(I32 x) {
-    if (x != -1) free_list.push_back(x);
-  }
+  void del_node(I32 x) { if (x != -1) free_list.push_back(x); }
 
   I32 size(I32 x) const { return x == -1 ? 0 : nodes[x].sz; }
 
@@ -144,6 +142,8 @@ struct SplayTree {
 
   /// @brief Finds the node at position k (0-indexed) in the subtree.
   I32 kth_node(I32 x, I32 k) {
+    my_assert(x != -1);
+    my_assert(0 <= k && k < size(x));
     while (true) {
       push(x);
       I32 lsz = size(nodes[x].ch[0]);
@@ -194,6 +194,7 @@ struct SplayTree {
 
   /// @brief Inserts value v at position pos (0-indexed, pushes existing elements right).
   I32 insert(I32 root, I32 pos, Val v) {
+    my_assert(0 <= pos && pos <= size(root));
     I32 nd = new_node(v);
     auto [l, r] = split(root, pos);
     return merge(merge(l, nd), r);
@@ -201,6 +202,7 @@ struct SplayTree {
 
   /// @brief Erases the element at position pos (0-indexed).
   I32 erase(I32 root, I32 pos) {
+    my_assert(0 <= pos && pos < size(root));
     auto [l, mr] = split(root, pos);
     auto [m, r] = split(mr, 1);
     del_node(m);
@@ -209,6 +211,7 @@ struct SplayTree {
 
   /// @brief Range aggregate query over half-open interval [l, r).
   Val query(I32& root, I32 l, I32 r) {
+    my_assert(0 <= l && l <= r && r <= size(root));
     auto [ab, c] = split(root, r);
     auto [a, b] = split(ab, l);
     Val result = (b == -1) ? M::e() : nodes[b].agg;
@@ -218,6 +221,7 @@ struct SplayTree {
 
   /// @brief Applies lazy update to half-open interval [l, r).
   void apply(I32& root, I32 l, I32 r, Lazy lz) {
+    my_assert(0 <= l && l <= r && r <= size(root));
     auto [ab, c] = split(root, r);
     auto [a, b] = split(ab, l);
     if (b != -1) {
@@ -230,6 +234,7 @@ struct SplayTree {
 
   /// @brief Reverses the half-open interval [l, r).
   void reverse(I32& root, I32 l, I32 r) {
+    my_assert(0 <= l && l <= r && r <= size(root));
     auto [ab, c] = split(root, r);
     auto [a, b] = split(ab, l);
     if (b != -1) nodes[b].rev ^= true;
@@ -238,6 +243,7 @@ struct SplayTree {
 
   /// @brief Returns the value at position pos (0-indexed).
   Val at(I32& root, I32 pos) {
+    my_assert(0 <= pos && pos < size(root));
     I32 x = kth_node(root, pos);
     splay(x);
     root = x;

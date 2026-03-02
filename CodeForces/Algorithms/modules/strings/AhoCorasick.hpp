@@ -16,19 +16,16 @@ struct AhoCorasick {
   struct Node {
     Array<I32, ALPHABET> next;
     I32 link;
-    Vec<I32> out;
+    I32 term_link;
+    VecI32 out;
 
-    Node() : link(0) {
-      next.fill(-1);
-    }
+    Node() : link(0), term_link(-1) { next.fill(-1); }
   };
 
   Vec<Node> nodes;
 
   /// @brief Initializes empty automaton with root node.
-  AhoCorasick() {
-    nodes.eb();
-  }
+  AhoCorasick() { nodes.eb(); }
 
   /// @brief Adds one pattern to trie backbone.
   void add_pattern(const String& pattern, I32 id) {
@@ -67,13 +64,17 @@ struct AhoCorasick {
     while (!q.empty()) {
       I32 v = q.front();
       q.pop();
+      const I32 link_v = nodes[v].link;
+      if (!nodes[link_v].out.empty()) {
+        nodes[v].term_link = link_v;
+      } else {
+        nodes[v].term_link = nodes[link_v].term_link;
+      }
 
       FOR(c, ALPHABET) {
         I32 to = nodes[v].next[c];
         if (to != -1) {
           nodes[to].link = nodes[nodes[v].link].next[c];
-          const auto& fail_out = nodes[nodes[to].link].out;
-          nodes[to].out.insert(nodes[to].out.end(), all(fail_out));
           q.push(to);
         } else {
           nodes[v].next[c] = nodes[nodes[v].link].next[c];
@@ -97,6 +98,11 @@ struct AhoCorasick {
       v = nodes[v].next[c];
       for (I32 id : nodes[v].out) {
         result[i].push_back(id);
+      }
+      for (I32 u = nodes[v].term_link; u != -1; u = nodes[u].term_link) {
+        for (I32 id : nodes[u].out) {
+          result[i].push_back(id);
+        }
       }
     }
 

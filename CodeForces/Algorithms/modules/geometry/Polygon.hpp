@@ -36,10 +36,14 @@ struct Polygon {
   bool is_convex() const {
     I32 n = sz(vertices);
     bool sign = false;
+    bool has_non_zero = false;
     FOR(i, n) {
       T o = orientation(vertices[i], vertices[(i + 1) % n], vertices[(i + 2) % n]);
       if (abs(o) < EPS) continue;
-      if (i == 0) sign = o > 0;
+      if (!has_non_zero) {
+        sign = o > 0;
+        has_non_zero = true;
+      }
       else if ((o > 0) != sign) return false;
     }
     return true;
@@ -75,9 +79,12 @@ struct Polygon {
 template <typename T>
 Vec<Point2D<T>> convex_hull(Vec<Point2D<T>> points) {
   I32 n = sz(points);
-  if (n <= 3) return points;
+  if (n <= 1) return points;
 
   sort(all(points));
+  points.erase(std::unique(all(points)), points.end());
+  n = sz(points);
+  if (n <= 1) return points;
 
   Vec<Point2D<T>> hull;
 
@@ -106,6 +113,8 @@ Vec<Point2D<T>> convex_hull(Vec<Point2D<T>> points) {
 template <typename T>
 std::pair<Point2D<T>, Point2D<T>> closest_pair(Vec<Point2D<T>> points) {
   I32 n = sz(points);
+  if (n == 0) return {Point2D<T>{}, Point2D<T>{}};
+  if (n == 1) return {points[0], points[0]};
   sort(all(points));
 
   std::function<std::pair<Point2D<T>, Point2D<T>>(I32, I32)> solve =

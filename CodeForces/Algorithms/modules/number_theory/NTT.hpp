@@ -6,11 +6,16 @@
 /// @brief Number Theoretic Transform over MOD2=998244353.
 struct NTT {
   static constexpr I64 ROOT = 3;  // Primitive root of MOD2.
+  static constexpr I32 MAX_LOG_N = 23;  // 998244353 = 119 * 2^23 + 1
+  static constexpr I32 MAX_SIZE = 1 << MAX_LOG_N;
 
   /// @brief In-place NTT on vector a. If inverse=true, computes inverse transform.
   static void ntt(Vec<I64>& a, bool inverse) {
     I32 n = sz(a);
-    if (n <= 1) return;
+    if (n == 0) return;
+    my_assert((n & (n - 1)) == 0);
+    my_assert(n <= MAX_SIZE);
+    if (n == 1) return;
 
     // Bit reversal (iterative Gray-code style).
     for (I32 i = 1, j = 0; i < n; ++i) {
@@ -52,6 +57,7 @@ struct NTT {
     I32 result_size = sz(a) + sz(b) - 1;
     I32 n = 1;
     while (n < result_size) n <<= 1;
+    my_assert(n <= MAX_SIZE);
 
     a.resize(n);
     b.resize(n);

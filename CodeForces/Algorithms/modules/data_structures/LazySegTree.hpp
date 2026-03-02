@@ -9,23 +9,28 @@ struct LazySegTree {
   I32 n;
   Vec<T> tree;
   Vec<U> lazy;
+  Vec<char> has_lazy;
 
   /// @brief Constructs tree for given size (rounded up to power of two).
   LazySegTree(I32 size) : n(1) {
     while (n < size) n *= 2;
     tree.assign(2 * n, T{});
     lazy.assign(2 * n, U{});
+    has_lazy.assign(2 * n, false);
   }
 
   /// @brief Pushes lazy updates from node @p v down to its children.
   void push(I32 v, I32 tl, I32 tr) {
-    if (lazy[v] == U{}) return;
+    if (!has_lazy[v]) return;
     tree[v] += lazy[v] * (tr - tl);
     if (tl + 1 != tr) {
       lazy[2*v] += lazy[v];
+      has_lazy[2*v] = true;
       lazy[2*v + 1] += lazy[v];
+      has_lazy[2*v + 1] = true;
     }
     lazy[v] = U{};
+    has_lazy[v] = false;
   }
 
   /// @brief Adds @p val to all elements in interval [l, r).
@@ -35,6 +40,7 @@ struct LazySegTree {
     if (l >= tr || r <= tl) return;
     if (l <= tl && tr <= r) {
       lazy[v] += val;
+      has_lazy[v] = true;
       push(v, tl, tr);
       return;
     }
