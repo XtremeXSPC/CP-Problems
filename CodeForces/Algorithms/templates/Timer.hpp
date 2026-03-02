@@ -16,3 +16,6 @@ struct Stopwatch {
 
   [[gnu::always_inline]] bool within(F64 limit) const { return elapsed() < limit; }
 };
+
+// Backward-compatible alias used by all solution templates.
+using Timer = Stopwatch;

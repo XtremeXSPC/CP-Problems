@@ -1,5 +1,6 @@
 #pragma once
 #include "Concepts.hpp"
+#include "Macros.hpp"
 #include "Timer.hpp"
 
 //===----------------------------------------------------------------------===//
@@ -11,7 +12,7 @@ template <std::unsigned_integral T>
 [[gnu::always_inline]] constexpr T mul_mod_unsigned(T a, T b, T mod) {
 #if HAS_INT128
   if constexpr (sizeof(T) <= sizeof(U64)) {
-    return static_cast<T>((static_cast<U128>(a) * static_cast<U128>(b)) % static_cast<U128>(mod));
+    return as<T>((as<U128>(a) * as<U128>(b)) % as<U128>(mod));
   }
 #endif
 
@@ -94,10 +95,10 @@ template <cp::NonBoolIntegral T>
   }
 
   using U = std::make_unsigned_t<T>;
-  U umod = static_cast<U>(mod);
-  U uexp = static_cast<U>(exp);
-  U ubase = static_cast<U>(mod_floor(base, mod));
-  U result = static_cast<U>(1) % umod;
+  U umod   = as<U>(mod);
+  U uexp   = as<U>(exp);
+  U ubase  = as<U>(mod_floor(base, mod));
+  U result = as<U>(1) % umod;
 
   while (uexp > 0) {
     if ((uexp & 1U) != 0U) {
@@ -106,7 +107,7 @@ template <cp::NonBoolIntegral T>
     ubase = cp::detail::mul_mod_unsigned(ubase, ubase, umod);
     uexp >>= 1U;
   }
-  return static_cast<T>(result);
+  return as<T>(result);
 }
 
 template <cp::NonBoolIntegral T>
@@ -117,25 +118,25 @@ template <cp::NonBoolIntegral T>
   }
 
   using U = std::make_unsigned_t<T>;
-  const U ux = static_cast<U>(x);
-  if (ux <= 1) return static_cast<T>(ux);
+  const U ux = as<U>(x);
+  if (ux <= 1) return as<T>(ux);
 
-  U r = static_cast<U>(std::sqrt(static_cast<F80>(ux)));
+  U r = as<U>(std::sqrt(as<F80>(ux)));
   while ((r + 1) <= ux / (r + 1)) ++r;
   while (r > ux / r) --r;
-  return static_cast<T>(r);
+  return as<T>(r);
 }
 
 template <cp::NonBoolIntegral T>
 [[gnu::always_inline]] inline T ceil_sqrt(T x) {
   using U = std::make_unsigned_t<T>;
   const T root = floor_sqrt(x);
-  const U uf = static_cast<U>(root);
+  const U uf = as<U>(root);
   if (uf == 0) return 0;
 
-  const U ux = static_cast<U>(x);
+  const U ux = as<U>(x);
   if (ux / uf == uf && ux % uf == 0) return root;
-  return static_cast<T>(uf + 1);
+  return as<T>(uf + 1);
 }
 
 #ifndef __UTILITY_FUNCTIONS__
@@ -151,7 +152,7 @@ template <class T, class S, class Compare = std::less<>>
 #endif
 
 // Seeded random number generator:
-inline std::mt19937_64 rng(static_cast<U64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
+inline std::mt19937_64 rng(as<U64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
 
 template <cp::Integral T>
 inline T rnd(T a, T b) { return std::uniform_int_distribution<T>(a, b)(rng); }

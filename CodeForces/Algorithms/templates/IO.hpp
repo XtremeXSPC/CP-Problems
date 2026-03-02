@@ -20,14 +20,10 @@ struct IOSetup {
 inline IOSetup io_setup;
 
 template <class T>
-void read(T& x) {
-  std::cin >> x;
-}
+void read(T& x) { std::cin >> x; }
 
 template <class T>
-void write(const T& x) {
-  std::cout << x;
-}
+void write(const T& x) { std::cout << x; }
 
 #include "IO_Composite.hpp"
 
@@ -37,12 +33,12 @@ namespace fast_io {
 template <class T>
 inline void read_integer(T& x) { cp_io::read(x); }
 inline void read_char(char& x) { cp_io::read(x); }
-inline void read_string(std::string& x) { cp_io::read(x); }
+inline void read_string(String& x) { cp_io::read(x); }
 
 template <class T>
 inline void write_integer(T x) { cp_io::write(x); }
 inline void write_char(char c) { std::cout.put(c); }
-inline void write_string(const std::string& s) { cp_io::write(s); }
+inline void write_string(const String& s) { cp_io::write(s); }
 
 inline void flush_output() { std::cout.flush(); }
 

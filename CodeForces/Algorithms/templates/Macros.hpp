@@ -60,7 +60,7 @@ auto make_vec4(std::size_t n1, std::size_t n2, std::size_t n3, std::size_t n4, c
 #define FOR2(i, a) for (I64 i = 0; i < (a); ++i)
 #define FOR3(i, a, b) for (I64 i = (a); i < (b); ++i)
 #define FOR4(i, a, b, c) for (I64 i = (a); i < (b); i += (c))
-#define FOR1_R(a) for (I64 i = (a) - 1; i >= 0; --i)
+#define FOR1_R(a) for (I64 _ = (a) - 1; _ >= 0; --_)
 #define FOR2_R(i, a) for (I64 i = (a) - 1; i >= 0; --i)
 #define FOR3_R(i, a, b) for (I64 i = (b) - 1; i >= (a); --i)
 

@@ -1,5 +1,6 @@
 #pragma once
 #include "Types.hpp"
+#include "Macros.hpp"
 
 //===----------------------------------------------------------------------===//
 /* High-Performance Buffered I/O */
@@ -28,22 +29,19 @@ inline U32 input_end = 0;
 inline U32 output_pos = 0;
 
 template <class T>
-using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
+concept FastIntegral = std::integral<std::remove_cvref_t<T>>
+  && !std::same_as<std::remove_cvref_t<T>, bool>
+  && !std::same_as<std::remove_cvref_t<T>, char>;
 
 template <class T>
-concept FastIntegral = std::integral<remove_cvref_t<T>> && !std::same_as<remove_cvref_t<T>, bool>
-    && !std::same_as<remove_cvref_t<T>, char>;
-
-template <class T>
-concept FastFloating = std::floating_point<remove_cvref_t<T>>;
+concept FastFloating = std::floating_point<std::remove_cvref_t<T>>;
 
 /* ------------------------------- INPUT API -------------------------------- */
 
 inline void load_input() {
   const U32 remaining = input_end - input_pos;
   std::memmove(input_buffer, input_buffer + input_pos, remaining);
-  input_end = remaining + static_cast<U32>(
-      std::fread(input_buffer + remaining, 1, BUFFER_SIZE - remaining, stdin));
+  input_end = remaining + as<U32>(std::fread(input_buffer + remaining, 1, BUFFER_SIZE - remaining, stdin));
   input_pos = 0;
   if (input_end < BUFFER_SIZE) input_buffer[input_end++] = '\n';
 }
@@ -58,7 +56,7 @@ inline void read_char(char& c) {
   do {
     if (input_pos >= input_end) load_input();
     c = input_buffer[input_pos++];
-  } while (std::isspace(static_cast<unsigned char>(c)));
+  } while (std::isspace(as<unsigned char>(c)));
 }
 
 template <typename T>
@@ -67,7 +65,7 @@ inline void read_integer(T& x) {
   do {
     if (input_pos >= input_end) load_input();
     c = input_buffer[input_pos++];
-  } while (std::isspace(static_cast<unsigned char>(c)));
+  } while (std::isspace(as<unsigned char>(c)));
 
   bool negative = false;
   if constexpr (std::is_signed_v<T>) {
@@ -97,13 +95,13 @@ inline void read_string(String& s) {
   do {
     if (input_pos >= input_end) load_input();
     c = input_buffer[input_pos++];
-  } while (std::isspace(static_cast<unsigned char>(c)));
+  } while (std::isspace(as<unsigned char>(c)));
 
   do {
     s.push_back(c);
     if (input_pos >= input_end) load_input();
     c = input_buffer[input_pos++];
-  } while (!std::isspace(static_cast<unsigned char>(c)));
+  } while (!std::isspace(as<unsigned char>(c)));
 }
 
 template <typename T>
@@ -112,14 +110,17 @@ inline void read_floating(T& x) {
   read_string(token);
   const char* ptr = token.c_str();
   char* end = nullptr;
-  if constexpr (std::same_as<remove_cvref_t<T>, F32>) {
+  if constexpr (std::same_as<std::remove_cvref_t<T>, F32>) {
     x = std::strtof(ptr, &end);
-  } else if constexpr (std::same_as<remove_cvref_t<T>, F64>) {
+  } else if constexpr (std::same_as<std::remove_cvref_t<T>, F64>) {
     x = std::strtod(ptr, &end);
   } else {
     x = std::strtold(ptr, &end);
   }
-  if (end == ptr || *end != '\0') x = static_cast<T>(0);
+  if (end == ptr || *end != '\0') {
+    my_assert(false && "read_floating(): failed to parse floating-point token.");
+    x = as<T>(0);
+  }
 }
 
 template <FastIntegral T>
@@ -144,18 +145,18 @@ inline void write_integer(T x) {
   if constexpr (std::is_signed_v<T>) {
     if (x < 0) {
       output_buffer[output_pos++] = '-';
-      ux = static_cast<UnsignedT>(-(x + 1));
+      ux = as<UnsignedT>(-(x + 1));
       ux += 1;
     } else {
-      ux = static_cast<UnsignedT>(x);
+      ux = as<UnsignedT>(x);
     }
   } else {
-    ux = static_cast<UnsignedT>(x);
+    ux = as<UnsignedT>(x);
   }
 
   I32 digits = 0;
   do {
-    number_buffer[digits++] = static_cast<char>('0' + (ux % 10));
+    number_buffer[digits++] = as<char>('0' + (ux % 10));
     ux /= 10;
   } while (ux > 0);
 
@@ -164,13 +165,17 @@ inline void write_integer(T x) {
   }
 }
 
+#ifndef CP_FLOAT_PRECISION
+  #define CP_FLOAT_PRECISION 10
+#endif
+
 template <typename T>
 inline void write_floating(T x) {
   char local_buffer[128];
-  const int n = std::snprintf(local_buffer, sizeof(local_buffer), "%.10Lf", static_cast<long double>(x));
+  const int n = std::snprintf(local_buffer, sizeof(local_buffer), "%.*Lf", CP_FLOAT_PRECISION, as<long double>(x));
   if (n <= 0) return;
 
-  U32 len = static_cast<U32>(std::min(n, static_cast<int>(sizeof(local_buffer) - 1)));
+  U32 len = as<U32>(std::min(n, as<int>(sizeof(local_buffer) - 1)));
   if (len >= BUFFER_SIZE) {
     flush_output();
     std::fwrite(local_buffer, 1, len, stdout);
@@ -181,23 +186,28 @@ inline void write_floating(T x) {
   output_pos += len;
 }
 
-inline void write_char(char c) {
-  if (output_pos >= BUFFER_SIZE) flush_output();
-  output_buffer[output_pos++] = c;
-}
+inline void write_char(char c) { if (output_pos >= BUFFER_SIZE) flush_output(); output_buffer[output_pos++] = c; }
 
 inline void write_string(std::string_view s) {
-  for (char c : s) write_char(c);
+  const char* data = s.data();
+  U32 remaining = as<U32>(s.size());
+  while (remaining > 0) {
+    if (output_pos >= BUFFER_SIZE) flush_output();
+    U32 space = BUFFER_SIZE - output_pos;
+    U32 chunk = (remaining < space) ? remaining : space;
+    std::memcpy(output_buffer + output_pos, data, chunk);
+    output_pos += chunk;
+    data += chunk;
+    remaining -= chunk;
+  }
 }
 
 template <FastIntegral T>
-inline void write(T x) {
-  write_integer(x);
-}
+inline void write(T x) { write_integer(x); }
+
 template <FastFloating T>
-inline void write(T x) {
-  write_floating(x);
-}
+inline void write(T x) { write_floating(x); }
+
 inline void write(char x) { write_char(x); }
 inline void write(const String& x) { write_string(x); }
 inline void write(const char* x) { write_string(x); }

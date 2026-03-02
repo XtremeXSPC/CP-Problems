@@ -18,6 +18,7 @@
 #endif
 
 #define NEED_CORE
+#define NEED_TIMER
 #define CP_IO_PROFILE_SIMPLE
 #define NEED_PBDS
 

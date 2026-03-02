@@ -10,6 +10,10 @@ using namespace __gnu_pbds;
 template <typename T>
 using ordered_set = tree<T, null_type, std::less<T>, rb_tree_tag, tree_order_statistics_node_update>;
 
+/* WARNING: std::less_equal violates strict weak ordering. find() and erase()
+ * by value will not work correctly. Use find_by_order / order_of_key only.
+ * To erase, use: tree.erase(tree.find_by_order(tree.order_of_key(val)));
+ */
 template <typename T>
 using ordered_multiset = tree<T, null_type, std::less_equal<T>, rb_tree_tag, tree_order_statistics_node_update>;
 
