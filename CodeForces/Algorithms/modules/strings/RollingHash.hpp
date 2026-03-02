@@ -7,8 +7,11 @@
 struct RollingHash {
   static constexpr I64 MOD1 = 1e9 + 7;
   static constexpr I64 MOD2 = 1e9 + 9;
-  static constexpr I64 BASE1 = 31;
-  static constexpr I64 BASE2 = 37;
+  static constexpr I64 BASE1 = 911382323;
+  static constexpr I64 BASE2 = 972663749;
+
+  static_assert(BASE1 > 1 && BASE1 < MOD1, "BASE1 must be in (1, MOD1)");
+  static_assert(BASE2 > 1 && BASE2 < MOD2, "BASE2 must be in (1, MOD2)");
 
   String s;
   VecI64 hash1, hash2, pow1, pow2;

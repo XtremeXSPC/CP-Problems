@@ -11,9 +11,7 @@ struct Treap {
     I32 left, right, size, cnt;
     I64 sum;
 
-    Node(I64 k)
-        : key(k), priority((as<I64>(rand()) << 32) ^ rand()),
-          left(-1), right(-1), size(1), cnt(1), sum(k) {}
+    Node(I64 k, I64 p) : key(k), priority(p), left(-1), right(-1), size(1), cnt(1), sum(k) {}
   };
 
   Vec<Node> nodes;
@@ -21,6 +19,16 @@ struct Treap {
 
   /// @brief Constructs empty treap.
   Treap() : root(-1) { nodes.reserve(200000); }
+
+  static auto rng() -> std::mt19937_64& {
+    static thread_local std::mt19937_64 gen(as<U64>(std::chrono::steady_clock::now().time_since_epoch().count()));
+    return gen;
+  }
+
+  static auto next_priority() -> I64 {
+    static thread_local std::uniform_int_distribution<I64> dist(Limits<I64>::lowest(), Limits<I64>::max());
+    return dist(rng());
+  }
 
   I32 get_size(I32 t) { return t == -1 ? 0 : nodes[t].size; }
   I64 get_sum(I32 t) { return t == -1 ? 0 : nodes[t].sum; }
@@ -87,7 +95,7 @@ struct Treap {
     split_le(m, key, m, r);
     if (m == -1) {
       m = sz(nodes);
-      nodes.eb(key);
+      nodes.eb(key, next_priority());
     } else {
       nodes[m].cnt++;
       update(m);

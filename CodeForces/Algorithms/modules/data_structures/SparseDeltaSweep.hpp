@@ -47,7 +47,7 @@ struct SparseDeltaSweep {
 
   /// @brief Computes sum_{j=0..right_inclusive} cover(j)^2 from the current round events.
   [[nodiscard]] auto squared_coverage_sum(const I32 right_inclusive) -> I128 {
-    my_assert(0 <= right_inclusive && right_inclusive < max_position);
+    my_assert(0 <= right_inclusive && right_inclusive <= max_position);
     if (used_positions.empty()) return 0;
 
     std::sort(used_positions.begin(), used_positions.end());
@@ -65,8 +65,9 @@ struct SparseDeltaSweep {
       last = pos;
     }
 
-    if (last <= right_inclusive + 1) {
-      const I64 len = as<I64>(right_inclusive + 1 - last);
+    const I64 right_exclusive = as<I64>(right_inclusive) + 1;
+    if (as<I64>(last) <= right_exclusive) {
+      const I64 len = right_exclusive - as<I64>(last);
       result += as<I128>(len) * active * active;
     }
     return result;

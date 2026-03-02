@@ -33,13 +33,13 @@ struct FenwickTree {
   }
 
   /// @brief Range sum on [l, r].
-  T range_sum(I32 l, I32 r) {  // Sum [l, r].
-    return sum(r) - (l > 0 ? sum(l - 1) : T{});
-  }
+  T range_sum(I32 l, I32 r) { return sum(r) - (l > 0 ? sum(l - 1) : T{}); }
 
   /// @brief Finds smallest index with prefix sum >= val.
   I32 lower_bound(T val) {
+    if (n == 0) return 0;
     if (val <= T{}) return 0;
+    if (val > sum(n - 1)) return n;
     I32 pos = 0;
     I32 pw = 1;
     while (pw <= n) pw *= 2;

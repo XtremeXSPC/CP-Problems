@@ -13,7 +13,7 @@ struct PersistentSegTree {
   };
 
   Vec<Node> nodes;
-  Vec<I32> roots;
+  VecI32 roots;
   I32 n;
 
   /// @brief Creates base version initialized with zeros.
@@ -39,20 +39,30 @@ struct PersistentSegTree {
   /// @brief Creates updated node path from previous version root.
   I32 update(I32 prev, I32 pos, I64 val, I32 tl = 0, I32 tr = -1) {
     if (tr == -1) tr = n;
+    if (tl + 1 == tr) {
+      if (nodes[prev].val == val) return prev;
+      I32 idx = sz(nodes);
+      nodes.push_back(nodes[prev]);
+      nodes[idx].val = val;
+      return idx;
+    }
+
+    I32 tm = (tl + tr) / 2;
+    I32 next_left = nodes[prev].left;
+    I32 next_right = nodes[prev].right;
+    if (pos < tm) {
+      next_left = update(nodes[prev].left, pos, val, tl, tm);
+    } else {
+      next_right = update(nodes[prev].right, pos, val, tm, tr);
+    }
+
+    if (next_left == nodes[prev].left && next_right == nodes[prev].right) { return prev; }
+
     I32 idx = sz(nodes);
     nodes.push_back(nodes[prev]);
-
-    if (tl + 1 == tr) {
-      nodes[idx].val = val;
-    } else {
-      I32 tm = (tl + tr) / 2;
-      if (pos < tm) {
-        nodes[idx].left = update(nodes[prev].left, pos, val, tl, tm);
-      } else {
-        nodes[idx].right = update(nodes[prev].right, pos, val, tm, tr);
-      }
-      nodes[idx].val = nodes[nodes[idx].left].val + nodes[nodes[idx].right].val;
-    }
+    nodes[idx].left = next_left;
+    nodes[idx].right = next_right;
+    nodes[idx].val = nodes[nodes[idx].left].val + nodes[nodes[idx].right].val;
     return idx;
   }
 
@@ -62,14 +72,11 @@ struct PersistentSegTree {
     if (l >= tr || r <= tl) return 0;
     if (l <= tl && tr <= r) return nodes[root].val;
     I32 tm = (tl + tr) / 2;
-    return query(nodes[root].left, l, r, tl, tm) +
-           query(nodes[root].right, l, r, tm, tr);
+    return query(nodes[root].left, l, r, tl, tm) + query(nodes[root].right, l, r, tm, tr);
   }
 
   /// @brief Appends a new version after setting one position.
-  void new_version(I32 pos, I64 val) {
-    roots.push_back(update(roots.back(), pos, val));
-  }
+  void new_version(I32 pos, I64 val) { roots.push_back(update(roots.back(), pos, val)); }
 };
 
 #endif
