@@ -10,7 +10,7 @@ struct XorBoundIntervals {
   I32 top_bit = 0;
   VecI32 overlap;
   VecI32 offset;
-  Vec<PairI32> intervals;
+  VecPairI32 intervals;
 
   XorBoundIntervals() = default;
 
@@ -29,7 +29,7 @@ struct XorBoundIntervals {
     intervals.clear();
     intervals.reserve(as<Size>(limit) * 10);
 
-    Vec<PairI32> tmp;
+    VecPairI32 tmp;
     tmp.reserve(32);
 
     FOR(x, limit) {
@@ -46,24 +46,13 @@ struct XorBoundIntervals {
     offset[limit] = as<I32>(intervals.size());
   }
 
-  [[nodiscard]] inline auto overlap_count(const I32 x) const -> I32 {
-    return overlap[x];
-  }
-
-  [[nodiscard]] inline auto interval_begin(const I32 x) const -> I32 {
-    return offset[x];
-  }
-
-  [[nodiscard]] inline auto interval_end(const I32 x) const -> I32 {
-    return offset[x + 1];
-  }
-
-  [[nodiscard]] inline auto interval_at(const I32 idx) const -> PairI32 {
-    return intervals[idx];
-  }
+  [[nodiscard]] inline auto overlap_count(const I32 x) const -> I32 { return overlap[x]; }
+  [[nodiscard]] inline auto interval_begin(const I32 x) const -> I32 { return offset[x]; }
+  [[nodiscard]] inline auto interval_end(const I32 x) const -> I32 { return offset[x + 1]; }
+  [[nodiscard]] inline auto interval_at(const I32 idx) const -> PairI32 { return intervals[idx]; }
 
 private:
-  void collect_for_x(const I32 x, Vec<PairI32>& out) const {
+  void collect_for_x(const I32 x, VecPairI32& out) const {
     out.clear();
     if ((x >> (top_bit + 1)) != 0) return;
 
@@ -78,9 +67,9 @@ private:
       }
 
       if (!tight_j && !tight_y) {
-        const I32 len = (1 << (bit + 1));
-        const I32 l = prefix << (bit + 1);
-        out.push_back({l, l + len - 1});
+        const I64 len = I64(1) << (bit + 1);
+        const I64 l = as<I64>(prefix) << (bit + 1);
+        out.push_back({as<I32>(l), as<I32>(l + len - 1)});
         return;
       }
 
@@ -101,7 +90,7 @@ private:
     dfs(dfs, top_bit, true, true, 0);
     if (out.empty()) return;
 
-    Vec<PairI32> merged;
+    VecPairI32 merged;
     merged.reserve(out.size());
     for (const auto [l, r] : out) {
       if (!merged.empty() && l <= merged.back().second + 1) {

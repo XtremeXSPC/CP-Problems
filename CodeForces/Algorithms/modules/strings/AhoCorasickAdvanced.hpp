@@ -17,12 +17,14 @@ struct AhoCorasickAdvanced {
 
   struct Node {
     std::array<I32, ALPHABET> next{};
+    std::array<I32, ALPHABET> go{};
     I32 link = 0;
+    I32 term_link = -1;
     I32 parent = -1;
     char parent_char = 0;
     VecI32 out;
 
-    Node() { next.fill(-1); }
+    Node() { next.fill(-1); go.fill(0); }
   };
 
   Vec<Node> nodes;
@@ -71,13 +73,20 @@ struct AhoCorasickAdvanced {
     bfs_order.clear();
     bfs_order.reserve(nodes.size());
 
+    for (auto& node : nodes) {
+      node.link = 0;
+      node.term_link = -1;
+      node.go.fill(0);
+    }
+
     FOR(c, ALPHABET) {
       I32 to = nodes[0].next[as<Size>(c)];
-      if (to == -1) {
-        nodes[0].next[as<Size>(c)] = 0;
-      } else {
+      if (to != -1) {
         nodes[as<Size>(to)].link = 0;
+        nodes[0].go[as<Size>(c)] = to;
         q.push(to);
+      } else {
+        nodes[0].go[as<Size>(c)] = 0;
       }
     }
 
@@ -85,18 +94,23 @@ struct AhoCorasickAdvanced {
       I32 v = q.front();
       q.pop();
       bfs_order.push_back(v);
+      const I32 link_v = nodes[as<Size>(v)].link;
+      if (!nodes[as<Size>(link_v)].out.empty()) {
+        nodes[as<Size>(v)].term_link = link_v;
+      } else {
+        nodes[as<Size>(v)].term_link = nodes[as<Size>(link_v)].term_link;
+      }
 
       FOR(c, ALPHABET) {
         I32 to = nodes[as<Size>(v)].next[as<Size>(c)];
         if (to == -1) {
-          nodes[as<Size>(v)].next[as<Size>(c)] = nodes[as<Size>(nodes[as<Size>(v)].link)].next[as<Size>(c)];
+          nodes[as<Size>(v)].go[as<Size>(c)] = nodes[as<Size>(link_v)].go[as<Size>(c)];
           continue;
         }
 
-        I32 link_to = nodes[as<Size>(nodes[as<Size>(v)].link)].next[as<Size>(c)];
+        I32 link_to = nodes[as<Size>(link_v)].go[as<Size>(c)];
         nodes[as<Size>(to)].link = link_to;
-        const auto& fail_out = nodes[as<Size>(link_to)].out;
-        nodes[as<Size>(to)].out.insert(nodes[as<Size>(to)].out.end(), all(fail_out));
+        nodes[as<Size>(v)].go[as<Size>(c)] = to;
         q.push(to);
       }
     }
@@ -116,9 +130,14 @@ struct AhoCorasickAdvanced {
         v = 0;
         continue;
       }
-      v = nodes[as<Size>(v)].next[as<Size>(c)];
+      v = nodes[as<Size>(v)].go[as<Size>(c)];
       for (I32 id : nodes[as<Size>(v)].out) {
         matches.push_back({i, id});
+      }
+      for (I32 u = nodes[as<Size>(v)].term_link; u != -1; u = nodes[as<Size>(u)].term_link) {
+        for (I32 id : nodes[as<Size>(u)].out) {
+          matches.push_back({i, id});
+        }
       }
     }
     return matches;
@@ -135,9 +154,14 @@ struct AhoCorasickAdvanced {
         v = 0;
         continue;
       }
-      v = nodes[as<Size>(v)].next[as<Size>(c)];
+      v = nodes[as<Size>(v)].go[as<Size>(c)];
       for (I32 id : nodes[as<Size>(v)].out) {
         ++ans[as<Size>(id)];
+      }
+      for (I32 u = nodes[as<Size>(v)].term_link; u != -1; u = nodes[as<Size>(u)].term_link) {
+        for (I32 id : nodes[as<Size>(u)].out) {
+          ++ans[as<Size>(id)];
+        }
       }
     }
     return ans;
