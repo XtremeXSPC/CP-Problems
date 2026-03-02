@@ -86,9 +86,17 @@ auto make_vec4(std::size_t n1, std::size_t n2, std::size_t n3, std::size_t n4, c
 #define UNIQUE(x) (std::ranges::sort(x), x.erase(std::ranges::unique(x).begin(), x.end()), x.shrink_to_fit())
 #define LB(c, x) (I64)std::distance((c).begin(), std::ranges::lower_bound(c, x))
 #define UB(c, x) (I64)std::distance((c).begin(), std::ranges::upper_bound(c, x))
-#define SUM(x) std::accumulate(all(x), 0LL)
-#define MIN(x) *std::ranges::min_element(x)
-#define MAX(x) *std::ranges::max_element(x)
+#define SUM(x) std::accumulate(all(x), std::iter_value_t<decltype((x).begin())>{})
+#define MIN(x) ([&]() -> decltype(auto) { \
+  auto&& _cp_min_range = (x); \
+  if (std::ranges::empty(_cp_min_range)) std::abort(); \
+  return *std::ranges::min_element(_cp_min_range); \
+}())
+#define MAX(x) ([&]() -> decltype(auto) { \
+  auto&& _cp_max_range = (x); \
+  if (std::ranges::empty(_cp_max_range)) std::abort(); \
+  return *std::ranges::max_element(_cp_max_range); \
+}())
 
 // Y-combinator for recursive lambdas:
 template <class F>

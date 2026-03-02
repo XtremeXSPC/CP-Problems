@@ -18,7 +18,7 @@
 #endif
 
 #define NEED_CORE
-#define NEED_IO
+#define CP_IO_PROFILE_SIMPLE
 #define NEED_PBDS
 
 #include "templates/Base.hpp"
