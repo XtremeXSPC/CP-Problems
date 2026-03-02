@@ -14,9 +14,7 @@ struct ConvexHullTrick {
   struct Line {
     I64 m = 0;
     I64 b = 0;
-    I64 eval(I64 x) const {
-      return as<I64>(as<I128>(m) * x + b);
-    }
+    I64 eval(I64 x) const { return as<I64>(as<I128>(m) * x + b); }
   };
 
   Vec<Line> hull;
@@ -29,10 +27,7 @@ struct ConvexHullTrick {
     return left <= right;
   }
 
-  void clear() {
-    hull.clear();
-    ptr = 0;
-  }
+  void clear() { hull.clear(); ptr = 0; }
 
   /// @brief Adds line y = m*x + b. Slopes must be non-decreasing.
   void add_line(I64 m, I64 b) {

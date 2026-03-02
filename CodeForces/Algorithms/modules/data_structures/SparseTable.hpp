@@ -12,8 +12,8 @@ struct SparseTableMinOp {
 /// @brief Sparse table for static idempotent range queries.
 template <typename T, typename Op = SparseTableMinOp<T>>
 struct SparseTable {
-  Vec<Vec<T>> table;
-  Vec<I32> lg;
+  Vec2D<T> table;
+  VecI32 lg;
   Op op;
 
   SparseTable() = default;

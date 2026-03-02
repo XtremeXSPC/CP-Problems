@@ -20,9 +20,7 @@ struct LinkCutTree {
   Vec<Node> nodes;
 
   /// @brief Initializes forest with @p n isolated nodes.
-  LinkCutTree(I32 n) : nodes(n) {
-    FOR(i, n) nodes[i] = Node(0);
-  }
+  LinkCutTree(I32 n) : nodes(n) { FOR(i, n) nodes[i] = Node(0); }
 
   /// @brief Checks whether node is root of its auxiliary splay.
   bool is_root(I32 v) {
@@ -109,16 +107,10 @@ struct LinkCutTree {
   }
 
   /// @brief Makes node @p v the represented-tree root.
-  void make_root(I32 v) {
-    access(v);
-    nodes[v].reversed ^= 1;
-  }
+  void make_root(I32 v) { access(v); nodes[v].reversed ^= 1; }
 
   /// @brief Links two trees by edge (u, v).
-  void link(I32 u, I32 v) {
-    make_root(u);
-    nodes[u].parent = v;
-  }
+  void link(I32 u, I32 v) { make_root(u); nodes[u].parent = v; }
 
   /// @brief Cuts edge (u, v) assuming it exists.
   void cut(I32 u, I32 v) {

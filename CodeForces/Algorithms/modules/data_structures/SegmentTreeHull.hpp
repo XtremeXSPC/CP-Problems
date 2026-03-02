@@ -22,18 +22,18 @@ struct SegmentTreeHull {
   static constexpr I64 NEG_INF = neg_infinity<I64>;
 
   I32 n = 0;
-  Vec<I64> lazy;
+  VecI64 lazy;
   Vec<char> has_lazy;
-  Vec<I64> max_val;
-  Vec<I32> hull_start;
-  Vec<I32> hull_len;
-  Vec<I64> hull_m;
-  Vec<I64> hull_c;
+  VecI64 max_val;
+  VecI32 hull_start;
+  VecI32 hull_len;
+  VecI64 hull_m;
+  VecI64 hull_c;
 
   SegmentTreeHull() = default;
 
   /// @brief Initializes structure with @p n_lines lines (1-indexed input lines).
-  void init(I32 n_lines, const Vec<Pair<I64, I64>>& lines) {
+  void init(I32 n_lines, const Vec<PairI64>& lines) {
     n = std::max<I32>(0, n_lines);
     if (n == 0) {
       lazy.clear();

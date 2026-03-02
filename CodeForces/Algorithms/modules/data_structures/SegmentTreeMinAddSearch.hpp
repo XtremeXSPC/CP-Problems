@@ -24,9 +24,7 @@ struct SegmentTreeMinAddSearch {
 
   SegmentTreeMinAddSearch() = default;
 
-  explicit SegmentTreeMinAddSearch(I32 size, T initial_value = T{}) {
-    init(size, initial_value);
-  }
+  explicit SegmentTreeMinAddSearch(I32 size, T initial_value = T{}) { init(size, initial_value); }
 
   explicit SegmentTreeMinAddSearch(const Vec<T>& values) { init(values); }
 

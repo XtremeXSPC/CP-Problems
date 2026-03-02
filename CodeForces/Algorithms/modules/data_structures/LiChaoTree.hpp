@@ -14,9 +14,7 @@ struct LiChaoTree {
   struct Line {
     I64 m = 0;
     I64 b = infinity<I64>;
-    I64 eval(I64 x) const {
-      return as<I64>(as<I128>(m) * x + b);
-    }
+    I64 eval(I64 x) const { return as<I64>(as<I128>(m) * x + b); }
   };
 
   struct Node {
@@ -41,10 +39,7 @@ struct LiChaoTree {
     root = new_node();
   }
 
-  void clear() {
-    nodes.clear();
-    root = -1;
-  }
+  void clear() { nodes.clear(); root = -1; }
 
   /// @brief Adds line y = m*x + b.
   void add_line(I64 m, I64 b) {
