@@ -6,6 +6,7 @@
 #endif
 
 #define NEED_CORE
+#define NEED_TIMER
 #define CP_IO_PROFILE_SIMPLE
 
 #include "templates/Base.hpp"
@@ -14,7 +15,7 @@
 /* Main Solver Function */
 
 void solve() {
-  // Otimized solution here
+  // Optimized solution here
 }
 
 //===----------------------------------------------------------------------===//

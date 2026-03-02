@@ -139,6 +139,14 @@ using Vec3D = Vec<Vec2D<T>>;
 template <class T>
 using Vec4D = Vec<Vec3D<T>>;
 
+// Short aliases for convenience (used by IO macros and legacy code).
+template <class T>
+using Vec2 = Vec2D<T>;
+template <class T>
+using Vec3 = Vec3D<T>;
+template <class T>
+using Vec4 = Vec4D<T>;
+
 // Specialized frequently-used aliases.
 using VecI32  = Vec<I32>;
 using VecI64  = Vec<I64>;

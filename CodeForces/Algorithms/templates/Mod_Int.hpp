@@ -14,7 +14,10 @@ struct ModInt {
   static constexpr I64  mod() { return MOD; }
 
   constexpr ModInt() : value(0) {}
-  constexpr ModInt(I64 x) : value(x >= 0 ? x % MOD : (x % MOD + MOD) % MOD) {}
+  constexpr ModInt(I64 x) {
+    I64 r = x % MOD;
+    value = static_cast<U64>(r < 0 ? r + MOD : r);
+  }
 
   constexpr ModInt& operator+=(const ModInt& other) {
     if ((value += other.value) >= MOD)
@@ -29,7 +32,13 @@ struct ModInt {
   }
 
   constexpr ModInt& operator*=(const ModInt& other) {
-    value = (U64)value * other.value % MOD;
+#if HAS_INT128
+    value = static_cast<U64>(static_cast<U128>(value) * other.value % static_cast<U128>(MOD));
+#else
+    static_assert(MOD <= 2'000'000'000LL,
+      "ModInt multiplication may overflow U64 for MOD > 2e9 without __int128 support.");
+    value = value * other.value % static_cast<U64>(MOD);
+#endif
     return *this;
   }
 
