@@ -16,9 +16,7 @@ struct Trie {
   Vec<Node> nodes;
 
   /// s@brief Initializes trie with one root node.
-  Trie() {
-    nodes.eb();  // Root node.
-  }
+  Trie() { nodes.eb(); }
 
   /// @brief Inserts one word occurrence.
   void insert(const String& word) {

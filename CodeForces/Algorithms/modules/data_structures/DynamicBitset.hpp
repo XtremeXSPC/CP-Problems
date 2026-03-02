@@ -6,7 +6,7 @@
 /// @brief Dynamic bitset backed by 64-bit words.
 struct DynamicBitset {
   I32 n_bits = 0;
-  Vec<U64> words;
+  VecU64 words;
 
   explicit DynamicBitset() = default;
   explicit DynamicBitset(const I32 n) { init(n); }
@@ -18,14 +18,10 @@ struct DynamicBitset {
   }
 
   /// @brief Sets bit at position @p pos.
-  inline void set_bit(const I32 pos) {
-    words[pos >> 6] |= (U64(1) << (pos & 63));
-  }
+  inline void set_bit(const I32 pos) { words[pos >> 6] |= (U64(1) << (pos & 63)); }
 
   /// @brief Checks whether bit at @p pos is set.
-  [[nodiscard]] inline auto test_bit(const I32 pos) const -> bool {
-    return ((words[pos >> 6] >> (pos & 63)) & U64(1)) != 0;
-  }
+  [[nodiscard]] inline auto test_bit(const I32 pos) const -> bool { return ((words[pos >> 6] >> (pos & 63)) & U64(1)) != 0; }
 
   /// @brief Bitwise OR with @p other.
   inline void or_with(const DynamicBitset& other) {
