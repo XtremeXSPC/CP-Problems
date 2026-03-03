@@ -13,12 +13,6 @@
 
 using namespace std;
 
-#ifdef LOCAL
-#include "algo/debug.h"
-#else
-#define debug(...) 42
-#endif
-
 static const int MAXN = 200000;
 static const int K    = 50;
 
