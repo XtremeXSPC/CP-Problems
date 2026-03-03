@@ -10,7 +10,7 @@ struct NTT {
   static constexpr I32 MAX_SIZE = 1 << MAX_LOG_N;
 
   /// @brief In-place NTT on vector a. If inverse=true, computes inverse transform.
-  static void ntt(Vec<I64>& a, bool inverse) {
+  static void ntt(VecI64& a, bool inverse) {
     I32 n = sz(a);
     if (n == 0) return;
     my_assert((n & (n - 1)) == 0);
