@@ -10,17 +10,17 @@ using namespace std;
 
 void solve() {
   INT(n);
-  VLL a(n);
+  VecI64 a(n);
   IN(a);
   STR(s);
 
   const I32 KMAX = min<I32>(650, n);
 
-  VLL dp(KMAX + 2, INF64), nxt(KMAX + 2, INF64);
+  VecI64 dp(KMAX + 2, INF64), nxt(KMAX + 2, INF64);
   dp[0] = 0;
   I32 max_k = 0;
 
-  VLL answer;
+  VecI64 answer;
   answer.reserve(n);
 
   FOR(i, n) {
