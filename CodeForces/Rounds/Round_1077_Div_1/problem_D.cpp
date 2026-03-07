@@ -10,7 +10,7 @@ namespace {
 
 struct DynamicBitset {
   I32 bits = 0;
-  Vec<U64> words;
+  VecU64 words;
 
   void init(I32 total_bits) {
     bits = std::max<I32>(1, total_bits);
@@ -21,7 +21,7 @@ struct DynamicBitset {
   void or_shift(I32 shift) {
     if (shift <= 0) return;
     const I32 word_shift = shift >> 6;
-    const I32 bit_shift = shift & 63;
+    const I32 bit_shift  = shift & 63;
     const I32 n_words = as<I32>(words.size());
 
     for (I32 i = n_words - 1; i >= 0; --i) {
@@ -61,7 +61,7 @@ void solve() {
   STR(s);
 
   I64 w0 = 0;
-  VLL v;
+  VecI64 v;
   v.reserve(as<Size>(s.size()));
 
   I64 a = 1;
@@ -105,7 +105,7 @@ void solve() {
   }
   const I32 sum_v = as<I32>(sum_v_i64);
 
-  VI grouped;
+  VecI32 grouped;
   grouped.reserve(as<Size>(counts.size() * 3));
   for (const auto& [value, cnt0] : counts) {
     if (value == 0) continue;

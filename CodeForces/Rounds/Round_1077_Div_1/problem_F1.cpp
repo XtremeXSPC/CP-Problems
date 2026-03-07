@@ -15,20 +15,20 @@ struct MaxOp {
 void solve() {
   INT(n);
 
-  VI a(as<Size>(n + 1), 0);
-  VI b(as<Size>(n + 1), 0);
+  VecI32 a(as<Size>(n + 1), 0);
+  VecI32 b(as<Size>(n + 1), 0);
 
   FOR(i, 1, n + 1) IN(a[as<Size>(i)]);
   FOR(i, 1, n + 1) IN(b[as<Size>(i)]);
 
-  VI pos_b(as<Size>(n + 1), 0);
+  VecI32 pos_b(as<Size>(n + 1), 0);
   FOR(i, n + 1) pos_b[as<Size>(b[as<Size>(i)])] = i;
 
-  VI a_prime(as<Size>(n + 1), 0);
+  VecI32 a_prime(as<Size>(n + 1), 0);
   FOR(i, n + 1) a_prime[as<Size>(i)] = pos_b[as<Size>(a[as<Size>(i)])];
 
-  VI next_smaller(as<Size>(n + 1), n + 1);
-  VI stack_min;
+  VecI32 next_smaller(as<Size>(n + 1), n + 1);
+  VecI32 stack_min;
   stack_min.reserve(as<Size>(n + 1));
   FOR(i, n + 1) {
     while (!stack_min.empty() && a_prime[as<Size>(stack_min.back())] > a_prime[as<Size>(i)]) {
@@ -38,12 +38,12 @@ void solve() {
     stack_min.push_back(i);
   }
 
-  VLL base_min(as<Size>(n + 1), 0);
+  VecI64 base_min(as<Size>(n + 1), 0);
   FOR(i, n + 1) base_min[as<Size>(i)] = -as<I64>(i);
   SegmentTreeMinAddSearch<I64> min_tree(base_min);
   SegmentTree<I32, MaxOp> dp_tree(n + 1, 0, MaxOp{});
 
-  VI st;
+  VecI32 st;
   st.reserve(as<Size>(n + 1));
 
   for (I32 i = n; i >= 0; --i) {
@@ -61,7 +61,7 @@ void solve() {
     min_tree.range_add(i, i + 1, as<I64>(new_max));
 
     const I64 target = as<I64>(new_max - i);
-    const I32 limit = next_smaller[as<Size>(i)] - 1;
+    const I32 limit  = next_smaller[as<Size>(i)] - 1;
 
     I32 r_i = i;
     if (i <= limit) {
