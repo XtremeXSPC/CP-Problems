@@ -14,8 +14,33 @@
 //===----------------------------------------------------------------------===//
 /* Main Solver Function */
 
-void solve() {
-  // Optimized solution here
+auto solve() -> void {
+  INT(n);
+  VecI32 a(n);
+  IN(a);
+
+  VecBool can_win(n, false);
+
+  FOR(start, 0, n) {
+    auto cur = a;
+    I32 remaining = 0;
+    for (const I32 x : cur) remaining += x;
+
+    I32 pos = start;
+    I32 winner = -1;
+    while (remaining > 0) {
+      if (cur[pos] > 0) {
+        --cur[pos];
+        --remaining;
+        winner = pos;
+      }
+      pos = (pos + 1) % n;
+    }
+
+    can_win[winner] = true;
+  }
+
+  OUT(std::count(can_win.begin(), can_win.end(), true));
 }
 
 //===----------------------------------------------------------------------===//
