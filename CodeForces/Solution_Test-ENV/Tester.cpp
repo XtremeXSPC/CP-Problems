@@ -1,214 +1,150 @@
 //===---------------------------------------------------------------------===//
 /**
- * @file: Tester.cpp
- * @brief: Tester for coding data structures and algorithms.
- * @version: 0.1
- * @date: 2025-05-20
+ * @file Tester.cpp
+ * @brief Tester for coding data structures and algorithms.
+ * @version 0.1
+ * @date 2025-05-20
  *
- * @details: Examined problem: Codeforces R1042 Div. 3 - Problem H - CopriMe
- *
- * @copyright: Copyright MIT 2025
+ * @copyright Copyright MIT 2025
  *
  */
 //===---------------------------------------------------------------------===//
 /* Included library */
 
-// clang-format off
-// Compiler optimizations:
-#if defined(__GNUC__) && !defined(__clang__)
-  #pragma GCC optimize("Ofast,unroll-loops,fast-math,O3")
-  // x86_64 specific optimizations:
-  #ifdef __x86_64__
-    #pragma GCC target("avx2,bmi,bmi2,popcnt,lzcnt")
-  #endif
-  // Apple Silicon optimizations:
-  #ifdef __aarch64__
-    #pragma GCC target("+simd")
-  #endif
-#endif
+#include "include/graph.hpp"
+#include "include/linked_list.hpp"
+#include "include/tree.hpp"
 
-#ifdef __clang__
-  #pragma clang optimize on
-#endif
+#include <iostream>
 
-// Sanitaze macro:
-#ifdef USE_CLANG_SANITIZE
-  #include "PCH.h"
-#else
-  #include <bits/stdc++.h>
-  // Policy-Based Data Structures:
-  #include <ext/pb_ds/assoc_container.hpp>
-  #include <ext/pb_ds/tree_policy.hpp>
-#endif
+//===---------------------------------------------------------------------===//
+/* Definitions of Structures and Classes */
 
-// Debug macro:
-#ifdef LOCAL
-  #include "../Algorithms/libs/debug.h"
-#else
-  #define debug(...) 42
-  #define debug_if(...) 42
-  #define debug_tree(...) 42
-  #define debug_tree_verbose(...) 42
-  #define debug_line() 42
-  #define my_assert(...) 42
-  #define COUNT_CALLS(...) 42
-#endif
-
-//===----------------------------------------------------------------------===//
-/* Namespaces and Type Aliases */
-
-using namespace std;
-
-//===----------------------------------------------------------------------===//
-/* Data Types and Function Definitions */
-
-// Initialize random number generator
-mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
-
-// Sampling constant K
-const int K = 100;
-
-// Helper function to remove two distinct indices from a vector in O(1) using swap-and-pop
-void remove_two(vector<int>& V, int idx1, int idx2) {
-  if (idx1 == idx2) return;
-  int i1 = max(idx1, idx2);
-  int i2 = min(idx1, idx2);
-  
-  // Remove element at i1 (larger index) first.
-  // If it's not the last element, copy the last element to position i1.
-  if (i1 < V.size() - 1) {
-    V[i1] = V.back();
-  }
-  V.pop_back();
-  
-  // Remove element at i2 (smaller index).
-  // i2 is still valid because i2 < i1.
-  // If it's not the (new) last element, copy the (new) last element to position i2.
-  if (i2 < V.size() - 1) {
-    V[i2] = V.back();
-  }
-  V.pop_back();
-}
-
-void solve() {
-  int n, m;
-  // Read N and M.
-  if (!(cin >> n >> m)) return;
-  
-  // Use 1-based indexing for convenience with required output.
-  // Use int because M <= 10^6.
-  vector<int> a(n + 1);
-  for (int i = 1; i <= n; ++i) {
-    cin >> a[i];
-  }
-  
-  if (n < 4) {
-    cout << "0\n";
-    return;
-  }
-  
-  // Vector of unused indices (1-based)
-  vector<int> unused(n);
-  iota(unused.begin(), unused.end(), 1); // 1, 2, ..., n
-  vector<pair<int, int>> pairs;
-  
-  // Randomized Greedy Matching Algorithm
-  while (unused.size() >= 2) {
-    int N_unused = unused.size();
-    
-    // 1. Randomly choose an index i from unused
-    // Create uniform distribution for range [0, N_unused - 1]
-    uniform_int_distribution<int> dist(0, N_unused - 1);
-    int idx_i = dist(rng);
-    int i = unused[idx_i];
-    
-    // 2. Attempt to find a partner j
-    bool found_partner = false;
-    
-    if (N_unused <= K + 1) {
-      // Case A: Few elements remaining. Check all.
-      for (int idx_j = 0; idx_j < N_unused; ++idx_j) {
-        if (idx_i == idx_j) continue;
-        int j = unused[idx_j];
-        
-        // std::gcd is available from C++17
-        if (std::gcd(a[i], a[j]) == 1) {
-          // Match found
-          pairs.push_back({i, j});
-          found_partner = true;
-          
-          // Remove i and j from unused
-          remove_two(unused, idx_i, idx_j);
-          
-          // Check termination
-          if (pairs.size() == 2) goto solution_found;
-          break; // Stop searching for i
-        }
-      }
-    } else {
-      // Case B: Many elements remaining. Sample K times using rejection sampling.
-      unordered_set<int> sampled_indices;
-      for (int k = 0; k < K; ++k) {
-        int idx_j;
-        // Random sampling ensuring idx_j is distinct from idx_i and not already sampled
-        do {
-          idx_j = dist(rng);
-        } while (idx_j == idx_i || sampled_indices.count(idx_j));
-        sampled_indices.insert(idx_j);
-        
-        int j = unused[idx_j];
-        if (std::gcd(a[i], a[j]) == 1) {
-          // Match found
-          pairs.push_back({i, j});
-          found_partner = true;
-          
-          // Remove i and j from unused
-          remove_two(unused, idx_i, idx_j);
-          
-          // Check termination
-          if (pairs.size() == 2) goto solution_found;
-          break; // Stop searching for i
-        }
-      }
-    }
-    
-    // 3. If we didn't find a partner, remove only i
-    if (!found_partner) {
-      // idx_i is still valid because we haven't removed anything in this iteration if found_partner is false
-      // Swap-and-pop to remove i
-      if (idx_i < unused.size() - 1) {
-        unused[idx_i] = unused.back();
-      }
-      unused.pop_back();
-    }
-  }
-  
-  // If loop terminates without finding 2 pairs
-  cout << "0\n";
-  return;
-
-solution_found:
-  cout << pairs[0].first << " " << pairs[0].second << " "
-       << pairs[1].first << " " << pairs[1].second << "\n";
-}
-
-//===----------------------------------------------------------------------===//
+//===---------------------------------------------------------------------===//
 /* Main function */
 
 auto main() -> int {
-  // Fast I/O
-  ios_base::sync_with_stdio(false);
-  cin.tie(nullptr);
+  // The type name "LinkedList" should be recognized by our regex
+  LinkedList<int> list;
+  list.push_front(10);
+  list.push_front(20);
+  list.push_front(30);
+  list.push_front(40);
+  list.push_front(50);
+  list.push_front(60);
+  list.push_front(70);
+  list.push_front(80);
+  list.push_front(90);
 
-  int T;
-  cin >> T;
+  LinkedList<std::string> string_list;
+  string_list.push_front("C++");
+  string_list.push_front("Python");
+  string_list.push_front("Haskell");
+  string_list.push_front("Rust");
+  string_list.push_front("OCaml");
+  string_list.push_front("Erlang");
+  string_list.push_front("TypeScript");
+  string_list.push_front("Kotlin");
+  string_list.push_front("Swift");
+  string_list.push_front("Scala");
 
-  while (T--) {
-    solve();
-  }
+  // Print the linked list to console
+  std::cout << "Program ready for debugging." << '\n';
+
+  // Create a sample binary tree to test the Tree formatter
+  std::cout << "Creating a sample binary tree..." << '\n';
+
+  // The variable we will inspect in LLDB
+  Tree<int> my_binary_tree;
+
+  // Insert some values to create a more complex, non-trivial tree
+  my_binary_tree.insert(8); // root
+  my_binary_tree.insert(3);
+  my_binary_tree.insert(10);
+  my_binary_tree.insert(1);
+  my_binary_tree.insert(6);
+  my_binary_tree.insert(4);
+  my_binary_tree.insert(7);
+  my_binary_tree.insert(14);
+  my_binary_tree.insert(13);
+
+  // Additional nodes for complexity
+  my_binary_tree.insert(9);
+  my_binary_tree.insert(2);
+  my_binary_tree.insert(5);
+  my_binary_tree.insert(12);
+  my_binary_tree.insert(15);
+  my_binary_tree.insert(11);
+  my_binary_tree.insert(0);
+  my_binary_tree.insert(16);
+  my_binary_tree.insert(17);
+  my_binary_tree.insert(18);
+
+  std::cout << "Tree created and populated.\n" << '\n';
+
+  // Create a graph of integers.
+  // The name "my_std_graph" can be used directly in LLDB commands.
+  StandardGraph<int> my_std_graph;
+
+  // Add nodes using the helper function
+  TestGraphNode<int>* node10  = create_node(my_std_graph, 10);
+  TestGraphNode<int>* node20  = create_node(my_std_graph, 20);
+  TestGraphNode<int>* node30  = create_node(my_std_graph, 30);
+  TestGraphNode<int>* node40  = create_node(my_std_graph, 40);
+  TestGraphNode<int>* node50  = create_node(my_std_graph, 50);
+  TestGraphNode<int>* node60  = create_node(my_std_graph, 60);
+  TestGraphNode<int>* node70  = create_node(my_std_graph, 70);
+  TestGraphNode<int>* node80  = create_node(my_std_graph, 80);
+  TestGraphNode<int>* node90  = create_node(my_std_graph, 90);
+  TestGraphNode<int>* node100 = create_node(my_std_graph, 100);
+
+  (void)node100; // Use node100 to avoid unused variable warning
+
+  // Add edges
+  add_edge(my_std_graph, node10, node20);
+  add_edge(my_std_graph, node10, node30);
+  add_edge(my_std_graph, node20, node40);
+  add_edge(my_std_graph, node30, node40);
+  add_edge(my_std_graph, node40, node50);
+  add_edge(my_std_graph, node30, node10); // Edge for cycle
+  add_edge(my_std_graph, node50, node60);
+  add_edge(my_std_graph, node60, node70);
+  add_edge(my_std_graph, node70, node80);
+  add_edge(my_std_graph, node80, node90);
+  add_edge(my_std_graph, node90, node10); // Another cycle
+  add_edge(my_std_graph, node20, node60);
+  add_edge(my_std_graph, node30, node70);
+  add_edge(my_std_graph, node40, node80);
+
+  std::cout << "StandardGraph created." << '\n';
+
+  std::string myGraphJson = "{\"kind\":{\"graph\":true},"
+                            "\"nodes\":[{\"id\":\"1\"},{\"id\":\"2\"}],"
+                            "\"edges\":[{\"from\":\"1\",\"to\":\"2\"}]}";
+  std::cout << "Graph JSON: " << myGraphJson << '\n';
+
+  // ================================================================== //
+  // 2. GENERATE AND PRINT THE JSON FOR ONE STRUCTURE
+  // ================================================================== //
+
+  // Declare a string to hold the JSON output.
+  std::string json_to_visualize;
+
+  // ----- CHOOSE WHICH STRUCTURE TO VISUALIZE -----
+  // Uncomment ONLY ONE of the following lines at a time.
+
+  json_to_visualize = list.generateJson();
+  // json_to_visualize = string_list.generateJson();
+  // json_to_visualize = my_binary_tree.generateJson();
+  // json_to_visualize = generateGraphJson(my_std_graph);
+
+  // Print the chosen JSON string to standard output.
+  // The 'vscode-debug-visualizer' extension will capture this.
+  std::cout << json_to_visualize << '\n';
+
+  std::cout << "Program finished. Set a breakpoint on this line to see the visualization." << '\n';
 
   return 0;
 }
 
-//===----------------------------------------------------------------------===//
-/* End of Tester.cpp */
+//===---------------------------------------------------------------------===//
