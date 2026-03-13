@@ -19,7 +19,7 @@
       "preLaunchTask": "Build: Active File (Debug)",
       "stdio": ["${workspaceFolder}/input_cases/${fileBasenameNoExtension}.in", null, null],
       "sourceLanguages": ["cpp"],
-      "terminal": "console",
+      "terminal": "integrated",
       "stopOnEntry": false,
       "initCommands": [
         "command script import ~/.lldb/LLDB_Formatters",
@@ -54,7 +54,7 @@
       "preLaunchTask": "Build: Active File (Sanitize, Auto OS)",
       "stdio": ["${workspaceFolder}/input_cases/${fileBasenameNoExtension}.in", null, null],
       "sourceLanguages": ["cpp"],
-      "terminal": "console",
+      "terminal": "integrated",
       "stopOnEntry": false,
       "env": {
         "ASAN_OPTIONS": "detect_leaks=1:check_initialization_order=1:strict_init_order=1:detect_stack_use_after_return=1:halt_on_error=1",
