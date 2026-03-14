@@ -1,1 +1,1 @@
-Debug:gcc:ON:build/gcc/debug
+Sanitize:clang:OFF:build/clang/sanitize
