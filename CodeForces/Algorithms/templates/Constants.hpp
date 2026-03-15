@@ -53,9 +53,9 @@ inline constexpr F80 neg_infinity<F80> = -infinity<F80>;
   inline constexpr I128 neg_infinity<I128> = -infinity<I128>;
 #endif
 
-constexpr I32 INF32 = infinity<I32>;
-constexpr I64 INF64 = infinity<I64>;
-constexpr I64 LINF  = INF64; // Legacy alias
+constexpr I32 INF32  = infinity<I32>;
+constexpr I64 INF64  = infinity<I64>;
+constexpr I64 LINF   = INF64; // Legacy alias
 constexpr I32 NINF32 = neg_infinity<I32>;
 constexpr I64 NINF64 = neg_infinity<I64>;
 constexpr I64 NLINF  = NINF64; // Legacy-style alias
