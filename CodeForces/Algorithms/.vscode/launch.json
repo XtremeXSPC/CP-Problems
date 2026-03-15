@@ -6,6 +6,10 @@
   // - binary path is kept aligned with current CP build layout: ${workspaceFolder}/bin/<target>
   // - preLaunchTask names map to centralized tasks.json entries
   // - sanitizer profiles run through dedicated OS-aware sanitizer tasks
+  //
+  // Clang paths (macOS primary):
+  // - "Clang Debug"    -> -g2 -O0, full LLDB step-through, no sanitizers
+  // - "Clang Sanitize" ->  -g -O1, ASan/UBSan active; variables may be optimized away
   //===-------------------------------------------------------------------------===//
   "version": "0.2.0",
   "configurations": [
@@ -17,8 +21,14 @@
       "args": [],
       "cwd": "${workspaceFolder}",
       "preLaunchTask": "Build: Active File (Debug)",
-      "stdio": ["${workspaceFolder}/input_cases/${fileBasenameNoExtension}.in", null, null],
-      "sourceLanguages": ["cpp"],
+      "stdio": [
+        "${workspaceFolder}/input_cases/${fileBasenameNoExtension}.in",
+        null,
+        null
+      ],
+      "sourceLanguages": [
+        "cpp"
+      ],
       "terminal": "integrated",
       "stopOnEntry": false,
       "initCommands": [
@@ -32,10 +42,14 @@
       "type": "lldb",
       "request": "launch",
       "program": "${workspaceFolder}/bin/${fileBasenameNoExtension}",
-      "args": ["${input:debugArgs}"],
+      "args": [
+        "${input:debugArgs}"
+      ],
       "cwd": "${workspaceFolder}",
       "preLaunchTask": "Build: Active File (Debug)",
-      "sourceLanguages": ["cpp"],
+      "sourceLanguages": [
+        "cpp"
+      ],
       "terminal": "integrated",
       "stopOnEntry": false,
       "initCommands": [
@@ -45,15 +59,45 @@
       ]
     },
     {
-      "name": "CP: Debug Active File (CodeLLDB, Sanitize Auto OS)",
+      "name": "CP: Debug Active File (CodeLLDB, Clang Debug, Sample Input)",
       "type": "lldb",
       "request": "launch",
       "program": "${workspaceFolder}/bin/${fileBasenameNoExtension}",
       "args": [],
       "cwd": "${workspaceFolder}",
-      "preLaunchTask": "Build: Active File (Sanitize, Auto OS)",
-      "stdio": ["${workspaceFolder}/input_cases/${fileBasenameNoExtension}.in", null, null],
-      "sourceLanguages": ["cpp"],
+      "preLaunchTask": "Build: Active File (Debug, Clang)",
+      "stdio": [
+        "${workspaceFolder}/input_cases/${fileBasenameNoExtension}.in",
+        null,
+        null
+      ],
+      "sourceLanguages": [
+        "cpp"
+      ],
+      "terminal": "integrated",
+      "stopOnEntry": false,
+      "initCommands": [
+        "command script import ~/.lldb/LLDB_Formatters",
+        "settings set target.inline-breakpoint-strategy always",
+        "settings set target.prefer-dynamic-value run-target"
+      ]
+    },
+    {
+      "name": "CP: Debug Active File (CodeLLDB, Clang Sanitize, Sample Input)",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/bin/${fileBasenameNoExtension}",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "Build: Active File (Sanitize, Clang)",
+      "stdio": [
+        "${workspaceFolder}/input_cases/${fileBasenameNoExtension}.in",
+        null,
+        null
+      ],
+      "sourceLanguages": [
+        "cpp"
+      ],
       "terminal": "integrated",
       "stopOnEntry": false,
       "env": {
@@ -69,27 +113,48 @@
       ]
     },
     {
-      "name": "CP: Debug Active File (GDB, Sanitize GCC Linux)",
+      "name": "CP: Debug Active File (CodeLLDB, Sanitize Auto OS)",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/bin/${fileBasenameNoExtension}",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "Build: Active File (Sanitize, Auto OS)",
+      "stdio": [
+        "${workspaceFolder}/input_cases/${fileBasenameNoExtension}.in",
+        null,
+        null
+      ],
+      "sourceLanguages": [
+        "cpp"
+      ],
+      "terminal": "integrated",
+      "stopOnEntry": false,
+      "env": {
+        "ASAN_OPTIONS": "detect_leaks=1:check_initialization_order=1:strict_init_order=1:detect_stack_use_after_return=1:halt_on_error=1",
+        "UBSAN_OPTIONS": "print_stacktrace=1:halt_on_error=1",
+        "LSAN_OPTIONS": "verbosity=1:log_threads=1",
+        "TERM": "xterm-256color"
+      },
+      "initCommands": [
+        "command script import ~/.lldb/LLDB_Formatters",
+        "settings set target.inline-breakpoint-strategy always",
+        "settings set target.prefer-dynamic-value run-target"
+      ]
+    },
+    {
+      "name": "CP: Debug Active File (GDB, Linux)",
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/bin/${fileBasenameNoExtension}",
-      "args": ["<", "${workspaceFolder}/input_cases/${fileBasenameNoExtension}.in"],
+      "args": [
+        "<",
+        "${workspaceFolder}/input_cases/${fileBasenameNoExtension}.in"
+      ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
-      "preLaunchTask": "Build: Active File (Sanitize, GCC Linux Only)",
+      "preLaunchTask": "Build: Active File (Debug)",
       "environment": [
-        {
-          "name": "ASAN_OPTIONS",
-          "value": "detect_leaks=1:check_initialization_order=1:strict_init_order=1:detect_stack_use_after_return=1:halt_on_error=1"
-        },
-        {
-          "name": "UBSAN_OPTIONS",
-          "value": "print_stacktrace=1:halt_on_error=1"
-        },
-        {
-          "name": "LSAN_OPTIONS",
-          "value": "verbosity=1:log_threads=1"
-        },
         {
           "name": "TERM",
           "value": "xterm-256color"
@@ -119,15 +184,30 @@
       ]
     },
     {
-      "name": "CP: Debug Active File (GDB, Linux)",
+      "name": "CP: Debug Active File (GDB, Sanitize GCC Linux)",
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/bin/${fileBasenameNoExtension}",
-      "args": ["<", "${workspaceFolder}/input_cases/${fileBasenameNoExtension}.in"],
+      "args": [
+        "<",
+        "${workspaceFolder}/input_cases/${fileBasenameNoExtension}.in"
+      ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
-      "preLaunchTask": "Build: Active File (Debug)",
+      "preLaunchTask": "Build: Active File (Sanitize, GCC Linux Only)",
       "environment": [
+        {
+          "name": "ASAN_OPTIONS",
+          "value": "detect_leaks=1:check_initialization_order=1:strict_init_order=1:detect_stack_use_after_return=1:halt_on_error=1"
+        },
+        {
+          "name": "UBSAN_OPTIONS",
+          "value": "print_stacktrace=1:halt_on_error=1"
+        },
+        {
+          "name": "LSAN_OPTIONS",
+          "value": "verbosity=1:log_threads=1"
+        },
         {
           "name": "TERM",
           "value": "xterm-256color"

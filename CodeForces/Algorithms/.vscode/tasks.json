@@ -25,6 +25,15 @@
       "detail": "Configure Debug (auto compiler) and build the active problem target."
     },
     {
+      "label": "Build: Active File (Debug, Clang)",
+      "type": "shell",
+      "command": "zsh",
+      "args": ["-lc", "cpptools conf Debug clang && cpptools build ${fileBasenameNoExtension}"],
+      "group": "build",
+      "problemMatcher": ["$gcc"],
+      "detail": "Configure Debug with Clang (-g2 -O0) and build the active problem target. Preferred for LLDB step-through on macOS."
+    },
+    {
       "label": "Build: Active File (Release)",
       "type": "shell",
       "command": "zsh",
