@@ -44,6 +44,12 @@ auto main() -> int {
   for (double v : {5.5, 2.2, 8.8, 1.1, 3.3, 6.6, 9.9, 0.5, 1.8, 4.4, 7.7, 10.0, 0.1})
     double_tree.insert(v);
 
+  Tree<std::string> string_tree;
+  for (const char* s : {"Mango", "Apple", "Banana", "Cherry", "Date", "Fig", "Grape",
+                        "Elderberry", "Honey", "Kiwi", "Lemon", "Nectarine", "Orange",
+                        "Papaya", "Quince", "Raspberry", "Strawberry", "Tangerine"})
+    string_tree.insert(s);
+
   std::cout << "Trees ready.\n";
 
   StandardGraph<int> my_std_graph;
