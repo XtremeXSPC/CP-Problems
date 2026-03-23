@@ -15,7 +15,56 @@
 /* Main Solver Function */
 
 void solve() {
-  // Optimized solution here
+  INT(n, m);
+
+  Vec2D<I32> graph(n + 1);
+  FOR(_, m) {
+    INT(u, v);
+    graph[u].eb(v);
+    graph[v].eb(u);
+  }
+
+  VecI32 color(n + 1, -1);
+  I64 answer = 0;
+
+  FOR(start, 1, n + 1) {
+    if (color[start] != -1) {
+      continue;
+    }
+
+    Queue<I32> q;
+    q.push(start);
+    color[start] = 0;
+
+    I32 cnt0 = 1;
+    I32 cnt1 = 0;
+    bool is_bipartite = true;
+
+    while (!q.empty()) {
+      const I32 u = q.front();
+      q.pop();
+
+      for (I32 v : graph[u]) {
+        if (color[v] == -1) {
+          color[v] = color[u] ^ 1;
+          if (color[v] == 0) {
+            ++cnt0;
+          } else {
+            ++cnt1;
+          }
+          q.push(v);
+        } else if (color[v] == color[u]) {
+          is_bipartite = false;
+        }
+      }
+    }
+
+    if (is_bipartite) {
+      answer += std::max(cnt0, cnt1);
+    }
+  }
+
+  OUT(answer);
 }
 
 //===----------------------------------------------------------------------===//
