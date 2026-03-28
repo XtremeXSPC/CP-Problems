@@ -15,7 +15,17 @@
 /* Main Solver Function */
 
 void solve() {
-  // Optimized solution here
+  INT(n);
+  VecI32 p(n);
+  IN(p);
+
+  if (n == 1) {
+    OUT(1);
+    return;
+  }
+
+  VecI32 ans(n, 2);
+  OUT(ans);
 }
 
 //===----------------------------------------------------------------------===//

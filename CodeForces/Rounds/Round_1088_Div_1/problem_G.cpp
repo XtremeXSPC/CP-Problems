@@ -12,44 +12,45 @@
 #include "templates/Base.hpp"
 
 //===----------------------------------------------------------------------===//
-/* Global Constants */
-
-constexpr I32 MAXV = 200'000;
-
-VecI32 divisor_count(MAXV + 1);
-
-struct DivisorCountInit {
-  DivisorCountInit() {
-    FOR(i, 1, MAXV + 1) {
-      for (I32 j = i; j <= MAXV; j += i) {
-        ++divisor_count[j];
-      }
-    }
-  }
-} divisor_count_init;
-
-//===----------------------------------------------------------------------===//
 /* Main Solver Function */
 
 void solve() {
-  INT(x, y);
+  INT(n);
 
-  const I32 diff   = std::abs(x - y);
-  const I32 answer = (diff == 0 ? 1 : divisor_count[diff]);
-  OUT(answer);
-
-  VecI32 a;
-  a.reserve(x + y);
-
-  if (x >= y) {
-    FOR(x) a.eb(1);
-    FOR(y) a.eb(-1);
-  } else {
-    FOR(y) a.eb(-1);
-    FOR(x) a.eb(1);
+  VecI64 a(n);
+  I64 total_sum = 0;
+  FOR(i, n) {
+    IN(a[i]);
+    total_sum += a[i];
   }
 
-  OUT(a);
+  if (n <= 2) {
+    YES();
+    return;
+  }
+
+  I64 prefix_sum = 0;
+  I64 prev_dist  = 0;
+
+  bool has_neg          = false;
+  bool has_adj_positive = false;
+
+  FOR(i, n - 1) {
+    prefix_sum += a[i];
+    const I64 index = i + 1;
+    const I64 curr_dist = as<I64>(n) * prefix_sum - index * total_sum;
+
+    if (curr_dist < 0) {
+      has_neg = true;
+    }
+    if (i > 0 && prev_dist > 0 && curr_dist > 0) {
+      has_adj_positive = true;
+    }
+
+    prev_dist = curr_dist;
+  }
+
+  OUT(has_neg || !has_adj_positive ? "Yes" : "No");
 }
 
 //===----------------------------------------------------------------------===//

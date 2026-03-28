@@ -15,7 +15,60 @@
 /* Main Solver Function */
 
 void solve() {
-  // Optimized solution here
+  INT(n, k);
+  VecI32 a(n), b(n);
+  IN(a, b);
+
+  Vec<char> is_mono(k, true);
+  FOR(i, n - k) {
+    if (a[i] != a[i + k]) {
+      is_mono[i % k] = false;
+    }
+  }
+
+  VecI32 forced(k, -1);
+  FOR(i, n) {
+    const I32 r = i % k;
+    if (!is_mono[r]) {
+      if (b[i] != -1 && b[i] != a[i]) {
+        OUT("NO");
+        return;
+      }
+      continue;
+    }
+
+    if (b[i] == -1) {
+      continue;
+    }
+
+    if (forced[r] == -1) {
+      forced[r] = b[i];
+    } elif (forced[r] != b[i]) {
+      OUT("NO");
+      return;
+    }
+  }
+
+  VecI32 freq(n + 1, 0);
+  FOR(r, k) {
+    if (is_mono[r]) {
+      ++freq[a[r]];
+    }
+  }
+
+  FOR(r, k) {
+    if (!is_mono[r] || forced[r] == -1) {
+      continue;
+    }
+
+    --freq[forced[r]];
+    if (freq[forced[r]] < 0) {
+      OUT("NO");
+      return;
+    }
+  }
+
+  OUT("YES");
 }
 
 //===----------------------------------------------------------------------===//
