@@ -69,6 +69,10 @@ auto make_vec4(std::size_t n1, std::size_t n2, std::size_t n3, std::size_t n4, c
 #define overload3(a, b, c, d, ...) d
 #define FOR(...) overload4(__VA_ARGS__, FOR4, FOR3, FOR2, FOR1)(__VA_ARGS__)
 #define FOR_R(...) overload3(__VA_ARGS__, FOR3_R, FOR2_R, FOR1_R)(__VA_ARGS__)
+#define ROF(...) FOR_R(__VA_ARGS__)
+#define FORD3(i, a, b) for (I64 i = (a); i >= (b); --i)
+#define FORD4(i, a, b, c) for (I64 i = (a); i >= (b); i -= (c))
+#define FORD(...) overload4(__VA_ARGS__, FORD4, FORD3)(__VA_ARGS__)
 
 // Range-based iteration macros:
 #define ALL(x) std::ranges::begin(x), std::ranges::end(x)

@@ -354,6 +354,11 @@ def _build_flattened_output(
                 output_lines.append(section)
                 if section and not section.endswith("\n"):
                     output_lines.append("\n")
+
+            if effective_macro_values.get("CP_USE_GLOBAL_STD_NAMESPACE") not in (None, 0):
+                if output_lines and output_lines[-1].strip():
+                    output_lines.append("\n")
+                output_lines.append("using namespace std;\n")
             continue
 
         if include_name:
