@@ -15,7 +15,21 @@
 /* Main Solver Function */
 
 void solve() {
-  // Optimized solution here
+  INT(n);
+  VecI32 p(n);
+  IN(p);
+
+  VecI32 pos(n + 1);
+  FOR(i, n) pos[p[i]] = i + 1;
+
+  VecI32 pref(n + 1, 0);
+  FOR(x, 1, n + 1) pref[x] = pref[x - 1] + (pos[x] >= x);
+
+  I32 ans = pref[n];
+  FOR(j, 1, n + 1) {
+    if (pos[j] < j) ans = std::max(ans, pref[j - 1]);
+  }
+  OUT(ans);
 }
 
 //===----------------------------------------------------------------------===//

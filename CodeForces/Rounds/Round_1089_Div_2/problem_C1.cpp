@@ -15,7 +15,27 @@
 /* Main Solver Function */
 
 void solve() {
-  // Optimized solution here
+  INT(n);
+  VecI64 a(n), b(n);
+  IN(a);
+  IN(b);
+
+  if (!std::ranges::equal(a, b)) {
+    OUT(0);
+    return;
+  }
+
+  VecI64 g(n - 1);
+  FOR(i, n - 1) g[i] = std::gcd(a[i], a[i + 1]);
+
+  VecI64 need(n);
+  need[0] = g[0];
+  need[n - 1] = g[n - 2];
+  FOR(i, 1, n - 1) need[i] = g[i - 1] / std::gcd(g[i - 1], g[i]) * g[i];
+
+  I32 ans = 0;
+  FOR(i, n) ans += (need[i] < a[i]);
+  OUT(ans);
 }
 
 //===----------------------------------------------------------------------===//
