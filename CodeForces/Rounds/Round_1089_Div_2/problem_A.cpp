@@ -15,7 +15,10 @@
 /* Main Solver Function */
 
 void solve() {
-  // Optimized solution here
+  INT(n);
+  VecI32 a(n);
+  FOR(i, n) a[i] = n - i;
+  OUT(a);
 }
 
 //===----------------------------------------------------------------------===//
