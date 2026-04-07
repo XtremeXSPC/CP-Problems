@@ -577,7 +577,6 @@ using cp_io::writeln;
   inline void NO(bool condition = true) { YES(!condition); }
   inline void Yes(bool condition = true) { OUT(condition ? "Yes" : "No"); }
   inline void No(bool condition = true) { Yes(!condition); }
-using namespace std;
 
 //===----------------------------------------------------------------------===//
 /* Main Solver Function */
