@@ -15,14 +15,44 @@
 /* Main Solver Function */
 
 void solve() {
-  INT(n, k);
-  VecI32 a(n);
-  IN(a);
+  INT(n);
 
-  const I64 sum = SUM(a);
-  const I64 reset = as<I64>(n) * k;
+  VecI32 p(n), d(n);
+  IN(p);
+  IN(d);
 
-  YES(sum % 2 == 1 || reset % 2 == 0);
+  VecI32 pos(n + 1);
+  FOR(i, n) pos[p[i]] = i;
+
+  VecI32 ord;
+  ord.reserve(n);
+  FOR_R(val, 1, n + 1) ord.eb(pos[val]);
+
+  VecI32 seq;
+  seq.reserve(n);
+
+  for (I32 i : ord) {
+    const I32 need = d[i];
+    I32 cnt = 0;
+    I32 at  = sz(seq);
+
+    for (I32 k = sz(seq) - 1; k >= 0; --k) {
+      if (cnt == need) break;
+      if (seq[k] > i) ++cnt;
+      at = k;
+    }
+
+    if (cnt < need) {
+      OUT(-1);
+      return;
+    }
+
+    seq.insert(seq.begin() + at, i);
+  }
+
+  VecI32 q(n);
+  FOR(i, n) q[seq[i]] = i + 1;
+  OUT(q);
 }
 
 //===----------------------------------------------------------------------===//

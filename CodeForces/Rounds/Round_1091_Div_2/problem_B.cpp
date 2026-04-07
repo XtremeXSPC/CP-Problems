@@ -15,7 +15,44 @@
 /* Main Solver Function */
 
 void solve() {
-  // Optimized solution here
+  INT(n, k);
+
+#ifdef LOCAL
+  my_assert(k == 1);
+#endif
+
+  VecI32 a(n);
+  IN(a);
+
+  INT(p);
+  --p;
+
+  const I32 x = a[p];
+
+  I32 left = 0;
+  I32 cur  = 0;
+  FOR(i, p) {
+    const I32 need = a[i] ^ x;
+    if ((need ^ cur) == 1) {
+      ++left;
+      cur ^= 1;
+    }
+  }
+
+  I32 right = 0;
+  cur = 0;
+  FOR_R(i, p + 1, n) {
+    const I32 need = a[i] ^ x;
+    if ((need ^ cur) == 1) {
+      ++right;
+      cur ^= 1;
+    }
+  }
+
+  I32 ans = std::max(left, right);
+  if (ans % 2 == 1) ++ans;
+
+  OUT(ans);
 }
 
 //===----------------------------------------------------------------------===//
