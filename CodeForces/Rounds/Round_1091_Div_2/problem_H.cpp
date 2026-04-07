@@ -15,14 +15,7 @@
 /* Main Solver Function */
 
 void solve() {
-  INT(n, k);
-  VecI32 a(n);
-  IN(a);
-
-  const I64 sum = SUM(a);
-  const I64 reset = as<I64>(n) * k;
-
-  YES(sum % 2 == 1 || reset % 2 == 0);
+  // Optimized solution here
 }
 
 //===----------------------------------------------------------------------===//

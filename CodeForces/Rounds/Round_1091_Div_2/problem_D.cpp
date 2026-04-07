@@ -14,15 +14,44 @@
 //===----------------------------------------------------------------------===//
 /* Main Solver Function */
 
+using namespace std;
+
 void solve() {
   INT(n, k);
+
   VecI32 a(n);
   IN(a);
 
-  const I64 sum = SUM(a);
-  const I64 reset = as<I64>(n) * k;
+  VecI32 p(k);
+  IN(p);
 
-  YES(sum % 2 == 1 || reset % 2 == 0);
+  const I32 x = a[p[0] - 1];
+
+  I32 sum   = 0;
+  I32 mx    = 0;
+  I32 cur   = 0;
+  I32 prev  = 0;
+  I32 ptr   = 0;
+
+  FOR(i, n) {
+    const I32 need = a[i] ^ x;
+    cur += prev ^ need;
+    prev = need;
+
+    if (ptr < k && p[ptr] == i + 1) {
+      sum += cur;
+      mx  = max(mx, cur);
+      cur = 0;
+      ++ptr;
+    }
+  }
+
+  cur += prev;
+  sum += cur;
+  mx = max(mx, cur);
+
+  const I32 ans = max(sum / 2, mx);
+  OUT(ans);
 }
 
 //===----------------------------------------------------------------------===//

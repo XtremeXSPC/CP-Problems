@@ -14,8 +14,17 @@
 //===----------------------------------------------------------------------===//
 /* Main Solver Function */
 
+using namespace std;
+
 void solve() {
-  // Optimized solution here
+  I64 n, m, a, b;
+  IN(n, m, a, b);
+
+  const I64 ga = gcd(n, a);
+  const I64 gb = gcd(m, b);
+  const I64 g  = gcd(n, m);
+
+  YES(ga == 1 && gb == 1 && g <= 2);
 }
 
 //===----------------------------------------------------------------------===//
