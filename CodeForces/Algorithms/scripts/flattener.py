@@ -42,6 +42,7 @@ IF_DIRECTIVE_RE = re.compile(r"^\s*#\s*(if|ifdef|ifndef)\b")
 ENDIF_DIRECTIVE_RE = re.compile(r"^\s*#\s*endif\b")
 ELSE_OR_ELIF_DIRECTIVE_RE = re.compile(r"^\s*#\s*(else|elif)\b")
 VALIDATION_COMPILER_CANDIDATES = ("g++-15", "g++-14", "g++-13", "g++", "clang++")
+TYPES_SECTION_END_MARKER = "#endif // __TYPES__"
 MacroValueMap = dict[str, int | None]
 ModuleLeafTokenMap = dict[str, set[str]]
 
@@ -317,6 +318,24 @@ def _collect_needed_template_headers(
     return [p for p in files_to_include if p.resolve() != ctx.preamble_resolved]
 
 
+def _place_global_std_namespace(template_sections: list[str]) -> tuple[str, ...]:
+    """Place `using namespace std;` after the Types section when available."""
+
+    namespace_line = "using namespace std;"
+    for idx, section in enumerate(template_sections):
+        if TYPES_SECTION_END_MARKER not in section:
+            continue
+        template_sections[idx] = section.replace(
+            TYPES_SECTION_END_MARKER,
+            f"{TYPES_SECTION_END_MARKER}\n\n{namespace_line}",
+            1,
+        )
+        return tuple(template_sections)
+
+    template_sections.append(namespace_line)
+    return tuple(template_sections)
+
+
 def _render_template_bundle(
     ctx: FlattenContext,
     *,
@@ -361,9 +380,13 @@ def _render_template_bundle(
     if ctx.strip_template_docs:
         preamble_content = strip_module_docs_and_blank_lines(preamble_content)
 
+    rendered_sections = tuple(template_sections)
+    if effective_macro_values.get("CP_USE_GLOBAL_STD_NAMESPACE") not in (None, 0):
+        rendered_sections = _place_global_std_namespace(template_sections)
+
     return FlattenedTemplateBundle(
         preamble_content=preamble_content,
-        template_sections=tuple(template_sections),
+        template_sections=rendered_sections,
         effective_macro_values=effective_macro_values,
         inlined_headers=frozenset(inlined_headers),
     )
@@ -424,14 +447,6 @@ def _render_flattened_source(
                 output_lines.append(section)
                 if section and not section.endswith("\n"):
                     output_lines.append("\n")
-
-            if bundle.effective_macro_values.get("CP_USE_GLOBAL_STD_NAMESPACE") not in (
-                None,
-                0,
-            ):
-                if output_lines and output_lines[-1].strip():
-                    output_lines.append("\n")
-                output_lines.append("using namespace std;\n")
             continue
 
         if include_name:
