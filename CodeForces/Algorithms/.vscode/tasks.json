@@ -392,7 +392,7 @@
     {
       "id": "inputFile",
       "type": "promptString",
-      "description": "Input file for cppgo (relative to workspace or absolute path)",
+      "description": "Input filename inside input_cases/",
       "default": "${fileBasenameNoExtension}.in"
     },
     {
