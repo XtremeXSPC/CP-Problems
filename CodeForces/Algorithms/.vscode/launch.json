@@ -142,15 +142,14 @@
         "settings set target.prefer-dynamic-value run-target"
       ]
     },
+    // `cppdbg` does not support reliable shell-style stdin redirection via `args`.
+    // Keep Linux GDB profiles interactive and use the CodeLLDB profiles when
+    // sample-file redirection is required inside the debugger.
     {
-      "name": "CP: Debug Active File (GDB, Linux)",
+      "name": "CP: Debug Active File (GDB, Linux, Interactive)",
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/bin/${fileBasenameNoExtension}",
-      "args": [
-        "<",
-        "${workspaceFolder}/input_cases/${fileBasenameNoExtension}.in"
-      ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "preLaunchTask": "Build: Active File (Debug)",
@@ -184,14 +183,10 @@
       ]
     },
     {
-      "name": "CP: Debug Active File (GDB, Sanitize GCC Linux)",
+      "name": "CP: Debug Active File (GDB, Sanitize GCC Linux, Interactive)",
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/bin/${fileBasenameNoExtension}",
-      "args": [
-        "<",
-        "${workspaceFolder}/input_cases/${fileBasenameNoExtension}.in"
-      ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "preLaunchTask": "Build: Active File (Sanitize, GCC Linux Only)",
