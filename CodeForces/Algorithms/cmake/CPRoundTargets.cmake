@@ -211,33 +211,13 @@ set(USE_PCH_FOR_TARGET FALSE)
   )
 
   # ----- Platform-specific linking for std::stacktrace ----- #
-  # Check for stacktrace support and required libraries.
+  # Link stacktrace support if configure-time probing found the required library.
   if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND NOT APPLE)
-    # Test if stacktrace libraries are available.
-    include(CheckCXXSourceCompiles)
-    set(CMAKE_REQUIRED_FLAGS "-std=c++23")
-    set(CMAKE_REQUIRED_LIBRARIES "stdc++_libbacktrace")
-
-    check_cxx_source_compiles(
-      "#include <stacktrace>
-       int main() {
-         auto trace = std::stacktrace::current();
-         return trace.size();
-       }"
-      STACKTRACE_WORKS
-    )
-
-    if(STACKTRACE_WORKS)
+    if(CP_GNU_STACKTRACE_AVAILABLE)
       target_link_libraries(${TARGET_NAME} PRIVATE stdc++_libbacktrace)
-      message(STATUS "Stacktrace support enabled for ${TARGET_NAME}")
     else()
       target_compile_definitions(${TARGET_NAME} PRIVATE _GLIBCXX_STACKTRACE_DISABLED)
-      message(STATUS "Stacktrace support disabled for ${TARGET_NAME} (libraries not found)")
     endif()
-
-    # Reset CMAKE_REQUIRED_* variables.
-    unset(CMAKE_REQUIRED_FLAGS)
-    unset(CMAKE_REQUIRED_LIBRARIES)
   endif()
 
   # Additional linking for debug builds.
