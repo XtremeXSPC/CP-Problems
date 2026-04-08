@@ -305,6 +305,45 @@ class FlattenerAuditTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, msg=result.stderr)
             self.assertIn("using namespace std;", result.stdout)
 
+    def test_flattener_places_global_std_namespace_after_types_section(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            src = Path(tmpdir) / "probe.cpp"
+            src.write_text(
+                textwrap.dedent(
+                    """\
+                    #if !defined(CP_TEMPLATE_PROFILE_RELAXED)
+                      #define CP_TEMPLATE_PROFILE_STRICT
+                    #endif
+                    #ifndef CP_USE_GLOBAL_STD_NAMESPACE
+                      #define CP_USE_GLOBAL_STD_NAMESPACE 1
+                    #endif
+                    #define NEED_CORE
+                    #define NEED_IO
+                    #include "templates/Base.hpp"
+                    auto main() -> int { return min(1, 2); }
+                    """
+                ),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [sys.executable, str(FLATTENER_SCRIPT), str(src)],
+                capture_output=True,
+                text=True,
+                check=False,
+                env={**os.environ, "CP_FLATTENER_MODE": "safe"},
+            )
+
+            self.assertEqual(result.returncode, 0, msg=result.stderr)
+            self.assertIn(
+                "#endif // __TYPES__\n\nusing namespace std;\n\n//===----------------------------------------------------------------------===//\n/* Mathematical Constants and Infinity Values */",
+                result.stdout,
+            )
+            self.assertLess(
+                result.stdout.index("using namespace std;"),
+                result.stdout.index("/* Lightweight I/O Utilities */"),
+            )
+
     def test_flattener_keeps_reverse_loop_macros_from_need_core(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             src = Path(tmpdir) / "probe.cpp"
