@@ -158,11 +158,13 @@ MODULE_SECTION_SEPARATOR = (
 
 def extract_identifiers(text: str) -> set[str]:
     """Extract identifier tokens from source text."""
+
     return set(IDENTIFIER_RE.findall(_strip_non_code(text)))
 
 
 def append_with_blank_separator(chunks: list[str], content: str) -> None:
     """Append a chunk ensuring exactly one blank line of separation."""
+
     if not content:
         return
 
@@ -181,6 +183,7 @@ def append_with_blank_separator(chunks: list[str], content: str) -> None:
 
 def parse_project_include_line(line: str, *, masked_line: str | None = None) -> str | None:
     """Parse a quoted project include, optionally guarded by a lexical mask line."""
+
     if masked_line is not None and not INCLUDE_DIRECTIVE_PREFIX_RE.match(masked_line):
         return None
 
@@ -191,8 +194,24 @@ def parse_project_include_line(line: str, *, masked_line: str | None = None) -> 
     return match.group(1)
 
 
+def extract_prefix_before_base_include(source_content: str) -> str:
+    """Return source prefix before the first `templates/Base.hpp` include."""
+
+    comments_stripped = strip_comments(source_content)
+    masked_lines = strip_non_code(source_content).splitlines()
+    prefix_lines: list[str] = []
+    for idx, raw_line in enumerate(comments_stripped.splitlines()):
+        masked_line = masked_lines[idx] if idx < len(masked_lines) else ""
+        include_name = parse_project_include_line(raw_line, masked_line=masked_line)
+        if include_name and include_name.replace("\\", "/").endswith("templates/Base.hpp"):
+            break
+        prefix_lines.append(raw_line)
+    return "\n".join(prefix_lines)
+
+
 def trim_outer_blank_lines(content: str) -> str:
     """Trim only leading/trailing blank lines, keeping internal spacing."""
+
     lines = content.splitlines()
     while lines and not lines[0].strip():
         lines.pop(0)
@@ -203,6 +222,7 @@ def trim_outer_blank_lines(content: str) -> str:
 
 def collapse_redundant_blank_lines(content: str) -> str:
     """Collapse consecutive blank lines to at most one empty line."""
+
     lines = content.splitlines()
     normalized: list[str] = []
     prev_blank = False
@@ -229,6 +249,7 @@ def strip_module_docs_and_blank_lines(content: str) -> str:
     - remove trailing doc comments (///< ... and //!< ...)
     - preserve regular comments and most blank lines
     """
+
     masked, literals = _mask_code_literals(content)
 
     def _doc_block_replacer(match: re.Match[str]) -> str:
@@ -271,6 +292,7 @@ def strip_outer_include_guard(content: str) -> str:
     - #ifndef FOO / #define FOO ... #endif
     - #if !defined(FOO) / #define FOO ... #endif
     """
+
     lines = content.splitlines(keepends=True)
     if not lines:
         return content
@@ -323,6 +345,7 @@ def strip_outer_include_guard(content: str) -> str:
 
 def collect_module_leaf_trigger_tokens(project_root: Path) -> dict[str, set[str]]:
     """Build trigger token map for granular module headers (modules/<domain>/*.hpp)."""
+
     modules_root = project_root / "modules"
     if not modules_root.is_dir():
         return {}
@@ -356,6 +379,7 @@ def collect_transitive_template_deps(
 
     Order is discovery order (stable) to keep output deterministic and readable.
     """
+
     excluded = exclude_template_files or {"Preamble.hpp"}
     stack = [start_header.resolve()]
     visited: set[Path] = set()
@@ -405,6 +429,7 @@ def prune_template_headers(files_to_include: list[Path], source_content: str) ->
     Keeps only headers whose symbols/macros appear in user code, while honoring
     hard dependencies between template headers.
     """
+
     return prune_template_headers_with_policy(
         files_to_include,
         source_content,
@@ -421,6 +446,7 @@ def prune_template_headers_with_policy(
     """
     Tree-shaking for template headers with explicit policy control.
     """
+
     if not enable_pruning or os.environ.get("CP_FLATTENER_DISABLE_PRUNING", "") == "1":
         return files_to_include
 
@@ -448,6 +474,7 @@ def resolve_project_include(
     project_root: Path, including_file: Path, include_name: str
 ) -> Path | None:
     """Resolve a quoted include within project_root, if it exists."""
+
     include_target = (including_file.parent / include_name).resolve()
     if not include_target.is_file():
         include_target = (project_root / include_name).resolve()
@@ -461,6 +488,7 @@ def resolve_project_include(
 
 def process_file_content(filepath: Path, *, preserve_includes: bool = False) -> str:
     """Process a single file and return its content."""
+
     if not filepath.is_file():
         return ""
 
@@ -590,6 +618,7 @@ def fold_simple_preprocessor_conditionals(
     - folds only blocks without nested conditionals or `#else/#elif`
     - preserves unknown/complex conditionals unchanged
     """
+
     if not content:
         return content
 
@@ -698,6 +727,7 @@ def inline_local_header(
     enable_module_pruning: bool = True,
 ) -> str:
     """Inline project-local headers recursively and strip local includes/pragma once."""
+
     resolved = header_path.resolve()
     if not resolved.is_file():
         return ""
@@ -809,6 +839,7 @@ def inline_local_header(
 
 def _consume_quoted_literal(text: str, start: int) -> int:
     """Return index right after a C/C++ quoted literal starting at `start`."""
+
     n = len(text)
     quote = text[start]
     j = start + 1
@@ -832,6 +863,7 @@ def _consume_raw_string_literal(text: str, start: int) -> int | None:
 
     Supports prefixes: R, u8R, uR, UR, LR.
     """
+
     prefixes = ("u8R\"", "uR\"", "UR\"", "LR\"", "R\"")
     prefix = next((p for p in prefixes if text.startswith(p, start)), None)
     if not prefix:
@@ -864,6 +896,7 @@ def _scan_cpp_text(
       - "token": replace each literal with a stable placeholder token
       - "keep":  keep literals as-is
     """
+
     out: list[str] = []
     literals: dict[str, str] = {}
     token_id = 0
@@ -940,16 +973,19 @@ def _scan_cpp_text(
 
 def _strip_non_code(text: str) -> str:
     """Remove strings/comments so token scans only see code-like identifiers."""
+
     return strip_non_code(text)
 
 
 def strip_comments(text: str) -> str:
     """Remove comments while preserving literals and line structure."""
+
     return _scan_cpp_text(text, keep_comments=False, literal_mode="keep")[0]
 
 
 def strip_non_code(text: str) -> str:
     """Public wrapper to remove strings/comments while preserving line structure."""
+
     return _scan_cpp_text(text, keep_comments=False, literal_mode="space")[0]
 
 
@@ -960,11 +996,13 @@ def _mask_code_literals(text: str) -> tuple[str, dict[str, str]]:
     This lets regex-based comment stripping operate safely without touching
     literal payloads that may contain comment-like substrings.
     """
+
     return _scan_cpp_text(text, keep_comments=True, literal_mode="token")
 
 
 def _restore_code_literals(masked: str, literals: dict[str, str]) -> str:
     """Restore literal tokens emitted by _mask_code_literals."""
+
     for token, literal in literals.items():
         masked = masked.replace(token, literal)
     return masked
@@ -976,6 +1014,7 @@ def _extract_public_symbols(header_content: str) -> set[str]:
 
     The extraction is conservative: we only consider declarations at brace depth 0.
     """
+
     content = _strip_non_code(header_content)
     symbols: set[str] = set()
     depth = 0

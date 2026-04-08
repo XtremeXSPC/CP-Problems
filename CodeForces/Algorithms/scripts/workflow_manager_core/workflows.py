@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import shutil
-from typing import List
 
 from .orchestration import WorkflowManager, build_cppconf_args, run_step_with_policy
 from .types import WorkflowCommandError
+from .utils import find_existing_target_source
 
 
 def handle_doctor(manager: WorkflowManager, ns) -> None:
     """Run diagnostics around cpp-tools health and environment readiness."""
+
     manager.note(f"[workflow] cp-tools script: {manager.runner.script_path}")
     manager.note(f"[workflow] cwd: {manager.runner.cwd}")
     manager.note("[workflow] running diagnostics suite...")
@@ -32,21 +33,22 @@ def handle_doctor(manager: WorkflowManager, ns) -> None:
         manager.note(f"[workflow] warning: cppdiag exited with {diag_result.returncode}")
         if ns.strict:
             raise WorkflowCommandError(diag_result)
-        diag_result.returncode = 0
+        manager.results[-1] = diag_result.as_non_fatal()
 
     run_step_with_policy(manager, ns, "cppcheck")
 
 
 def handle_cycle(manager: WorkflowManager, ns) -> None:
     """Run the default CP lifecycle with optional skip flags."""
+
     input_name = ns.input
 
     if ns.configure:
         run_step_with_policy(manager, ns, "cppconf", build_cppconf_args(ns))
 
     if not ns.skip_new:
-        target_file = manager.runner.cwd / f"{ns.name}.cpp"
-        if ns.new_if_missing and target_file.exists():
+        target_file = find_existing_target_source(manager.runner.cwd, ns.name)
+        if ns.new_if_missing and target_file is not None:
             manager.note(f"[workflow] {target_file.name} already exists, skipping cppnew")
         else:
             run_step_with_policy(manager, ns, "cppnew", [ns.name, ns.template])
@@ -64,7 +66,7 @@ def handle_cycle(manager: WorkflowManager, ns) -> None:
         submit_args = [ns.name] if not ns.strict_submit else ["--strict", ns.name]
         run_step_with_policy(manager, ns, "cppsubmit", submit_args)
         if not ns.skip_submit_test:
-            test_args: List[str] = []
+            test_args: list[str] = []
             if ns.strict_submit:
                 test_args.append("--strict")
             test_args.extend(["--no-generate", ns.name])

@@ -3,7 +3,7 @@
 from pathlib import Path
 import re
 
-DEFAULT_WORKSPACE_ROOT = Path("/Volumes/LCS.Data/CP-Problems")
+DEFAULT_WORKSPACE_ROOT = Path(__file__).resolve().parents[4]
 DEFAULT_CP_TOOLS_SCRIPT = Path(
     "/Users/lcs-dev/Dotfiles/cpp-tools/.config/cpp-tools/competitive.sh"
 )

@@ -5,10 +5,11 @@ from __future__ import annotations
 
 import re
 from collections import OrderedDict
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 from flattener_core.flattener_helpers import (
+    extract_prefix_before_base_include,
     fold_simple_preprocessor_conditionals,
     parse_project_include_line,
     strip_comments,
@@ -48,6 +49,7 @@ def load_need_mapping(base_header: Path) -> OrderedDict[str, list[str]]:
     Mapping order follows macro declaration order in Base.hpp.
     Header order follows include order within each NEED_* block.
     """
+
     mapping: OrderedDict[str, list[str]] = OrderedDict()
     if not base_header.is_file():
         return mapping
@@ -110,28 +112,12 @@ def extract_need_macros_from_source(
     source_content: str, known_macros: Iterable[str]
 ) -> set[str]:
     """Extract enabled NEED_* macros from a source file content."""
+
     known = set(known_macros)
     found: set[str] = set()
     enabled_io_profiles: set[str] = set()
 
-    comments_stripped = strip_comments(source_content)
-    masked_lines = strip_non_code(source_content).splitlines()
-    prefix_lines: list[str] = []
-    for idx, raw_line in enumerate(comments_stripped.splitlines()):
-        masked_line = masked_lines[idx] if idx < len(masked_lines) else ""
-        stripped = masked_line.strip()
-        if not stripped:
-            continue
-
-        include_name = parse_project_include_line(raw_line, masked_line=masked_line)
-        if include_name:
-            include_target = include_name.replace("\\", "/")
-            if include_target.endswith("templates/Base.hpp"):
-                break
-
-        prefix_lines.append(raw_line)
-
-    code_only_prefix = strip_non_code("\n".join(prefix_lines))
+    code_only_prefix = strip_non_code(extract_prefix_before_base_include(source_content))
     folded_code = fold_simple_preprocessor_conditionals(code_only_prefix, {})
     depth = 0
 

@@ -5,8 +5,8 @@ import os
 import subprocess
 import sys
 import time
+from collections.abc import Sequence
 from pathlib import Path
-from typing import List, Optional, Sequence
 
 from .constants import DEFAULT_WORKSPACE_ROOT
 from .runner import CppToolsRunner
@@ -28,8 +28,8 @@ class WorkflowManager:
         self.runner = runner
         self.json_mode = json_mode
         self.verbose = verbose
-        self.results: List[CommandResult] = []
-        self.notes: List[str] = []
+        self.results: list[CommandResult] = []
+        self.notes: list[str] = []
 
         workspace_root = Path(
             os.environ.get("CP_WORKSPACE_ROOT", str(DEFAULT_WORKSPACE_ROOT))
@@ -50,7 +50,7 @@ class WorkflowManager:
         function: str,
         args: Sequence[str] = (),
         check: bool = True,
-        timeout: Optional[int] = None,
+        timeout: int | None = None,
         auto_confirm_deepclean: bool = False,
     ) -> CommandResult:
         """Run one cpp-tools command and store its result."""
@@ -79,8 +79,8 @@ class WorkflowManager:
         self,
         argv: Sequence[str],
         check: bool = True,
-        timeout: Optional[int] = None,
-        env_overrides: Optional[dict] = None,
+        timeout: int | None = None,
+        env_overrides: dict[str, str] | None = None,
     ) -> CommandResult:
         """Run an external command with the same reporting semantics as cpp-tools."""
         if not argv:
@@ -107,7 +107,7 @@ class WorkflowManager:
             elapsed_ms = int((time.perf_counter() - start) * 1000)
             result = CommandResult(
                 function=argv[0],
-                args=list(argv[1:]),
+                args=tuple(argv[1:]),
                 cwd=str(self.runner.cwd),
                 returncode=completed.returncode,
                 duration_ms=elapsed_ms,
@@ -119,7 +119,7 @@ class WorkflowManager:
             elapsed_ms = int((time.perf_counter() - start) * 1000)
             result = CommandResult(
                 function=argv[0],
-                args=list(argv[1:]),
+                args=tuple(argv[1:]),
                 cwd=str(self.runner.cwd),
                 returncode=124,
                 duration_ms=elapsed_ms,
@@ -156,7 +156,7 @@ class WorkflowManager:
         if self.json_mode or not self.results:
             return
         total_ms = sum(r.duration_ms for r in self.results)
-        failed = [r for r in self.results if r.returncode != 0]
+        failed = [r for r in self.results if r.failed]
         status = "OK" if not failed else "FAILED"
         print(
             f"[workflow] {status} | steps={len(self.results)} | "
@@ -164,9 +164,10 @@ class WorkflowManager:
         )
 
 
-def build_cppconf_args(ns) -> List[str]:
+def build_cppconf_args(ns) -> list[str]:
     """Translate CLI namespace fields into raw `cppconf` arguments."""
-    args: List[str] = []
+
+    args: list[str] = []
     if ns.build_type:
         args.append(ns.build_type)
     if ns.compiler:
@@ -190,6 +191,7 @@ def run_step_with_policy(
     auto_confirm_deepclean: bool = False,
 ) -> CommandResult:
     """Run one cpp-tools step honoring `--continue-on-error` policy."""
+
     check = not getattr(ns, "continue_on_error", False)
     result = manager.run_cpp(
         function=function,
@@ -197,7 +199,7 @@ def run_step_with_policy(
         check=check,
         auto_confirm_deepclean=auto_confirm_deepclean,
     )
-    if not check and result.returncode != 0:
+    if not check and result.failed:
         manager.note(
             f"[workflow] step failed but continuing: {function} "
             f"(exit {result.returncode})"
@@ -209,16 +211,17 @@ def run_external_step_with_policy(
     manager: WorkflowManager,
     ns,
     argv: Sequence[str],
-    env_overrides: Optional[dict] = None,
+    env_overrides: dict[str, str] | None = None,
 ) -> CommandResult:
     """Run one external step honoring `--continue-on-error` policy."""
+
     check = not getattr(ns, "continue_on_error", False)
     result = manager.run_external(
         argv=argv,
         check=check,
         env_overrides=env_overrides,
     )
-    if not check and result.returncode != 0:
+    if not check and result.failed:
         manager.note(
             f"[workflow] step failed but continuing: {' '.join(argv)} "
             f"(exit {result.returncode})"

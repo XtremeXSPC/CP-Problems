@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import json
 import sys
-from typing import Optional, Sequence
+from collections.abc import Sequence
 
 from workflow_manager_core.orchestration import WorkflowManager
 from workflow_manager_core.parser import build_parser
@@ -14,12 +14,28 @@ from workflow_manager_core.types import WorkflowCommandError, WorkflowError
 from workflow_manager_core.utils import discover_cp_tools_script
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def _emit_error(*, json_mode: bool, message: str) -> None:
+    """Emit a workflow error in either JSON or plain-text mode."""
+
+    if json_mode:
+        print(
+            json.dumps(
+                {"status": "error", "error": message},
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+        return
+    print(f"Error: {message}", file=sys.stderr)
+
+
+def main(argv: Sequence[str] | None = None) -> int:
     """Parse CLI arguments and execute a single workflow command."""
+
     parser = build_parser()
     ns = parser.parse_args(argv)
 
-    manager: Optional[WorkflowManager] = None
+    manager: WorkflowManager | None = None
     exit_code = 0
 
     try:
@@ -32,34 +48,16 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         )
         manager = WorkflowManager(runner=runner, json_mode=ns.json, verbose=ns.verbose)
         ns.handler(manager, ns)
-        if any(step.returncode != 0 for step in manager.results):
+        if any(step.failed for step in manager.results):
             exit_code = 1
     except WorkflowCommandError as exc:
         exit_code = exc.result.returncode if exc.result.returncode != 0 else 1
         if manager is None:
-            if ns.json:
-                print(
-                    json.dumps(
-                        {"status": "error", "error": str(exc)},
-                        ensure_ascii=False,
-                        indent=2,
-                    )
-                )
-            else:
-                print(f"Error: {exc}", file=sys.stderr)
+            _emit_error(json_mode=ns.json, message=str(exc))
             return exit_code
     except WorkflowError as exc:
         exit_code = 1
-        if ns.json:
-            print(
-                json.dumps(
-                    {"status": "error", "error": str(exc)},
-                    ensure_ascii=False,
-                    indent=2,
-                )
-            )
-        else:
-            print(f"Error: {exc}", file=sys.stderr)
+        _emit_error(json_mode=ns.json, message=str(exc))
         return exit_code
     except KeyboardInterrupt:
         exit_code = 130
@@ -84,4 +82,4 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())

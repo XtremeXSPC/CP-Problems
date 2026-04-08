@@ -10,35 +10,17 @@ timestamped backups).
 from __future__ import annotations
 
 import argparse
-import datetime as dt
 from pathlib import Path
 
-DEFAULT_ROUNDS_ROOT = Path("/Volumes/LCS.Data/CP-Problems/CodeForces/Rounds")
-DEFAULT_CENTRAL_ROOT = Path("/Volumes/LCS.Data/CP-Problems/CodeForces/Algorithms")
+from migration_common import is_linked_to, iter_round_dirs, timestamped_backup_name
+
+DEFAULT_CENTRAL_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_ROUNDS_ROOT = DEFAULT_CENTRAL_ROOT.parent / "Rounds"
 TOOLCHAIN_FILES = ("gcc-toolchain.cmake", "clang-toolchain.cmake")
-
-
-def _backup_name(path: Path) -> Path:
-    """Build a timestamped backup filename next to the original file."""
-    stamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
-    return path.with_name(f"{path.name}.bak-centralized-{stamp}")
-
-
-def _safe_resolve(path: Path) -> Path:
-    """Resolve a path when possible, preserving unresolved paths if missing."""
-    try:
-        return path.resolve(strict=True)
-    except FileNotFoundError:
-        return path
-
-
-def _is_linked_to(path: Path, target: Path) -> bool:
-    """Return True when `path` is a symlink pointing to `target`."""
-    return path.is_symlink() and _safe_resolve(path) == _safe_resolve(target)
-
 
 def main() -> int:
     """Remove round-local toolchains so rounds rely on centralized ones."""
+
     parser = argparse.ArgumentParser(
         description=(
             "Remove per-round toolchain files to enforce centralized toolchain usage."
@@ -46,6 +28,12 @@ def main() -> int:
     )
     parser.add_argument("--rounds-root", type=Path, default=DEFAULT_ROUNDS_ROOT)
     parser.add_argument("--central-root", type=Path, default=DEFAULT_CENTRAL_ROOT)
+    parser.add_argument(
+        "--round",
+        action="append",
+        default=[],
+        help="Specific round directory name to migrate (repeatable).",
+    )
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument(
         "--backup",
@@ -76,18 +64,18 @@ def main() -> int:
     removed = 0
     skipped = 0
 
-    for round_dir in sorted(p for p in rounds_root.iterdir() if p.is_dir()):
-        cmake_file = round_dir / "CMakeLists.txt"
-        if not cmake_file.is_file():
-            continue
-
+    for round_dir in iter_round_dirs(rounds_root, args.round):
         for name in TOOLCHAIN_FILES:
             local_path = round_dir / name
             if not (local_path.exists() or local_path.is_symlink()):
                 skipped += 1
                 continue
 
-            if local_path.is_symlink() and (not _is_linked_to(local_path, central_toolchains[name])) and not args.force:
+            if (
+                local_path.is_symlink()
+                and not is_linked_to(local_path, central_toolchains[name])
+                and not args.force
+            ):
                 print(
                     f"warn: {local_path} is a symlink to a non-central target; "
                     "use --force to remove it"
@@ -99,7 +87,7 @@ def main() -> int:
                 print(f"would-remove: {local_path}")
             else:
                 if args.backup:
-                    backup_path = _backup_name(local_path)
+                    backup_path = timestamped_backup_name(local_path)
                     local_path.rename(backup_path)
                     print(f"backup: {local_path} -> {backup_path}")
                 else:

@@ -7,6 +7,8 @@ import re
 import shutil
 import subprocess
 import sys
+from dataclasses import dataclass
+from enum import Enum, auto
 from pathlib import Path
 
 from flattener_core.flattener_helpers import (
@@ -15,6 +17,7 @@ from flattener_core.flattener_helpers import (
     append_with_blank_separator,
     collect_module_leaf_trigger_tokens,
     collect_transitive_template_deps,
+    extract_prefix_before_base_include,
     extract_identifiers,
     fold_simple_preprocessor_conditionals,
     inline_local_header,
@@ -22,7 +25,6 @@ from flattener_core.flattener_helpers import (
     process_file_content,
     prune_template_headers_with_policy,
     resolve_project_include,
-    strip_comments,
     strip_non_code,
     strip_module_docs_and_blank_lines,
 )
@@ -39,8 +41,56 @@ NEED_DEFINE_LINE_RE = re.compile(r"^\s*#\s*define\s+(NEED_\w+)\b")
 IF_DIRECTIVE_RE = re.compile(r"^\s*#\s*(if|ifdef|ifndef)\b")
 ENDIF_DIRECTIVE_RE = re.compile(r"^\s*#\s*endif\b")
 ELSE_OR_ELIF_DIRECTIVE_RE = re.compile(r"^\s*#\s*(else|elif)\b")
-VALID_FLATTENER_MODES = {"compact", "safe", "auto"}
 VALIDATION_COMPILER_CANDIDATES = ("g++-15", "g++-14", "g++-13", "g++", "clang++")
+MacroValueMap = dict[str, int | None]
+ModuleLeafTokenMap = dict[str, set[str]]
+
+
+class FlattenerMode(Enum):
+    """Supported output strategies for flattened source generation."""
+
+    COMPACT = "compact"
+    SAFE = "safe"
+    AUTO = "auto"
+
+
+class ValidationStatus(Enum):
+    """Availability and result of compile-check validation."""
+
+    PASSED = auto()
+    FAILED = auto()
+    UNAVAILABLE = auto()
+
+
+@dataclass(frozen=True, slots=True)
+class FlattenContext:
+    """Immutable input context shared across flattening pipeline stages."""
+
+    source_file: Path
+    source_content: str
+    source_lines: tuple[str, ...]
+    source_masked_lines: tuple[str, ...]
+    project_root: Path
+    templates_dir: Path
+    preamble_path: Path
+    preamble_resolved: Path
+    need_mapping: dict[str, list[str]]
+    used_identifiers: frozenset[str]
+    source_module_includes: tuple[Path, ...]
+    module_leaf_tokens: ModuleLeafTokenMap | None
+    strip_module_docs: bool
+    strip_template_docs: bool
+    macro_values: MacroValueMap
+
+
+@dataclass(frozen=True, slots=True)
+class FlattenedTemplateBundle:
+    """Rendered template section content plus effective macro state."""
+
+    preamble_content: str
+    template_sections: tuple[str, ...]
+    effective_macro_values: MacroValueMap
+    inlined_headers: frozenset[Path]
 
 
 def _parse_macro_value(
@@ -69,6 +119,7 @@ def extract_macro_values_from_source(
     source_prefix_content: str, *, strict_profile_enabled: bool, relaxed_profile_enabled: bool
 ) -> dict[str, int | None]:
     """Extract simple macro values from user source for conservative conditional folding."""
+
     macro_values: dict[str, int | None] = {}
     code_only = strip_non_code(source_prefix_content)
     folded_code = fold_simple_preprocessor_conditionals(code_only, {})
@@ -137,35 +188,27 @@ def extract_macro_values_from_source(
         macro_values.setdefault("CP_FAST_IO_ENABLE_STRONG_TYPE", 1)
 
     return macro_values
+def _env_flag_enabled(name: str, default: bool = False) -> bool:
+    """Interpret common truthy environment variable spellings."""
+
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
-def extract_prefix_before_base_include(source_content: str) -> str:
-    """Return source prefix (with comments stripped) before `#include \"templates/Base.hpp\"`."""
-    comments_stripped = strip_comments(source_content)
-    stripped_lines = comments_stripped.splitlines()
-    masked_lines = strip_non_code(source_content).splitlines()
-    prefix_lines: list[str] = []
-    for idx, raw_line in enumerate(stripped_lines):
-        masked_line = masked_lines[idx] if idx < len(masked_lines) else ""
-        include_name = parse_project_include_line(raw_line, masked_line=masked_line)
-        if include_name:
-            include_target = include_name.replace("\\", "/")
-            if include_target.endswith("templates/Base.hpp"):
-                break
-        prefix_lines.append(raw_line)
-    return "\n".join(prefix_lines)
-
-
-def _resolve_flattener_mode() -> str:
+def _resolve_flattener_mode() -> FlattenerMode:
     raw_mode = os.environ.get("CP_FLATTENER_MODE", "compact").strip().lower()
-    if raw_mode in VALID_FLATTENER_MODES:
-        return raw_mode
+    try:
+        return FlattenerMode(raw_mode)
+    except ValueError:
+        pass
 
     sys.stderr.write(
         f"Warning: unknown CP_FLATTENER_MODE='{raw_mode}'. "
         "Using 'compact'.\n"
     )
-    return "compact"
+    return FlattenerMode.COMPACT
 
 
 def _parse_positive_int_env(name: str, default_value: int) -> int:
@@ -191,21 +234,22 @@ def _resolve_validation_compiler() -> str | None:
     return None
 
 
-def _validate_flattened_output(flattened_source: str) -> bool | None:
+def _validate_flattened_output(flattened_source: str) -> ValidationStatus:
     """
     Compile-check flattened output.
 
     Returns:
-    - True  : syntax validation succeeded
-    - False : validation ran and failed
-    - None  : validation unavailable/disabled
+    - PASSED      : syntax validation succeeded
+    - FAILED      : validation ran and failed
+    - UNAVAILABLE : validation unavailable/disabled
     """
-    if os.environ.get("CP_FLATTENER_AUTO_VALIDATE", "1").strip() in {"0", "false", "False"}:
-        return None
+
+    if not _env_flag_enabled("CP_FLATTENER_AUTO_VALIDATE", default=True):
+        return ValidationStatus.UNAVAILABLE
 
     compiler = _resolve_validation_compiler()
     if not compiler:
-        return None
+        return ValidationStatus.UNAVAILABLE
 
     timeout_ms = _parse_positive_int_env("CP_FLATTENER_VALIDATION_TIMEOUT_MS", 3500)
     command = [compiler, "-std=gnu++20", "-fsyntax-only", "-x", "c++", "-"]
@@ -220,63 +264,48 @@ def _validate_flattened_output(flattened_source: str) -> bool | None:
             timeout=timeout_ms / 1000.0,
         )
     except (OSError, subprocess.TimeoutExpired):
-        return None
+        return ValidationStatus.UNAVAILABLE
 
-    return result.returncode == 0
+    if result.returncode == 0:
+        return ValidationStatus.PASSED
+    return ValidationStatus.FAILED
 
 
-def _build_flattened_output(
+def _collect_needed_template_headers(
+    ctx: FlattenContext,
     *,
-    source_file: Path,
-    source_content: str,
-    source_lines: list[str],
-    source_masked_lines: list[str],
-    project_root: Path,
-    templates_dir: Path,
-    preamble_path: Path,
-    preamble_resolved: Path,
-    need_mapping: dict[str, list[str]],
-    used_identifiers: set[str],
-    source_module_includes: list[Path],
-    module_leaf_tokens: dict[str, set[str]] | None,
-    strip_module_docs: bool,
-    strip_template_docs: bool,
-    macro_values: dict[str, int | None],
+    need_macros_found: set[str],
     enable_template_pruning: bool,
-    enable_module_pruning: bool,
-) -> str:
-    need_macros_found = extract_need_macros_from_source(
-        source_content, need_mapping.keys()
-    )
+) -> list[Path]:
+    """Resolve and prune template headers implied by enabled NEED_* macros."""
+
     if "NEED_FAST_IO" in need_macros_found and "NEED_IO" in need_macros_found:
         need_macros_found.remove("NEED_IO")
 
-    effective_macro_values = dict(macro_values)
-    if "NEED_FAST_IO" in need_macros_found:
-        effective_macro_values["CP_FAST_IO_NAMESPACE_DEFINED"] = 1
-
     files_to_include: list[Path] = []
-    included_names = set()
-    for macro, files in need_mapping.items():
+    included_names: set[str] = set()
+    for macro, files in ctx.need_mapping.items():
         if macro not in need_macros_found:
             continue
         for filename in files:
             if filename in included_names:
                 continue
-            files_to_include.append(templates_dir / filename)
+            files_to_include.append(ctx.templates_dir / filename)
             included_names.add(filename)
 
     files_to_include = prune_template_headers_with_policy(
         files_to_include,
-        source_content,
+        ctx.source_content,
         enable_pruning=enable_template_pruning,
     )
 
     # Keep template deps from modules in template section (before module separator).
     included_paths = {p.resolve() for p in files_to_include}
-    for include_target in source_module_includes:
+    for include_target in ctx.source_module_includes:
         for dep in collect_transitive_template_deps(
-            project_root, include_target, exclude_template_files={"Preamble.hpp"}
+            ctx.project_root,
+            include_target,
+            exclude_template_files={"Preamble.hpp"},
         ):
             dep_resolved = dep.resolve()
             if dep_resolved in included_paths:
@@ -285,30 +314,68 @@ def _build_flattened_output(
             included_paths.add(dep_resolved)
 
     # Never inline Preamble as a template section; it is emitted once at the top.
-    files_to_include = [p for p in files_to_include if p.resolve() != preamble_resolved]
+    return [p for p in files_to_include if p.resolve() != ctx.preamble_resolved]
+
+
+def _render_template_bundle(
+    ctx: FlattenContext,
+    *,
+    enable_template_pruning: bool,
+    enable_module_pruning: bool,
+) -> FlattenedTemplateBundle:
+    """Render preamble and template sections independently from source rewrite."""
+
+    need_macros_found = extract_need_macros_from_source(
+        ctx.source_content, ctx.need_mapping.keys()
+    )
+    effective_macro_values = dict(ctx.macro_values)
+    if "NEED_FAST_IO" in need_macros_found:
+        effective_macro_values["CP_FAST_IO_NAMESPACE_DEFINED"] = 1
+
+    files_to_include = _collect_needed_template_headers(
+        ctx,
+        need_macros_found=need_macros_found,
+        enable_template_pruning=enable_template_pruning,
+    )
 
     # Expand template headers recursively so template-level shared includes
     # (e.g. IO_Defs.hpp) are preserved in flattened output.
-    inlined_headers = {preamble_resolved}
+    inlined_headers = {ctx.preamble_resolved}
     template_sections: list[str] = []
     for filepath in files_to_include:
         content = inline_local_header(
-            project_root,
+            ctx.project_root,
             filepath,
             inlined_headers,
-            used_identifiers=used_identifiers,
-            module_leaf_tokens=module_leaf_tokens,
-            strip_module_docs=strip_module_docs,
-            strip_template_docs=strip_template_docs,
+            used_identifiers=set(ctx.used_identifiers),
+            module_leaf_tokens=ctx.module_leaf_tokens,
+            strip_module_docs=ctx.strip_module_docs,
+            strip_template_docs=ctx.strip_template_docs,
             macro_values=effective_macro_values,
             enable_module_pruning=enable_module_pruning,
         )
         if content:
             template_sections.append(content)
 
-    preamble_content = process_file_content(preamble_path, preserve_includes=True)
-    if strip_template_docs:
+    preamble_content = process_file_content(ctx.preamble_path, preserve_includes=True)
+    if ctx.strip_template_docs:
         preamble_content = strip_module_docs_and_blank_lines(preamble_content)
+
+    return FlattenedTemplateBundle(
+        preamble_content=preamble_content,
+        template_sections=tuple(template_sections),
+        effective_macro_values=effective_macro_values,
+        inlined_headers=frozenset(inlined_headers),
+    )
+
+
+def _render_flattened_source(
+    ctx: FlattenContext,
+    bundle: FlattenedTemplateBundle,
+    *,
+    enable_module_pruning: bool,
+) -> str:
+    """Rewrite original source using already-rendered template sections."""
 
     output_lines: list[str] = []
     skip_need_defines = False
@@ -316,10 +383,13 @@ def _build_flattened_output(
 
     # Prevent duplicated template/module bodies when sections are already expanded.
     module_section_emitted = False
+    inlined_headers = set(bundle.inlined_headers)
 
-    for idx, line in enumerate(source_lines):
+    for idx, line in enumerate(ctx.source_lines):
         stripped = line.strip()
-        masked_line = source_masked_lines[idx] if idx < len(source_masked_lines) else ""
+        masked_line = (
+            ctx.source_masked_lines[idx] if idx < len(ctx.source_masked_lines) else ""
+        )
         include_name = parse_project_include_line(line, masked_line=masked_line)
         is_base_include = False
         if include_name:
@@ -331,7 +401,7 @@ def _build_flattened_output(
         if (
             not seen_base_include
             and need_define_match
-            and need_define_match.group(1) in need_mapping
+            and need_define_match.group(1) in ctx.need_mapping
         ):
             skip_need_defines = True
             continue
@@ -344,18 +414,21 @@ def _build_flattened_output(
             if output_lines and output_lines[-1].strip():
                 output_lines.append("\n")
 
-            output_lines.append(preamble_content)
-            if preamble_content and not preamble_content.endswith("\n\n"):
+            output_lines.append(bundle.preamble_content)
+            if bundle.preamble_content and not bundle.preamble_content.endswith("\n\n"):
                 output_lines.append("\n")
 
-            for i, section in enumerate(template_sections):
+            for i, section in enumerate(bundle.template_sections):
                 if i > 0:
                     output_lines.append("\n")
                 output_lines.append(section)
                 if section and not section.endswith("\n"):
                     output_lines.append("\n")
 
-            if effective_macro_values.get("CP_USE_GLOBAL_STD_NAMESPACE") not in (None, 0):
+            if bundle.effective_macro_values.get("CP_USE_GLOBAL_STD_NAMESPACE") not in (
+                None,
+                0,
+            ):
                 if output_lines and output_lines[-1].strip():
                     output_lines.append("\n")
                 output_lines.append("using namespace std;\n")
@@ -363,20 +436,22 @@ def _build_flattened_output(
 
         if include_name:
             include_target = resolve_project_include(
-                project_root, source_file, include_name
+                ctx.project_root,
+                ctx.source_file,
+                include_name,
             )
             if include_target:
-                rel = include_target.relative_to(project_root).as_posix()
+                rel = include_target.relative_to(ctx.project_root).as_posix()
                 if rel.startswith(INLINE_ROOT_PREFIXES):
                     inlined = inline_local_header(
-                        project_root,
+                        ctx.project_root,
                         include_target,
                         inlined_headers,
-                        used_identifiers=used_identifiers,
-                        module_leaf_tokens=module_leaf_tokens,
-                        strip_module_docs=strip_module_docs,
-                        strip_template_docs=strip_template_docs,
-                        macro_values=effective_macro_values,
+                        used_identifiers=set(ctx.used_identifiers),
+                        module_leaf_tokens=ctx.module_leaf_tokens,
+                        strip_module_docs=ctx.strip_module_docs,
+                        strip_template_docs=ctx.strip_template_docs,
+                        macro_values=bundle.effective_macro_values,
                         enable_module_pruning=enable_module_pruning,
                     )
                     if inlined:
@@ -402,8 +477,29 @@ def _build_flattened_output(
     return "".join(output_lines)
 
 
+def build_flattened_output(
+    ctx: FlattenContext,
+    *,
+    enable_template_pruning: bool,
+    enable_module_pruning: bool,
+) -> str:
+    """Build flattened output through explicit dependency/render/rewrite stages."""
+
+    bundle = _render_template_bundle(
+        ctx,
+        enable_template_pruning=enable_template_pruning,
+        enable_module_pruning=enable_module_pruning,
+    )
+    return _render_flattened_source(
+        ctx,
+        bundle,
+        enable_module_pruning=enable_module_pruning,
+    )
+
+
 def main() -> None:
     """Flatten one source file by expanding template and local project includes."""
+
     if len(sys.argv) != 2:
         sys.stderr.write(f"Usage: {sys.argv[0]} <source_file.cpp>\n")
         sys.exit(1)
@@ -420,10 +516,9 @@ def main() -> None:
     preamble_path = templates_dir / "Preamble.hpp"
     preamble_resolved = preamble_path.resolve()
 
-    with open(source_file, "r", encoding="utf-8") as f:
-        source_content = f.read()
-    source_lines = source_content.splitlines(keepends=True)
-    source_masked_lines = strip_non_code(source_content).splitlines()
+    source_content = source_file.read_text(encoding="utf-8")
+    source_lines = tuple(source_content.splitlines(keepends=True))
+    source_masked_lines = tuple(strip_non_code(source_content).splitlines())
 
     source_prefix = extract_prefix_before_base_include(source_content)
     strict_profile_enabled = bool(
@@ -446,9 +541,9 @@ def main() -> None:
         relaxed_profile_enabled=relaxed_profile_enabled,
     )
 
-    used_identifiers = extract_identifiers(source_content)
-    strip_module_docs = os.environ.get("CP_FLATTENER_STRIP_MODULE_DOCS", "") == "1"
-    strip_template_docs = os.environ.get("CP_FLATTENER_STRIP_TEMPLATE_DOCS", "") == "1"
+    used_identifiers = frozenset(extract_identifiers(source_content))
+    strip_module_docs = _env_flag_enabled("CP_FLATTENER_STRIP_MODULE_DOCS")
+    strip_template_docs = _env_flag_enabled("CP_FLATTENER_STRIP_TEMPLATE_DOCS")
     if strict_profile_enabled and not relaxed_profile_enabled:
         strip_template_docs = True
 
@@ -483,7 +578,7 @@ def main() -> None:
         sys.exit(1)
 
     mode = _resolve_flattener_mode()
-    build_kwargs = dict(
+    ctx = FlattenContext(
         source_file=source_file,
         source_content=source_content,
         source_lines=source_lines,
@@ -494,46 +589,50 @@ def main() -> None:
         preamble_resolved=preamble_resolved,
         need_mapping=need_mapping,
         used_identifiers=used_identifiers,
-        source_module_includes=source_module_includes,
+        source_module_includes=tuple(source_module_includes),
         module_leaf_tokens=module_leaf_tokens,
         strip_module_docs=strip_module_docs,
         strip_template_docs=strip_template_docs,
         macro_values=macro_values,
     )
 
-    if mode == "safe":
-        flattened_output = _build_flattened_output(
-            **build_kwargs,
-            enable_template_pruning=False,
-            enable_module_pruning=False,
-        )
-        print(flattened_output, end="")
-        return
-
-    compact_output = _build_flattened_output(
-        **build_kwargs,
-        enable_template_pruning=True,
-        enable_module_pruning=True,
-    )
-
-    if mode == "compact":
-        print(compact_output, end="")
-        return
-
-    # Auto mode: prefer compact output, fallback to safe only on proven validation failure.
-    compact_valid = _validate_flattened_output(compact_output)
-    if compact_valid is False:
-        safe_output = _build_flattened_output(
-            **build_kwargs,
-            enable_template_pruning=False,
-            enable_module_pruning=False,
-        )
-        safe_valid = _validate_flattened_output(safe_output)
-        if safe_valid is not False:
-            print(safe_output, end="")
-            return
-
-    print(compact_output, end="")
+    match mode:
+        case FlattenerMode.SAFE:
+            print(
+                build_flattened_output(
+                    ctx,
+                    enable_template_pruning=False,
+                    enable_module_pruning=False,
+                ),
+                end="",
+            )
+        case FlattenerMode.COMPACT:
+            print(
+                build_flattened_output(
+                    ctx,
+                    enable_template_pruning=True,
+                    enable_module_pruning=True,
+                ),
+                end="",
+            )
+        case FlattenerMode.AUTO:
+            compact_output = build_flattened_output(
+                ctx,
+                enable_template_pruning=True,
+                enable_module_pruning=True,
+            )
+            compact_valid = _validate_flattened_output(compact_output)
+            if compact_valid is ValidationStatus.FAILED:
+                safe_output = build_flattened_output(
+                    ctx,
+                    enable_template_pruning=False,
+                    enable_module_pruning=False,
+                )
+                safe_valid = _validate_flattened_output(safe_output)
+                if safe_valid is not ValidationStatus.FAILED:
+                    print(safe_output, end="")
+                    return
+            print(compact_output, end="")
 
 
 if __name__ == "__main__":
