@@ -104,6 +104,38 @@ else()
   message(WARNING "Clangd Assist module not found. Include-path auto-detection disabled.")
   set(COMPILER_SYSTEM_INCLUDE_PATHS "")
 endif()
+
+# ------------------------- std::stacktrace Capability ------------------------ #
+# Probe GNU stacktrace support once during configure instead of once per target.
+set(CP_GNU_STACKTRACE_AVAILABLE FALSE)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND NOT APPLE)
+  include(CheckCXXSourceCompiles)
+
+  set(_cp_saved_required_flags "${CMAKE_REQUIRED_FLAGS}")
+  set(_cp_saved_required_libraries "${CMAKE_REQUIRED_LIBRARIES}")
+
+  set(CMAKE_REQUIRED_FLAGS "-std=c++23")
+  set(CMAKE_REQUIRED_LIBRARIES "stdc++_libbacktrace")
+  check_cxx_source_compiles(
+    "#include <stacktrace>
+     int main() {
+       auto trace = std::stacktrace::current();
+       return static_cast<int>(trace.size());
+     }"
+    CP_GNU_STACKTRACE_AVAILABLE
+  )
+
+  if(_cp_saved_required_flags)
+    set(CMAKE_REQUIRED_FLAGS "${_cp_saved_required_flags}")
+  else()
+    unset(CMAKE_REQUIRED_FLAGS)
+  endif()
+  if(_cp_saved_required_libraries)
+    set(CMAKE_REQUIRED_LIBRARIES "${_cp_saved_required_libraries}")
+  else()
+    unset(CMAKE_REQUIRED_LIBRARIES)
+  endif()
+endif()
 # -------------------------- Compiler Verification --------------------------- #
 include("${CP_ROUND_CMAKE_ROOT}/CPRoundFeatureSanitizers.cmake")
 
