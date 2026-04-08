@@ -6,11 +6,14 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import shutil
 import subprocess
 import time
+from collections.abc import Mapping, Sequence
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Dict, List
+from typing import Literal
+
+BenchmarkRecommendation = Literal["disable_default_pch", "keep_default_pch"]
 
 DEFAULT_ALGORITHMS_DIR = Path(__file__).resolve().parents[1]
 
@@ -19,13 +22,67 @@ class BenchmarkError(RuntimeError):
     """Raised when a benchmark command fails."""
 
 
+@dataclass(frozen=True, slots=True)
+class BenchmarkMetrics:
+    """Normalized timing metrics for one PCH mode."""
+
+    configure_sec: float
+    cold_build_sec: float
+    incremental_build_sec: float
+    reconfigure_sec: float
+    post_reconfigure_build_sec: float
+
+
+@dataclass(frozen=True, slots=True)
+class BenchmarkDelta:
+    """Derived timing comparisons between PCH-on and PCH-off runs."""
+
+    incremental_gain_sec: float
+    cold_penalty_sec: float
+    post_reconfigure_penalty_sec: float
+
+
+@dataclass(frozen=True, slots=True)
+class BenchmarkResult:
+    """Full benchmark payload emitted to stdout/JSON output."""
+
+    round_dir: Path
+    target: str
+    compiler: str
+    threshold_sec: float
+    pch_on: BenchmarkMetrics
+    pch_off: BenchmarkMetrics
+    delta: BenchmarkDelta
+    recommendation: BenchmarkRecommendation
+
+    def to_dict(self) -> dict[str, object]:
+        """Serialize nested benchmark data into JSON-friendly primitives."""
+        return {
+            "round_dir": str(self.round_dir),
+            "target": self.target,
+            "compiler": self.compiler,
+            "threshold_sec": self.threshold_sec,
+            "pch_on": asdict(self.pch_on),
+            "pch_off": asdict(self.pch_off),
+            "delta": asdict(self.delta),
+            "recommendation": self.recommendation,
+        }
+
+
+def _round_seconds(value: float) -> float:
+    """Round benchmark timings to stable millisecond precision."""
+
+    return round(value, 3)
+
+
 def _run_command(
-    argv: List[str],
+    argv: Sequence[str],
     cwd: Path,
-    env: Dict[str, str],
+    env: Mapping[str, str],
     verbose: bool,
 ) -> float:
     """Run a command and return wall-clock duration in seconds."""
+
     if verbose:
         print(f"[bench] {' '.join(argv)}")
 
@@ -54,6 +111,7 @@ def _run_command(
 
 def _discover_target(round_dir: Path) -> str:
     """Pick a default target from round sources when none is provided."""
+
     candidates = sorted(
         p for p in round_dir.glob("*.cpp") if "template" not in p.name.lower()
     )
@@ -64,12 +122,14 @@ def _discover_target(round_dir: Path) -> str:
 
 def _write_touch_marker(source_file: Path, marker: str) -> None:
     """Append a marker comment to force an incremental rebuild."""
+
     with source_file.open("a", encoding="utf-8") as fh:
         fh.write(f"\n// {marker}\n")
 
 
 def _write_new_target(round_dir: Path, target_name: str) -> None:
     """Create a minimal benchmark source file for post-reconfigure timing."""
+
     source = round_dir / f"{target_name}.cpp"
     source.write_text(
         "#include <bits/stdc++.h>\n"
@@ -89,8 +149,9 @@ def _benchmark_mode(
     pch_enabled: bool,
     algorithms_dir: Path,
     verbose: bool,
-) -> Dict[str, float]:
+) -> BenchmarkMetrics:
     """Measure configure/build timings for one PCH mode."""
+
     env = os.environ.copy()
     env["CP_ALGORITHMS_DIR"] = str(algorithms_dir)
     env["CCACHE_DISABLE"] = "1"
@@ -159,13 +220,13 @@ def _benchmark_mode(
         if bench_source.exists():
             bench_source.unlink()
 
-    return {
-        "configure_sec": round(configure_sec, 3),
-        "cold_build_sec": round(cold_build_sec, 3),
-        "incremental_build_sec": round(incremental_build_sec, 3),
-        "reconfigure_sec": round(reconfigure_sec, 3),
-        "post_reconfigure_build_sec": round(post_reconfigure_build_sec, 3),
-    }
+    return BenchmarkMetrics(
+        configure_sec=_round_seconds(configure_sec),
+        cold_build_sec=_round_seconds(cold_build_sec),
+        incremental_build_sec=_round_seconds(incremental_build_sec),
+        reconfigure_sec=_round_seconds(reconfigure_sec),
+        post_reconfigure_build_sec=_round_seconds(post_reconfigure_build_sec),
+    )
 
 
 def _build_result(
@@ -173,48 +234,45 @@ def _build_result(
     target: str,
     compiler: str,
     threshold_sec: float,
-    on_metrics: Dict[str, float],
-    off_metrics: Dict[str, float],
-) -> Dict[str, object]:
+    on_metrics: BenchmarkMetrics,
+    off_metrics: BenchmarkMetrics,
+) -> BenchmarkResult:
     """Assemble benchmark output payload and recommendation."""
-    incremental_gain_sec = round(
-        off_metrics["incremental_build_sec"] - on_metrics["incremental_build_sec"],
-        3,
-    )
-    cold_penalty_sec = round(
-        on_metrics["cold_build_sec"] - off_metrics["cold_build_sec"],
-        3,
-    )
-    post_reconfigure_penalty_sec = round(
-        on_metrics["post_reconfigure_build_sec"]
-        - off_metrics["post_reconfigure_build_sec"],
-        3,
+
+    delta = BenchmarkDelta(
+        incremental_gain_sec=_round_seconds(
+            off_metrics.incremental_build_sec - on_metrics.incremental_build_sec
+        ),
+        cold_penalty_sec=_round_seconds(
+            on_metrics.cold_build_sec - off_metrics.cold_build_sec
+        ),
+        post_reconfigure_penalty_sec=_round_seconds(
+            on_metrics.post_reconfigure_build_sec
+            - off_metrics.post_reconfigure_build_sec
+        ),
     )
 
-    recommendation = (
+    recommendation: BenchmarkRecommendation = (
         "disable_default_pch"
-        if incremental_gain_sec < threshold_sec
+        if delta.incremental_gain_sec < threshold_sec
         else "keep_default_pch"
     )
 
-    return {
-        "round_dir": str(round_dir),
-        "target": target,
-        "compiler": compiler,
-        "threshold_sec": threshold_sec,
-        "pch_on": on_metrics,
-        "pch_off": off_metrics,
-        "delta": {
-            "incremental_gain_sec": incremental_gain_sec,
-            "cold_penalty_sec": cold_penalty_sec,
-            "post_reconfigure_penalty_sec": post_reconfigure_penalty_sec,
-        },
-        "recommendation": recommendation,
-    }
+    return BenchmarkResult(
+        round_dir=round_dir,
+        target=target,
+        compiler=compiler,
+        threshold_sec=threshold_sec,
+        pch_on=on_metrics,
+        pch_off=off_metrics,
+        delta=delta,
+        recommendation=recommendation,
+    )
 
 
 def parse_args() -> argparse.Namespace:
     """Parse benchmark CLI arguments."""
+
     parser = argparse.ArgumentParser(
         description="Benchmark PCH value for CP round builds (Debug presets)."
     )
@@ -262,6 +320,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     """Execute PCH benchmark workflow and emit JSON output."""
+
     ns = parse_args()
     round_dir = ns.round_dir.expanduser().resolve()
     algorithms_dir = ns.algorithms_dir.expanduser().resolve()
@@ -298,13 +357,14 @@ def main() -> int:
         on_metrics,
         off_metrics,
     )
+    payload = result.to_dict()
 
-    print(json.dumps(result, ensure_ascii=False, indent=2))
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
     if ns.json_out is not None:
         json_out = ns.json_out.expanduser()
         json_out.parent.mkdir(parents=True, exist_ok=True)
         json_out.write_text(
-            json.dumps(result, ensure_ascii=False, indent=2) + "\n",
+            json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",
         )
         print(f"[bench] wrote {json_out}")

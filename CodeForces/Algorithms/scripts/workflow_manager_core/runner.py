@@ -4,8 +4,8 @@ import os
 import shutil
 import subprocess
 import time
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Optional, Sequence
 
 from .constants import ALLOWED_FUNCTIONS
 from .types import CommandResult, WorkflowError, ensure_text, format_timeout_stderr
@@ -67,7 +67,7 @@ class CppToolsRunner:
         self,
         function: str,
         args: Sequence[str] = (),
-        timeout: Optional[int] = None,
+        timeout: int | None = None,
         auto_confirm_deepclean: bool = False,
     ) -> CommandResult:
         """Execute one cpp-tools function and return normalized command metadata."""
@@ -102,7 +102,7 @@ class CppToolsRunner:
             elapsed_ms = int((time.perf_counter() - start) * 1000)
             return CommandResult(
                 function=function,
-                args=list(args),
+                args=tuple(args),
                 cwd=str(self.cwd),
                 returncode=completed.returncode,
                 duration_ms=elapsed_ms,
@@ -114,7 +114,7 @@ class CppToolsRunner:
             elapsed_ms = int((time.perf_counter() - start) * 1000)
             return CommandResult(
                 function=function,
-                args=list(args),
+                args=tuple(args),
                 cwd=str(self.cwd),
                 returncode=124,
                 duration_ms=elapsed_ms,

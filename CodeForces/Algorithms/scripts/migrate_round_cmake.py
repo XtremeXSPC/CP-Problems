@@ -7,9 +7,11 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-from typing import Iterable, List
 
-DEFAULT_ROUNDS_ROOT = Path("/Volumes/LCS.Data/CP-Problems/CodeForces/Rounds")
+from migration_common import iter_round_files, timestamped_backup_name
+
+DEFAULT_ALGORITHMS_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_ROUNDS_ROOT = DEFAULT_ALGORITHMS_ROOT.parent / "Rounds"
 
 THIN_CMAKELISTS = """# Thin round-level CMakeLists: delegates all build logic to centralized modules.
 cmake_minimum_required(VERSION 3.20)
@@ -25,28 +27,9 @@ endif()
 include("${CP_ROUND_BOOTSTRAP}")
 """
 
-
-def _iter_round_cmakelists(rounds_root: Path, explicit_rounds: List[str]) -> Iterable[Path]:
-    """Yield round CMakeLists paths, optionally filtered by explicit round names."""
-    if explicit_rounds:
-        for name in explicit_rounds:
-            cmake_path = rounds_root / name / "CMakeLists.txt"
-            if cmake_path.is_file():
-                yield cmake_path
-            else:
-                raise FileNotFoundError(f"Round not found or missing CMakeLists.txt: {name}")
-        return
-
-    for round_dir in sorted(rounds_root.iterdir()):
-        if not round_dir.is_dir():
-            continue
-        cmake_path = round_dir / "CMakeLists.txt"
-        if cmake_path.is_file():
-            yield cmake_path
-
-
 def main() -> int:
     """Rewrite round CMakeLists files to the centralized thin wrapper format."""
+
     parser = argparse.ArgumentParser(
         description="Convert round CMakeLists.txt files to centralized thin wrappers."
     )
@@ -67,6 +50,12 @@ def main() -> int:
         action="store_true",
         help="Print files that would be migrated without writing changes.",
     )
+    parser.add_argument(
+        "--backup",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Backup existing CMakeLists.txt before rewriting (default: true).",
+    )
     args = parser.parse_args()
 
     rounds_root = args.rounds_root.resolve()
@@ -75,7 +64,7 @@ def main() -> int:
 
     changed = 0
     skipped = 0
-    for cmake_path in _iter_round_cmakelists(rounds_root, args.round):
+    for cmake_path in iter_round_files(rounds_root, "CMakeLists.txt", args.round):
         current = cmake_path.read_text(encoding="utf-8")
         if current == THIN_CMAKELISTS:
             skipped += 1
@@ -84,6 +73,10 @@ def main() -> int:
         if args.dry_run:
             print(f"would-migrate: {cmake_path}")
         else:
+            if cmake_path.exists() and args.backup:
+                backup_path = timestamped_backup_name(cmake_path)
+                cmake_path.rename(backup_path)
+                print(f"backup: {cmake_path} -> {backup_path}")
             cmake_path.write_text(THIN_CMAKELISTS, encoding="utf-8")
             print(f"migrated: {cmake_path}")
         changed += 1

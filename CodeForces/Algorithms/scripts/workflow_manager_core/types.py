@@ -1,8 +1,7 @@
 """Error and result types for workflow manager execution."""
 
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass, replace
 import re
-from typing import List
 
 ANSI_RE = re.compile(r"\x1B\[[0-9;]*[A-Za-z]")
 
@@ -16,24 +15,45 @@ class WorkflowCommandError(WorkflowError):
 
     def __init__(self, result: "CommandResult"):
         """Capture the failing command result for downstream handling."""
+
         self.result = result
         super().__init__(f"{result.function} failed with exit code {result.returncode}")
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class CommandResult:
     function: str
-    args: List[str]
+    args: tuple[str, ...]
     cwd: str
     returncode: int
     duration_ms: int
     stdout: str
     stderr: str
     timed_out: bool = False
+    non_fatal: bool = False
 
-    def to_dict(self, strip_ansi: bool = False) -> dict:
+    @property
+    def failed(self) -> bool:
+        """Return True when the command should count as a workflow failure."""
+        return self.returncode != 0 and not self.non_fatal
+
+    def as_non_fatal(self) -> "CommandResult":
+        """Return a copy of this result marked as non-fatal for workflow status."""
+        return replace(self, non_fatal=True)
+
+    def to_dict(self, strip_ansi: bool = False) -> dict[str, object]:
         """Serialize command result for JSON output."""
-        payload = asdict(self)
+        payload: dict[str, object] = {
+            "function": self.function,
+            "args": list(self.args),
+            "cwd": self.cwd,
+            "returncode": self.returncode,
+            "duration_ms": self.duration_ms,
+            "stdout": self.stdout,
+            "stderr": self.stderr,
+            "timed_out": self.timed_out,
+            "non_fatal": self.non_fatal,
+        }
         if strip_ansi:
             payload["stdout"] = remove_ansi(payload["stdout"])
             payload["stderr"] = remove_ansi(payload["stderr"])
@@ -42,11 +62,13 @@ class CommandResult:
 
 def remove_ansi(text: str) -> str:
     """Strip ANSI escape sequences from a text payload."""
+
     return ANSI_RE.sub("", text)
 
 
 def ensure_text(payload: str | bytes | None) -> str:
     """Normalize subprocess output payloads to text."""
+
     if payload is None:
         return ""
     if isinstance(payload, bytes):
@@ -56,6 +78,7 @@ def ensure_text(payload: str | bytes | None) -> str:
 
 def format_timeout_stderr(payload: str | bytes | None) -> str:
     """Append a timeout marker preserving any captured stderr content."""
+
     text = ensure_text(payload).rstrip("\n")
     if not text:
         return "Command timed out."

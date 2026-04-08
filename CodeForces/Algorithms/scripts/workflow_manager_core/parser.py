@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 
 from .commands import register_subcommands
+from .utils import parse_positive_int
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -28,7 +29,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--timeout",
-        type=int,
+        type=parse_positive_int,
         default=600,
         help="timeout in seconds for each delegated command",
     )
