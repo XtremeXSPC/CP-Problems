@@ -15,7 +15,9 @@
 /* Main Solver Function */
 
 void solve() {
-  // Optimized solution here
+  I32 IV;
+  IN(IV);
+  OUT(IV);
 }
 
 //===----------------------------------------------------------------------===//
