@@ -15,7 +15,19 @@
 /* Main Solver Function */
 
 void solve() {
-  // Optimized solution here
+  constexpr int AS = 7;
+  VecI32 N(AS);
+  I32 TS = 0;
+  I32 MV = -100;
+
+  FOR(i, AS) {
+    IN(N[i]);
+    TS += N[i];
+    MV = max(MV, N[i]);
+  }
+
+  I32 R = 2 * MV - TS;
+  OUT(R);
 }
 
 //===----------------------------------------------------------------------===//
