@@ -15,7 +15,26 @@
 /* Main Solver Function */
 
 void solve() {
-  // Optimized solution here
+  I32 BC;
+  IN(BC);
+
+  I32 CMin = 1;
+  I32 CMed = BC + 1;
+
+  VecI32 Res;
+  Res.reserve(BC * 3);
+
+  FOR (i, BC) {
+    I32 CMax = CMed + 1;
+    Res.eb(CMin);
+    Res.eb(CMed);
+    Res.eb(CMax);
+
+    CMin++;
+    CMed += 2;
+  }
+
+  OUT(Res);
 }
 
 //===----------------------------------------------------------------------===//
