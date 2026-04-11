@@ -15,7 +15,7 @@
 /* Main Solver Function */
 
 void solve() {
-  constexpr int AS = 7;
+  constexpr I32 AS = 7;
   VecI32 N(AS);
   I32 TS = 0;
   I32 MV = -100;
