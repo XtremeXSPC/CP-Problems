@@ -14,8 +14,38 @@
 //===----------------------------------------------------------------------===//
 /* Main Solver Function */
 
+constexpr I32 SIEVE_LIMIT = 200000;
+VecI64 Primes;
+bool PFlags[SIEVE_LIMIT + 1];
+
+void sieve() {
+  FOR(i, 2, SIEVE_LIMIT + 1) {
+    PFlags[i] = true;
+  }
+  FOR(N, 2, SIEVE_LIMIT + 1) {
+    if (PFlags[N]) {
+      Primes.push_back(N);
+      if (1LL * N * N <= SIEVE_LIMIT) {
+        FOR(M, N*N, SIEVE_LIMIT + 1, N)
+          PFlags[M] = false;
+      }
+    }
+  }
+}
+
+
 void solve() {
-  // Optimized solution here
+  I32 SeqLen;
+  IN(SeqLen);
+
+  VecI64 Res;
+  Res.reserve(SeqLen);
+
+  FOR(i, SeqLen) {
+    Res.eb(Primes[i] * Primes[i + 1]);
+  }
+
+  OUT(Res);
 }
 
 //===----------------------------------------------------------------------===//
@@ -26,6 +56,8 @@ auto main() -> int {
   Timer timer;
   // init_debug_log();
 #endif
+
+  sieve();
 
   INT(T);
   FOR(T) solve();

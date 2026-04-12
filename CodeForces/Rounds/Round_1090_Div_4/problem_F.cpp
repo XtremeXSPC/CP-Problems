@@ -15,7 +15,40 @@
 /* Main Solver Function */
 
 void solve() {
-  // Optimized solution here
+  I32 X, Y;
+  IN(X, Y);
+
+  if (X > Y || (X == 0 && Y % 2 == 0)) {
+    NO();
+    return;
+  }
+
+  YES();
+
+  I32 TotN = X + Y;
+  I32 A = 0;
+  I32 B = 0;
+
+  if (TotN % 2 == 0) {
+    B = X - 1;
+    A = Y - B;
+  } else {
+    B = X;
+    A = Y - B - 1;
+  }
+
+  I32 CN = 2;
+
+  FOR(A) {
+    OUT(1, CN);
+    CN++;
+  }
+
+  FOR(B) {
+    OUT(1, CN);
+    OUT(CN, CN + 1);
+    CN += 2;
+  }
 }
 
 //===----------------------------------------------------------------------===//
