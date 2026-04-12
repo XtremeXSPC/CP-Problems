@@ -15,7 +15,20 @@
 /* Main Solver Function */
 
 void solve() {
-  // Optimized solution here
+  I32 AS;
+  IN(AS);
+
+  VecI32 ID(AS);
+  FOR(idx, AS) IN(ID[idx]);
+
+  I32 MaxXor = 0;
+  FOR(i, AS) {
+    FOR(j, i + 1, AS) {
+      I32 CurXor = ID[i] ^ ID[j];
+      MaxXor = max(MaxXor, CurXor);
+    }
+  }
+  OUT(MaxXor);
 }
 
 //===----------------------------------------------------------------------===//
