@@ -1,7 +1,7 @@
 //===----------------------------------------------------------------------===//
 /**
  * @file: problem_G_sub.cpp
- * @generated: 2026-04-12 16:31:42
+ * @generated: 2026-04-12 16:33:54
  * @source: problem_G.cpp
  * @author: C.L.
  *
@@ -540,7 +540,7 @@ void solve() {
     if (i > 0)
       MinNT = min(MinNT, B[i - 1]);
     if (i < N - 1)
-      MinNT = min(MinNT, B[i * 1]);
+      MinNT = min(MinNT, B[i + 1]);
 
     I64 CC = 0;
 
