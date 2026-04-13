@@ -15,7 +15,17 @@
 /* Main Solver Function */
 
 void solve() {
-  // Optimized solution here
+  INT(n);
+  VecI32 a(n);
+  IN(a);
+
+  ranges::sort(a, greater<>{});
+  if (ranges::adjacent_find(a) != a.end()) {
+    OUT(-1);
+    return;
+  }
+
+  OUT(a);
 }
 
 //===----------------------------------------------------------------------===//
