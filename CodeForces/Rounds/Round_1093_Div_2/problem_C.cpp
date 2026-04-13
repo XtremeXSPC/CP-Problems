@@ -15,7 +15,23 @@
 /* Main Solver Function */
 
 void solve() {
-  // Optimized solution here
+  I64 P, Q;
+  IN(P, Q);
+
+  const I64 K = 2 * P + 4 * Q + 1;
+
+  for (I64 D = 3; D * D <= K; D += 2) {
+    if (K % D != 0) continue;
+
+    const I64 n = (D - 1) / 2;
+    const I64 m = (K / D - 1) / 2;
+    if (Q <= n * m + min(n, m)) {
+      OUT(n, m);
+      return;
+    }
+  }
+
+  OUT(-1);
 }
 
 //===----------------------------------------------------------------------===//

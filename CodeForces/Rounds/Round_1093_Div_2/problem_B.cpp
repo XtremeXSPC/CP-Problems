@@ -15,7 +15,37 @@
 /* Main Solver Function */
 
 void solve() {
-  // Optimized solution here
+  I32 N;
+  I64 M;
+  IN(N, M);
+
+  VecI64 A(N), D(N);
+  IN(A);
+
+  FOR(i, N) D[i] = (M - (A[i] + i + 1) % M) % M;
+
+  auto in_seg = [&](I64 s, I64 e, I64 x) -> bool {
+    if (s <= e) return s <= x && x <= e;
+    return x >= s || x <= e;
+  };
+
+  I64 s = (D[0] + 1) % M;
+  FOR(i, N - 1) {
+    const I64 e = (D[i] + M - 1) % M;
+    if (D[i + 1] != e) s = (D[i] + 1) % M;
+
+    const I64 x = (D[i + 1] + 1) % M;
+    if (in_seg(s, e, x)) {
+      s = x;
+      continue;
+    }
+    if (s == D[i + 1]) {
+      NO();
+      return;
+    }
+  }
+
+  YES();
 }
 
 //===----------------------------------------------------------------------===//
