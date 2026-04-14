@@ -1,11 +1,11 @@
 //===----------------------------------------------------------------------===//
 /**
- * @file: problem_E2_sub.cpp
- * @generated: 2026-04-13 19:42:20
- * @source: problem_E2.cpp
+ * @file: problem_F_sub.cpp
+ * @generated: 2026-04-14 00:51:24
+ * @source: problem_F.cpp
  * @author: C.L.
  *
- * @brief: Codeforces Round 1093 (Div. 2) - Problem E2
+ * @brief: Codeforces Round 1093 (Div. 2) - Problem F
  */
 //===----------------------------------------------------------------------===//
 /* Included library and Compiler Optimizations */
@@ -301,80 +301,6 @@ using VecPairI64 = Vec<PairI64>;
 using namespace std;
 
 //===----------------------------------------------------------------------===//
-/* Mathematical Constants and Infinity Values */
-
-// High-precision mathematical constants:
-constexpr F80 PI   = 3.1415926535897932384626433832795028841971693993751L;
-constexpr F80 E    = 2.7182818284590452353602874713526624977572470937000L;
-constexpr F80 PHI  = 1.6180339887498948482045868343656381177203091798058L;
-constexpr F80 LN2  = 0.6931471805599453094172321214581765680755001343602L;
-constexpr F80 EPS  = 1e-9L;
-constexpr F80 DEPS = 1e-12L;
-
-// Robust infinity system:
-template <class T>
-constexpr T infinity = std::numeric_limits<T>::max() / 4;
-
-template <class T>
-constexpr T neg_infinity = std::numeric_limits<T>::lowest() / 4;
-
-template <>
-inline constexpr I32 infinity<I32> = 1'010'000'000;
-template <>
-inline constexpr I64 infinity<I64> = 2'020'000'000'000'000'000LL;
-template <>
-inline constexpr U32 infinity<U32> = 2'020'000'000U;
-template <>
-inline constexpr U64 infinity<U64> = 4'040'000'000'000'000'000ULL;
-template <>
-inline constexpr F64 infinity<F64> = 1e18;
-template <>
-inline constexpr F80 infinity<F80> = 1e18L;
-
-template <>
-inline constexpr I32 neg_infinity<I32> = -infinity<I32>;
-template <>
-inline constexpr I64 neg_infinity<I64> = -infinity<I64>;
-template <>
-inline constexpr U32 neg_infinity<U32> = 0U;
-template <>
-inline constexpr U64 neg_infinity<U64> = 0ULL;
-template <>
-inline constexpr F64 neg_infinity<F64> = -infinity<F64>;
-template <>
-inline constexpr F80 neg_infinity<F80> = -infinity<F80>;
-
-#if HAS_INT128
-  static_assert(sizeof(I128) > sizeof(I64), "I128 must be true 128-bit when HAS_INT128 is enabled.");
-  template <>
-  inline constexpr I128 infinity<I128> = I128(infinity<I64>) * 2'000'000'000'000'000'000LL;
-  template <>
-  inline constexpr I128 neg_infinity<I128> = -infinity<I128>;
-#endif
-
-constexpr I32 INF32  = infinity<I32>;
-constexpr I64 INF64  = infinity<I64>;
-constexpr I64 LINF   = INF64; // Legacy alias
-constexpr I32 NINF32 = neg_infinity<I32>;
-constexpr I64 NINF64 = neg_infinity<I64>;
-constexpr I64 NLINF  = NINF64; // Legacy-style alias
-
-// Powers of ten lookup table (10^k for k = 0..18):
-constexpr I64 POW10[] = {
-    1LL, 10LL, 100LL, 1000LL, 10000LL, 100000LL,
-    1000000LL, 10000000LL, 100000000LL, 1000000000LL,
-    10000000000LL, 100000000000LL, 1000000000000LL,
-    10000000000000LL, 100000000000000LL, 1000000000000000LL,
-    10000000000000000LL, 100000000000000000LL, 1000000000000000000LL,
-};
-
-// Modular arithmetic constants:
-constexpr I64 MOD  = 1'000'000'007LL;
-constexpr I64 MOD2 = 998'244'353LL;
-constexpr I64 MOD3 = 1'000'000'009LL;
-constexpr I64 INV2 = (MOD + 1) / 2;
-
-//===----------------------------------------------------------------------===//
 /* Advanced Macro System */
 
 // Advanced FOR loop system:
@@ -453,245 +379,6 @@ template <typename To>
   To converted = static_cast<To>(x);
   return converted;
 }
-
-//===----------------------------------------------------------------------===//
-/* Core Concepts for Type-Safe CP Templates */
-
-namespace cp {
-
-template <class T>
-using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
-
-template <class T>
-concept Integral = std::integral<remove_cvref_t<T>>;
-
-template <class T>
-concept SignedIntegral = Integral<T> && std::is_signed_v<remove_cvref_t<T>>;
-
-template <class T>
-concept UnsignedIntegral = Integral<T> && !SignedIntegral<T>;
-
-template <class T>
-concept NonBoolIntegral = Integral<T> && !std::same_as<remove_cvref_t<T>, bool>;
-
-template <class T>
-concept Floating = std::floating_point<remove_cvref_t<T>>;
-
-template <class T>
-concept Arithmetic = Integral<T> || Floating<T>;
-
-template <class T>
-concept IndexLike = NonBoolIntegral<T>;
-
-template <class T>
-concept Enum = std::is_enum_v<remove_cvref_t<T>>;
-
-template <class F, class... Args>
-concept Predicate = std::predicate<F, Args...>;
-
-template <class R>
-concept Range = std::ranges::range<remove_cvref_t<R>>;
-
-template <class R>
-concept SizedRange = Range<R> && requires(remove_cvref_t<R> r) { std::ranges::size(r); };
-
-template <class T>
-concept StreamReadable = requires(std::istream& is, T& value) {
-  { is >> value } -> std::same_as<std::istream&>;
-};
-
-template <class T>
-concept StreamWritable = requires(std::ostream& os, const T& value) {
-  { os << value } -> std::same_as<std::ostream&>;
-};
-
-template <class T>
-concept Hashable = requires(const remove_cvref_t<T>& value) {
-  { std::hash<remove_cvref_t<T>>{}(value) } -> std::convertible_to<std::size_t>;
-};
-
-} // namespace cp
-
-//===----------------------------------------------------------------------===//
-/* Lightweight Stopwatch Utility */
-
-struct Stopwatch {
-  using Clock = std::chrono::high_resolution_clock;
-  Clock::time_point start;
-
-  Stopwatch() : start(Clock::now()) {}
-  void reset() { start = Clock::now(); }
-  [[gnu::always_inline]] F64 elapsed() const { return std::chrono::duration<F64>(Clock::now() - start).count(); }
-  [[gnu::always_inline]] bool within(F64 limit) const { return elapsed() < limit; }
-};
-
-//===----------------------------------------------------------------------===//
-/* Mathematical Utilities */
-
-namespace cp::detail {
-
-template <std::unsigned_integral T>
-[[gnu::always_inline]] constexpr T mul_mod_unsigned(T a, T b, T mod) {
-#if HAS_INT128
-  if constexpr (sizeof(T) <= sizeof(U64)) {
-    return as<T>((as<U128>(a) * as<U128>(b)) % as<U128>(mod));
-  }
-#endif
-
-  // Portable fallback for toolchains without native 128-bit multiplication.
-  T result = 0;
-  while (b > 0) {
-    if ((b & 1U) != 0U) {
-      if (result >= mod - a) result -= (mod - a);
-      else result += a;
-    }
-    b >>= 1U;
-    if (b == 0) break;
-    if (a >= mod - a) a -= (mod - a);
-    else a += a;
-  }
-  return result;
-}
-
-} // namespace cp::detail
-
-// Integer division and modulus with floor/ceil semantics:
-template <cp::NonBoolIntegral T>
-[[gnu::always_inline]] constexpr T div_floor(T a, T b) {
-  my_assert(b != 0);
-  if constexpr (std::is_signed_v<T>) {
-    T q = a / b;
-    T r = a % b;
-    if (r != 0 && ((r > 0) != (b > 0))) --q;
-    return q;
-  } else {
-    return a / b;
-  }
-}
-
-template <cp::NonBoolIntegral T>
-[[gnu::always_inline]] constexpr T div_ceil(T a, T b) {
-  my_assert(b != 0);
-  if constexpr (std::is_signed_v<T>) {
-    T q = a / b;
-    T r = a % b;
-    if (r != 0 && ((r > 0) == (b > 0))) ++q;
-    return q;
-  } else {
-    return a / b + (a % b != 0);
-  }
-}
-
-template <cp::NonBoolIntegral T>
-[[gnu::always_inline]] constexpr T mod_floor(T a, T b) {
-  return a - b * div_floor(a, b);
-}
-
-template <cp::NonBoolIntegral T>
-[[gnu::always_inline]] constexpr std::pair<T, T> divmod(T a, T b) {
-  T q = div_floor(a, b);
-  return {q, a - q * b};
-}
-
-// Exponentiation without modulus:
-template <cp::NonBoolIntegral T>
-[[gnu::always_inline]] constexpr T power(T base, T exp) {
-  T result = 1;
-  while (exp > 0) {
-    if (exp & 1) result *= base;
-    base *= base;
-    exp >>= 1;
-  }
-  return result;
-}
-
-// Modular exponentiation:
-template <cp::NonBoolIntegral T>
-[[gnu::always_inline]] constexpr T mod_pow(T base, T exp, T mod) {
-  my_assert(mod != 0);
-  if constexpr (std::is_signed_v<T>) {
-    my_assert(mod > 0);
-    my_assert(exp >= 0);
-    if (mod <= 0) return 0;
-    if (exp < 0) return 0;
-  }
-
-  using U = std::make_unsigned_t<T>;
-  U umod   = as<U>(mod);
-  U uexp   = as<U>(exp);
-  U ubase  = as<U>(mod_floor(base, mod));
-  U result = as<U>(1) % umod;
-
-  while (uexp > 0) {
-    if ((uexp & 1U) != 0U) {
-      result = cp::detail::mul_mod_unsigned(result, ubase, umod);
-    }
-    ubase = cp::detail::mul_mod_unsigned(ubase, ubase, umod);
-    uexp >>= 1U;
-  }
-  return as<T>(result);
-}
-
-template <cp::NonBoolIntegral T>
-[[gnu::always_inline]] inline T floor_sqrt(T x) {
-  if constexpr (std::is_signed_v<T>) {
-    my_assert(x >= 0);
-    if (x < 0) return 0;
-  }
-
-  using U = std::make_unsigned_t<T>;
-  const U ux = as<U>(x);
-  if (ux <= 1) return as<T>(ux);
-
-  U r = as<U>(std::sqrt(as<F80>(ux)));
-  while ((r + 1) <= ux / (r + 1)) ++r;
-  while (r > ux / r) --r;
-  return as<T>(r);
-}
-
-template <cp::NonBoolIntegral T>
-[[gnu::always_inline]] inline T ceil_sqrt(T x) {
-  using U = std::make_unsigned_t<T>;
-  const T root = floor_sqrt(x);
-  const U uf = as<U>(root);
-  if (uf == 0) return 0;
-
-  const U ux = as<U>(x);
-  if (ux / uf == uf && ux % uf == 0) return root;
-  return as<T>(uf + 1);
-}
-
-template <class T, class S, class Compare = std::less<>>
-[[gnu::always_inline]] inline bool chmax(T& a, const S& b, const Compare& cmp = {}) {
-  return cmp(a, b) ? (a = b, true) : false;
-}
-
-template <class T, class S, class Compare = std::less<>>
-[[gnu::always_inline]] inline bool chmin(T& a, const S& b, const Compare& cmp = {}) {
-  return cmp(b, a) ? (a = b, true) : false;
-}
-
-// Seeded random number generator:
-inline std::mt19937_64 rng(as<U64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
-
-template <cp::Integral T>
-inline T rnd(T a, T b) { return std::uniform_int_distribution<T>(a, b)(rng); }
-
-template <cp::Floating T>
-inline T rnd(T a, T b) { return std::uniform_real_distribution<T>(a, b)(rng); }
-
-// Variadic min/max:
-template <typename T>
-constexpr const T& _min(const T& a, const T& b) { return (b < a) ? b : a; }
-
-template <typename T>
-constexpr const T& _max(const T& a, const T& b) { return (a < b) ? b : a; }
-
-template <typename T, typename... Args>
-constexpr const T& _min(const T& a, const T& b, const Args&... args) { return _min(a, _min(b, args...)); }
-
-template <typename T, typename... Args>
-constexpr const T& _max(const T& a, const T& b, const Args&... args) { return _max(a, _max(b, args...)); }
 
 //===----------------------------------------------------------------------===//
 /* Lightweight I/O Utilities */
@@ -820,87 +507,332 @@ using cp_io::writeln;
   inline void No(bool condition = true) { Yes(!condition); }
 
 //===----------------------------------------------------------------------===//
+/* Mathematical Constants and Infinity Values */
+
+// High-precision mathematical constants:
+constexpr F80 PI   = 3.1415926535897932384626433832795028841971693993751L;
+constexpr F80 E    = 2.7182818284590452353602874713526624977572470937000L;
+constexpr F80 PHI  = 1.6180339887498948482045868343656381177203091798058L;
+constexpr F80 LN2  = 0.6931471805599453094172321214581765680755001343602L;
+constexpr F80 EPS  = 1e-9L;
+constexpr F80 DEPS = 1e-12L;
+
+// Robust infinity system:
+template <class T>
+constexpr T infinity = std::numeric_limits<T>::max() / 4;
+
+template <class T>
+constexpr T neg_infinity = std::numeric_limits<T>::lowest() / 4;
+
+template <>
+inline constexpr I32 infinity<I32> = 1'010'000'000;
+template <>
+inline constexpr I64 infinity<I64> = 2'020'000'000'000'000'000LL;
+template <>
+inline constexpr U32 infinity<U32> = 2'020'000'000U;
+template <>
+inline constexpr U64 infinity<U64> = 4'040'000'000'000'000'000ULL;
+template <>
+inline constexpr F64 infinity<F64> = 1e18;
+template <>
+inline constexpr F80 infinity<F80> = 1e18L;
+
+template <>
+inline constexpr I32 neg_infinity<I32> = -infinity<I32>;
+template <>
+inline constexpr I64 neg_infinity<I64> = -infinity<I64>;
+template <>
+inline constexpr U32 neg_infinity<U32> = 0U;
+template <>
+inline constexpr U64 neg_infinity<U64> = 0ULL;
+template <>
+inline constexpr F64 neg_infinity<F64> = -infinity<F64>;
+template <>
+inline constexpr F80 neg_infinity<F80> = -infinity<F80>;
+
+#if HAS_INT128
+  static_assert(sizeof(I128) > sizeof(I64), "I128 must be true 128-bit when HAS_INT128 is enabled.");
+  template <>
+  inline constexpr I128 infinity<I128> = I128(infinity<I64>) * 2'000'000'000'000'000'000LL;
+  template <>
+  inline constexpr I128 neg_infinity<I128> = -infinity<I128>;
+#endif
+
+constexpr I32 INF32  = infinity<I32>;
+constexpr I64 INF64  = infinity<I64>;
+constexpr I64 LINF   = INF64; // Legacy alias
+constexpr I32 NINF32 = neg_infinity<I32>;
+constexpr I64 NINF64 = neg_infinity<I64>;
+constexpr I64 NLINF  = NINF64; // Legacy-style alias
+
+// Powers of ten lookup table (10^k for k = 0..18):
+constexpr I64 POW10[] = {
+    1LL, 10LL, 100LL, 1000LL, 10000LL, 100000LL,
+    1000000LL, 10000000LL, 100000000LL, 1000000000LL,
+    10000000000LL, 100000000000LL, 1000000000000LL,
+    10000000000000LL, 100000000000000LL, 1000000000000000LL,
+    10000000000000000LL, 100000000000000000LL, 1000000000000000000LL,
+};
+
+// Modular arithmetic constants:
+constexpr I64 MOD  = 1'000'000'007LL;
+constexpr I64 MOD2 = 998'244'353LL;
+constexpr I64 MOD3 = 1'000'000'009LL;
+constexpr I64 INV2 = (MOD + 1) / 2;
+
+//===----------------------------------------------------------------------===//
+/* Data Structures & Algorithms for the Problem */
+
+template <typename T>
+struct FenwickTree {
+  I32 n;
+  Vec<T> tree;
+
+  FenwickTree(I32 size) : n(size), tree(size + 1, T{}) {}
+
+  void add(I32 idx, T val) {
+    idx++;  // 1-indexed internally.
+    while (idx <= n) {
+      tree[idx] += val;
+      idx += idx & -idx;
+    }
+  }
+
+  T sum(I32 idx) {
+    idx++;
+    T res{};
+    while (idx > 0) {
+      res += tree[idx];
+      idx -= idx & -idx;
+    }
+    return res;
+  }
+
+  T range_sum(I32 l, I32 r) { return sum(r) - (l > 0 ? sum(l - 1) : T{}); }
+
+  I32 lower_bound(T val) {
+    if (n == 0) return 0;
+    if (val <= T{}) return 0;
+    if (val > sum(n - 1)) return n;
+    I32 pos = 0;
+    I32 pw = 1;
+    while (pw <= n) pw *= 2;
+    pw /= 2;
+
+    while (pw > 0) {
+      I32 next = pos + pw;
+      if (next <= n && tree[next] < val) {
+        val -= tree[next];
+        pos = next;
+      }
+      pw /= 2;
+    }
+    return pos;
+  }
+};
+
+template <typename T, typename F = std::plus<T>>
+struct SegmentTree {
+  I32 n;
+  Vec<T> tree;
+  F op;
+  T identity;
+
+  SegmentTree(I32 size, T id = T{}, F func = F{})
+    : n(1), op(func), identity(id) {
+    while (n < size) n *= 2;
+    tree.assign(2 * n, identity);
+  }
+
+  SegmentTree(const Vec<T>& v, T id = T{}, F func = F{})
+    : SegmentTree(sz(v), id, func) {
+    FOR(i, sz(v)) tree[n + i] = v[i];
+    FOR_R(i, 1, n) tree[i] = op(tree[2*i], tree[2*i + 1]);
+  }
+
+  void update(I32 pos, T val) {
+    pos += n;
+    tree[pos] = val;
+    while (pos > 1) {
+      pos >>= 1;
+      tree[pos] = op(tree[pos << 1], tree[pos << 1 | 1]);
+    }
+  }
+
+  T query(I32 l, I32 r) {  // [l, r)
+    T res_left = identity, res_right = identity;
+    l += n; r += n;
+    while (l < r) {
+      if (l & 1) res_left = op(res_left, tree[l++]);
+      if (r & 1) res_right = op(tree[--r], res_right);
+      l >>= 1; r >>= 1;
+    }
+    return op(res_left, res_right);
+  }
+
+  T get(I32 pos) { return tree[n + pos]; }
+};
+
+//===----------------------------------------------------------------------===//
 /* Main Solver Function */
+
+struct MinOp {
+  auto operator()(const I32 A, const I32 B) const -> I32 { return min(A, B); }
+};
+
+struct MexTree {
+  I32 lim;
+  SegmentTree<I32, MinOp> seg;
+
+  explicit MexTree(I32 size)
+    : lim(size),
+      seg(VecI32(size, 0), Limits<I32>::max(), MinOp{}) {}
+
+  void set(I32 X, I32 val) { seg.update(X, val); }
+
+  auto first_zero_dfs(I32 node, I32 L, I32 R, I32 start) const -> I32 {
+    if (R <= start || L >= lim || seg.tree[node] > 0) return -1;
+    if (node >= seg.n) return L;
+
+    const I32 mid  = (L + R) / 2;
+    const I32 left = first_zero_dfs(node * 2, L, mid, start);
+    if (left != -1) return left;
+    return first_zero_dfs(node * 2 + 1, mid, R, start);
+  }
+
+  auto first_zero(I32 start) const -> I32 {
+    const I32 Res = first_zero_dfs(1, 0, seg.n, start);
+    my_assert(Res != -1);
+    return Res;
+  }
+};
 
 void solve() {
   INT(N);
-  STR(S);
 
-  Vec<VecI32> adj(N + 1), black_adj(N + 1);
+  VecI32 P(N + 1);
+  FOR(U, 1, N + 1) IN(P[U]);
+
+  Vec2D<I32> adj(N + 1);
   FOR(_, N - 1) {
     INT(U, V);
     adj[U].eb(V);
     adj[V].eb(U);
   }
 
-  VecBool is_black(N + 1, false);
-  FOR(U, 1, N + 1) is_black[U] = (S[U - 1] == '0');
+  VecI32 parent(N + 1, 0), tin(N + 1), tout(N + 1), F(N + 1), G(N + 1);
+  VecI32 ord;
+  ord.reserve(N);
 
-  VecI32 base_red(N + 1, 0);
-  I32 black_cnt = 0;
-  FOR(U, 1, N + 1) {
-    if (!is_black[U]) continue;
-    ++black_cnt;
-    for (I32 V : adj[U]) {
-      if (is_black[V]) {
-        black_adj[U].eb(V);
-      } else {
-        ++base_red[U];
+  MexTree mex_tree(N + 2);
+  Vec<Array<I32, 3>> stk = {{1, 0, 0}};
+  I32 timer = 0;
+  I64 base  = 0;
+
+  while (!stk.empty()) {
+    const auto [U, Par, typ] = stk.back();
+    stk.pop_back();
+
+    if (typ == 0) {
+      parent[U] = Par;
+      mex_tree.set(P[U], 1);
+
+      F[U] = mex_tree.first_zero(0);
+      G[U] = mex_tree.first_zero(F[U] + 1);
+      tin[U] = timer++;
+      ord.eb(U);
+      base += F[U];
+
+      stk.eb(Array<I32, 3>{U, Par, 1});
+      for (I32 I = sz(adj[U]) - 1; I >= 0; --I) {
+        const I32 V = adj[U][I];
+        if (V == Par) continue;
+        stk.eb(Array<I32, 3>{V, U, 0});
       }
+    } else {
+      tout[U] = timer - 1;
+      mex_tree.set(P[U], 0);
     }
   }
 
-  if (black_cnt == 0) {
-    cout << 0.0L << '\n';
-    return;
-  }
+  Vec<VecI32> grp(N + 1);
+  FOR(U, 1, N + 1) grp[F[U]].eb(U);
 
-  VecI32 parent(N + 1, -1), roots, order;
-  order.reserve(black_cnt);
-  FOR(U, 1, N + 1) {
-    if (!is_black[U] || parent[U] != -1) continue;
-    roots.eb(U);
-    parent[U] = 0;
-    VecI32 stk;
-    stk.eb(U);
-    while (!stk.empty()) {
-      const I32 X = stk.back();
-      stk.pop_back();
-      order.eb(X);
-      for (I32 Y : black_adj[X]) {
-        if (Y == parent[X]) continue;
-        parent[Y] = X;
-        stk.eb(Y);
+  VecI64 delta(N + 1, 0);
+  FenwickTree<I64> bit_cnt(N), bit_sum(N);
+
+  FOR(K, N + 1) {
+    auto& nodes = grp[K];
+    if (nodes.empty()) continue;
+
+    VecI32 pos;
+    pos.reserve(sz(nodes));
+    for (I32 U : nodes) pos.eb(tin[U]);
+    ranges::sort(pos);
+
+    VecI32 by_g = nodes;
+    ranges::sort(by_g, [&](const I32 A, const I32 B) {
+      return G[A] < G[B];
+    });
+
+    VecI32 by_p = nodes;
+    ranges::sort(by_p, [&](const I32 A, const I32 B) {
+      return P[A] < P[B];
+    });
+
+    I32 ptr = 0;
+    for (I32 V : by_p) {
+      while (ptr < sz(by_g) && G[by_g[ptr]] <= P[V]) {
+        const I32 U = by_g[ptr++];
+        bit_cnt.add(tin[U], 1);
+        bit_sum.add(tin[U], G[U]);
       }
+
+      const I32 total = as<I32>(
+        ranges::upper_bound(pos, tout[V]) - ranges::lower_bound(pos, tin[V])
+      );
+      const I64 cnt_small = bit_cnt.range_sum(tin[V], tout[V]);
+      const I64 sum_small = bit_sum.range_sum(tin[V], tout[V]);
+
+      delta[V] += sum_small
+        + (as<I64>(total) - cnt_small) * P[V]
+        - as<I64>(total) * F[V];
+    }
+
+    FOR(I, ptr) {
+      const I32 U = by_g[I];
+      bit_cnt.add(tin[U], -1);
+      bit_sum.add(tin[U], -G[U]);
     }
   }
 
-  Vec<Array<F80, 2>> dp(N + 1, {INF64, INF64});
-  FOR_R(I, sz(order)) {
-    const I32 U = order[I];
-    F80 base_cost = 0.0L;
-    Vec<F80> delta;
-    for (I32 V : black_adj[U]) {
-      if (V == parent[U]) continue;
-      base_cost += dp[V][1];
-      delta.eb(dp[V][0] - dp[V][1]);
+  VecI32 nodes = ord;
+  ranges::sort(nodes, [&](const I32 A, const I32 B) {
+    return F[A] > F[B];
+  });
+
+  VecI32 queries = ord;
+  ranges::sort(queries, [&](const I32 A, const I32 B) {
+    return max(F[A], P[A]) > max(F[B], P[B]);
+  });
+
+  FenwickTree<I64> bit_cnt_hi(N), bit_sum_hi(N);
+  I32 ptr = 0;
+  for (I32 V : queries) {
+    const I32 need = max(F[V], P[V]);
+    while (ptr < N && F[nodes[ptr]] > need) {
+      const I32 U = nodes[ptr++];
+      bit_cnt_hi.add(tin[U], 1);
+      bit_sum_hi.add(tin[U], F[U]);
     }
 
-    ranges::sort(delta);
-    const F80 deg = as<F80>(sz(adj[U]));
-    F80 pref = 0.0L;
-    FOR(K, sz(delta) + 1) {
-      const F80 child_cost = base_cost + pref;
-      if (base_red[U] + K > 0) {
-        chmin(dp[U][0], child_cost + deg / as<F80>(base_red[U] + K));
-      }
-      chmin(dp[U][1], child_cost + deg / as<F80>(base_red[U] + 1 + K));
-      if (K != sz(delta)) pref += delta[K];
-    }
+    const I64 cnt_hi = bit_cnt_hi.range_sum(tin[V], tout[V]);
+    const I64 sum_hi = bit_sum_hi.range_sum(tin[V], tout[V]);
+    delta[V] -= sum_hi - cnt_hi * P[V];
   }
 
-  F80 ans = 0.0L;
-  for (I32 U : roots) ans += dp[U][0];
+  I64 ans = base;
+  FOR(U, 1, N + 1) ans = max(ans, base + delta[U]);
   cout << ans << '\n';
 }
 
@@ -912,8 +844,6 @@ auto main() -> int {
   Timer timer;
   // init_debug_log();
 #endif
-
-  cout << fixed << setprecision(15);
 
   I32 T;
   if (!(cin >> T)) return 0;
