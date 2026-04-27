@@ -23,6 +23,9 @@
 
 include_guard(GLOBAL)
 
+# Reset PCH donor tracking on each configure run (include_guard ensures this runs once).
+set(_CP_PCH_DONOR "" CACHE INTERNAL "First problem target that owns the shared PCH" FORCE)
+
 # --------------------- Helper Function to Add a Problem --------------------- #
 
 function(cp_add_problem TARGET_NAME SOURCE_FILE)
@@ -46,11 +49,13 @@ set(USE_PCH_FOR_TARGET FALSE)
       set(USE_PCH_FOR_TARGET TRUE)
       set(PCH_REASON "PCH enabled for ${CMAKE_BUILD_TYPE}")
 
-      # IMPORTANT: Apply PCH directly to the target using CMake's native support.
-      target_precompile_headers(${TARGET_NAME}
-        PRIVATE
-          "${PCH_HEADER_PATH}"
-      )
+      # Share one .gch per round: the first target compiles it, the rest reuse it.
+      if(_CP_PCH_DONOR STREQUAL "")
+        target_precompile_headers(${TARGET_NAME} PRIVATE "${PCH_HEADER_PATH}")
+        set(_CP_PCH_DONOR "${TARGET_NAME}" CACHE INTERNAL "First problem target that owns the shared PCH" FORCE)
+      else()
+        target_precompile_headers(${TARGET_NAME} REUSE_FROM "${_CP_PCH_DONOR}")
+      endif()
 
       # Add PCH-specific definitions.
       target_compile_definitions(${TARGET_NAME} PRIVATE
@@ -232,12 +237,10 @@ set(USE_PCH_FOR_TARGET FALSE)
   endif()
 
   if(USE_PCH_FOR_TARGET)
-    set(PCH_STATUS "Yes (Active)")
-
-    # Optional: Print PCH file location for debugging.
-    if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND CMAKE_VERBOSE_MAKEFILE)
-      get_target_property(pch_header ${TARGET_NAME} PRECOMPILE_HEADERS)
-      message(STATUS "  PCH Header: ${pch_header}")
+    if("${TARGET_NAME}" STREQUAL "${_CP_PCH_DONOR}")
+      set(PCH_STATUS "Yes (Donor)")
+    else()
+      set(PCH_STATUS "Yes (Shared from ${_CP_PCH_DONOR})")
     endif()
   else()
     set(PCH_STATUS "No (${PCH_REASON})")
