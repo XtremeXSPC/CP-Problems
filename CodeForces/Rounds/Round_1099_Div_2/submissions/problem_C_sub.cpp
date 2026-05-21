@@ -1,11 +1,11 @@
 //===----------------------------------------------------------------------===//
 /**
- * @file: problem_A_sub.cpp
- * @generated: 2026-05-21 16:40:52
- * @source: problem_A.cpp
+ * @file: problem_C_sub.cpp
+ * @generated: 2026-05-21 17:00:23
+ * @source: problem_C.cpp
  * @author: C.L.
  *
- * @brief: Codeforces Round 1099 (Div. 2) - Problem A
+ * @brief: Codeforces Round 1099 (Div. 2) - Problem C
  */
 //===----------------------------------------------------------------------===//
 /* Included library and Compiler Optimizations */
@@ -509,11 +509,61 @@ using cp_io::writeln;
 //===----------------------------------------------------------------------===//
 /* Main Solver Function */
 
+struct Entry {
+  I32 val;
+  I32 dist;
+  bool operator<(const Entry& o) const {
+    return val < o.val;
+  }
+};
+
 void solve() {
   INT(n);
-  VecI32 ans(n);
-  FOR(i, n) ans[i] = n + i;
-  OUT(ans);
+  VecI32 a(n);
+  FOR(i, n) IN(a[i]);
+
+  Vec<Entry> elem;
+  elem.reserve(70 * n);
+
+  FOR(i, n) {
+    I32 x = a[i];
+    if (x == 1) {
+      elem.push_back({1, 0});
+      elem.push_back({2, 1});
+    } else {
+      I32 dist = 0;
+      while (x != 1) {
+        elem.push_back({x, dist});
+        if (x % 2 == 0) {
+          x /= 2;
+        } else {
+          x += 1;
+        }
+        dist++;
+      }
+      elem.push_back({1, dist});
+    }
+  }
+
+  sort(ALL(elem));
+
+  I32 min_total = Limits<I32>::max();
+
+  for (I32 i = 0; i < sz(elem); ) {
+    I32 j = i;
+    I32 cur_val = elem[i].val;
+    I32 cur_sum = 0;
+    while (j < sz(elem) && elem[j].val == cur_val) {
+      cur_sum += elem[j].dist;
+      j++;
+    }
+    if (j - i == n) {
+      min_total = min(min_total, cur_sum);
+    }
+    i = j;
+  }
+
+  OUT(min_total);
 }
 
 //===----------------------------------------------------------------------===//

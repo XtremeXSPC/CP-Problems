@@ -1,11 +1,11 @@
 //===----------------------------------------------------------------------===//
 /**
- * @file: problem_A_sub.cpp
- * @generated: 2026-05-21 16:40:52
- * @source: problem_A.cpp
+ * @file: problem_E_sub.cpp
+ * @generated: 2026-05-21 17:50:00
+ * @source: problem_E.cpp
  * @author: C.L.
  *
- * @brief: Codeforces Round 1099 (Div. 2) - Problem A
+ * @brief: Codeforces Round 1099 (Div. 2) - Problem E
  */
 //===----------------------------------------------------------------------===//
 /* Included library and Compiler Optimizations */
@@ -510,9 +510,99 @@ using cp_io::writeln;
 /* Main Solver Function */
 
 void solve() {
-  INT(n);
-  VecI32 ans(n);
-  FOR(i, n) ans[i] = n + i;
+  INT(n, d);
+  I32 D = d - 1;
+
+  Vec2D<I32> adj(n + 1);
+  FOR(n - 1) {
+    INT(u, v);
+    adj[u].push_back(v);
+    adj[v].push_back(u);
+  }
+
+  VecI32 par(n + 1), order;
+  order.reserve(n);
+  VecI32 st = {1};
+  par[1] = -1;
+  while (!st.empty()) {
+    I32 u = st.back();
+    st.pop_back();
+    order.push_back(u);
+    for (I32 v : adj[u]) {
+      if (v == par[u]) continue;
+      par[v] = u;
+      st.push_back(v);
+    }
+  }
+
+  Vec2D<I64> in(n + 1, VecI64(D + 1));
+  Vec2D<I64> out(n + 1, VecI64(D + 1));
+
+  for (auto it = order.rbegin(); it != order.rend(); ++it) {
+    I32 u = *it;
+    in[u][0] = 1;
+    for (I32 v : adj[u]) {
+      if (v == par[u]) continue;
+      FOR(dist, 1, D + 1) in[u][dist] += in[v][dist - 1];
+    }
+  }
+
+  for (I32 u : order) {
+    for (I32 v : adj[u]) {
+      if (v == par[u]) continue;
+      FOR(dist, 1, D + 1) {
+        out[v][dist] = out[u][dist - 1] + in[u][dist - 1];
+        if (dist >= 2) out[v][dist] -= in[v][dist - 2];
+      }
+    }
+  }
+
+  I64 ans = 0;
+  VecI64 e1(D + 1), e2(D + 1), e3(D + 1);
+
+  FOR(u, 1, n + 1) {
+    fill(all(e1), 0);
+    fill(all(e2), 0);
+    fill(all(e3), 0);
+
+    for (I32 v : adj[u]) {
+      if (v == par[u]) continue;
+
+      Vec<PairI32> cur;
+      FOR(dist, 1, D + 1) {
+        I64 cnt = in[v][dist - 1];
+        if (cnt > 0) cur.emplace_back(dist, cnt);
+      }
+
+      FOR(sum, 1, D + 1) {
+        if (e2[sum] == 0) continue;
+        for (auto [dist, cnt] : cur) {
+          if (sum + dist > D) break;
+          e3[sum + dist] += e2[sum] * cnt;
+        }
+      }
+
+      FOR(sum, 1, D + 1) {
+        if (e1[sum] == 0) continue;
+        for (auto [dist, cnt] : cur) {
+          if (sum + dist > D) break;
+          e2[sum + dist] += e1[sum] * cnt;
+        }
+      }
+
+      for (auto [dist, cnt] : cur) e1[dist] += cnt;
+    }
+
+    ans += e3[D];
+    ans += e2[D];
+
+    FOR(sum, 1, D) {
+      I64 up = out[u][D - sum];
+      ans += e2[sum] * up;
+      ans += e1[sum] * up;
+    }
+  }
+
   OUT(ans);
 }
 

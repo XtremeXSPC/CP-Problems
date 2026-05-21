@@ -15,7 +15,10 @@
 /* Main Solver Function */
 
 void solve() {
-  // Optimized solution here
+  INT(n);
+  VecI32 ans(n);
+  FOR(i, n) ans[i] = n + i;
+  OUT(ans);
 }
 
 //===----------------------------------------------------------------------===//

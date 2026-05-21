@@ -1,11 +1,11 @@
 //===----------------------------------------------------------------------===//
 /**
- * @file: problem_A_sub.cpp
- * @generated: 2026-05-21 16:40:52
- * @source: problem_A.cpp
+ * @file: problem_B_sub.cpp
+ * @generated: 2026-05-21 16:47:36
+ * @source: problem_B.cpp
  * @author: C.L.
  *
- * @brief: Codeforces Round 1099 (Div. 2) - Problem A
+ * @brief: Codeforces Round 1099 (Div. 2) - Problem B
  */
 //===----------------------------------------------------------------------===//
 /* Included library and Compiler Optimizations */
@@ -511,9 +511,47 @@ using cp_io::writeln;
 
 void solve() {
   INT(n);
-  VecI32 ans(n);
-  FOR(i, n) ans[i] = n + i;
-  OUT(ans);
+  VecI64 a(n);
+  FOR(i, n) IN(a[i]);
+
+  I64 L = 0;
+  bool sorted = true;
+  FOR(i, n - 1) {
+    if (a[i] > a[i + 1]) {
+      sorted = false;
+      L = max(L, a[i] - a[i + 1]);
+    }
+  }
+
+  if (sorted) {
+    YES();
+    return;
+  }
+
+  bool dp0 = true;
+  bool dp1 = true;
+  FOR(i, n - 1) {
+    bool next_dp0 = false;
+    bool next_dp1 = false;
+
+    if (dp0) {
+      if (a[i] <= a[i + 1]) next_dp0     = true;
+      if (a[i] <= a[i + 1] + L) next_dp1 = true;
+    }
+    if (dp1) {
+      if (a[i] + L <= a[i + 1]) next_dp0     = true;
+      if (a[i] + L <= a[i + 1] + L) next_dp1 = true;
+    }
+
+    dp0 = next_dp0;
+    dp1 = next_dp1;
+
+    if (!dp0 && !dp1) {
+      NO();
+      return;
+    }
+  }
+  YES();
 }
 
 //===----------------------------------------------------------------------===//
@@ -522,7 +560,6 @@ void solve() {
 auto main() -> int {
 #ifdef LOCAL
   Timer timer;
-  // init_debug_log();
 #endif
 
   INT(T);
@@ -530,5 +567,3 @@ auto main() -> int {
 
   return 0;
 }
-
-//===----------------------------------------------------------------------===//
