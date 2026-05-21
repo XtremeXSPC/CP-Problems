@@ -94,17 +94,49 @@ void solve() {
     }
   }
 
-  Vec2D<IncEdge> inc(n + 1);
+  VecI32 deg_in(n + 1, 0);
+  for (I32 e = 0; e < 2 * n - 2; ++e) {
+    deg_in[to[e]]++;
+  }
+  VecI32 inc_start(n + 2, 0);
+  for (I32 u = 1; u <= n; ++u) {
+    inc_start[u + 1] = inc_start[u] + deg_in[u];
+  }
+  Vec<IncEdge> flat_inc(2 * n - 2);
+  VecI32 inc_ptr = inc_start;
   for (I32 u = 1; u <= n; ++u) {
     for (I32 e = head[u]; e != -1; e = nxt[e]) {
       I32 v = to[e];
-      inc[v].push_back({u, S[e], e});
+      flat_inc[inc_ptr[v]++] = {u, S[e], e};
     }
   }
 
   for (I32 u = 1; u <= n; ++u) {
-    std::sort(inc[u].begin(), inc[u].end(), [](const IncEdge& A, const IncEdge& B) {
+    std::sort(flat_inc.begin() + inc_start[u], flat_inc.begin() + inc_start[u + 1], [](const IncEdge& A, const IncEdge& B) {
       return A.S_wu < B.S_wu;
+    });
+  }
+
+  VecI32 deg_out(n + 1, 0);
+  for (I32 u = 1; u <= n; ++u) {
+    for (I32 e = head[u]; e != -1; e = nxt[e]) {
+      if (to[e] != parent[u]) deg_out[u]++;
+    }
+  }
+  VecI32 out_start(n + 2, 0);
+  for (I32 u = 1; u <= n; ++u) {
+    out_start[u + 1] = out_start[u] + deg_out[u];
+  }
+  VecI32 flat_out(std::max(1, n - 1));
+  VecI32 out_ptr = out_start;
+  for (I32 u = 1; u <= n; ++u) {
+    for (I32 e = head[u]; e != -1; e = nxt[e]) {
+      if (to[e] != parent[u]) {
+        flat_out[out_ptr[u]++] = e;
+      }
+    }
+    std::sort(flat_out.begin() + out_start[u], flat_out.begin() + out_start[u + 1], [&](I32 e1, I32 e2) {
+      return S[e1] < S[e2];
     });
   }
 
@@ -120,11 +152,12 @@ void solve() {
     // Pass A (Bottom-up)
     for (I32 u : order_bottom_up) {
       if (u == 1) continue;
-      I32 d = inc[u].size();
+      I32 d = deg_in[u];
       if (d == 0) continue;
+      I32 st = inc_start[u];
 
       for (I32 i = d - 1; i >= 0; --i) {
-        I32 val = dp[inc[u][i].in_idx];
+        I32 val = dp[flat_inc[st + i].in_idx];
         if (i == d - 1) {
           suff[i] = {val, i, (I32)-1e9, -1};
         } else {
@@ -148,7 +181,7 @@ void solve() {
       I32 l = 0, r = d - 1, best_idx = d;
       while (l <= r) {
         I32 mid = l + (r - l) / 2;
-        if (inc[u][mid].S_wu >= limit) {
+        if (flat_inc[st + mid].S_wu >= limit) {
           best_idx = mid;
           r = mid - 1;
         } else {
@@ -158,7 +191,7 @@ void solve() {
 
       if (best_idx < d) {
         I32 max_val = suff[best_idx].max1;
-        if (suff[best_idx].idx1 != -1 && inc[u][suff[best_idx].idx1].w == p) {
+        if (suff[best_idx].idx1 != -1 && flat_inc[st + suff[best_idx].idx1].w == p) {
           max_val = suff[best_idx].max2;
         }
         dp[e_up] = std::max(dp[e_up], 1 + max_val);
@@ -167,11 +200,12 @@ void solve() {
 
     // Pass B (Top-down)
     for (I32 u : order_top_down) {
-      I32 d = inc[u].size();
+      I32 d = deg_in[u];
       if (d == 0) continue;
+      I32 st = inc_start[u];
 
       for (I32 i = d - 1; i >= 0; --i) {
-        I32 val = dp[inc[u][i].in_idx];
+        I32 val = dp[flat_inc[st + i].in_idx];
         if (i == d - 1) {
           suff[i] = {val, i, (I32)-1e9, -1};
         } else {
@@ -188,26 +222,20 @@ void solve() {
         }
       }
 
-      for (I32 e = head[u]; e != -1; e = nxt[e]) {
+      I32 ptr = 0;
+      for (I32 idx = out_start[u]; idx < out_start[u + 1]; ++idx) {
+        I32 e = flat_out[idx];
         I32 c = to[e];
-        if (c == parent[u]) continue;
-
         I64 limit = S[e] + x;
 
-        I32 l = 0, r = d - 1, best_idx = d;
-        while (l <= r) {
-          I32 mid = l + (r - l) / 2;
-          if (inc[u][mid].S_wu >= limit) {
-            best_idx = mid;
-            r = mid - 1;
-          } else {
-            l = mid + 1;
-          }
+        while (ptr < d && flat_inc[st + ptr].S_wu < limit) {
+          ptr++;
         }
 
+        I32 best_idx = ptr;
         if (best_idx < d) {
           I32 max_val = suff[best_idx].max1;
-          if (suff[best_idx].idx1 != -1 && inc[u][suff[best_idx].idx1].w == c) {
+          if (suff[best_idx].idx1 != -1 && flat_inc[st + suff[best_idx].idx1].w == c) {
             max_val = suff[best_idx].max2;
           }
           dp[e] = std::max(dp[e], 1 + max_val);
