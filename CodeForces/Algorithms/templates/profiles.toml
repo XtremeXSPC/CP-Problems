@@ -1,0 +1,58 @@
+# Single source of truth for template profiles.
+# Edit, then run scripts/gen_config.py and scripts/gen_scaffold.py.
+
+schema_version = 1
+
+[defaults]
+CP_CORE_ENABLE_MATH                = 1
+CP_USE_GLOBAL_STD_NAMESPACE        = 1
+CP_USE_BITS_HEADER                 = 1
+CP_ENABLE_LEGACY_IO_VEC_MACROS     = 1
+CP_ENABLE_AGGRESSIVE_OPTIMIZATIONS = 0
+CP_DEBUG_ENABLE_PERF               = 0
+CP_DEBUG_ENABLE_MEMORY             = 0
+CP_DEBUG_ENABLE_WATCH              = 0
+CP_DEBUG_ENABLE_TREE               = 0
+
+[defaults.strict_overrides]
+CP_STRICT_TEMPLATE_NEEDS           = 1
+CP_CORE_ENABLE_MATH                = 0
+CP_USE_GLOBAL_STD_NAMESPACE        = 0
+CP_ENABLE_LEGACY_IO_VEC_MACROS     = 0
+
+[io_profile.simple]
+needs   = ["NEED_IO"]
+defines = {}
+
+[io_profile.fast_minimal]
+needs   = ["NEED_FAST_IO"]
+defines = {}
+
+[io_profile.fast_extended]
+needs   = ["NEED_FAST_IO", "NEED_MOD_INT", "NEED_TYPE_SAFETY"]
+defines = { CP_FAST_IO_ENABLE_MODINT = 1, CP_FAST_IO_ENABLE_STRONG_TYPE = 1 }
+
+[scaffold.base]
+description = "Minimal: macros + timer + simple I/O."
+needs       = ["NEED_MACROS", "NEED_TIMER"]
+io_profile  = "simple"
+header_doc  = false
+
+[scaffold.default]
+description = "Default scaffold with file-header docblock."
+needs       = ["NEED_MACROS", "NEED_TIMER"]
+io_profile  = "simple"
+header_doc  = true
+
+[scaffold.pbds]
+description = "Core + PBDS."
+needs       = ["NEED_CORE", "NEED_TIMER", "NEED_PBDS"]
+io_profile  = "simple"
+header_doc  = true
+
+[scaffold.advanced]
+description = "Fast extended I/O + PBDS + bit ops + containers."
+needs       = ["NEED_TYPES", "NEED_MACROS", "NEED_TIMER",
+               "NEED_PBDS", "NEED_BIT_OPS", "NEED_CONTAINERS"]
+io_profile  = "fast_extended"
+header_doc  = true

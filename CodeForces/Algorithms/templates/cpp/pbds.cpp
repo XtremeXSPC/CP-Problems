@@ -8,9 +8,7 @@
  */
 //===----------------------------------------------------------------------===//
 
-// Strict profile is enabled by default to keep generated output lean/safe.
-// Define CP_TEMPLATE_PROFILE_RELAXED to disable strict defaults.
-#if !defined(CP_TEMPLATE_PROFILE_RELAXED)
+#ifndef CP_TEMPLATE_PROFILE_STRICT
   #define CP_TEMPLATE_PROFILE_STRICT
 #endif
 #ifndef CP_USE_GLOBAL_STD_NAMESPACE
@@ -18,9 +16,9 @@
 #endif
 
 #define NEED_CORE
+#define NEED_PBDS
 #define NEED_TIMER
 #define CP_IO_PROFILE_SIMPLE
-#define NEED_PBDS
 
 #include "templates/Base.hpp"
 
@@ -36,7 +34,7 @@ void solve() {
 
 auto main() -> int {
 #ifdef LOCAL
-  Timer timer;
+  Stopwatch timer;
 #endif
 
   INT(T);
