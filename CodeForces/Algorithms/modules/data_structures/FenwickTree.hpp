@@ -41,17 +41,18 @@ struct FenwickTree {
     if (val <= T{}) return 0;
     if (val > sum(n - 1)) return n;
     I32 pos = 0;
-    I32 pw = 1;
-    while (pw <= n) pw *= 2;
-    pw /= 2;
+    U32 pw = 1U;
+    while (pw <= as<U32>(n)) pw <<= 1U;
+    pw >>= 1U;
 
     while (pw > 0) {
-      I32 next = pos + pw;
-      if (next <= n && tree[next] < val) {
+      U32 next_u = as<U32>(pos) + pw;
+      if (next_u <= as<U32>(n) && tree[as<I32>(next_u)] < val) {
+        I32 next = as<I32>(next_u);
         val -= tree[next];
         pos = next;
       }
-      pw /= 2;
+      pw >>= 1U;
     }
     return pos;
   }

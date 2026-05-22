@@ -29,6 +29,19 @@ struct Graph {
 
   Graph(I32 n, bool directed = false) : n(n), m(0), adj(n), directed(directed) {}
 
+  static bool checked_add(Weight lhs, Weight rhs, Weight& out) {
+    if constexpr (cp::Integral<Weight>) {
+      if constexpr (cp::SignedIntegral<Weight>) {
+        if (rhs > 0 && lhs > Limits<Weight>::max() - rhs) return false;
+        if (rhs < 0 && lhs < Limits<Weight>::lowest() - rhs) return false;
+      } else {
+        if (lhs > Limits<Weight>::max() - rhs) return false;
+      }
+    }
+    out = lhs + rhs;
+    return true;
+  }
+
   /// @brief Adds an edge from 'from' to 'to' with given weight (default 1).
   void add_edge(I32 from, I32 to, Weight weight = 1) {
     adj[from].eb(from, to, weight, m);
@@ -75,7 +88,8 @@ struct Graph {
       if (d > dist[u]) continue;
 
       for (const auto& e : adj[u]) {
-        Weight new_dist = dist[u] + e.weight;
+        Weight new_dist{};
+        if (!checked_add(dist[u], e.weight, new_dist)) continue;
         if (new_dist < dist[e.to]) {
           dist[e.to] = new_dist;
           pq.push({new_dist, e.to});
@@ -97,8 +111,9 @@ struct Graph {
       FOR(u, n) {
         if (dist[u] == infinity<Weight>) continue;
         for (const auto& e : adj[u]) {
-          if (dist[u] + e.weight < dist[e.to]) {
-            dist[e.to] = dist[u] + e.weight;
+          Weight new_dist{};
+          if (checked_add(dist[u], e.weight, new_dist) && new_dist < dist[e.to]) {
+            dist[e.to] = new_dist;
             updated = true;
           }
         }
@@ -110,7 +125,8 @@ struct Graph {
     FOR(u, n) {
       if (dist[u] == infinity<Weight>) continue;
       for (const auto& e : adj[u]) {
-        if (dist[u] + e.weight < dist[e.to]) {
+        Weight new_dist{};
+        if (checked_add(dist[u], e.weight, new_dist) && new_dist < dist[e.to]) {
           return {true, dist}; // Negative cycle exists
         }
       }
@@ -119,24 +135,28 @@ struct Graph {
     return {false, dist};
   }
 
-  /// @brief Topological sort of a DAG. Returns vertices in topologically sorted order.
-  Vec<I32> topological_sort() const {
+  /// @brief Topological sort of a DAG. Optionally reports whether a cycle was seen.
+  Vec<I32> topological_sort(bool* has_cycle = nullptr) const {
     Vec<I32> result;
-    Vec<bool> visited(n, false);
+    Vec<I32> color(n, 0);
+    bool cycle = false;
 
     std::function<void(I32)> dfs = [&](I32 u) {
-      visited[u] = true;
+      color[u] = 1;
       for (const auto& e : adj[u]) {
-        if (!visited[e.to]) dfs(e.to);
+        if (color[e.to] == 0) dfs(e.to);
+        else if (color[e.to] == 1) cycle = true;
       }
+      color[u] = 2;
       result.push_back(u);
     };
 
     FOR(i, n) {
-      if (!visited[i]) dfs(i);
+      if (color[i] == 0) dfs(i);
     }
 
     std::reverse(all(result));
+    if (has_cycle != nullptr) *has_cycle = cycle;
     return result;
   }
 
