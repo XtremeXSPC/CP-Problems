@@ -1,5 +1,5 @@
 #pragma once
-#include "Types.hpp"
+#include "TypeTraits.hpp"
 
 //===----------------------------------------------------------------------===//
 /* Core Concepts for Type-Safe CP Templates */
@@ -7,13 +7,15 @@
 namespace cp {
 
 template <class T>
-using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
+concept Integral = std::integral<remove_cvref_t<T>>
+  || detail::is_extended_integral_v<remove_cvref_t<T>>;
 
 template <class T>
-concept Integral = std::integral<remove_cvref_t<T>>;
-
-template <class T>
-concept SignedIntegral = Integral<T> && std::is_signed_v<remove_cvref_t<T>>;
+concept SignedIntegral = Integral<T> && (std::is_signed_v<remove_cvref_t<T>>
+#if HAS_INT128
+  || std::same_as<remove_cvref_t<T>, I128>
+#endif
+);
 
 template <class T>
 concept UnsignedIntegral = Integral<T> && !SignedIntegral<T>;

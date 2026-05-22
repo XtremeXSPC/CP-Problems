@@ -1,5 +1,5 @@
 #pragma once
-#include "Types.hpp"
+#include "ScalarTypes.hpp"
 
 //===----------------------------------------------------------------------===//
 /* Lightweight I/O Utilities */
@@ -25,20 +25,38 @@ void read(T& x) { std::cin >> x; }
 template <class T>
 void write(const T& x) { std::cout << x; }
 
-#include "IO_Composite.hpp"
+#if CP_IO_ENABLE_COMPOSITE
+  #define CP_IO_COMPOSITE_CONTEXT 1
+  #include "IO_Composite.hpp"
+  #undef CP_IO_COMPOSITE_CONTEXT
+#endif
+
+template <class Head, class... Tail>
+  requires (sizeof...(Tail) > 0)
+inline void read(Head& head, Tail&... tail) { read(head); read(tail...); }
+
+template <class Head, class... Tail>
+  requires (sizeof...(Tail) > 0)
+inline void write(const Head& head, const Tail&... tail) { write(head); write(' '); write(tail...); }
+
+inline void writeln() { write('\n'); }
+
+template <class... Args>
+inline void writeln(const Args&... args) { if constexpr (sizeof...(args) > 0) write(args...); writeln(); }
 
 } // namespace cp_io
 
 namespace fast_io {
+#define CP_IO_COMPAT_FAST_IO_NAMESPACE_DEFINED 1
 template <class T>
 inline void read_integer(T& x) { cp_io::read(x); }
 inline void read_char(char& x) { cp_io::read(x); }
-inline void read_string(String& x) { cp_io::read(x); }
+inline void read_string(std::string& x) { cp_io::read(x); }
 
 template <class T>
 inline void write_integer(T x) { cp_io::write(x); }
 inline void write_char(char c) { std::cout.put(c); }
-inline void write_string(const String& s) { cp_io::write(s); }
+inline void write_string(const std::string& s) { cp_io::write(s); }
 
 inline void flush_output() { std::cout.flush(); }
 

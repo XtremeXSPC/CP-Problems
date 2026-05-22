@@ -7,32 +7,46 @@
 template <cp::Integral T>
 [[gnu::always_inline]] constexpr I32 popcount(T x) {
   using Raw = std::remove_cv_t<T>;
-  using U = std::conditional_t<std::is_same_v<Raw, bool>, U8, std::make_unsigned_t<Raw>>;
+  using U = cp::make_unsigned_t<Raw>;
   if constexpr (sizeof(Raw) <= 4) return __builtin_popcount(static_cast<U32>(static_cast<U>(x)));
-  else return __builtin_popcountll(static_cast<U64>(static_cast<U>(x)));
+  else if constexpr (sizeof(Raw) <= 8) return __builtin_popcountll(static_cast<U64>(static_cast<U>(x)));
+  else {
+    const U ux = static_cast<U>(x);
+    return __builtin_popcountll(static_cast<U64>(ux))
+      + __builtin_popcountll(static_cast<U64>(ux >> 64));
+  }
 }
 
 template <cp::Integral T>
 [[gnu::always_inline]] constexpr I32 leading_zeros(T x) {
   using Raw = std::remove_cv_t<T>;
-  using U = std::conditional_t<std::is_same_v<Raw, bool>, U8, std::make_unsigned_t<Raw>>;
+  using U = cp::make_unsigned_t<Raw>;
   U ux = static_cast<U>(x);
   if (ux == 0) return sizeof(Raw) * 8;
   if constexpr (sizeof(Raw) <= 4) {
     return __builtin_clz(static_cast<U32>(ux)) - (32 - static_cast<I32>(sizeof(Raw) * 8));
-  } else {
+  } else if constexpr (sizeof(Raw) <= 8) {
     return __builtin_clzll(static_cast<U64>(ux)) - (64 - static_cast<I32>(sizeof(Raw) * 8));
+  } else {
+    const U64 hi = static_cast<U64>(ux >> 64);
+    if (hi != 0) return __builtin_clzll(hi);
+    return 64 + __builtin_clzll(static_cast<U64>(ux));
   }
 }
 
 template <cp::Integral T>
 [[gnu::always_inline]] constexpr I32 trailing_zeros(T x) {
   using Raw = std::remove_cv_t<T>;
-  using U = std::conditional_t<std::is_same_v<Raw, bool>, U8, std::make_unsigned_t<Raw>>;
+  using U = cp::make_unsigned_t<Raw>;
   U ux = static_cast<U>(x);
   if (ux == 0) return sizeof(Raw) * 8;
   if constexpr (sizeof(Raw) <= 4) return __builtin_ctz(static_cast<U32>(ux));
-  else return __builtin_ctzll(static_cast<U64>(ux));
+  else if constexpr (sizeof(Raw) <= 8) return __builtin_ctzll(static_cast<U64>(ux));
+  else {
+    const U64 lo = static_cast<U64>(ux);
+    if (lo != 0) return __builtin_ctzll(lo);
+    return 64 + __builtin_ctzll(static_cast<U64>(ux >> 64));
+  }
 }
 
 template <cp::Integral T>

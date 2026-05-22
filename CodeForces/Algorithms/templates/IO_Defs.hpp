@@ -1,5 +1,9 @@
 #pragma once
 
+#ifndef CP_IO_IMPL_WRITELN
+  #include "IO.hpp"
+#endif
+
 //===----------------------------------------------------------------------===//
 /* Shared I/O Macro and Answer Helper Definitions */
 

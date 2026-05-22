@@ -13,10 +13,22 @@ namespace cp::hashing {
   return x ^ (x >> 31);
 }
 
-[[gnu::always_inline]] inline U64 fixed_random_seed() noexcept {
-  static const U64 seed = static_cast<U64>(
+[[gnu::always_inline]] inline U64& fixed_random_seed_storage() noexcept {
+#ifdef CP_SEED
+  static U64 seed = static_cast<U64>(CP_SEED);
+#else
+  static U64 seed = static_cast<U64>(
       std::chrono::steady_clock::now().time_since_epoch().count());
+#endif
   return seed;
+}
+
+[[gnu::always_inline]] inline U64 fixed_random_seed() noexcept {
+  return fixed_random_seed_storage();
+}
+
+inline void reseed(U64 seed) noexcept {
+  fixed_random_seed_storage() = seed;
 }
 
 [[nodiscard]] constexpr inline U64 hash_combine(U64 lhs, U64 rhs) noexcept {

@@ -1,5 +1,5 @@
 #pragma once
-#include "Types.hpp"
+#include "ScalarTypes.hpp"
 
 //===----------------------------------------------------------------------===//
 /* Lightweight Stopwatch Utility */

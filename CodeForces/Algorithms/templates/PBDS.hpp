@@ -5,25 +5,31 @@
 /* Policy-Based Data Structures (optional) */
 
 #if defined(PBDS_AVAILABLE) && PBDS_AVAILABLE
-using namespace __gnu_pbds;
-
 template <typename T>
-using ordered_set = tree<T, null_type, std::less<T>, rb_tree_tag, tree_order_statistics_node_update>;
+using ordered_set = __gnu_pbds::tree<
+    T, __gnu_pbds::null_type, std::less<T>, __gnu_pbds::rb_tree_tag,
+    __gnu_pbds::tree_order_statistics_node_update>;
 
 /* WARNING: std::less_equal violates strict weak ordering. find() and erase()
  * by value will not work correctly. Use find_by_order / order_of_key only.
  * To erase, use: tree.erase(tree.find_by_order(tree.order_of_key(val)));
  */
 template <typename T>
-using ordered_multiset = tree<T, null_type, std::less_equal<T>, rb_tree_tag, tree_order_statistics_node_update>;
+using ordered_multiset = __gnu_pbds::tree<
+    T, __gnu_pbds::null_type, std::less_equal<T>, __gnu_pbds::rb_tree_tag,
+    __gnu_pbds::tree_order_statistics_node_update>;
 
 template <typename K, typename V>
-using ordered_map = tree<K, V, std::less<K>, rb_tree_tag, tree_order_statistics_node_update>;
+using ordered_map = __gnu_pbds::tree<
+    K, V, std::less<K>, __gnu_pbds::rb_tree_tag,
+    __gnu_pbds::tree_order_statistics_node_update>;
 
 template <typename K, typename V>
 using gp_hash_table = __gnu_pbds::gp_hash_table<
     K, V,
     std::hash<K>, std::equal_to<K>,
-    direct_mask_range_hashing<>, linear_probe_fn<>,
-    hash_standard_resize_policy<hash_exponential_size_policy<>, hash_load_check_resize_trigger<>, true>>;
+    __gnu_pbds::direct_mask_range_hashing<>, __gnu_pbds::linear_probe_fn<>,
+    __gnu_pbds::hash_standard_resize_policy<
+        __gnu_pbds::hash_exponential_size_policy<>,
+        __gnu_pbds::hash_load_check_resize_trigger<>, true>>;
 #endif

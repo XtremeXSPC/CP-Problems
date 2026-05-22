@@ -46,20 +46,13 @@ struct ModInt {
   }
 
   constexpr ModInt& operator/=(const ModInt& other) { return *this *= other.inverse(); }
-
-  constexpr ModInt operator+(const ModInt& other) const { return ModInt(*this) += other; }
-
-  constexpr ModInt operator-(const ModInt& other) const { return ModInt(*this) -= other; }
-
-  constexpr ModInt operator*(const ModInt& other) const { return ModInt(*this) *= other; }
-
-  constexpr ModInt operator/(const ModInt& other) const { return ModInt(*this) /= other; }
-
-  constexpr ModInt operator-() const { return ModInt(value ? MOD - value : 0); }
-
-  constexpr bool operator==(const ModInt& other) const { return value == other.value; }
-
-  constexpr bool operator!=(const ModInt& other) const { return value != other.value; }
+  constexpr ModInt  operator+ (const ModInt& other) const { return ModInt(*this) += other; }
+  constexpr ModInt  operator- (const ModInt& other) const { return ModInt(*this) -= other; }
+  constexpr ModInt  operator* (const ModInt& other) const { return ModInt(*this) *= other; }
+  constexpr ModInt  operator/ (const ModInt& other) const { return ModInt(*this) /= other; }
+  constexpr ModInt  operator-() const { return ModInt(value ? MOD - value : 0); }
+  constexpr bool    operator==(const ModInt& other) const { return value == other.value; }
+  constexpr bool    operator!=(const ModInt& other) const { return value != other.value; }
 
   constexpr ModInt pow(I64 exp) const {
     ModInt result(1), base(*this);

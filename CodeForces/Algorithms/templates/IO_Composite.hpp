@@ -1,27 +1,31 @@
 #pragma once
-#include "Types.hpp"
+#ifndef CP_IO_COMPOSITE_CONTEXT
+  #include "IO.hpp"
+  #define CP_IO_COMPOSITE_READ cp_io::read
+  #define CP_IO_COMPOSITE_WRITE cp_io::write
+#else
+  #define CP_IO_COMPOSITE_READ read
+  #define CP_IO_COMPOSITE_WRITE write
+#endif
+#include "ContainerAliases.hpp"
 
 template <class T, class U>
-inline void read(Pair<T, U>& p) { read(p.first); read(p.second); }
+inline void read(Pair<T, U>& p) { CP_IO_COMPOSITE_READ(p.first); CP_IO_COMPOSITE_READ(p.second); }
 
 template <class T>
-inline void read(Vec<T>& v) { for (auto& x : v) read(x); }
+inline void read(Vec<T>& v) { for (auto& x : v) CP_IO_COMPOSITE_READ(x); }
 
 template <typename... Args>
-inline void read(std::tuple<Args...>& t) { std::apply([](auto&... args) { (read(args), ...); }, t); }
-
-template <class Head, class... Tail>
-  requires (sizeof...(Tail) > 0)
-inline void read(Head& head, Tail&... tail) { read(head); read(tail...); }
+inline void read(std::tuple<Args...>& t) { std::apply([](auto&... args) { (CP_IO_COMPOSITE_READ(args), ...); }, t); }
 
 template <class T, class U>
-inline void write(const Pair<T, U>& p) { write(p.first); write(' '); write(p.second); }
+inline void write(const Pair<T, U>& p) { CP_IO_COMPOSITE_WRITE(p.first); CP_IO_COMPOSITE_WRITE(' '); CP_IO_COMPOSITE_WRITE(p.second); }
 
 template <class T>
 inline void write(const Vec<T>& v) {
   for (I64 i = 0; i < as<I64>(v.size()); ++i) {
-    if (i) write(' ');
-    write(v[i]);
+    if (i) CP_IO_COMPOSITE_WRITE(' ');
+    CP_IO_COMPOSITE_WRITE(v[i]);
   }
 }
 
@@ -29,15 +33,9 @@ template <typename... Args>
 inline void write(const std::tuple<Args...>& t) {
   I32 i = 0;
   std::apply([&i](const auto&... args) {
-    ((i++ > 0 ? (write(' '), 0) : 0, write(args)), ...);
+    ((i++ > 0 ? (CP_IO_COMPOSITE_WRITE(' '), 0) : 0, CP_IO_COMPOSITE_WRITE(args)), ...);
   }, t);
 }
 
-template <class Head, class... Tail>
-  requires (sizeof...(Tail) > 0)
-inline void write(const Head& head, const Tail&... tail) { write(head); write(' '); write(tail...); }
-
-inline void writeln() { write('\n'); }
-
-template <class... Args>
-inline void writeln(const Args&... args) { if constexpr (sizeof...(args) > 0) write(args...); writeln(); }
+#undef CP_IO_COMPOSITE_READ
+#undef CP_IO_COMPOSITE_WRITE
