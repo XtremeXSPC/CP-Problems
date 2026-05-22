@@ -5,9 +5,9 @@ import re
 import sys
 
 DEFAULT_WORKSPACE_ROOT = Path(__file__).resolve().parents[4]
-DEFAULT_CP_TOOLS_SCRIPT = Path(
-    "/Users/lcs-dev/Dotfiles/cpp-tools/.config/cpp-tools/competitive.sh"
-)
+# Resolution chain in utils.discover_cp_tools_script covers $CPP_TOOLS_SCRIPT
+# and ~/.config/cpp-tools/competitive.sh, so no hardcoded fallback is needed.
+DEFAULT_CP_TOOLS_SCRIPT: Path | None = None
 
 _SCRIPTS_DIR = Path(__file__).resolve().parents[1]
 if str(_SCRIPTS_DIR) not in sys.path:

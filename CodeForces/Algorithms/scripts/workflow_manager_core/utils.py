@@ -118,7 +118,8 @@ def discover_cp_tools_script(explicit: Path | None) -> Path:
     if env_script:
         candidates.append(Path(env_script).expanduser())
 
-    candidates.append(DEFAULT_CP_TOOLS_SCRIPT)
+    if DEFAULT_CP_TOOLS_SCRIPT is not None:
+        candidates.append(DEFAULT_CP_TOOLS_SCRIPT)
     candidates.append(Path.home() / ".config/cpp-tools/competitive.sh")
 
     unique_candidates = _unique_candidates(candidates)
