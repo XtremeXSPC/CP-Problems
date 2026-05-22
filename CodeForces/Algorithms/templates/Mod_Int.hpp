@@ -1,6 +1,6 @@
 #pragma once
-#include "Types.hpp"
 #include "Constants.hpp"
+#include "ScalarTypes.hpp"
 
 //===----------------------------------------------------------------------===//
 /* Advanced Modular Arithmetic */
@@ -11,9 +11,10 @@ struct ModInt {
   static_assert(MOD > 0, "ModInt requires MOD > 0.");
   U64 value;
 
-  static constexpr I64  mod() { return MOD; }
+  static constexpr I64 mod() { return MOD; }
 
   constexpr ModInt() : value(0) {}
+
   constexpr ModInt(I64 x) {
     I64 r = x % MOD;
     value = static_cast<U64>(r < 0 ? r + MOD : r);
@@ -35,8 +36,10 @@ struct ModInt {
 #if HAS_INT128
     value = static_cast<U64>(static_cast<U128>(value) * other.value % static_cast<U128>(MOD));
 #else
-    static_assert(MOD <= 2'000'000'000LL,
-      "ModInt multiplication may overflow U64 for MOD > 2e9 without __int128 support.");
+    // Without __int128 the product a*b is computed in U64 arithmetic, so we
+    // need (MOD - 1)^2 <= 2^64 - 1, i.e. MOD <= 2^32 = 4'294'967'296.
+    static_assert(
+        MOD <= (1LL << 32), "ModInt multiplication may overflow U64 for MOD > 2^32 without __int128 support.");
     value = value * other.value % static_cast<U64>(MOD);
 #endif
     return *this;
@@ -45,12 +48,17 @@ struct ModInt {
   constexpr ModInt& operator/=(const ModInt& other) { return *this *= other.inverse(); }
 
   constexpr ModInt operator+(const ModInt& other) const { return ModInt(*this) += other; }
+
   constexpr ModInt operator-(const ModInt& other) const { return ModInt(*this) -= other; }
+
   constexpr ModInt operator*(const ModInt& other) const { return ModInt(*this) *= other; }
+
   constexpr ModInt operator/(const ModInt& other) const { return ModInt(*this) /= other; }
+
   constexpr ModInt operator-() const { return ModInt(value ? MOD - value : 0); }
 
   constexpr bool operator==(const ModInt& other) const { return value == other.value; }
+
   constexpr bool operator!=(const ModInt& other) const { return value != other.value; }
 
   constexpr ModInt pow(I64 exp) const {
@@ -69,8 +77,10 @@ struct ModInt {
     I64 a = static_cast<I64>(value), b = MOD, u = 1, v = 0;
     while (b > 0) {
       I64 t = a / b;
-      std::swap(a -= t * b, b);
-      std::swap(u -= t * v, v);
+      a -= t * b;
+      std::swap(a, b);
+      u -= t * v;
+      std::swap(u, v);
     }
     if (a != 1) {
       my_assert(false && "ModInt inverse does not exist when gcd(value, MOD) != 1.");
@@ -79,8 +89,10 @@ struct ModInt {
     return ModInt(u);
   }
 
-  explicit             operator I64() const { return value; }
+  explicit operator I64() const { return value; }
+
   friend std::ostream& operator<<(std::ostream& os, const ModInt& x) { return os << x.value; }
+
   friend std::istream& operator>>(std::istream& is, ModInt& x) {
     I64 val;
     is >> val;

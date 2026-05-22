@@ -1,5 +1,6 @@
 #pragma once
-#include "Types.hpp"
+#include "Debug.hpp"
+#include "ScalarTypes.hpp"
 
 //===----------------------------------------------------------------------===//
 /* Advanced Macro System */
@@ -47,12 +48,9 @@ auto make_vec4(std::size_t n1, std::size_t n2, std::size_t n3, std::size_t n4, c
 
 // Multi-dimensional vector creation macros:
 #define make_vec(type, name, ...) Vec<type> name(__VA_ARGS__)
-#define vv(type, name, h, ...) \
-  auto name = make_vec2<type>(h, __VA_ARGS__)
-#define vvv(type, name, h, w, ...) \
-  auto name = make_vec3<type>(h, w, __VA_ARGS__)
-#define vvvv(type, name, a, b, c, ...) \
-  auto name = make_vec4<type>(a, b, c, __VA_ARGS__)
+#define vv(type, name, h, ...) auto name = make_vec2<type>(h, __VA_ARGS__)
+#define vvv(type, name, h, w, ...) auto name = make_vec3<type>(h, w, __VA_ARGS__)
+#define vvvv(type, name, a, b, c, ...) auto name = make_vec4<type>(a, b, c, __VA_ARGS__)
 #endif
 
 // Advanced FOR loop system:
@@ -88,24 +86,33 @@ auto make_vec4(std::size_t n1, std::size_t n2, std::size_t n3, std::size_t n4, c
 
 // Advanced container operations:
 #define UNIQUE(x) (std::ranges::sort(x), x.erase(std::ranges::unique(x).begin(), x.end()), x.shrink_to_fit())
-#define LB(c, x) (I64)std::distance((c).begin(), std::ranges::lower_bound(c, x))
-#define UB(c, x) (I64)std::distance((c).begin(), std::ranges::upper_bound(c, x))
+#define LB(c, x) (I64) std::distance((c).begin(), std::ranges::lower_bound(c, x))
+#define UB(c, x) (I64) std::distance((c).begin(), std::ranges::upper_bound(c, x))
 #define SUM(x) std::accumulate(all(x), std::iter_value_t<decltype((x).begin())>{})
-#define MIN(x) ([&]() -> decltype(auto) { \
-  auto&& _cp_min_range = (x); \
-  if (std::ranges::empty(_cp_min_range)) std::abort(); \
-  return *std::ranges::min_element(_cp_min_range); \
-}())
-#define MAX(x) ([&]() -> decltype(auto) { \
-  auto&& _cp_max_range = (x); \
-  if (std::ranges::empty(_cp_max_range)) std::abort(); \
-  return *std::ranges::max_element(_cp_max_range); \
-}())
+#define MIN(x)                                          \
+  ([&]() -> decltype(auto) {                            \
+    auto&& _cp_min_range = (x);                         \
+    if (std::ranges::empty(_cp_min_range)) {            \
+      my_assert(false && "MIN(): empty range.");        \
+      std::abort();                                     \
+    }                                                   \
+    return *std::ranges::min_element(_cp_min_range);    \
+  }())
+#define MAX(x)                                          \
+  ([&]() -> decltype(auto) {                            \
+    auto&& _cp_max_range = (x);                         \
+    if (std::ranges::empty(_cp_max_range)) {            \
+      my_assert(false && "MAX(): empty range.");        \
+      std::abort();                                     \
+    }                                                   \
+    return *std::ranges::max_element(_cp_max_range);    \
+  }())
 
 // Y-combinator for recursive lambdas:
 template <class F>
 struct YCombinator {
   F fn;
+
   template <class... Args>
   decltype(auto) operator()(Args&&... args) const {
     return fn(*this, std::forward<Args>(args)...);

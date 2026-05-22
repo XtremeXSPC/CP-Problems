@@ -1,7 +1,10 @@
 #pragma once
+#include "Concepts.hpp"
+#include "ContainerAliases.hpp"
+#include "Macros.hpp"
+
 #include <queue>
 #include <utility>
-#include "Concepts.hpp"
 
 //===----------------------------------------------------------------------===//
 /* Container Utilities and Algorithms */
@@ -11,7 +14,7 @@ template <typename F>
 I64 binary_search(F&& predicate, I64 left, I64 right) {
   my_assert(left < right);
   while (left + 1 < right) {
-    I64 mid = left + (right - left) / 2;
+    I64 mid                         = left + (right - left) / 2;
     (predicate(mid) ? left : right) = mid;
   }
   return left;
@@ -21,7 +24,7 @@ template <typename F>
   requires cp::Predicate<F&, F64>
 F64 binary_search_real(F&& predicate, F64 left, F64 right, I32 iterations = 100) {
   for (I32 i = 0; i < iterations; ++i) {
-    F64 mid = left + (right - left) / 2;
+    F64 mid                         = left + (right - left) / 2;
     (predicate(mid) ? left : right) = mid;
   }
   return left + (right - left) / 2;
@@ -29,6 +32,7 @@ F64 binary_search_real(F&& predicate, F64 left, F64 right, I32 iterations = 100)
 
 template <typename T>
 VecI32 argsort(const Vec<T>& v, bool reverse = false) {
+  my_assert(v.size() <= as<Size>(Limits<I32>::max()) && "argsort(): input too large for I32 indices.");
   VecI32 indices(static_cast<I64>(v.size()));
   std::iota(indices.begin(), indices.end(), static_cast<I32>(0));
   if (reverse) {
@@ -42,7 +46,7 @@ VecI32 argsort(const Vec<T>& v, bool reverse = false) {
 template <typename T>
 Vec<T> rearrange(const Vec<T>& v, const VecI32& indices) {
   Vec<T> result(static_cast<I64>(indices.size()));
-  for (U32 i = 0; i < indices.size(); ++i)
+  for (Size i = 0; i < indices.size(); ++i)
     result[i] = v[indices[i]];
   return result;
 }
@@ -50,12 +54,15 @@ Vec<T> rearrange(const Vec<T>& v, const VecI32& indices) {
 template <typename T>
 Vec<T> cumsum(const Vec<T>& v, bool include_zero = true) {
   Vec<T> result(static_cast<I64>(v.size()) + (include_zero ? 1 : 0));
-  if (v.empty()) return result;
+  if (v.empty())
+    return result;
   if (include_zero) {
-    for (U32 i = 0; i < v.size(); ++i) result[i + 1] = result[i] + v[i];
+    for (Size i = 0; i < v.size(); ++i)
+      result[i + 1] = result[i] + v[i];
   } else {
     result[0] = v[0];
-    for (U32 i = 1; i < v.size(); ++i) result[i] = result[i - 1] + v[i];
+    for (Size i = 1; i < v.size(); ++i)
+      result[i] = result[i - 1] + v[i];
   }
   return result;
 }
@@ -74,8 +81,9 @@ ReturnT sum_as(const Container& c) {
 
 // Convert a string to a vector of integers based on a base character.
 inline VecI32 string_to_ints(const String& s, char base_char = 'a') {
+  my_assert(s.size() <= as<Size>(Limits<I32>::max()) && "string_to_ints(): input too large for I32 output.");
   VecI32 result(static_cast<I64>(s.size()));
-  for (U32 i = 0; i < s.size(); ++i) {
+  for (Size i = 0; i < s.size(); ++i) {
     result[i] = s[i] == '?' ? -1 : s[i] - base_char;
   }
   return result;
@@ -90,10 +98,11 @@ T pop_val(std::deque<T>& container) {
   return element;
 }
 
+// priority_queue::top() returns const T&, so we copy (move would no-op).
 template <typename T>
 T pop_val(MinPriorityQueue<T>& container) {
   my_assert(!container.empty());
-  T element = std::move(container.top());
+  T element = container.top();
   container.pop();
   return element;
 }
@@ -101,7 +110,7 @@ T pop_val(MinPriorityQueue<T>& container) {
 template <typename T>
 T pop_val(PriorityQueue<T>& container) {
   my_assert(!container.empty());
-  T element = std::move(container.top());
+  T element = container.top();
   container.pop();
   return element;
 }
