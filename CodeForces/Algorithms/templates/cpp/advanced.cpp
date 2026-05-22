@@ -2,7 +2,7 @@
 /**
  * @file: __FILE_NAME__
  * @brief __PROBLEM_BRIEF__
- * @author: Costantino Lombardi
+ * @author: C.L.
  *
  * @status: In Progress
  */
