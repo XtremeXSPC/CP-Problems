@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import json
 import os
 import shutil
@@ -195,6 +197,8 @@ class ScriptRegressionTests(unittest.TestCase):
                     "_benchmark_mode",
                     side_effect=[fake_on, fake_off],
                 ),
+                contextlib.redirect_stdout(io.StringIO()),
+                contextlib.redirect_stderr(io.StringIO()),
             ):
                 rc = benchmark_pch.main()
 
@@ -258,7 +262,8 @@ class ScriptRegressionTests(unittest.TestCase):
         tester.need_macros = []
         tester.need_mapping = {}
 
-        success = tester.run_all_tests()
+        with contextlib.redirect_stdout(io.StringIO()):
+            success = tester.run_all_tests()
 
         self.assertFalse(success)
         self.assertEqual(tester.test_results, [])
