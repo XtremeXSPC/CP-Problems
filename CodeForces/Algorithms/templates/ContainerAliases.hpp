@@ -108,5 +108,3 @@ using PairI64    = Pair<I64, I64>;
 using PairF80    = Pair<F80, F80>;
 using VecPairI32 = Vec<PairI32>;
 using VecPairI64 = Vec<PairI64>;
-
-// END Types section

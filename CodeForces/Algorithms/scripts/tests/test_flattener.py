@@ -392,7 +392,7 @@ class FlattenerAuditTests(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, msg=result.stderr)
             self.assertIn(
-                "// END Types section\n\nusing namespace std;",
+                "using VecPairI64 = Vec<PairI64>;\n\nusing namespace std;",
                 result.stdout,
             )
             self.assertLess(

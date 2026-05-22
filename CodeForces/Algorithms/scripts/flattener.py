@@ -44,7 +44,7 @@ IF_DIRECTIVE_RE = re.compile(r"^\s*#\s*(if|ifdef|ifndef)\b")
 ENDIF_DIRECTIVE_RE = re.compile(r"^\s*#\s*endif\b")
 ELSE_OR_ELIF_DIRECTIVE_RE = re.compile(r"^\s*#\s*(else|elif)\b")
 VALIDATION_COMPILER_CANDIDATES = ("g++-15", "g++-14", "g++-13", "g++", "clang++")
-TYPES_SECTION_END_MARKER = "// END Types section"
+TYPES_SECTION_END_MARKER = "using VecPairI64 = Vec<PairI64>;"
 MacroValueMap = dict[str, int | None]
 ModuleLeafTokenMap = dict[str, set[str]]
 
