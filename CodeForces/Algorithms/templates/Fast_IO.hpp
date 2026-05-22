@@ -13,6 +13,11 @@
 #endif
 
 #include "Fast_IO_Fwd.hpp"
+// Pull ContainerAliases into the global namespace BEFORE opening fast_io,
+// but only when composite I/O is enabled.
+#if CP_IO_ENABLE_COMPOSITE
+#include "ContainerAliases.hpp"
+#endif
 
 namespace fast_io {
 
