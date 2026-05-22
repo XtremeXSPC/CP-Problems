@@ -356,7 +356,7 @@ def _render_template_bundle(
     """Render preamble and template sections independently from source rewrite."""
 
     need_macros_found = extract_need_macros_from_source(
-        ctx.source_content, ctx.need_mapping.keys()
+        ctx.source_content, ctx.need_mapping.keys(), warn_stream=sys.stderr
     )
     effective_macro_values = dict(ctx.macro_values)
     if "NEED_FAST_IO" in need_macros_found:

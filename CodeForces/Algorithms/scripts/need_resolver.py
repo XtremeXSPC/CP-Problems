@@ -103,13 +103,23 @@ def load_need_mapping(base_header: Path) -> OrderedDict[str, list[str]]:
 
 
 def extract_need_macros_from_source(
-    source_content: str, known_macros: Iterable[str]
+    source_content: str,
+    known_macros: Iterable[str],
+    *,
+    warn_stream=None,
 ) -> set[str]:
-    """Extract enabled NEED_* macros from a source file content."""
+    """Extract enabled NEED_* macros from a source file content.
+
+    NEED_* defines inside conditional blocks the folder could not evaluate are
+    silently skipped (the flattener can't know whether they'd fire). When
+    ``warn_stream`` is provided, a one-line warning is emitted for each such
+    skipped macro.
+    """
 
     known = set(known_macros)
     found: set[str] = set()
     enabled_io_profiles: set[str] = set()
+    skipped_needs: list[str] = []
 
     code_only_prefix = strip_non_code(extract_prefix_before_base_include(source_content))
     folded_code = fold_simple_preprocessor_conditionals(code_only_prefix, {})
@@ -132,6 +142,9 @@ def extract_need_macros_from_source(
             continue
 
         if depth > 0:
+            define_match = NEED_DEFINE_RE.match(stripped)
+            if define_match and define_match.group(1) in known:
+                skipped_needs.append(define_match.group(1))
             continue
 
         undef_match = NEED_UNDEF_RE.match(stripped)
@@ -157,6 +170,13 @@ def extract_need_macros_from_source(
         if profile_define_match:
             enabled_io_profiles.add(profile_define_match.group(1))
             continue
+
+    if warn_stream is not None and skipped_needs:
+        unique = sorted(set(skipped_needs))
+        warn_stream.write(
+            "warning: ignoring conditional NEED_* defines (guard unresolved): "
+            + ", ".join(unique) + "\n"
+        )
 
     io_profile_to_needs = _io_profile_to_needs()
     for profile_name in enabled_io_profiles:
