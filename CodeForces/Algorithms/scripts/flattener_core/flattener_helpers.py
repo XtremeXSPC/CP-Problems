@@ -41,11 +41,18 @@ CPP_KEYWORDS = {
 }
 
 TYPES_HPP = "Types.hpp"
+SCALAR_TYPES_HPP = "ScalarTypes.hpp"
+CONTAINER_ALIASES_HPP = "ContainerAliases.hpp"
+TYPE_TRAITS_HPP = "TypeTraits.hpp"
+PORTABLE_STD_HEADERS_HPP = "PortableStdHeaders.hpp"
 CONSTANTS_HPP = "Constants.hpp"
 MACROS_HPP = "Macros.hpp"
-MATH_HPP = "Math.hpp"
+INTEGER_MATH_HPP = "IntegerMath.hpp"
+MINMAX_HPP = "MinMax.hpp"
+RANDOM_HPP = "Random.hpp"
 TIMER_HPP = "Timer.hpp"
 IO_HPP = "IO.hpp"
+IO_COMPOSITE_HPP = "IO_Composite.hpp"
 FAST_IO_HPP = "Fast_IO.hpp"
 PBDS_HPP = "PBDS.hpp"
 BIT_OPS_HPP = "Bit_Ops.hpp"
@@ -57,13 +64,29 @@ STRONG_TYPE_HPP = "Strong_Type.hpp"
 HASHING_HPP = "Hashing.hpp"
 
 OPTIONAL_HEADER_TRIGGER_TOKENS = {
+    SCALAR_TYPES_HPP: {
+        "I8", "I16", "I32", "I64", "U8", "U16", "U32", "U64", "I128", "U128",
+        "F32", "F64", "F80", "F128", "Size", "Diff", "Byte", "Limits",
+        "HAS_INT128", "HAS_FLOAT128",
+    },
+    CONTAINER_ALIASES_HPP: {
+        "String", "StringView", "Vec", "Vec2", "Vec3", "Vec4", "Vec2D", "Vec3D",
+        "Vec4D", "Deque", "List", "Set", "MultiSet", "UnorderedSet", "Map",
+        "MultiMap", "UnorderedMap", "Stack", "Queue", "PriorityQueue",
+        "MinPriorityQueue", "Pair", "Tuple", "Optional", "Variant", "Function",
+        "Span", "VecI32", "VecI64", "VecBool", "VecStr", "VecU8", "VecU16",
+        "VecU32", "VecU64", "VecF64", "VecF80", "PairI32", "PairI64",
+        "PairF80", "VecPair", "VecPairI32", "VecPairI64",
+    },
+    TYPE_TRAITS_HPP: {
+        "remove_cvref_t", "make_unsigned_t",
+    },
     TYPES_HPP: {
         "I8", "I16", "I32", "I64", "U8", "U16", "U32", "U64", "I128", "U128",
         "F32", "F64", "F80", "F128", "Vec", "Vec2", "Vec3",
         "Deque", "List", "Set", "MultiSet", "UnorderedSet", "Map", "MultiMap",
         "UnorderedMap", "Stack", "Queue", "PriorityQueue", "MinPriorityQueue",
-        "Pair", "PII", "PLL", "PLD", "VI", "VLL",
-        "VVI", "VVLL", "VB", "VS", "VU8", "VU32", "VU64", "VF", "VPII", "VPLL",
+        "Pair", "Tuple",
         "ordered_set", "ordered_multiset", "ordered_map", "gp_hash_table",
         "HAS_INT128", "HAS_FLOAT128",
         "PBDS_AVAILABLE",
@@ -75,15 +98,20 @@ OPTIONAL_HEADER_TRIGGER_TOKENS = {
     },
     MACROS_HPP: {
         "make_nd_vec", "make_vec2", "make_vec3", "make_vec4", "make_vec", "vv",
-        "vvv", "vvvv", "FOR", "FOR_R", "REP", "RREP", "ALL", "RALL", "all",
+        "vvv", "vvvv", "FOR", "FOR_R", "ALL", "RALL", "all",
         "rall", "sz", "len", "eb", "elif",
         "UNIQUE", "LB", "UB", "SUM", "MIN",
-        "MAX",
+        "MAX", "fix", "YCombinator", "narrow_as",
     },
-    MATH_HPP: {
-        "_gcd", "_lcm", "div_floor", "div_ceil", "mod_floor", "divmod", "_power",
-        "power", "mod_pow", "floor_sqrt", "ceil_sqrt",
-        "chmax", "chmin", "_min", "_max", "rnd", "rng",
+    INTEGER_MATH_HPP: {
+        "div_floor", "div_ceil", "mod_floor", "divmod", "power", "mod_pow",
+        "floor_sqrt", "ceil_sqrt",
+    },
+    MINMAX_HPP: {
+        "chmax", "chmin", "_min", "_max",
+    },
+    RANDOM_HPP: {
+        "default_rng_seed", "rng", "reseed", "rnd",
     },
     TIMER_HPP: {
         "Stopwatch",
@@ -91,6 +119,10 @@ OPTIONAL_HEADER_TRIGGER_TOKENS = {
     IO_HPP: {
         "fast_io", "IN", "OUT", "FLUSH", "INT", "LL", "ULL", "STR", "CHR",
         "DBL", "VEC", "VV", "YES", "NO", "Yes", "No",
+    },
+    IO_COMPOSITE_HPP: {
+        "Vec", "Vec2", "Vec3", "Vec4", "VecI32", "VecI64", "Pair", "PairI32",
+        "PairI64", "Tuple", "VEC", "VV",
     },
     FAST_IO_HPP: {
         "fast_io", "load_input", "read_integer", "read_char", "read_string",
@@ -134,19 +166,24 @@ OPTIONAL_HEADER_TRIGGER_TOKENS = {
 # fmt: on
 
 HEADER_DEPENDENCIES = {
-    CONSTANTS_HPP: {TYPES_HPP},
-    MACROS_HPP: {TYPES_HPP},
-    MATH_HPP: {TYPES_HPP, TIMER_HPP},
-    TIMER_HPP: {TYPES_HPP},
-    IO_HPP: {TYPES_HPP, MACROS_HPP},
-    FAST_IO_HPP: {IO_HPP, TYPES_HPP},
-    PBDS_HPP: {TYPES_HPP},
+    TYPES_HPP: {SCALAR_TYPES_HPP, CONTAINER_ALIASES_HPP},
+    CONTAINER_ALIASES_HPP: {SCALAR_TYPES_HPP},
+    TYPE_TRAITS_HPP: {SCALAR_TYPES_HPP},
+    CONSTANTS_HPP: {SCALAR_TYPES_HPP},
+    MACROS_HPP: {SCALAR_TYPES_HPP},
+    INTEGER_MATH_HPP: {CONCEPTS_HPP, MACROS_HPP},
+    MINMAX_HPP: set(),
+    RANDOM_HPP: {CONCEPTS_HPP, MACROS_HPP},
+    TIMER_HPP: {SCALAR_TYPES_HPP},
+    IO_HPP: {SCALAR_TYPES_HPP},
+    IO_COMPOSITE_HPP: {CONTAINER_ALIASES_HPP},
+    FAST_IO_HPP: {SCALAR_TYPES_HPP, MACROS_HPP},
     BIT_OPS_HPP: {CONCEPTS_HPP},
-    CONTAINERS_HPP: {CONCEPTS_HPP},
-    MOD_INT_HPP: {TYPES_HPP, CONSTANTS_HPP},
-    CONCEPTS_HPP: {TYPES_HPP},
-    CAST_HPP: {CONCEPTS_HPP},
-    STRONG_TYPE_HPP: {TYPES_HPP},
+    CONTAINERS_HPP: {CONTAINER_ALIASES_HPP, CONCEPTS_HPP},
+    MOD_INT_HPP: {SCALAR_TYPES_HPP, CONSTANTS_HPP},
+    CONCEPTS_HPP: {TYPE_TRAITS_HPP},
+    CAST_HPP: {CONTAINER_ALIASES_HPP, CONCEPTS_HPP},
+    STRONG_TYPE_HPP: {CONCEPTS_HPP},
     HASHING_HPP: {CONCEPTS_HPP},
 }
 
@@ -154,6 +191,46 @@ MODULE_SECTION_SEPARATOR = (
     "//===----------------------------------------------------------------------===//\n"
     "/* Data Structures & Algorithms for the Problem */\n"
 )
+
+
+def _scripts_dir() -> Path:
+    return Path(__file__).resolve().parents[1]
+
+
+def _templates_dir() -> Path:
+    return _scripts_dir().parent / "templates"
+
+
+def _augment_tables_from_headers() -> None:
+    """Union the hand-maintained tables with symbols/deps extracted from real headers."""
+
+    templates_dir = _templates_dir()
+    if not templates_dir.is_dir():
+        return
+
+    for header_path in templates_dir.glob("*.hpp"):
+        name = header_path.name
+        try:
+            content = header_path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+
+        symbols = _extract_public_symbols(content)
+        if symbols:
+            OPTIONAL_HEADER_TRIGGER_TOKENS.setdefault(name, set()).update(symbols)
+
+        deps: set[str] = set()
+        masked_lines = strip_non_code(content).splitlines()
+        for idx, line in enumerate(content.splitlines()):
+            masked = masked_lines[idx] if idx < len(masked_lines) else ""
+            include_name = parse_project_include_line(line, masked_line=masked)
+            if not include_name:
+                continue
+            base = Path(include_name).name
+            if base.endswith(".hpp") and base != name:
+                deps.add(base)
+        if deps:
+            HEADER_DEPENDENCIES.setdefault(name, set()).update(deps)
 
 
 def extract_identifiers(text: str) -> set[str]:
@@ -479,8 +556,10 @@ def resolve_project_include(
     if not include_target.is_file():
         include_target = (project_root / include_name).resolve()
 
+    # Resolve so macOS /var vs /private/var prefixes match.
+    resolved_root = project_root.resolve()
     if include_target.is_file() and (
-        include_target == project_root or project_root in include_target.parents
+        include_target == resolved_root or resolved_root in include_target.parents
     ):
         return include_target
     return None
@@ -765,14 +844,51 @@ def inline_local_header(
 
     file_lines = file_text.splitlines(keepends=True)
     masked_lines = strip_non_code(file_text).splitlines()
+    conditional_stack: list[bool] = [True]
+
+    def _current_condition_active() -> bool:
+        return all(conditional_stack)
+
     for idx, line in enumerate(file_lines):
         masked_line = masked_lines[idx] if idx < len(masked_lines) else ""
         stripped = line.strip()
         if stripped == "#pragma once":
             continue
 
+        directive = masked_line.strip()
+        match_ifdef = IFDEF_DIRECTIVE_RE.match(directive)
+        match_ifndef = IFNDEF_DIRECTIVE_RE.match(directive)
+        match_ifexpr = IF_EXPR_DIRECTIVE_RE.match(directive)
+        if match_ifdef:
+            conditional_stack.append(match_ifdef.group(1) in (macro_values or {}))
+            content_lines.append(line)
+            continue
+        if match_ifndef:
+            conditional_stack.append(match_ifndef.group(1) not in (macro_values or {}))
+            content_lines.append(line)
+            continue
+        if match_ifexpr:
+            cond = _evaluate_simple_if_expression(match_ifexpr.group(1), macro_values or {})
+            conditional_stack.append(True if cond is None else cond)
+            content_lines.append(line)
+            continue
+        if ELSE_OR_ELIF_DIRECTIVE_RE.match(directive):
+            if len(conditional_stack) > 1:
+                conditional_stack[-1] = not conditional_stack[-1]
+            content_lines.append(line)
+            continue
+        if ENDIF_DIRECTIVE_RE.match(directive):
+            if len(conditional_stack) > 1:
+                conditional_stack.pop()
+            content_lines.append(line)
+            continue
+
         include_name = parse_project_include_line(line, masked_line=masked_line)
         if include_name:
+            if not _current_condition_active():
+                content_lines.append(line)
+                continue
+
             include_target = resolve_project_include(
                 project_root, resolved, include_name
             )
@@ -857,6 +973,10 @@ def _consume_quoted_literal(text: str, start: int) -> int:
     return j
 
 
+def _is_identifier_char(ch: str) -> bool:
+    return ch == "_" or ch.isalnum()
+
+
 def _consume_raw_string_literal(text: str, start: int) -> int | None:
     """
     Return index right after a C++ raw string literal, or None if not at one.
@@ -867,6 +987,8 @@ def _consume_raw_string_literal(text: str, start: int) -> int | None:
     prefixes = ("u8R\"", "uR\"", "UR\"", "LR\"", "R\"")
     prefix = next((p for p in prefixes if text.startswith(p, start)), None)
     if not prefix:
+        return None
+    if start > 0 and _is_identifier_char(text[start - 1]):
         return None
 
     n = len(text)
@@ -883,6 +1005,23 @@ def _consume_raw_string_literal(text: str, start: int) -> int | None:
     if end_pos < 0:
         return n
     return end_pos + len(terminator)
+
+
+def _consume_string_or_char_literal(text: str, start: int) -> int | None:
+    """Return index after a normal string/char literal, including standard prefixes."""
+
+    for prefix in ("u8", "u", "U", "L", ""):
+        quote_at = start + len(prefix)
+        if quote_at >= len(text):
+            continue
+        if prefix and not text.startswith(prefix, start):
+            continue
+        if prefix and start > 0 and _is_identifier_char(text[start - 1]):
+            continue
+        if text[quote_at] not in {'"', "'"}:
+            continue
+        return _consume_quoted_literal(text, quote_at)
+    return None
 
 
 def _scan_cpp_text(
@@ -905,6 +1044,23 @@ def _scan_cpp_text(
 
     while i < n:
         c = text[i]
+
+        # Raw string literal.
+        raw_end = _consume_raw_string_literal(text, i)
+        if raw_end is not None:
+            literal = text[i:raw_end]
+            if literal_mode == "token":
+                token = f"__CP_FLATTENER_LIT_{token_id}__"
+                token_id += 1
+                literals[token] = literal
+                out.append(token)
+            elif literal_mode == "space":
+                for ch in literal:
+                    out.append("\n" if ch == "\n" else " ")
+            else:  # keep
+                out.append(literal)
+            i = raw_end
+            continue
 
         # Line comment.
         if c == "/" and i + 1 < n and text[i + 1] == "/":
@@ -931,26 +1087,10 @@ def _scan_cpp_text(
             i = j
             continue
 
-        # Raw string literal.
-        raw_end = _consume_raw_string_literal(text, i)
-        if raw_end is not None:
-            literal = text[i:raw_end]
-            if literal_mode == "token":
-                token = f"__CP_FLATTENER_LIT_{token_id}__"
-                token_id += 1
-                literals[token] = literal
-                out.append(token)
-            elif literal_mode == "space":
-                for ch in literal:
-                    out.append("\n" if ch == "\n" else " ")
-            else:  # keep
-                out.append(literal)
-            i = raw_end
-            continue
-
         # String/char literal.
-        if c in {'"', "'"}:
-            j = _consume_quoted_literal(text, i)
+        literal_end = _consume_string_or_char_literal(text, i)
+        if literal_end is not None:
+            j = literal_end
             literal = text[i:j]
             if literal_mode == "token":
                 token = f"__CP_FLATTENER_LIT_{token_id}__"
@@ -1042,3 +1182,7 @@ def _extract_public_symbols(header_content: str) -> set[str]:
             depth = 0
 
     return symbols
+
+
+# Run auto-augmentation at import time so consumers see merged tables.
+_augment_tables_from_headers()

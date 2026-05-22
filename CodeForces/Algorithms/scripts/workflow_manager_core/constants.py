@@ -2,13 +2,19 @@
 
 from pathlib import Path
 import re
+import sys
 
 DEFAULT_WORKSPACE_ROOT = Path(__file__).resolve().parents[4]
 DEFAULT_CP_TOOLS_SCRIPT = Path(
     "/Users/lcs-dev/Dotfiles/cpp-tools/.config/cpp-tools/competitive.sh"
 )
 
-TEMPLATE_CHOICES = ("base", "default", "pbds", "advanced")
+_SCRIPTS_DIR = Path(__file__).resolve().parents[1]
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+from profile_registry import load_registry  # noqa: E402
+
+TEMPLATE_CHOICES = load_registry().all_scaffold_names()
 BUILD_TYPE_CHOICES = ("Debug", "Release", "Sanitize")
 COMPILER_CHOICES = ("gcc", "clang", "auto")
 TOGGLE_CHOICES = ("on", "off")

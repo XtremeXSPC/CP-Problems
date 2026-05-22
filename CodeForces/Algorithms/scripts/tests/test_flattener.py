@@ -12,14 +12,17 @@ from pathlib import Path
 
 SCRIPTS_DIR = Path(__file__).resolve().parents[1]
 FLATTENER_SCRIPT = SCRIPTS_DIR / "flattener.py"
+ALGORITHMS_DIR = SCRIPTS_DIR.parent
 
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 from flattener import extract_macro_values_from_source, extract_prefix_before_base_include  # noqa: E402
 from flattener_core.flattener_helpers import (  # noqa: E402
+    extract_identifiers,
     fold_simple_preprocessor_conditionals,
     resolve_project_include,
+    strip_comments,
 )
 from need_resolver import extract_need_macros_from_source, load_need_mapping  # noqa: E402
 
@@ -36,7 +39,7 @@ class FlattenerAuditTests(unittest.TestCase):
 
         found = extract_need_macros_from_source(source, known)
 
-        self.assertEqual(found, {"NEED_CORE", "NEED_IO"})
+        self.assertEqual(found, {"NEED_IO"})
 
     def test_extract_need_macros_expands_io_profile_fast_extended(self) -> None:
         source = textwrap.dedent(
@@ -52,7 +55,7 @@ class FlattenerAuditTests(unittest.TestCase):
         found = extract_need_macros_from_source(source, known)
 
         self.assertEqual(
-            found, {"NEED_CORE", "NEED_FAST_IO", "NEED_MOD_INT", "NEED_TYPE_SAFETY"}
+            found, {"NEED_FAST_IO", "NEED_MOD_INT", "NEED_TYPE_SAFETY"}
         )
 
     def test_extract_need_macros_handles_values_undef_and_comments(self) -> None:
@@ -75,7 +78,7 @@ class FlattenerAuditTests(unittest.TestCase):
 
         found = extract_need_macros_from_source(source, known)
 
-        self.assertEqual(found, {"NEED_CORE", "NEED_FAST_IO"})
+        self.assertEqual(found, {"NEED_FAST_IO"})
 
     def test_load_need_mapping_ignores_else_branch_of_need_guard(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -111,7 +114,25 @@ class FlattenerAuditTests(unittest.TestCase):
 
         found = extract_need_macros_from_source(source, known)
 
-        self.assertEqual(found, {"NEED_CORE", "NEED_FAST_IO"})
+        self.assertEqual(found, {"NEED_FAST_IO"})
+
+    def test_lexer_preserves_comment_markers_inside_raw_strings(self) -> None:
+        source = 'auto s = R"(example /* not a comment */ )"; /* real comment */ int x;'
+
+        stripped = strip_comments(source)
+
+        self.assertIn('R"(example /* not a comment */ )"', stripped)
+        self.assertNotIn("real comment", stripped)
+
+    def test_prefixed_string_literals_do_not_leak_prefix_identifiers(self) -> None:
+        source = 'auto s = u8"ModInt"; auto c = L\'x\'; int value = 0;'
+
+        identifiers = extract_identifiers(source)
+
+        self.assertNotIn("u8", identifiers)
+        self.assertNotIn("L", identifiers)
+        self.assertNotIn("ModInt", identifiers)
+        self.assertIn("value", identifiers)
 
     def test_extract_macro_values_stops_at_base_include(self) -> None:
         source = textwrap.dedent(
@@ -248,6 +269,41 @@ class FlattenerAuditTests(unittest.TestCase):
             self.assertIn("#define INT(", result.stdout)
             self.assertIn("#define OUT(", result.stdout)
 
+    def test_strict_simple_io_profile_avoids_core_alias_bloat(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            src = Path(tmpdir) / "probe.cpp"
+            src.write_text(
+                textwrap.dedent(
+                    """\
+                    #if !defined(CP_TEMPLATE_PROFILE_RELAXED)
+                      #define CP_TEMPLATE_PROFILE_STRICT
+                    #endif
+                    #define CP_IO_PROFILE_SIMPLE
+                    #include "templates/Base.hpp"
+                    auto main() -> int {
+                      INT(x);
+                      OUT(x);
+                      return 0;
+                    }
+                    """
+                ),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [sys.executable, str(FLATTENER_SCRIPT), str(src)],
+                capture_output=True,
+                text=True,
+                check=False,
+                env={**os.environ, "CP_FLATTENER_MODE": "compact"},
+            )
+
+            self.assertEqual(result.returncode, 0, msg=result.stderr)
+            self.assertIn("/* Lightweight I/O Utilities */", result.stdout)
+            self.assertNotIn("/* Container and Utility Aliases */", result.stdout)
+            self.assertNotIn("/* Mathematical Constants and Infinity Values */", result.stdout)
+            self.assertNotIn("/* Mathematical Utilities */", result.stdout)
+
     def test_flattener_expands_base_include_with_trailing_comment(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             src = Path(tmpdir) / "probe.cpp"
@@ -336,7 +392,7 @@ class FlattenerAuditTests(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, msg=result.stderr)
             self.assertIn(
-                "#endif // __TYPES__\n\nusing namespace std;\n\n//===----------------------------------------------------------------------===//\n/* Mathematical Constants and Infinity Values */",
+                "// END Types section\n\nusing namespace std;",
                 result.stdout,
             )
             self.assertLess(
@@ -498,9 +554,80 @@ class FlattenerAuditTests(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, msg=result.stderr)
             self.assertIn(
-                "} // namespace cp\n\n//===----------------------------------------------------------------------===//\n/* Lightweight Stopwatch Utility */",
+                "} // namespace cp\n\n//===----------------------------------------------------------------------===//\n/* Integer Mathematical Utilities */",
                 result.stdout,
             )
+
+    def test_default_submission_headers_use_bits_without_portable_fallback(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            src = Path(tmpdir) / "probe.cpp"
+            src.write_text(
+                textwrap.dedent(
+                    """\
+                    #define CP_IO_PROFILE_SIMPLE
+                    #include "templates/Base.hpp"
+                    auto main() -> int { INT(x); OUT(x); return 0; }
+                    """
+                ),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [sys.executable, str(FLATTENER_SCRIPT), str(src)],
+                capture_output=True,
+                text=True,
+                check=False,
+                env={**os.environ, "CP_FLATTENER_MODE": "compact"},
+            )
+
+            self.assertEqual(result.returncode, 0, msg=result.stderr)
+            self.assertIn("#include <bits/stdc++.h>", result.stdout)
+            self.assertNotIn("Portable Standard Library Includes", result.stdout)
+            self.assertNotIn("PortableStdHeaders.hpp", result.stdout)
+
+    def test_flattener_mode_submission_forces_bits_and_strips_comments(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            src = Path(tmpdir) / "probe.cpp"
+            src.write_text(
+                textwrap.dedent(
+                    """\
+                    #define CP_USE_BITS_HEADER 0
+                    #define CP_IO_PROFILE_SIMPLE
+                    #include "templates/Base.hpp"
+                    // user comment
+                    auto main() -> int {
+                      INT(x); /* inline comment */
+                      OUT(x);
+                      return 0;
+                    }
+                    """
+                ),
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [sys.executable, str(FLATTENER_SCRIPT), str(src)],
+                capture_output=True,
+                text=True,
+                check=False,
+                env={**os.environ, "CP_FLATTENER_MODE": "submission"},
+            )
+
+            self.assertEqual(result.returncode, 0, msg=result.stderr)
+            self.assertIn("#include <bits/stdc++.h>", result.stdout)
+            self.assertNotIn("Portable Standard Library Includes", result.stdout)
+            self.assertNotIn("user comment", result.stdout)
+            self.assertNotIn("inline comment", result.stdout)
+            self.assertNotIn("\n\n\n", result.stdout)
+
+    def test_algorithms_clangd_include_paths_are_configured(self) -> None:
+        clangd = ALGORITHMS_DIR / ".clangd"
+
+        self.assertTrue(clangd.is_file())
+        clangd_text = clangd.read_text(encoding="utf-8")
+        self.assertIn("CodeForces/Algorithms/templates", clangd_text)
+        self.assertIn("CodeForces/Algorithms/modules", clangd_text)
+        self.assertNotIn("ClangdPrelude.hpp", clangd_text)
 
     def test_fast_io_internal_define_not_emitted_when_need_fast_io(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

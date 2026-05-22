@@ -15,6 +15,7 @@ from flattener_core.flattener_helpers import (
     INLINE_ROOT_PREFIXES,
     MODULE_SECTION_SEPARATOR,
     append_with_blank_separator,
+    collapse_redundant_blank_lines,
     collect_module_leaf_trigger_tokens,
     collect_transitive_template_deps,
     extract_prefix_before_base_include,
@@ -22,13 +23,14 @@ from flattener_core.flattener_helpers import (
     fold_simple_preprocessor_conditionals,
     inline_local_header,
     parse_project_include_line,
-    process_file_content,
     prune_template_headers_with_policy,
     resolve_project_include,
+    strip_comments,
     strip_non_code,
-    strip_module_docs_and_blank_lines,
+    trim_outer_blank_lines,
 )
 from need_resolver import extract_need_macros_from_source, load_need_mapping
+from profile_registry import load_registry
 
 MACRO_DEFINE_RE = re.compile(
     r"^\s*#\s*define\s+([A-Za-z_]\w*)(?:\s+(.*?))?\s*$"
@@ -42,7 +44,7 @@ IF_DIRECTIVE_RE = re.compile(r"^\s*#\s*(if|ifdef|ifndef)\b")
 ENDIF_DIRECTIVE_RE = re.compile(r"^\s*#\s*endif\b")
 ELSE_OR_ELIF_DIRECTIVE_RE = re.compile(r"^\s*#\s*(else|elif)\b")
 VALIDATION_COMPILER_CANDIDATES = ("g++-15", "g++-14", "g++-13", "g++", "clang++")
-TYPES_SECTION_END_MARKER = "#endif // __TYPES__"
+TYPES_SECTION_END_MARKER = "// END Types section"
 MacroValueMap = dict[str, int | None]
 ModuleLeafTokenMap = dict[str, set[str]]
 
@@ -53,6 +55,7 @@ class FlattenerMode(Enum):
     COMPACT = "compact"
     SAFE = "safe"
     AUTO = "auto"
+    SUBMISSION = "submission"
 
 
 class ValidationStatus(Enum):
@@ -157,36 +160,35 @@ def extract_macro_values_from_source(
         name, value_expr = define_match.group(1), define_match.group(2)
         macro_values[name] = _parse_macro_value(value_expr, macro_values)
 
-    # Keep strict-mode defaults aligned with templates/Base.hpp.
-    if strict_profile_enabled and not relaxed_profile_enabled:
-        strict_defaults = {
-            "CP_STRICT_TEMPLATE_NEEDS": 1,
-            "CP_CORE_ENABLE_MATH": 0,
-            "CP_USE_GLOBAL_STD_NAMESPACE": 0,
-            "CP_ENABLE_LEGACY_IO_VEC_MACROS": 0,
-            "CP_ENABLE_DEPRECATED_COMPAT": 0,
-        }
-        for name, value in strict_defaults.items():
-            macro_values.setdefault(name, value)
+    registry = load_registry()
+    apply_strict = strict_profile_enabled and not relaxed_profile_enabled
+    for name, value in registry.config_defaults_as_dict(strict=apply_strict).items():
+        macro_values.setdefault(name, value)
+
+    if "CP_IO_ENABLE_COMPOSITE" not in macro_values:
+        macro_values["CP_IO_ENABLE_COMPOSITE"] = (
+            1 if macro_values.get("CP_ENABLE_LEGACY_IO_VEC_MACROS") not in (None, 0) else 0
+        )
 
     def _is_enabled(name: str) -> bool:
         value = macro_values.get(name)
         return value is not None and value != 0
 
-    # Mirror templates/Base.hpp I/O profile shorthands so conditional folding
-    # can preserve profile-driven includes in flattened output.
-    if _is_enabled("CP_IO_PROFILE_SIMPLE"):
-        macro_values.setdefault("NEED_IO", 1)
+    for profile_name, profile in registry.io_profiles.items():
+        guard_macro = f"CP_IO_PROFILE_{profile_name.upper()}"
+        if not _is_enabled(guard_macro):
+            continue
+        for need in profile.needs:
+            macro_values.setdefault(need, 1)
+        for define_name, define_value in profile.defines.items():
+            macro_values.setdefault(define_name, define_value)
 
-    if _is_enabled("CP_IO_PROFILE_FAST_MINIMAL"):
-        macro_values.setdefault("NEED_FAST_IO", 1)
-
-    if _is_enabled("CP_IO_PROFILE_FAST_EXTENDED"):
-        macro_values.setdefault("NEED_FAST_IO", 1)
-        macro_values.setdefault("NEED_MOD_INT", 1)
-        macro_values.setdefault("NEED_TYPE_SAFETY", 1)
-        macro_values.setdefault("CP_FAST_IO_ENABLE_MODINT", 1)
-        macro_values.setdefault("CP_FAST_IO_ENABLE_STRONG_TYPE", 1)
+    composite_tokens = {
+        "Vec", "Vec2", "Vec3", "Vec4", "VecI32", "VecI64", "VecBool", "VecStr",
+        "Pair", "PairI32", "PairI64", "Tuple", "VEC", "VV",
+    }
+    if extract_identifiers(source_prefix_content) & composite_tokens:
+        macro_values["CP_IO_ENABLE_COMPOSITE"] = 1
 
     return macro_values
 def _env_flag_enabled(name: str, default: bool = False) -> bool:
@@ -272,6 +274,14 @@ def _validate_flattened_output(flattened_source: str) -> ValidationStatus:
     return ValidationStatus.FAILED
 
 
+def _prepare_submission_output(flattened_source: str) -> str:
+    """Minimize flattened source for online judge submission."""
+
+    stripped = strip_comments(flattened_source)
+    compacted = collapse_redundant_blank_lines(stripped)
+    return trim_outer_blank_lines(compacted) + "\n"
+
+
 def _collect_needed_template_headers(
     ctx: FlattenContext,
     *,
@@ -280,6 +290,7 @@ def _collect_needed_template_headers(
 ) -> list[Path]:
     """Resolve and prune template headers implied by enabled NEED_* macros."""
 
+    # Mirror Base_profiles.hpp: NEED_FAST_IO wins over NEED_IO.
     if "NEED_FAST_IO" in need_macros_found and "NEED_IO" in need_macros_found:
         need_macros_found.remove("NEED_IO")
 
@@ -357,9 +368,22 @@ def _render_template_bundle(
         enable_template_pruning=enable_template_pruning,
     )
 
+    preamble_inlined_headers: set[Path] = set()
+    preamble_content = inline_local_header(
+        ctx.project_root,
+        ctx.preamble_path,
+        preamble_inlined_headers,
+        used_identifiers=set(ctx.used_identifiers),
+        module_leaf_tokens=ctx.module_leaf_tokens,
+        strip_module_docs=False,
+        strip_template_docs=ctx.strip_template_docs,
+        macro_values=effective_macro_values,
+        enable_module_pruning=enable_module_pruning,
+    )
+
     # Expand template headers recursively so template-level shared includes
     # (e.g. IO_Defs.hpp) are preserved in flattened output.
-    inlined_headers = {ctx.preamble_resolved}
+    inlined_headers = set(preamble_inlined_headers)
     template_sections: list[str] = []
     for filepath in files_to_include:
         content = inline_local_header(
@@ -375,10 +399,6 @@ def _render_template_bundle(
         )
         if content:
             template_sections.append(content)
-
-    preamble_content = process_file_content(ctx.preamble_path, preserve_includes=True)
-    if ctx.strip_template_docs:
-        preamble_content = strip_module_docs_and_blank_lines(preamble_content)
 
     rendered_sections = tuple(template_sections)
     if effective_macro_values.get("CP_USE_GLOBAL_STD_NAMESPACE") not in (None, 0):
@@ -512,14 +532,65 @@ def build_flattened_output(
     )
 
 
+def _build_arg_parser() -> "argparse.ArgumentParser":
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Flatten a competitive-programming source file into a single submission.",
+    )
+    parser.add_argument("source_file", type=Path, help="path to the .cpp to flatten")
+    parser.add_argument(
+        "--mode",
+        choices=[m.value for m in FlattenerMode],
+        default=None,
+        help="output mode (default: env CP_FLATTENER_MODE or 'compact')",
+    )
+    parser.add_argument(
+        "--validate",
+        choices=("auto", "on", "off"),
+        default=None,
+        help="syntax-check the output (default: env CP_FLATTENER_AUTO_VALIDATE)",
+    )
+    parser.add_argument(
+        "--validation-compiler",
+        default=None,
+        help="override the compiler used for --validate (default: env or auto-detect)",
+    )
+    parser.add_argument(
+        "--validation-std",
+        default=None,
+        help="override the -std= flag used for --validate (default: gnu++20)",
+    )
+    parser.add_argument(
+        "--strip-docs",
+        action="store_true",
+        help="strip template documentation comments (independent of CP_TEMPLATE_PROFILE_STRICT)",
+    )
+    parser.add_argument(
+        "--no-prune",
+        action="store_true",
+        help="disable template-header tree-shaking (equivalent to safe mode for that axis)",
+    )
+    parser.add_argument(
+        "--no-module-prune",
+        action="store_true",
+        help="disable per-module-leaf pruning",
+    )
+    return parser
+
+
 def main() -> None:
     """Flatten one source file by expanding template and local project includes."""
 
-    if len(sys.argv) != 2:
-        sys.stderr.write(f"Usage: {sys.argv[0]} <source_file.cpp>\n")
-        sys.exit(1)
+    import argparse
 
-    source_file = Path(sys.argv[1])
+    parser = _build_arg_parser()
+    try:
+        args = parser.parse_args()
+    except SystemExit:
+        raise
+
+    source_file = args.source_file
     if not source_file.is_file():
         sys.stderr.write(f"Error: File not found: {source_file}\n")
         sys.exit(1)
@@ -557,9 +628,23 @@ def main() -> None:
     )
 
     used_identifiers = frozenset(extract_identifiers(source_content))
+    if used_identifiers & {
+        "Vec", "Vec2", "Vec3", "Vec4", "VecI32", "VecI64", "VecBool", "VecStr",
+        "Pair", "PairI32", "PairI64", "Tuple", "VEC", "VV",
+    }:
+        macro_values["CP_IO_ENABLE_COMPOSITE"] = 1
+
     strip_module_docs = _env_flag_enabled("CP_FLATTENER_STRIP_MODULE_DOCS")
-    strip_template_docs = _env_flag_enabled("CP_FLATTENER_STRIP_TEMPLATE_DOCS")
-    if strict_profile_enabled and not relaxed_profile_enabled:
+    strip_template_docs = (
+        args.strip_docs or _env_flag_enabled("CP_FLATTENER_STRIP_TEMPLATE_DOCS")
+    )
+
+    mode = FlattenerMode(args.mode) if args.mode else _resolve_flattener_mode()
+    if args.no_prune:
+        mode = FlattenerMode.SAFE
+    if mode is FlattenerMode.SUBMISSION:
+        macro_values["CP_USE_BITS_HEADER"] = 1
+        strip_module_docs = True
         strip_template_docs = True
 
     source_module_includes: list[Path] = []
@@ -592,7 +677,6 @@ def main() -> None:
         )
         sys.exit(1)
 
-    mode = _resolve_flattener_mode()
     ctx = FlattenContext(
         source_file=source_file,
         source_content=source_content,
@@ -638,6 +722,9 @@ def main() -> None:
             )
             compact_valid = _validate_flattened_output(compact_output)
             if compact_valid is ValidationStatus.FAILED:
+                sys.stderr.write(
+                    "warning: compact output failed syntax check; trying safe variant\n"
+                )
                 safe_output = build_flattened_output(
                     ctx,
                     enable_template_pruning=False,
@@ -647,7 +734,17 @@ def main() -> None:
                 if safe_valid is not ValidationStatus.FAILED:
                     print(safe_output, end="")
                     return
+                sys.stderr.write(
+                    "warning: safe variant also failed syntax check; emitting compact output anyway\n"
+                )
             print(compact_output, end="")
+        case FlattenerMode.SUBMISSION:
+            submission_output = build_flattened_output(
+                ctx,
+                enable_template_pruning=True,
+                enable_module_pruning=True,
+            )
+            print(_prepare_submission_output(submission_output), end="")
 
 
 if __name__ == "__main__":

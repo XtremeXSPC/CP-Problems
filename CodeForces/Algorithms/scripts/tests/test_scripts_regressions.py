@@ -16,11 +16,13 @@ from unittest import mock
 
 SCRIPTS_DIR = Path(__file__).resolve().parents[1]
 WORKFLOW_SCRIPT = SCRIPTS_DIR / "workflow_manager.py"
+# build_template.sh was retired (Phase 3); migration scripts archived.
 BUILD_TEMPLATE_SCRIPT = SCRIPTS_DIR / "build_template.sh"
-MIGRATE_CMAKE_SCRIPT = SCRIPTS_DIR / "migrate_round_cmake.py"
-MIGRATE_PRESETS_SCRIPT = SCRIPTS_DIR / "migrate_round_presets.py"
-MIGRATE_TOOLCHAINS_SCRIPT = SCRIPTS_DIR / "migrate_round_toolchains.py"
-MIGRATE_VSCODE_SCRIPT = SCRIPTS_DIR / "migrate_round_vscode.py"
+_MIGRATIONS_DIR = SCRIPTS_DIR / "migrations" / "archive"
+MIGRATE_CMAKE_SCRIPT = _MIGRATIONS_DIR / "migrate_round_cmake.py"
+MIGRATE_PRESETS_SCRIPT = _MIGRATIONS_DIR / "migrate_round_presets.py"
+MIGRATE_TOOLCHAINS_SCRIPT = _MIGRATIONS_DIR / "migrate_round_toolchains.py"
+MIGRATE_VSCODE_SCRIPT = _MIGRATIONS_DIR / "migrate_round_vscode.py"
 ALGORITHMS_DIR = SCRIPTS_DIR.parent
 
 if str(SCRIPTS_DIR) not in sys.path:
@@ -125,6 +127,10 @@ class ScriptRegressionTests(unittest.TestCase):
             self.assertIn("Command timed out.", result.stderr)
             self.assertNotIn("Traceback", result.stderr + result.stdout)
 
+    @unittest.skipUnless(
+        BUILD_TEMPLATE_SCRIPT.is_file(),
+        "build_template.sh was retired during Phase 3 refactor",
+    )
     def test_build_template_without_argument_uses_default_output(self) -> None:
         """build_template.sh should default to template.hpp when no arg is passed."""
 
@@ -195,7 +201,7 @@ class ScriptRegressionTests(unittest.TestCase):
             self.assertEqual(rc, 0)
             self.assertTrue(json_out.is_file())
             payload = json.loads(json_out.read_text(encoding="utf-8"))
-            self.assertEqual(payload["round_dir"], str(round_dir))
+            self.assertEqual(payload["round_dir"], str(round_dir.resolve()))
             self.assertEqual(payload["pch_on"]["incremental_build_sec"], 1.0)
             self.assertEqual(payload["delta"]["incremental_gain_sec"], 0.2)
             self.assertEqual(payload["recommendation"], "disable_default_pch")

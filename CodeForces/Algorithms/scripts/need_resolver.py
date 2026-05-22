@@ -15,6 +15,7 @@ from flattener_core.flattener_helpers import (
     strip_comments,
     strip_non_code,
 )
+from profile_registry import load_registry
 
 NEED_IFDEF_RE = re.compile(r"^\s*#\s*ifdef\s+(NEED_\w+)\s*$")
 NEED_IF_DEFINED_RE = re.compile(
@@ -25,21 +26,14 @@ ENDIF_DIRECTIVE_RE = re.compile(r"^\s*#\s*endif\b")
 ELSE_OR_ELIF_DIRECTIVE_RE = re.compile(r"^\s*#\s*(else|elif)\b")
 NEED_DEFINE_RE = re.compile(r"^\s*#\s*define\s+(NEED_\w+)\b")
 NEED_UNDEF_RE = re.compile(r"^\s*#\s*undef\s+(NEED_\w+)\b")
-IO_PROFILE_DEFINE_RE = re.compile(
-    r"^\s*#\s*define\s+"
-    r"(CP_IO_PROFILE_(?:SIMPLE|FAST_MINIMAL|FAST_EXTENDED))\b"
-)
-IO_PROFILE_UNDEF_RE = re.compile(
-    r"^\s*#\s*undef\s+"
-    r"(CP_IO_PROFILE_(?:SIMPLE|FAST_MINIMAL|FAST_EXTENDED))\b"
-)
+IO_PROFILE_DEFINE_RE = re.compile(r"^\s*#\s*define\s+(CP_IO_PROFILE_[A-Z_]+)\b")
+IO_PROFILE_UNDEF_RE = re.compile(r"^\s*#\s*undef\s+(CP_IO_PROFILE_[A-Z_]+)\b")
 
-IO_PROFILE_TO_NEEDS: dict[str, tuple[str, ...]] = {
-    "CP_IO_PROFILE_SIMPLE": ("NEED_IO",),
-    "CP_IO_PROFILE_FAST_MINIMAL": ("NEED_FAST_IO",),
-    # Extended profile enables Fast I/O plus optional type ecosystems.
-    "CP_IO_PROFILE_FAST_EXTENDED": ("NEED_FAST_IO", "NEED_MOD_INT", "NEED_TYPE_SAFETY"),
-}
+
+def _io_profile_to_needs() -> dict[str, tuple[str, ...]]:
+    """CP_IO_PROFILE_* → NEED_* mapping derived from templates/profiles.toml."""
+
+    return load_registry().io_profile_to_needs()
 
 
 def load_need_mapping(base_header: Path) -> OrderedDict[str, list[str]]:
@@ -164,13 +158,10 @@ def extract_need_macros_from_source(
             enabled_io_profiles.add(profile_define_match.group(1))
             continue
 
+    io_profile_to_needs = _io_profile_to_needs()
     for profile_name in enabled_io_profiles:
-        for macro in IO_PROFILE_TO_NEEDS.get(profile_name, ()):
+        for macro in io_profile_to_needs.get(profile_name, ()):
             if macro in known:
                 found.add(macro)
-
-    # Core should be included whenever any module macro is enabled.
-    if found and "NEED_CORE" in known:
-        found.add("NEED_CORE")
 
     return found
