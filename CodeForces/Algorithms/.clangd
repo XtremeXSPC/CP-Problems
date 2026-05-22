@@ -1,0 +1,36 @@
+# clangd support for standalone CP template/module headers.
+CompileFlags:
+  Add:
+    - -xc++
+    - -std=gnu++20
+    - -I/Volumes/LCS.Data/CP-Problems/CodeForces/Algorithms
+    - -I/Volumes/LCS.Data/CP-Problems/CodeForces/Algorithms/templates
+    - -I/Volumes/LCS.Data/CP-Problems/CodeForces/Algorithms/modules
+  Remove:
+    - -stdlib=*
+    - -fcolor-diagnostics
+    - --gcc-toolchain=*
+    - -D__GNUC__=*
+    - -Winvalid-pch
+
+Diagnostics:
+  UnusedIncludes: None
+  MissingIncludes: None
+  ClangTidy:
+    Remove: ["*"]
+    Add: []
+  Suppress:
+    - unknown-pragmas
+    - unused-includes
+    - builtin_definition
+    - type_unsupported
+
+Index:
+  Background: Build
+  StandardLibrary: Yes
+
+Completion:
+  AllScopes: Yes
+
+InlayHints:
+  Enabled: No
