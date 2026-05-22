@@ -457,16 +457,21 @@ def _render_flattened_source(
             if output_lines and output_lines[-1].strip():
                 output_lines.append("\n")
 
-            output_lines.append(bundle.preamble_content)
-            if bundle.preamble_content and not bundle.preamble_content.endswith("\n\n"):
-                output_lines.append("\n")
+            # Emit preamble and each template section trimmed of trailing
+            # newlines, then add exactly one blank-line separator. The
+            # individual inliners strip their own trailing newlines, so a naive
+            # concatenation otherwise collapses adjacent sections together.
+            preamble_text = bundle.preamble_content.rstrip("\n")
+            if preamble_text:
+                output_lines.append(preamble_text)
+                output_lines.append("\n\n")
 
-            for i, section in enumerate(bundle.template_sections):
-                if i > 0:
-                    output_lines.append("\n")
-                output_lines.append(section)
-                if section and not section.endswith("\n"):
-                    output_lines.append("\n")
+            for section in bundle.template_sections:
+                section_text = section.rstrip("\n")
+                if not section_text:
+                    continue
+                output_lines.append(section_text)
+                output_lines.append("\n\n")
             continue
 
         if include_name:
