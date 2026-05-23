@@ -1,10 +1,10 @@
 #ifndef CP_MODULES_STRINGS_COMMON_HPP
 #define CP_MODULES_STRINGS_COMMON_HPP
 
-#include "templates/Types.hpp"
-#include "templates/Macros.hpp"
-#include "templates/IntegerMath.hpp"
-#include "templates/MinMax.hpp"
-#include "templates/Random.hpp"
+#include "templates/core/Types.hpp"
+#include "templates/core/Macros.hpp"
+#include "templates/modules/IntegerMath.hpp"
+#include "templates/core/MinMax.hpp"
+#include "templates/core/Random.hpp"
 
 #endif

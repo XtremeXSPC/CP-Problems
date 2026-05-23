@@ -1,8 +1,8 @@
 #ifndef CP_MODULES_DATA_STRUCTURES_COMMON_HPP
 #define CP_MODULES_DATA_STRUCTURES_COMMON_HPP
 
-#include "templates/Types.hpp"
-#include "templates/Macros.hpp"
-#include "templates/Constants.hpp"
+#include "templates/core/Types.hpp"
+#include "templates/core/Macros.hpp"
+#include "templates/core/Constants.hpp"
 
 #endif
