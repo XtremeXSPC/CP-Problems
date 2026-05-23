@@ -55,6 +55,7 @@
       "features": [
         "segment_tree",
         "segment_tree_hull",
+        "range_line_hull",
         "fenwick_tree",
         "sparse_table",
         "heap",
