@@ -53,7 +53,7 @@ using namespace std;
   #define CP_TYPES_NO_PREAMBLE 1
   #define CP_TYPES_NO_PREAMBLE_LOCAL_SCOPE 1
 #endif
-#include "templates/Types.hpp"
+#include "templates/core/Types.hpp"
 #ifdef CP_TYPES_NO_PREAMBLE_LOCAL_SCOPE
   #undef CP_TYPES_NO_PREAMBLE
   #undef CP_TYPES_NO_PREAMBLE_LOCAL_SCOPE
