@@ -32,7 +32,7 @@ bool in_qd[MAXN];
 bool in_qc[MAXN];
 
 I32 max_def_up[MAXN];
-
+I32 max_spec_up[MAXN];
 void add_child_list(I32 p, I32 c, I32 val) {
     next_sib[c] = head[p][val];
     if (head[p][val] != 0) {
@@ -141,6 +141,7 @@ void solve() {
 
                 if (d_nu > max_def_up[c]) {
                     max_def_up[c] = d_nu;
+                    max_spec_up[c] = s_nu;
                     for (I32 nx : ADJ[c]) {
                         I32 nx_nu = (DW[nx] >= v2) ? s_nu : d_nu;
                         if (nx_nu > UP[nx]) {
@@ -150,7 +151,8 @@ void solve() {
                             if (!in_qc[nx]) { in_qc[nx] = true; qc.push(nx); }
                         }
                     }
-                } else {
+                } else if (s_nu > max_spec_up[c]) {
+                    max_spec_up[c] = s_nu;
                     if (v1 > 0) {
                         for (I32 nx = head[c][v1]; nx != 0; nx = next_sib[nx]) {
                             if (s_nu > UP[nx]) {
