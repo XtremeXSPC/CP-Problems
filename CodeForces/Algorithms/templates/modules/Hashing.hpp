@@ -1,5 +1,8 @@
 #pragma once
-#include "Concepts.hpp"
+#include "templates/core/TypeTraits.hpp"
+#ifdef CP_USE_ADVANCED
+#include "templates/advanced/Concepts.hpp"
+#endif
 
 //===----------------------------------------------------------------------===//
 /* Randomized Hash Utilities (anti-collision for unordered containers) */
@@ -7,9 +10,9 @@
 namespace cp::hashing {
 
 [[gnu::always_inline]] inline U64 splitmix64(U64 x) noexcept {
-  x += 0x9e3779b97f4a7c15ULL;
-  x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ULL;
-  x = (x ^ (x >> 27)) * 0x94d049bb133111ebULL;
+  x += 0x9e37'79b9'7f4a'7c15ULL;
+  x = (x ^ (x >> 30)) * 0xbf58'476d'1ce4'e5b9ULL;
+  x = (x ^ (x >> 27)) * 0x94d0'49bb'1331'11ebULL;
   return x ^ (x >> 31);
 }
 
@@ -27,19 +30,31 @@ namespace cp::hashing {
 inline void reseed(U64 seed) noexcept { fixed_random_seed_storage() = seed; }
 
 [[nodiscard]] constexpr inline U64 hash_combine(U64 lhs, U64 rhs) noexcept {
-  return lhs ^ (rhs + 0x9e3779b97f4a7c15ULL + (lhs << 6) + (lhs >> 2));
+  return lhs ^ (rhs + 0x9e37'79b9'7f4a'7c15ULL + (lhs << 6) + (lhs >> 2));
 }
 
 template <class T>
 [[gnu::always_inline]] inline U64 raw_hash(const T& value) noexcept {
-  using U = remove_cvref_t<T>;
-  if constexpr (Integral<U>) return static_cast<U64>(value);
-  else if constexpr (Enum<U>) return static_cast<U64>(static_cast<std::underlying_type_t<U>>(value));
-  else if constexpr (Hashable<U>) return static_cast<U64>(std::hash<U>{}(value));
+  using U = cp::remove_cvref_t<T>;
+#ifdef CP_USE_ADVANCED
+  if constexpr (Integral<U>)
+    return static_cast<U64>(value);
+  else if constexpr (Enum<U>)
+    return static_cast<U64>(static_cast<std::underlying_type_t<U>>(value));
+  else if constexpr (Hashable<U>)
+    return static_cast<U64>(std::hash<U>{}(value));
   else {
     static_assert(Hashable<U>, "raw_hash(): type is not hashable; provide std::hash specialization.");
     return 0;
   }
+#else
+  if constexpr (std::is_integral_v<U>)
+    return static_cast<U64>(value);
+  else if constexpr (std::is_enum_v<U>)
+    return static_cast<U64>(static_cast<std::underlying_type_t<U>>(value));
+  else
+    return static_cast<U64>(std::hash<U>{}(value));
+#endif
 }
 
 template <class T>

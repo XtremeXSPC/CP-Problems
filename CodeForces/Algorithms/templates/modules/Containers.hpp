@@ -1,7 +1,9 @@
 #pragma once
-#include "Concepts.hpp"
-#include "ContainerAliases.hpp"
-#include "Macros.hpp"
+#include "templates/core/ContainerAliases.hpp"
+#include "templates/core/Macros.hpp"
+#ifdef CP_USE_ADVANCED
+#include "templates/advanced/Concepts.hpp"
+#endif
 
 #include <queue>
 #include <utility>
@@ -10,7 +12,9 @@
 /* Container Utilities and Algorithms */
 
 template <typename F>
+#ifdef CP_USE_ADVANCED
   requires cp::Predicate<F&, I64>
+#endif
 I64 binary_search(F&& predicate, I64 left, I64 right) {
   my_assert(left < right);
   while (left + 1 < right) {
@@ -21,7 +25,9 @@ I64 binary_search(F&& predicate, I64 left, I64 right) {
 }
 
 template <typename F>
+#ifdef CP_USE_ADVANCED
   requires cp::Predicate<F&, F64>
+#endif
 F64 binary_search_real(F&& predicate, F64 left, F64 right, I32 iterations = 100) {
   for (I32 i = 0; i < iterations; ++i) {
     F64 mid = left + (right - left) / 2;

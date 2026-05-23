@@ -1,8 +1,8 @@
 #pragma once
-#include "ScalarTypes.hpp"
+#include "templates/core/ScalarTypes.hpp"
 #if CP_IO_ENABLE_COMPOSITE
-  #include "ContainerAliases.hpp"
-  #include "Macros.hpp"
+#include "templates/core/ContainerAliases.hpp"
+#include "templates/core/Macros.hpp"
 #endif
 
 //===----------------------------------------------------------------------===//
@@ -64,20 +64,21 @@ inline void writeln(const Args&... args) {
 
 namespace fast_io {
 #define CP_IO_COMPAT_FAST_IO_NAMESPACE_DEFINED 1
-  template <class T>
-  inline void read_integer(T& x) { cp_io::read(x); }
-  inline void read_char(char& x) { cp_io::read(x); }
-  inline void read_string(std::string& x) { cp_io::read(x); }
 
-  template <class T>
-  inline void write_integer(T x) { cp_io::write(x); }
-  inline void write_char(char c) { std::cout.put(c); }
-  inline void write_string(const std::string& s) { cp_io::write(s); }
-  inline void flush_output() { std::cout.flush(); }
+template <class T>
+inline void read_integer(T& x) { cp_io::read(x); }
+inline void read_char(char& x) { cp_io::read(x); }
+inline void read_string(std::string& x) { cp_io::read(x); }
 
-  using cp_io::read;
-  using cp_io::write;
-  using cp_io::writeln;
+template <class T>
+inline void write_integer(T x) { cp_io::write(x); }
+inline void write_char(char c) { std::cout.put(c); }
+inline void write_string(const std::string& s) { cp_io::write(s); }
+inline void flush_output() { std::cout.flush(); }
+
+using cp_io::read;
+using cp_io::write;
+using cp_io::writeln;
 } // namespace fast_io
 #endif
 
@@ -87,7 +88,7 @@ namespace fast_io {
 #ifdef CP_IO_IMPL_WRITELN
   #undef CP_IO_IMPL_WRITELN
 #endif
-#ifdef CP_IO_IMPL_FLUSH
+  #ifdef CP_IO_IMPL_FLUSH
   #undef CP_IO_IMPL_FLUSH
 #endif
 

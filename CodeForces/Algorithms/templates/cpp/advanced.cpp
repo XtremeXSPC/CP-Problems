@@ -15,6 +15,10 @@
   #define CP_USE_GLOBAL_STD_NAMESPACE 1
 #endif
 
+#ifndef CP_USE_ADVANCED
+  #define CP_USE_ADVANCED
+#endif
+
 #define NEED_BIT_OPS
 #define NEED_CONTAINERS
 #define NEED_MACROS
@@ -27,8 +31,6 @@
 
 //===----------------------------------------------------------------------===//
 /* Main Solver Function */
-
-using namespace std;
 
 void solve() {
   // Optimized solution here

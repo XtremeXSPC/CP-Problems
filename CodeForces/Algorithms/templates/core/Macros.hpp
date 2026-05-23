@@ -89,23 +89,23 @@ auto make_vec4(std::size_t n1, std::size_t n2, std::size_t n3, std::size_t n4, c
 #define LB(c, x) (I64) std::distance((c).begin(), std::ranges::lower_bound(c, x))
 #define UB(c, x) (I64) std::distance((c).begin(), std::ranges::upper_bound(c, x))
 #define SUM(x) std::accumulate(all(x), std::iter_value_t<decltype((x).begin())>{})
-#define MIN(x)                                          \
-  ([&]() -> decltype(auto) {                            \
-    auto&& _cp_min_range = (x);                         \
-    if (std::ranges::empty(_cp_min_range)) {            \
-      my_assert(false && "MIN(): empty range.");        \
-      std::abort();                                     \
-    }                                                   \
-    return *std::ranges::min_element(_cp_min_range);    \
+#define MIN(x)                                                                                                         \
+  ([&]() -> decltype(auto) {                                                                                           \
+    auto&& _cp_min_range = (x);                                                                                        \
+    if (std::ranges::empty(_cp_min_range)) {                                                                           \
+      my_assert(false && "MIN(): empty range.");                                                                       \
+      std::abort();                                                                                                    \
+    }                                                                                                                  \
+    return *std::ranges::min_element(_cp_min_range);                                                                   \
   }())
-#define MAX(x)                                          \
-  ([&]() -> decltype(auto) {                            \
-    auto&& _cp_max_range = (x);                         \
-    if (std::ranges::empty(_cp_max_range)) {            \
-      my_assert(false && "MAX(): empty range.");        \
-      std::abort();                                     \
-    }                                                   \
-    return *std::ranges::max_element(_cp_max_range);    \
+#define MAX(x)                                                                                                         \
+  ([&]() -> decltype(auto) {                                                                                           \
+    auto&& _cp_max_range = (x);                                                                                        \
+    if (std::ranges::empty(_cp_max_range)) {                                                                           \
+      my_assert(false && "MAX(): empty range.");                                                                       \
+      std::abort();                                                                                                    \
+    }                                                                                                                  \
+    return *std::ranges::max_element(_cp_max_range);                                                                   \
   }())
 
 // Y-combinator for recursive lambdas:
@@ -131,16 +131,4 @@ template <class F>
 template <typename To>
 [[gnu::always_inline]] constexpr To as(auto&& x) noexcept {
   return static_cast<To>(std::forward<decltype(x)>(x));
-}
-
-template <typename To>
-[[gnu::always_inline]] constexpr To narrow_as(auto x) {
-  To converted = static_cast<To>(x);
-#ifdef LOCAL
-  using From = std::remove_cvref_t<decltype(x)>;
-  if constexpr (std::is_integral_v<From> && std::is_integral_v<To>) {
-    my_assert(static_cast<From>(converted) == x && "narrow_as(): lossy integral conversion detected.");
-  }
-#endif
-  return converted;
 }

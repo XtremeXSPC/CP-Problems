@@ -25,14 +25,14 @@
   #ifndef NEED_MOD_INT
     #define NEED_MOD_INT
   #endif
-  #ifndef NEED_TYPE_SAFETY
-    #define NEED_TYPE_SAFETY
-  #endif
   #ifndef CP_FAST_IO_ENABLE_MODINT
     #define CP_FAST_IO_ENABLE_MODINT 1
   #endif
   #ifndef CP_FAST_IO_ENABLE_STRONG_TYPE
     #define CP_FAST_IO_ENABLE_STRONG_TYPE 1
+  #endif
+  #ifndef CP_USE_ADVANCED
+    #define CP_USE_ADVANCED 1
   #endif
 #endif
 

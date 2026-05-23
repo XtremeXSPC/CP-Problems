@@ -1,6 +1,6 @@
 #pragma once
-#include "Fast_IO_Fwd.hpp"
 #include "Strong_Type.hpp"
+#include "templates/modules/Fast_IO_Fwd.hpp"
 
 ///@brief Optional Fast I/O extension for StrongType<T, Tag> when T is integral.
 namespace fast_io {

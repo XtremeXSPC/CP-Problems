@@ -1,7 +1,7 @@
 #pragma once
 #ifndef CP_IO_COMPOSITE_CONTEXT
-#include "ContainerAliases.hpp"
-#include "Macros.hpp"
+#include "templates/core/ContainerAliases.hpp"
+#include "templates/core/Macros.hpp"
 
 template <class T>
 void read(T&);

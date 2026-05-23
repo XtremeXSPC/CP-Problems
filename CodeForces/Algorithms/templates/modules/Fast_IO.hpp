@@ -1,6 +1,6 @@
 #pragma once
-#include "Macros.hpp"
-#include "ScalarTypes.hpp"
+#include "templates/core/Macros.hpp"
+#include "templates/core/ScalarTypes.hpp"
 
 //===----------------------------------------------------------------------===//
 /* High-Performance Buffered I/O */
@@ -14,7 +14,7 @@
 
 #include "Fast_IO_Fwd.hpp"
 #if CP_IO_ENABLE_COMPOSITE
-  #include "ContainerAliases.hpp"
+  #include "templates/core/ContainerAliases.hpp"
 #endif
 
 namespace fast_io {
@@ -177,7 +177,7 @@ inline void write_integer(T x) {
 }
 
 #ifndef CP_FLOAT_PRECISION
-  #define CP_FLOAT_PRECISION 10
+#define CP_FLOAT_PRECISION 10
 #endif
 
 template <typename T>
@@ -225,8 +225,11 @@ inline void write(T x) { write_integer(x); }
 
 template <FastFloating T>
 inline void write(T x) { write_floating(x); }
+
 inline void write(char x) { write_char(x); }
+
 inline void write(const std::string& x) { write_string(x); }
+
 inline void write(const char* x) { write_string(x); }
 
 #ifndef CP_FAST_IO_ENABLE_MODINT
@@ -238,6 +241,10 @@ inline void write(const char* x) { write_string(x); }
 #endif
 
 #ifndef CP_FAST_IO_ENABLE_STRONG_TYPE
+  #define CP_FAST_IO_ENABLE_STRONG_TYPE 0
+#endif
+#if CP_FAST_IO_ENABLE_STRONG_TYPE && !defined(CP_USE_ADVANCED)
+  #undef CP_FAST_IO_ENABLE_STRONG_TYPE
   #define CP_FAST_IO_ENABLE_STRONG_TYPE 0
 #endif
 
@@ -291,7 +298,7 @@ inline IOFlusher io_flusher;
 #endif
 
 #if CP_FAST_IO_ENABLE_STRONG_TYPE
-  #include "Fast_IO_Ext_StrongType.hpp"
+  #include "templates/advanced/Fast_IO_Ext_StrongType.hpp"
 #endif
 
 #ifdef CP_IO_IMPL_READ
@@ -300,7 +307,7 @@ inline IOFlusher io_flusher;
 #ifdef CP_IO_IMPL_WRITELN
   #undef CP_IO_IMPL_WRITELN
 #endif
-#ifdef CP_IO_IMPL_FLUSH
+  #ifdef CP_IO_IMPL_FLUSH
   #undef CP_IO_IMPL_FLUSH
 #endif
 

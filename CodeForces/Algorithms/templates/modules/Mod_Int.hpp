@@ -1,6 +1,6 @@
 #pragma once
-#include "Constants.hpp"
-#include "ScalarTypes.hpp"
+#include "templates/core/Constants.hpp"
+#include "templates/core/ScalarTypes.hpp"
 
 //===----------------------------------------------------------------------===//
 /* Advanced Modular Arithmetic */
@@ -38,20 +38,24 @@ struct ModInt {
 #else
     // Without __int128 the product a*b is computed in U64 arithmetic, so we
     // need (MOD - 1)^2 <= 2^64 - 1, i.e. MOD <= 2^32 = 4'294'967'296.
-    static_assert(MOD <= (1LL << 32), "ModInt multiplication may overflow U64 for MOD > 2^32 without __int128 support.");
+    static_assert(
+        MOD <= (1LL << 32), "ModInt multiplication may overflow U64 for MOD > 2^32 without __int128 support.");
     value = value * other.value % static_cast<U64>(MOD);
 #endif
     return *this;
   }
 
   constexpr ModInt& operator/=(const ModInt& other) { return *this *= other.inverse(); }
-  constexpr ModInt  operator+ (const ModInt& other) const { return ModInt(*this) += other; }
-  constexpr ModInt  operator- (const ModInt& other) const { return ModInt(*this) -= other; }
-  constexpr ModInt  operator* (const ModInt& other) const { return ModInt(*this) *= other; }
-  constexpr ModInt  operator/ (const ModInt& other) const { return ModInt(*this) /= other; }
-  constexpr ModInt  operator-() const { return ModInt(value ? MOD - value : 0); }
-  constexpr bool    operator==(const ModInt& other) const { return value == other.value; }
-  constexpr bool    operator!=(const ModInt& other) const { return value != other.value; }
+
+  constexpr ModInt operator+(const ModInt& other) const { return ModInt(*this) += other; }
+  constexpr ModInt operator-(const ModInt& other) const { return ModInt(*this) -= other; }
+  constexpr ModInt operator*(const ModInt& other) const { return ModInt(*this) *= other; }
+  constexpr ModInt operator/(const ModInt& other) const { return ModInt(*this) /= other; }
+
+  constexpr ModInt operator-() const { return ModInt(value ? MOD - value : 0); }
+
+  constexpr bool operator==(const ModInt& other) const { return value == other.value; }
+  constexpr bool operator!=(const ModInt& other) const { return value != other.value; }
 
   constexpr ModInt pow(I64 exp) const {
     ModInt result(1), base(*this);
