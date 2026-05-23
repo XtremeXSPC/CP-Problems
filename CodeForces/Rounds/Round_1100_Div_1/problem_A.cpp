@@ -5,9 +5,9 @@
   #define CP_USE_GLOBAL_STD_NAMESPACE 1
 #endif
 
-#define NEED_MACROS
+#define NEED_CORE
+#define NEED_IO
 #define NEED_TIMER
-#define CP_IO_PROFILE_SIMPLE
 
 #include "templates/Base.hpp"
 
@@ -15,7 +15,11 @@
 /* Main Solver Function */
 
 void solve() {
-  // Optimized solution here
+  INT(n);
+  VecI32 A(n);
+  for (auto& x : A) cin >> x;
+  auto [mn, mx] = ranges::minmax(A);
+  OUT((mx - mn + 1) / 2);
 }
 
 //===----------------------------------------------------------------------===//

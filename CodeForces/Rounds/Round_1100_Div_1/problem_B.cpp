@@ -5,9 +5,10 @@
   #define CP_USE_GLOBAL_STD_NAMESPACE 1
 #endif
 
-#define NEED_MACROS
+#define NEED_CORE
+#define NEED_IO
+#define NEED_MINMAX
 #define NEED_TIMER
-#define CP_IO_PROFILE_SIMPLE
 
 #include "templates/Base.hpp"
 
@@ -15,7 +16,22 @@
 /* Main Solver Function */
 
 void solve() {
-  // Optimized solution here
+  INT(n);
+  VecI64 A(n);
+  FOR(i, n) cin >> A[i];
+  VecI64 B(n);
+  FOR(i, n) cin >> B[i];
+
+  I64 sum_U = 0;
+  I64 max_V = 0;
+  FOR(i, n) {
+    I64 U = max(A[i], B[i]);
+    I64 V = min(A[i], B[i]);
+    sum_U += U;
+    chmax(max_V, V);
+  }
+
+  OUT(sum_U + max_V);
 }
 
 //===----------------------------------------------------------------------===//
