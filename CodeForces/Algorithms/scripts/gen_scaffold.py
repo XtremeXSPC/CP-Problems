@@ -46,6 +46,13 @@ def _render_scaffold(profile: ScaffoldProfile) -> str:
         "#endif",
         "",
     ]
+    if profile.advanced:
+        lines += [
+            "#ifndef CP_USE_ADVANCED",
+            "  #define CP_USE_ADVANCED",
+            "#endif",
+            "",
+        ]
     for need in sorted(profile.needs):
         lines.append(f"#define {need}")
     lines.append(f"#define CP_IO_PROFILE_{profile.io_profile.upper()}")

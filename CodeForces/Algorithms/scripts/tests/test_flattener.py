@@ -35,7 +35,7 @@ from need_resolver import extract_need_macros_from_source, load_need_mapping  # 
 class FlattenerAuditTests(unittest.TestCase):
     def _project_header_graph(self) -> dict[str, list[str]]:
         root = ALGORITHMS_DIR
-        headers = sorted((root / "templates").glob("*.hpp"))
+        headers = sorted((root / "templates").rglob("*.hpp"))
         headers += sorted((root / "modules").glob("**/*.hpp"))
         graph: dict[str, list[str]] = {}
 
@@ -57,7 +57,7 @@ class FlattenerAuditTests(unittest.TestCase):
                 if target is None:
                     # debug.h is intentionally local-only and supplied outside
                     # the Algorithms tree when LOCAL debugging is enabled.
-                    self.assertEqual((rel_header, include_name), ("templates/Debug.hpp", "debug.h"))
+                    self.assertEqual((rel_header, include_name), ("templates/core/Debug.hpp", "debug.h"))
                     continue
 
                 if target.suffix == ".hpp" and target != header.resolve():
@@ -69,7 +69,7 @@ class FlattenerAuditTests(unittest.TestCase):
 
     def test_project_headers_use_canonical_non_relative_includes(self) -> None:
         root = ALGORITHMS_DIR
-        headers = sorted((root / "templates").glob("*.hpp"))
+        headers = sorted((root / "templates").rglob("*.hpp"))
         headers += sorted((root / "modules").glob("**/*.hpp"))
         relative_includes: list[tuple[str, str]] = []
 
@@ -137,12 +137,12 @@ class FlattenerAuditTests(unittest.TestCase):
             #include "templates/Base.hpp"
             """
         )
-        known = {"NEED_CORE", "NEED_IO", "NEED_FAST_IO", "NEED_MOD_INT", "NEED_TYPE_SAFETY"}
+        known = {"NEED_CORE", "NEED_IO", "NEED_FAST_IO", "NEED_MOD_INT"}
 
         found = extract_need_macros_from_source(source, known)
 
         self.assertEqual(
-            found, {"NEED_FAST_IO", "NEED_MOD_INT", "NEED_TYPE_SAFETY"}
+            found, {"NEED_FAST_IO", "NEED_MOD_INT"}
         )
 
     def test_extract_need_macros_handles_values_undef_and_comments(self) -> None:
@@ -344,7 +344,7 @@ class FlattenerAuditTests(unittest.TestCase):
 
         self.assertEqual(values.get("NEED_FAST_IO"), 1)
         self.assertEqual(values.get("NEED_MOD_INT"), 1)
-        self.assertEqual(values.get("NEED_TYPE_SAFETY"), 1)
+        self.assertEqual(values.get("CP_USE_ADVANCED"), 1)
         self.assertEqual(values.get("CP_FAST_IO_ENABLE_MODINT"), 1)
         self.assertEqual(values.get("CP_FAST_IO_ENABLE_STRONG_TYPE"), 1)
 
@@ -874,6 +874,99 @@ class FlattenerAuditTests(unittest.TestCase):
                 "#define CP_IO_IMPL_READ(...) fast_io::read(__VA_ARGS__)",
                 result.stdout,
             )
+
+
+    def test_collect_transitive_template_deps_skips_elif_after_active_if(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir).resolve()
+            templates = root / "templates"
+            templates.mkdir()
+            (templates / "A.hpp").write_text(
+                textwrap.dedent(
+                    """\
+                    #if 1
+                      #include "B.hpp"
+                    #elif 1
+                      #include "C.hpp"
+                    #endif
+                    """
+                ),
+                encoding="utf-8",
+            )
+            (templates / "B.hpp").write_text("// b\n", encoding="utf-8")
+            (templates / "C.hpp").write_text("// c\n", encoding="utf-8")
+            deps = collect_transitive_template_deps(root, templates / "A.hpp")
+            self.assertEqual([dep.name for dep in deps], ["B.hpp"])
+
+    def test_collect_transitive_template_deps_keeps_elif_inactive_when_if_inactive(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir).resolve()
+            templates = root / "templates"
+            templates.mkdir()
+            (templates / "A.hpp").write_text(
+                textwrap.dedent(
+                    """\
+                    #if 0
+                      #include "B.hpp"
+                    #elif 1
+                      #include "C.hpp"
+                    #endif
+                    """
+                ),
+                encoding="utf-8",
+            )
+            (templates / "B.hpp").write_text("// b\n", encoding="utf-8")
+            (templates / "C.hpp").write_text("// c\n", encoding="utf-8")
+            deps = collect_transitive_template_deps(root, templates / "A.hpp")
+            self.assertEqual([dep.name for dep in deps], [])
+
+    def test_inline_local_header_does_not_inline_elif_after_active_if(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir).resolve()
+            templates = root / "templates"
+            templates.mkdir()
+            (templates / "A.hpp").write_text(
+                textwrap.dedent(
+                    """\
+                    #if 1
+                    #include "B.hpp"
+                    #elif 1
+                    #include "C.hpp"
+                    #endif
+                    """
+                ),
+                encoding="utf-8",
+            )
+            (templates / "B.hpp").write_text("int b = 1;\n", encoding="utf-8")
+            (templates / "C.hpp").write_text("int c = 1;\n", encoding="utf-8")
+            output = inline_local_header(root, templates / "A.hpp", set())
+            self.assertIn("int b = 1;", output)
+            self.assertNotIn("int c = 1;", output)
+            self.assertIn("#include \"C.hpp\"", output)
+
+    def test_inline_local_header_keeps_elif_inactive_for_includes_when_if_inactive(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir).resolve()
+            templates = root / "templates"
+            templates.mkdir()
+            (templates / "A.hpp").write_text(
+                textwrap.dedent(
+                    """\
+                    #if 0
+                    #include "B.hpp"
+                    #elif 1
+                    #include "C.hpp"
+                    #endif
+                    """
+                ),
+                encoding="utf-8",
+            )
+            (templates / "B.hpp").write_text("int b = 1;\n", encoding="utf-8")
+            (templates / "C.hpp").write_text("int c = 1;\n", encoding="utf-8")
+            output = inline_local_header(root, templates / "A.hpp", set())
+            self.assertNotIn("int b = 1;", output)
+            self.assertNotIn("int c = 1;", output)
+            self.assertIn("#include \"C.hpp\"", output)
 
 
 if __name__ == "__main__":

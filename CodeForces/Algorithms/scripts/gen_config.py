@@ -14,7 +14,7 @@ from profile_registry import (
     reset_cache,
 )
 
-CONFIG_OUTPUT = TEMPLATES_DIR / "Config_defaults.hpp"
+CONFIG_OUTPUT = TEMPLATES_DIR / "core" / "Config_defaults.hpp"
 BASE_PROFILES_OUTPUT = TEMPLATES_DIR / "Base_profiles.hpp"
 
 AUTOGEN_HEADER = "// Generated from profiles.toml. Do not edit by hand.\n"

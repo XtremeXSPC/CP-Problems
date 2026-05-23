@@ -94,7 +94,9 @@ def load_need_mapping(base_header: Path) -> OrderedDict[str, list[str]]:
             raw_line, masked_line=masked_line
         )
         if include_name_raw and active_stack[-1] is not None:
-            include_name = Path(include_name_raw).name
+            include_name = include_name_raw
+            if include_name.startswith("templates/"):
+                include_name = include_name[len("templates/"):]
             entries = mapping[active_stack[-1]]
             if include_name not in entries:
                 entries.append(include_name)

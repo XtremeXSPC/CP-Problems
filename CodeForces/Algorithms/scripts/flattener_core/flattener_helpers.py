@@ -24,6 +24,8 @@ DEFINE_WITH_VALUE_RE = re.compile(
 )
 UNDEF_DIRECTIVE_RE = re.compile(r"^\s*#\s*undef\s+([A-Za-z_]\w*)\s*$")
 IF_DIRECTIVE_RE = re.compile(r"^\s*#\s*(if|ifdef|ifndef)\b")
+ELIF_DIRECTIVE_RE = re.compile(r"^\s*#\s*elif\b")
+ELSE_DIRECTIVE_RE = re.compile(r"^\s*#\s*else\b")
 ENDIF_DIRECTIVE_RE = re.compile(r"^\s*#\s*endif\b")
 ELSE_OR_ELIF_DIRECTIVE_RE = re.compile(r"^\s*#\s*(else|elif)\b")
 IFDEF_DIRECTIVE_RE = re.compile(r"^\s*#\s*ifdef\s+([A-Za-z_]\w*)\s*$")
@@ -196,10 +198,12 @@ MODULE_SECTION_SEPARATOR = (
 
 
 def _scripts_dir() -> Path:
+    """Return the directory containing the flattener scripts."""
     return Path(__file__).resolve().parents[1]
 
 
 def _templates_dir() -> Path:
+    """Return the centralized templates directory (sibling of scripts parent)."""
     return _scripts_dir().parent / "templates"
 
 
@@ -210,7 +214,7 @@ def _augment_tables_from_headers() -> None:
     if not templates_dir.is_dir():
         return
 
-    for header_path in templates_dir.glob("*.hpp"):
+    for header_path in templates_dir.rglob("*.hpp"):
         name = header_path.name
         try:
             content = header_path.read_text(encoding="utf-8")
@@ -473,6 +477,7 @@ def collect_transitive_template_deps(
     discovered_templates: list[Path] = []
     discovered_set: set[Path] = set()
 
+    resolved_root = project_root.resolve()
     while stack:
         current = stack.pop()
         if current in visited or not current.is_file():
@@ -507,7 +512,11 @@ def collect_transitive_template_deps(
                 cond = _evaluate_simple_if_expression(match_ifexpr.group(1), macro_state)
                 conditional_stack.append(True if cond is None else cond)
                 continue
-            if ELSE_OR_ELIF_DIRECTIVE_RE.match(directive):
+            if ELIF_DIRECTIVE_RE.match(directive):
+                if len(conditional_stack) > 1:
+                    conditional_stack[-1] = False
+                continue
+            if ELSE_DIRECTIVE_RE.match(directive):
                 if len(conditional_stack) > 1:
                     conditional_stack[-1] = not conditional_stack[-1]
                 continue
@@ -522,11 +531,11 @@ def collect_transitive_template_deps(
             include_name = parse_project_include_line(line, masked_line=masked_line)
             if not include_name:
                 continue
-            target = resolve_project_include(project_root, current, include_name)
+            target = resolve_project_include(resolved_root, current, include_name)
             if not target:
                 continue
 
-            rel = target.relative_to(project_root).as_posix()
+            rel = target.relative_to(resolved_root).as_posix()
             if rel.startswith("templates/") and target.name in excluded:
                 continue
 
@@ -556,6 +565,7 @@ def _active_project_include_targets(
         return []
 
     macro_state = dict(macro_values or {})
+    resolved_root = project_root.resolve()
     try:
         lines = current.read_text(encoding="utf-8").splitlines()
     except OSError:
@@ -584,7 +594,11 @@ def _active_project_include_targets(
             cond = _evaluate_simple_if_expression(match_ifexpr.group(1), macro_state)
             conditional_stack.append(True if cond is None else cond)
             continue
-        if ELSE_OR_ELIF_DIRECTIVE_RE.match(directive):
+        if ELIF_DIRECTIVE_RE.match(directive):
+            if len(conditional_stack) > 1:
+                conditional_stack[-1] = False
+            continue
+        if ELSE_DIRECTIVE_RE.match(directive):
             if len(conditional_stack) > 1:
                 conditional_stack[-1] = not conditional_stack[-1]
             continue
@@ -598,7 +612,7 @@ def _active_project_include_targets(
 
         include_name = parse_project_include_line(line, masked_line=masked_line)
         if include_name:
-            target = resolve_project_include(project_root, current, include_name)
+            target = resolve_project_include(resolved_root, current, include_name)
             if target:
                 targets.append(target)
 
@@ -735,33 +749,14 @@ def resolve_project_include(
     return None
 
 
-def process_file_content(filepath: Path, *, preserve_includes: bool = False) -> str:
-    """Process a single file and return its content."""
-
-    if not filepath.is_file():
-        return ""
-
-    content_lines = []
-    with open(filepath, "r", encoding="utf-8") as f:
-        for line in f:
-            stripped = line.strip()
-            if stripped == "#pragma once":
-                continue
-            if not preserve_includes and stripped.startswith("#include"):
-                continue
-            content_lines.append(line)
-
-    while content_lines and not content_lines[0].strip():
-        content_lines.pop(0)
-    while content_lines and not content_lines[-1].strip():
-        content_lines.pop()
-
-    return "".join(content_lines)
-
-
 def _parse_macro_numeric_token(
     token: str, macro_values: dict[str, int | None]
 ) -> int | None:
+    """Interpret a single token as an integer literal or macro lookup.
+
+    Strips C++ integer suffixes (``u``, ``L``, ``UL``, etc.) before parsing.
+    Returns ``None`` when the token is neither a literal nor a known macro.
+    """
     stripped = token.strip()
     if not stripped:
         return None
@@ -779,6 +774,11 @@ def _parse_macro_numeric_token(
 def _update_macro_state_from_line(
     macro_values: dict[str, int | None], line: str
 ) -> None:
+    """Apply a single ``#define`` or ``#undef`` to the live macro table.
+
+    Only simple numeric / identifier values are tracked; complex expressions
+    are stored as ``None``.
+    """
     stripped = line.strip()
     if not stripped:
         return
@@ -811,6 +811,15 @@ def _update_macro_state_from_line(
 def _evaluate_simple_if_expression(
     expr: str, macro_values: dict[str, int | None]
 ) -> bool | None:
+    """Evaluate a restricted ``#if`` expression under a known macro state.
+
+    Supported forms (anything else returns ``None``):
+    - integer literal (including negated literal)
+    - ``defined(NAME)`` / ``defined NAME``
+    - ``!defined(NAME)`` / ``!defined NAME``
+    - bare identifier (treated as truthy if non-zero)
+    - ``!identifier`` (treated as truthy if zero)
+    """
     normalized = expr.strip()
     if not normalized:
         return None
@@ -980,7 +989,8 @@ def inline_local_header(
     resolved = header_path.resolve()
     if not resolved.is_file():
         return ""
-    if project_root not in resolved.parents:
+    resolved_root = project_root.resolve()
+    if resolved_root not in resolved.parents:
         return ""
     if resolved in inlined_headers:
         return ""
@@ -999,7 +1009,7 @@ def inline_local_header(
                 break
         return count
 
-    rel_self = resolved.relative_to(project_root).as_posix()
+    rel_self = resolved.relative_to(resolved_root).as_posix()
     is_module_umbrella = rel_self.startswith("modules/") and rel_self.count("/") == 1
     module_pruning_enabled = (
         enable_module_pruning
@@ -1043,7 +1053,12 @@ def inline_local_header(
             conditional_stack.append(True if cond is None else cond)
             content_lines.append(line)
             continue
-        if ELSE_OR_ELIF_DIRECTIVE_RE.match(directive):
+        if ELIF_DIRECTIVE_RE.match(directive):
+            if len(conditional_stack) > 1:
+                conditional_stack[-1] = False
+            content_lines.append(line)
+            continue
+        if ELSE_DIRECTIVE_RE.match(directive):
             if len(conditional_stack) > 1:
                 conditional_stack[-1] = not conditional_stack[-1]
             content_lines.append(line)
@@ -1061,10 +1076,10 @@ def inline_local_header(
                 continue
 
             include_target = resolve_project_include(
-                project_root, resolved, include_name
+                resolved_root, resolved, include_name
             )
             if include_target:
-                rel_target = include_target.relative_to(project_root).as_posix()
+                rel_target = include_target.relative_to(resolved_root).as_posix()
                 if (
                     module_pruning_enabled
                     and is_module_umbrella
@@ -1075,7 +1090,7 @@ def inline_local_header(
 
                 if rel_target.startswith(INLINE_ROOT_PREFIXES):
                     nested_content = inline_local_header(
-                        project_root,
+                        resolved_root,
                         include_target,
                         inlined_headers,
                         used_identifiers=used_identifiers,

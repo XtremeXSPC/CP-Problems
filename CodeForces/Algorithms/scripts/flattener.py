@@ -101,6 +101,12 @@ class FlattenedTemplateBundle:
 def _parse_macro_value(
     value_expr: str | None, macro_values: dict[str, int | None]
 ) -> int | None:
+    """Parse a simple #define value expression into an int or None.
+
+    Strips inline comments and trailing type suffixes (e.g. `u`, `L`).
+    Falls back to looking up the token in ``macro_values`` when it is not
+    a numeric literal.
+    """
     if value_expr is None:
         return 1
 
@@ -220,6 +226,11 @@ def _env_flag_enabled(name: str, default: bool = False) -> bool:
 
 
 def _resolve_flattener_mode() -> FlattenerMode:
+    """Determine the active flattening mode from the environment.
+
+    Defaults to ``COMPACT``. Emits a warning and still falls back to
+    ``COMPACT`` when ``CP_FLATTENER_MODE`` contains an unknown value.
+    """
     raw_mode = os.environ.get("CP_FLATTENER_MODE", "compact").strip().lower()
     try:
         return FlattenerMode(raw_mode)
@@ -234,6 +245,11 @@ def _resolve_flattener_mode() -> FlattenerMode:
 
 
 def _parse_positive_int_env(name: str, default_value: int) -> int:
+    """Read a positive integer from an environment variable.
+
+    Returns ``default_value`` when the variable is missing, empty,
+    non-numeric, or not strictly positive.
+    """
     raw = os.environ.get(name, "").strip()
     if not raw:
         return default_value
@@ -245,6 +261,11 @@ def _parse_positive_int_env(name: str, default_value: int) -> int:
 
 
 def _resolve_validation_compiler() -> str | None:
+    """Return an absolute path to a C++ compiler for syntax validation.
+
+    Prefers ``CP_FLATTENER_VALIDATION_COMPILER`` when set, otherwise
+    searches a hard-coded candidate list (g++-15, g++-14, g++-13, g++, clang++).
+    """
     forced = os.environ.get("CP_FLATTENER_VALIDATION_COMPILER", "").strip()
     if forced:
         return forced
@@ -256,7 +277,13 @@ def _resolve_validation_compiler() -> str | None:
     return None
 
 
-def _validate_flattened_output(flattened_source: str) -> ValidationStatus:
+def _validate_flattened_output(
+    flattened_source: str,
+    *,
+    force: bool | None = None,
+    validation_compiler: str | None = None,
+    validation_std: str = "gnu++20",
+) -> ValidationStatus:
     """
     Compile-check flattened output.
 
@@ -266,15 +293,17 @@ def _validate_flattened_output(flattened_source: str) -> ValidationStatus:
     - UNAVAILABLE : validation unavailable/disabled
     """
 
-    if not _env_flag_enabled("CP_FLATTENER_AUTO_VALIDATE", default=True):
+    if force is False:
+        return ValidationStatus.UNAVAILABLE
+    if force is None and not _env_flag_enabled("CP_FLATTENER_AUTO_VALIDATE", default=True):
         return ValidationStatus.UNAVAILABLE
 
-    compiler = _resolve_validation_compiler()
+    compiler = validation_compiler or _resolve_validation_compiler()
     if not compiler:
         return ValidationStatus.UNAVAILABLE
 
     timeout_ms = _parse_positive_int_env("CP_FLATTENER_VALIDATION_TIMEOUT_MS", 3500)
-    command = [compiler, "-std=gnu++20", "-fsyntax-only", "-x", "c++", "-"]
+    command = [compiler, f"-std={validation_std}", "-fsyntax-only", "-x", "c++", "-"]
     try:
         result = subprocess.run(
             command,
@@ -563,6 +592,7 @@ def build_flattened_output(
 
 
 def _build_arg_parser() -> "argparse.ArgumentParser":
+    """Construct the argparse parser for the flattener CLI."""
     import argparse
 
     parser = argparse.ArgumentParser(
@@ -678,6 +708,8 @@ def main() -> None:
         strip_module_docs = True
         strip_template_docs = True
 
+    enable_module_pruning = not args.no_module_prune and mode is not FlattenerMode.SAFE
+
     source_module_includes: list[Path] = []
     has_module_umbrella_include = False
     for idx, line in enumerate(source_lines):
@@ -726,13 +758,26 @@ def main() -> None:
         macro_values=macro_values,
     )
 
+    validation_std = args.validation_std or os.environ.get("CP_FLATTENER_VALIDATION_STD", "gnu++20")
+    validation_compiler = args.validation_compiler or os.environ.get("CP_FLATTENER_VALIDATION_COMPILER", "")
+    validate_mode = args.validate or "auto"
+
+    def _run_validation(source: str) -> ValidationStatus:
+        force = {"on": True, "off": False, "auto": None}.get(validate_mode)
+        return _validate_flattened_output(
+            source,
+            force=force,
+            validation_compiler=validation_compiler or None,
+            validation_std=validation_std,
+        )
+
     match mode:
         case FlattenerMode.SAFE:
             print(
                 build_flattened_output(
                     ctx,
                     enable_template_pruning=False,
-                    enable_module_pruning=False,
+                    enable_module_pruning=enable_module_pruning,
                 ),
                 end="",
             )
@@ -741,7 +786,7 @@ def main() -> None:
                 build_flattened_output(
                     ctx,
                     enable_template_pruning=True,
-                    enable_module_pruning=True,
+                    enable_module_pruning=enable_module_pruning,
                 ),
                 end="",
             )
@@ -749,9 +794,9 @@ def main() -> None:
             compact_output = build_flattened_output(
                 ctx,
                 enable_template_pruning=True,
-                enable_module_pruning=True,
+                enable_module_pruning=enable_module_pruning,
             )
-            compact_valid = _validate_flattened_output(compact_output)
+            compact_valid = _run_validation(compact_output)
             if compact_valid is ValidationStatus.FAILED:
                 sys.stderr.write(
                     "warning: compact output failed syntax check; trying safe variant\n"
@@ -759,9 +804,9 @@ def main() -> None:
                 safe_output = build_flattened_output(
                     ctx,
                     enable_template_pruning=False,
-                    enable_module_pruning=False,
+                    enable_module_pruning=enable_module_pruning,
                 )
-                safe_valid = _validate_flattened_output(safe_output)
+                safe_valid = _run_validation(safe_output)
                 if safe_valid is not ValidationStatus.FAILED:
                     print(safe_output, end="")
                     return
@@ -773,7 +818,7 @@ def main() -> None:
             submission_output = build_flattened_output(
                 ctx,
                 enable_template_pruning=True,
-                enable_module_pruning=True,
+                enable_module_pruning=enable_module_pruning,
             )
             print(_prepare_submission_output(submission_output), end="")
 

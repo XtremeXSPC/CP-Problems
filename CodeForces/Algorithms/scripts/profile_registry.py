@@ -29,6 +29,7 @@ class ScaffoldProfile:
     needs: frozenset[str]
     io_profile: str
     header_doc: bool
+    advanced: bool
 
 
 @dataclass(frozen=True, slots=True)
@@ -104,6 +105,7 @@ def _scaffold(name: str, payload: dict, known_io: frozenset[str]) -> ScaffoldPro
         needs=frozenset(needs),
         io_profile=io_profile,
         header_doc=bool(payload.get("header_doc", False)),
+        advanced=bool(payload.get("advanced", False)),
     )
 
 
