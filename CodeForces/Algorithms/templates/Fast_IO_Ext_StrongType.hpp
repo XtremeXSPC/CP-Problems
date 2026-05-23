@@ -1,5 +1,4 @@
 #pragma once
-#include "Fast_IO.hpp"
 #include "Fast_IO_Fwd.hpp"
 #include "Strong_Type.hpp"
 
@@ -14,8 +13,6 @@ inline void read(::cp::StrongType<T, Tag>& x) {
 }
 
 template <FastIntegral T, class Tag>
-inline void write(const ::cp::StrongType<T, Tag>& x) {
-  write_integer(x.get());
-}
+inline void write(const ::cp::StrongType<T, Tag>& x) { write_integer(x.get()); }
 
 } // namespace fast_io

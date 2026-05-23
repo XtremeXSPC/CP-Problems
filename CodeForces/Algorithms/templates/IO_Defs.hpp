@@ -1,7 +1,13 @@
 #pragma once
 
+#ifndef CP_IO_IMPL_READ
+  #define CP_IO_IMPL_READ(...) ((void)0)
+#endif
 #ifndef CP_IO_IMPL_WRITELN
-  #include "IO.hpp"
+  #define CP_IO_IMPL_WRITELN(...) ((void)0)
+#endif
+#ifndef CP_IO_IMPL_FLUSH
+  #define CP_IO_IMPL_FLUSH() ((void)0)
 #endif
 
 //===----------------------------------------------------------------------===//
@@ -33,7 +39,7 @@
 #ifndef CP_IO_ANSWER_HELPERS_DEFINED
   #define CP_IO_ANSWER_HELPERS_DEFINED 1
   inline void YES(bool condition = true) { OUT(condition ? "YES" : "NO"); }
-  inline void NO(bool condition = true) { YES(!condition); }
+  inline void NO (bool condition = true) { YES(!condition); }
   inline void Yes(bool condition = true) { OUT(condition ? "Yes" : "No"); }
-  inline void No(bool condition = true) { Yes(!condition); }
+  inline void No (bool condition = true) { Yes(!condition); }
 #endif

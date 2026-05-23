@@ -17,19 +17,14 @@ namespace cp::hashing {
 #ifdef CP_SEED
   static U64 seed = static_cast<U64>(CP_SEED);
 #else
-  static U64 seed = static_cast<U64>(
-      std::chrono::steady_clock::now().time_since_epoch().count());
+  static U64 seed = static_cast<U64>(std::chrono::steady_clock::now().time_since_epoch().count());
 #endif
   return seed;
 }
 
-[[gnu::always_inline]] inline U64 fixed_random_seed() noexcept {
-  return fixed_random_seed_storage();
-}
+[[gnu::always_inline]] inline U64 fixed_random_seed() noexcept { return fixed_random_seed_storage(); }
 
-inline void reseed(U64 seed) noexcept {
-  fixed_random_seed_storage() = seed;
-}
+inline void reseed(U64 seed) noexcept { fixed_random_seed_storage() = seed; }
 
 [[nodiscard]] constexpr inline U64 hash_combine(U64 lhs, U64 rhs) noexcept {
   return lhs ^ (rhs + 0x9e3779b97f4a7c15ULL + (lhs << 6) + (lhs >> 2));

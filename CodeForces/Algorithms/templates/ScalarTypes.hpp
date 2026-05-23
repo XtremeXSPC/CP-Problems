@@ -2,6 +2,7 @@
 #ifndef CP_TYPES_NO_PREAMBLE
 #include "Preamble.hpp"
 #endif
+#include "FeatureDetect.hpp"
 
 //===----------------------------------------------------------------------===//
 /* Scalar Type Aliases */

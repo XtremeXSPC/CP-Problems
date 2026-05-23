@@ -6,17 +6,15 @@
 /* High-Performance Buffered I/O */
 
 #ifndef CP_FAST_IO_NAMESPACE_DEFINED
-#define CP_FAST_IO_NAMESPACE_DEFINED 1
+  #define CP_FAST_IO_NAMESPACE_DEFINED 1
 #endif
 #ifdef CP_IO_COMPAT_FAST_IO_NAMESPACE_DEFINED
-#error "Fast_IO.hpp must be included before IO.hpp when both I/O backends are used."
+  #error "Fast_IO.hpp must be included before IO.hpp when both I/O backends are used."
 #endif
 
 #include "Fast_IO_Fwd.hpp"
-// Pull ContainerAliases into the global namespace BEFORE opening fast_io,
-// but only when composite I/O is enabled.
 #if CP_IO_ENABLE_COMPOSITE
-#include "ContainerAliases.hpp"
+  #include "ContainerAliases.hpp"
 #endif
 
 namespace fast_io {
@@ -31,13 +29,6 @@ inline U32  input_end   = 0;
 inline U32  output_pos  = 0;
 inline bool input_eof   = false;
 inline bool input_error = false;
-
-template <class T>
-concept FastIntegral = std::integral<std::remove_cvref_t<T>> && !std::same_as<std::remove_cvref_t<T>, bool>
-                       && !std::same_as<std::remove_cvref_t<T>, char>;
-
-template <class T>
-concept FastFloating = std::floating_point<std::remove_cvref_t<T>>;
 
 /* ------------------------------- INPUT API -------------------------------- */
 
@@ -146,22 +137,12 @@ inline void read_floating(T& x) {
 }
 
 template <FastIntegral T>
-inline void read(T& x) {
-  read_integer(x);
-}
+inline void read(T& x) { read_integer(x); }
 
 template <FastFloating T>
-inline void read(T& x) {
-  read_floating(x);
-}
-
-inline void read(char& x) {
-  read_char(x);
-}
-
-inline void read(std::string& x) {
-  read_string(x);
-}
+inline void read(T& x) { read_floating(x); }
+inline void read(char& x) { read_char(x); }
+inline void read(std::string& x) { read_string(x); }
 
 /* ------------------------------- OUTPUT API ------------------------------- */
 
@@ -196,7 +177,7 @@ inline void write_integer(T x) {
 }
 
 #ifndef CP_FLOAT_PRECISION
-#define CP_FLOAT_PRECISION 10
+  #define CP_FLOAT_PRECISION 10
 #endif
 
 template <typename T>
@@ -240,43 +221,30 @@ inline void write_string(std::string_view s) {
 }
 
 template <FastIntegral T>
-inline void write(T x) {
-  write_integer(x);
-}
+inline void write(T x) { write_integer(x); }
 
 template <FastFloating T>
-inline void write(T x) {
-  write_floating(x);
-}
-
-inline void write(char x) {
-  write_char(x);
-}
-
-inline void write(const std::string& x) {
-  write_string(x);
-}
-
-inline void write(const char* x) {
-  write_string(x);
-}
+inline void write(T x) { write_floating(x); }
+inline void write(char x) { write_char(x); }
+inline void write(const std::string& x) { write_string(x); }
+inline void write(const char* x) { write_string(x); }
 
 #ifndef CP_FAST_IO_ENABLE_MODINT
-#ifdef NEED_MOD_INT
-#define CP_FAST_IO_ENABLE_MODINT 1
-#else
-#define CP_FAST_IO_ENABLE_MODINT 0
-#endif
+  #ifdef NEED_MOD_INT
+    #define CP_FAST_IO_ENABLE_MODINT 1
+  #else
+    #define CP_FAST_IO_ENABLE_MODINT 0
+  #endif
 #endif
 
 #ifndef CP_FAST_IO_ENABLE_STRONG_TYPE
-#define CP_FAST_IO_ENABLE_STRONG_TYPE 0
+  #define CP_FAST_IO_ENABLE_STRONG_TYPE 0
 #endif
 
 #if CP_IO_ENABLE_COMPOSITE
-#define CP_IO_COMPOSITE_CONTEXT 1
-#include "IO_Composite.hpp"
-#undef CP_IO_COMPOSITE_CONTEXT
+  #define CP_IO_COMPOSITE_CONTEXT 1
+  #include "IO_Composite.hpp"
+  #undef CP_IO_COMPOSITE_CONTEXT
 #endif
 
 template <class Head, class... Tail>
@@ -294,9 +262,7 @@ inline void write(const Head& head, const Tail&... tail) {
   write(tail...);
 }
 
-inline void writeln() {
-  write('\n');
-}
+inline void writeln() { write('\n'); }
 
 template <class... Args>
 inline void writeln(const Args&... args) {
@@ -321,21 +287,21 @@ inline IOFlusher io_flusher;
 } // namespace fast_io
 
 #if CP_FAST_IO_ENABLE_MODINT
-#include "Fast_IO_Ext_ModInt.hpp"
+  #include "Fast_IO_Ext_ModInt.hpp"
 #endif
 
 #if CP_FAST_IO_ENABLE_STRONG_TYPE
-#include "Fast_IO_Ext_StrongType.hpp"
+  #include "Fast_IO_Ext_StrongType.hpp"
 #endif
 
 #ifdef CP_IO_IMPL_READ
-#undef CP_IO_IMPL_READ
+  #undef CP_IO_IMPL_READ
 #endif
 #ifdef CP_IO_IMPL_WRITELN
-#undef CP_IO_IMPL_WRITELN
+  #undef CP_IO_IMPL_WRITELN
 #endif
 #ifdef CP_IO_IMPL_FLUSH
-#undef CP_IO_IMPL_FLUSH
+  #undef CP_IO_IMPL_FLUSH
 #endif
 
 #define CP_IO_IMPL_READ(...) fast_io::read(__VA_ARGS__)

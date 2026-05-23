@@ -7,20 +7,20 @@
 template <cp::Integral T>
 [[gnu::always_inline]] constexpr I32 popcount(T x) {
   using Raw = std::remove_cv_t<T>;
-  using U = cp::make_unsigned_t<Raw>;
+  using U   = cp::make_unsigned_t<Raw>;
   if constexpr (sizeof(Raw) <= 4) return __builtin_popcount(static_cast<U32>(static_cast<U>(x)));
   else if constexpr (sizeof(Raw) <= 8) return __builtin_popcountll(static_cast<U64>(static_cast<U>(x)));
   else {
     const U ux = static_cast<U>(x);
     return __builtin_popcountll(static_cast<U64>(ux))
-      + __builtin_popcountll(static_cast<U64>(ux >> 64));
+         + __builtin_popcountll(static_cast<U64>(ux >> 64));
   }
 }
 
 template <cp::Integral T>
 [[gnu::always_inline]] constexpr I32 leading_zeros(T x) {
   using Raw = std::remove_cv_t<T>;
-  using U = cp::make_unsigned_t<Raw>;
+  using U   = cp::make_unsigned_t<Raw>;
   U ux = static_cast<U>(x);
   if (ux == 0) return sizeof(Raw) * 8;
   if constexpr (sizeof(Raw) <= 4) {
@@ -37,7 +37,7 @@ template <cp::Integral T>
 template <cp::Integral T>
 [[gnu::always_inline]] constexpr I32 trailing_zeros(T x) {
   using Raw = std::remove_cv_t<T>;
-  using U = cp::make_unsigned_t<Raw>;
+  using U   = cp::make_unsigned_t<Raw>;
   U ux = static_cast<U>(x);
   if (ux == 0) return sizeof(Raw) * 8;
   if constexpr (sizeof(Raw) <= 4) return __builtin_ctz(static_cast<U32>(ux));
@@ -90,7 +90,7 @@ struct bit_range {
   };
   bit_range(T mask) : mask(mask) {}
   iterator begin() const { return iterator(mask); }
-  iterator end() const { return iterator(0); }
+  iterator end()   const { return iterator(0); }
 };
 
 template <cp::Integral T>
@@ -110,5 +110,5 @@ struct subset_range {
   };
   subset_range(T mask) : mask(mask) {}
   iterator begin() const { return iterator(mask); }
-  iterator end() const { return iterator(0); }
+  iterator end()   const { return iterator(0); }
 };

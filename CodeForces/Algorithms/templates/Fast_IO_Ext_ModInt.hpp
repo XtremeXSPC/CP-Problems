@@ -1,5 +1,4 @@
 #pragma once
-#include "Fast_IO.hpp"
 #include "Fast_IO_Fwd.hpp"
 #include "Mod_Int.hpp"
 
@@ -14,8 +13,6 @@ inline void read(::ModInt<MOD>& x) {
 }
 
 template <I64 MOD>
-inline void write(const ::ModInt<MOD>& x) {
-  write_integer(static_cast<I64>(x));
-}
+inline void write(const ::ModInt<MOD>& x) { write_integer(static_cast<I64>(x)); }
 
 } // namespace fast_io

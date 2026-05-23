@@ -19,7 +19,9 @@ INCLUDE_GUARD_IF_DEFINED_RE = re.compile(
     r"^\s*#\s*if\s+!defined\(\s*([A-Za-z_]\w*)\s*\)\s*$"
 )
 DEFINE_DIRECTIVE_RE = re.compile(r"^\s*#\s*define\s+([A-Za-z_]\w*)\b")
-DEFINE_WITH_VALUE_RE = re.compile(r"^\s*#\s*define\s+([A-Za-z_]\w*)(?:\s+(.*?))?\s*$")
+DEFINE_WITH_VALUE_RE = re.compile(
+    r"^\s*#\s*define\s+([A-Za-z_]\w*)(?:\s*\([^)]*\))?(?:\s+(.*?))?\s*$"
+)
 UNDEF_DIRECTIVE_RE = re.compile(r"^\s*#\s*undef\s+([A-Za-z_]\w*)\s*$")
 IF_DIRECTIVE_RE = re.compile(r"^\s*#\s*(if|ifdef|ifndef)\b")
 ENDIF_DIRECTIVE_RE = re.compile(r"^\s*#\s*endif\b")
@@ -449,15 +451,23 @@ def collect_module_leaf_trigger_tokens(project_root: Path) -> dict[str, set[str]
 
 
 def collect_transitive_template_deps(
-    project_root: Path, start_header: Path, *, exclude_template_files: set[str] | None = None
+    project_root: Path,
+    start_header: Path,
+    *,
+    exclude_template_files: set[str] | None = None,
+    macro_values: dict[str, int | None] | None = None,
 ) -> list[Path]:
     """
     Collect templates/*.hpp reached through local include recursion from a header.
 
     Order is discovery order (stable) to keep output deterministic and readable.
+    Excluded template files are traversal barriers: they are neither emitted nor
+    scanned for nested includes. This keeps module dependency discovery from
+    re-entering the already-rendered preamble tree.
     """
 
     excluded = exclude_template_files or {"Preamble.hpp"}
+    macro_state = macro_values or {}
     stack = [start_header.resolve()]
     visited: set[Path] = set()
     discovered_templates: list[Path] = []
@@ -476,8 +486,39 @@ def collect_transitive_template_deps(
             continue
 
         masked_lines = strip_non_code("".join(lines)).splitlines()
+        conditional_stack: list[bool] = [True]
+
+        def current_condition_active() -> bool:
+            return all(conditional_stack)
+
         for idx, line in enumerate(lines):
             masked_line = masked_lines[idx] if idx < len(masked_lines) else ""
+            directive = masked_line.strip()
+            match_ifdef = IFDEF_DIRECTIVE_RE.match(directive)
+            match_ifndef = IFNDEF_DIRECTIVE_RE.match(directive)
+            match_ifexpr = IF_EXPR_DIRECTIVE_RE.match(directive)
+            if match_ifdef:
+                conditional_stack.append(match_ifdef.group(1) in macro_state)
+                continue
+            if match_ifndef:
+                conditional_stack.append(match_ifndef.group(1) not in macro_state)
+                continue
+            if match_ifexpr:
+                cond = _evaluate_simple_if_expression(match_ifexpr.group(1), macro_state)
+                conditional_stack.append(True if cond is None else cond)
+                continue
+            if ELSE_OR_ELIF_DIRECTIVE_RE.match(directive):
+                if len(conditional_stack) > 1:
+                    conditional_stack[-1] = not conditional_stack[-1]
+                continue
+            if ENDIF_DIRECTIVE_RE.match(directive):
+                if len(conditional_stack) > 1:
+                    conditional_stack.pop()
+                continue
+
+            if not current_condition_active():
+                continue
+
             include_name = parse_project_include_line(line, masked_line=masked_line)
             if not include_name:
                 continue
@@ -486,6 +527,9 @@ def collect_transitive_template_deps(
                 continue
 
             rel = target.relative_to(project_root).as_posix()
+            if rel.startswith("templates/") and target.name in excluded:
+                continue
+
             if (
                 rel.startswith("templates/")
                 and target.name not in excluded
@@ -498,6 +542,132 @@ def collect_transitive_template_deps(
                 stack.append(target)
 
     return discovered_templates
+
+
+def _active_project_include_targets(
+    project_root: Path,
+    current: Path,
+    *,
+    macro_values: dict[str, int | None] | None = None,
+) -> list[Path]:
+    """Return project-local include targets active under simple macro state."""
+
+    if not current.is_file():
+        return []
+
+    macro_state = dict(macro_values or {})
+    try:
+        lines = current.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return []
+
+    masked_lines = strip_non_code("\n".join(lines)).splitlines()
+    conditional_stack: list[bool] = [True]
+    targets: list[Path] = []
+
+    def current_condition_active() -> bool:
+        return all(conditional_stack)
+
+    for idx, line in enumerate(lines):
+        masked_line = masked_lines[idx] if idx < len(masked_lines) else ""
+        directive = masked_line.strip()
+        match_ifdef = IFDEF_DIRECTIVE_RE.match(directive)
+        match_ifndef = IFNDEF_DIRECTIVE_RE.match(directive)
+        match_ifexpr = IF_EXPR_DIRECTIVE_RE.match(directive)
+        if match_ifdef:
+            conditional_stack.append(match_ifdef.group(1) in macro_state)
+            continue
+        if match_ifndef:
+            conditional_stack.append(match_ifndef.group(1) not in macro_state)
+            continue
+        if match_ifexpr:
+            cond = _evaluate_simple_if_expression(match_ifexpr.group(1), macro_state)
+            conditional_stack.append(True if cond is None else cond)
+            continue
+        if ELSE_OR_ELIF_DIRECTIVE_RE.match(directive):
+            if len(conditional_stack) > 1:
+                conditional_stack[-1] = not conditional_stack[-1]
+            continue
+        if ENDIF_DIRECTIVE_RE.match(directive):
+            if len(conditional_stack) > 1:
+                conditional_stack.pop()
+            continue
+
+        if not current_condition_active():
+            continue
+
+        include_name = parse_project_include_line(line, masked_line=masked_line)
+        if include_name:
+            target = resolve_project_include(project_root, current, include_name)
+            if target:
+                targets.append(target)
+
+        _update_macro_state_from_line(macro_state, masked_line)
+
+    return targets
+
+
+def order_template_headers_by_dependencies(
+    project_root: Path,
+    headers: list[Path],
+    *,
+    macro_values: dict[str, int | None] | None = None,
+) -> list[Path]:
+    """
+    Topologically order already-selected template section headers.
+
+    This intentionally does not expand the dependency closure: context-sensitive
+    helper headers such as IO_Composite.hpp must stay nested inside their owning
+    backend header instead of becoming standalone sections.
+    """
+
+    selected: list[Path] = []
+    selected_set: set[Path] = set()
+    resolved_root = project_root.resolve()
+
+    for header in headers:
+        resolved = header.resolve()
+        if not resolved.is_file():
+            continue
+        if resolved_root not in resolved.parents:
+            continue
+        if resolved in selected_set:
+            continue
+        selected.append(resolved)
+        selected_set.add(resolved)
+
+    priority = {path: idx for idx, path in enumerate(selected)}
+    deps: dict[Path, list[Path]] = {path: [] for path in selected}
+
+    for header in selected:
+        for target in _active_project_include_targets(
+            resolved_root, header, macro_values=macro_values
+        ):
+            resolved_target = target.resolve()
+            if resolved_target in selected_set:
+                deps[header].append(resolved_target)
+
+    ordered: list[Path] = []
+    visiting: set[Path] = set()
+    visited: set[Path] = set()
+
+    def visit(path: Path) -> None:
+        if path in visited:
+            return
+        if path in visiting:
+            return
+
+        visiting.add(path)
+        for dep in sorted(deps[path], key=lambda p: priority[p]):
+            visit(dep)
+        visiting.remove(path)
+        visited.add(path)
+        ordered.append(path)
+
+    for header in selected:
+        visit(header)
+
+    return ordered
 
 
 def prune_template_headers(files_to_include: list[Path], source_content: str) -> list[Path]:
@@ -844,6 +1014,7 @@ def inline_local_header(
 
     file_lines = file_text.splitlines(keepends=True)
     masked_lines = strip_non_code(file_text).splitlines()
+    macro_state = dict(macro_values or {})
     conditional_stack: list[bool] = [True]
 
     def _current_condition_active() -> bool:
@@ -860,15 +1031,15 @@ def inline_local_header(
         match_ifndef = IFNDEF_DIRECTIVE_RE.match(directive)
         match_ifexpr = IF_EXPR_DIRECTIVE_RE.match(directive)
         if match_ifdef:
-            conditional_stack.append(match_ifdef.group(1) in (macro_values or {}))
+            conditional_stack.append(match_ifdef.group(1) in macro_state)
             content_lines.append(line)
             continue
         if match_ifndef:
-            conditional_stack.append(match_ifndef.group(1) not in (macro_values or {}))
+            conditional_stack.append(match_ifndef.group(1) not in macro_state)
             content_lines.append(line)
             continue
         if match_ifexpr:
-            cond = _evaluate_simple_if_expression(match_ifexpr.group(1), macro_values or {})
+            cond = _evaluate_simple_if_expression(match_ifexpr.group(1), macro_state)
             conditional_stack.append(True if cond is None else cond)
             content_lines.append(line)
             continue
@@ -911,7 +1082,7 @@ def inline_local_header(
                         module_leaf_tokens=module_leaf_tokens,
                         strip_module_docs=strip_module_docs,
                         strip_template_docs=strip_template_docs,
-                        macro_values=macro_values,
+                        macro_values=macro_state,
                         enable_module_pruning=enable_module_pruning,
                     )
                     if nested_content:
@@ -927,9 +1098,13 @@ def inline_local_header(
                     continue
 
             content_lines.append(line)
+            if _current_condition_active():
+                _update_macro_state_from_line(macro_state, masked_line)
             continue
 
         content_lines.append(line)
+        if _current_condition_active():
+            _update_macro_state_from_line(macro_state, masked_line)
 
     while content_lines and not content_lines[0].strip():
         content_lines.pop(0)

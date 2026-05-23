@@ -10,11 +10,10 @@ template <class T, class Tag>
 class StrongType {
 public:
   using value_type = T;
-  using tag_type = Tag;
+  using tag_type   = Tag;
 
   constexpr StrongType()
-    requires std::default_initializable<T>
-  = default;
+    requires std::default_initializable<T> = default;
 
   explicit constexpr StrongType(const T& value) : value_(value) {}
   explicit constexpr StrongType(T&& value) : value_(std::move(value)) {}
@@ -24,7 +23,7 @@ public:
   }
 
   [[nodiscard]] constexpr const T& get() const& noexcept { return value_; }
-  [[nodiscard]] constexpr T& get() & noexcept { return value_; }
+  [[nodiscard]] constexpr T&  get() &  noexcept { return value_; }
   [[nodiscard]] constexpr T&& get() && noexcept { return std::move(value_); }
 
   [[nodiscard]] explicit constexpr operator const T&() const noexcept { return value_; }
@@ -32,8 +31,7 @@ public:
 
   friend constexpr bool operator==(const StrongType&, const StrongType&) = default;
   friend constexpr auto operator<=>(const StrongType&, const StrongType&)
-    requires std::three_way_comparable<T>
-  = default;
+    requires std::three_way_comparable<T> = default;
 
   constexpr StrongType& operator+=(const StrongType& other)
     requires requires(T a, const T& b) { a += b; }

@@ -22,6 +22,7 @@ from flattener_core.flattener_helpers import (
     extract_identifiers,
     fold_simple_preprocessor_conditionals,
     inline_local_header,
+    order_template_headers_by_dependencies,
     parse_project_include_line,
     prune_template_headers_with_policy,
     resolve_project_include,
@@ -44,7 +45,7 @@ IF_DIRECTIVE_RE = re.compile(r"^\s*#\s*(if|ifdef|ifndef)\b")
 ENDIF_DIRECTIVE_RE = re.compile(r"^\s*#\s*endif\b")
 ELSE_OR_ELIF_DIRECTIVE_RE = re.compile(r"^\s*#\s*(else|elif)\b")
 VALIDATION_COMPILER_CANDIDATES = ("g++-15", "g++-14", "g++-13", "g++", "clang++")
-TYPES_SECTION_END_MARKER = "using VecPairI64 = Vec<PairI64>;"
+MAIN_SOLVER_SECTION_MARKER = "/* Main Solver Function */"
 MacroValueMap = dict[str, int | None]
 ModuleLeafTokenMap = dict[str, set[str]]
 
@@ -120,11 +121,20 @@ def _parse_macro_value(
 
 
 def extract_macro_values_from_source(
-    source_prefix_content: str, *, strict_profile_enabled: bool, relaxed_profile_enabled: bool
+    source_prefix_content: str,
+    *,
+    strict_profile_enabled: bool,
+    relaxed_profile_enabled: bool,
+    warn_stream=None,
 ) -> dict[str, int | None]:
-    """Extract simple macro values from user source for conservative conditional folding."""
+    """Extract simple macro values from user source for conservative conditional folding.
+
+    Defines inside conditional blocks the folder cannot evaluate are skipped.
+    When ``warn_stream`` is provided, the skipped names are reported once.
+    """
 
     macro_values: dict[str, int | None] = {}
+    skipped: list[str] = []
     code_only = strip_non_code(source_prefix_content)
     folded_code = fold_simple_preprocessor_conditionals(code_only, {})
     depth = 0
@@ -146,6 +156,9 @@ def extract_macro_values_from_source(
             continue
 
         if depth > 0:
+            define_match = MACRO_DEFINE_RE.match(stripped)
+            if define_match:
+                skipped.append(define_match.group(1))
             continue
 
         undef_match = MACRO_UNDEF_RE.match(stripped)
@@ -159,6 +172,12 @@ def extract_macro_values_from_source(
 
         name, value_expr = define_match.group(1), define_match.group(2)
         macro_values[name] = _parse_macro_value(value_expr, macro_values)
+
+    if warn_stream is not None and skipped:
+        warn_stream.write(
+            "warning: ignoring conditional #defines (guard unresolved): "
+            + ", ".join(sorted(set(skipped))) + "\n"
+        )
 
     registry = load_registry()
     apply_strict = strict_profile_enabled and not relaxed_profile_enabled
@@ -287,6 +306,7 @@ def _collect_needed_template_headers(
     *,
     need_macros_found: set[str],
     enable_template_pruning: bool,
+    macro_values: dict[str, int | None],
 ) -> list[Path]:
     """Resolve and prune template headers implied by enabled NEED_* macros."""
 
@@ -318,6 +338,7 @@ def _collect_needed_template_headers(
             ctx.project_root,
             include_target,
             exclude_template_files={"Preamble.hpp"},
+            macro_values=macro_values,
         ):
             dep_resolved = dep.resolve()
             if dep_resolved in included_paths:
@@ -326,25 +347,14 @@ def _collect_needed_template_headers(
             included_paths.add(dep_resolved)
 
     # Never inline Preamble as a template section; it is emitted once at the top.
-    return [p for p in files_to_include if p.resolve() != ctx.preamble_resolved]
-
-
-def _place_global_std_namespace(template_sections: list[str]) -> tuple[str, ...]:
-    """Place `using namespace std;` after the Types section when available."""
-
-    namespace_line = "using namespace std;"
-    for idx, section in enumerate(template_sections):
-        if TYPES_SECTION_END_MARKER not in section:
-            continue
-        template_sections[idx] = section.replace(
-            TYPES_SECTION_END_MARKER,
-            f"{TYPES_SECTION_END_MARKER}\n\n{namespace_line}",
-            1,
-        )
-        return tuple(template_sections)
-
-    template_sections.append(namespace_line)
-    return tuple(template_sections)
+    files_to_include = [
+        p for p in files_to_include if p.resolve() != ctx.preamble_resolved
+    ]
+    return order_template_headers_by_dependencies(
+        ctx.project_root,
+        files_to_include,
+        macro_values=macro_values,
+    )
 
 
 def _render_template_bundle(
@@ -366,6 +376,7 @@ def _render_template_bundle(
         ctx,
         need_macros_found=need_macros_found,
         enable_template_pruning=enable_template_pruning,
+        macro_values=effective_macro_values,
     )
 
     preamble_inlined_headers: set[Path] = set()
@@ -400,13 +411,9 @@ def _render_template_bundle(
         if content:
             template_sections.append(content)
 
-    rendered_sections = tuple(template_sections)
-    if effective_macro_values.get("CP_USE_GLOBAL_STD_NAMESPACE") not in (None, 0):
-        rendered_sections = _place_global_std_namespace(template_sections)
-
     return FlattenedTemplateBundle(
         preamble_content=preamble_content,
-        template_sections=rendered_sections,
+        template_sections=tuple(template_sections),
         effective_macro_values=effective_macro_values,
         inlined_headers=frozenset(inlined_headers),
     )
@@ -423,6 +430,14 @@ def _render_flattened_source(
     output_lines: list[str] = []
     skip_need_defines = False
     seen_base_include = False
+    skip_blank_after_sections = False
+    should_emit_std_namespace = (
+        bundle.effective_macro_values.get("CP_USE_GLOBAL_STD_NAMESPACE") not in (None, 0)
+        and "using namespace std;" not in ctx.source_content
+    )
+    defer_std_namespace_to_solver_section = (
+        should_emit_std_namespace and MAIN_SOLVER_SECTION_MARKER in ctx.source_content
+    )
 
     # Prevent duplicated template/module bodies when sections are already expanded.
     module_section_emitted = False
@@ -430,6 +445,10 @@ def _render_flattened_source(
 
     for idx, line in enumerate(ctx.source_lines):
         stripped = line.strip()
+        if skip_blank_after_sections:
+            if not stripped:
+                continue
+            skip_blank_after_sections = False
         masked_line = (
             ctx.source_masked_lines[idx] if idx < len(ctx.source_masked_lines) else ""
         )
@@ -457,10 +476,8 @@ def _render_flattened_source(
             if output_lines and output_lines[-1].strip():
                 output_lines.append("\n")
 
-            # Emit preamble and each template section trimmed of trailing
-            # newlines, then add exactly one blank-line separator. The
-            # individual inliners strip their own trailing newlines, so a naive
-            # concatenation otherwise collapses adjacent sections together.
+            # Emit preamble + each template section with exactly one blank
+            # line separator; the inliners already strip trailing newlines.
             preamble_text = bundle.preamble_content.rstrip("\n")
             if preamble_text:
                 output_lines.append(preamble_text)
@@ -472,6 +489,10 @@ def _render_flattened_source(
                     continue
                 output_lines.append(section_text)
                 output_lines.append("\n\n")
+            if should_emit_std_namespace and not defer_std_namespace_to_solver_section:
+                output_lines.append("using namespace std;\n")
+                should_emit_std_namespace = False
+            skip_blank_after_sections = True
             continue
 
         if include_name:
@@ -513,6 +534,10 @@ def _render_flattened_source(
                 output_lines.append("\n")
 
         output_lines.append(line)
+        if stripped == MAIN_SOLVER_SECTION_MARKER and defer_std_namespace_to_solver_section:
+            output_lines.append("\nusing namespace std;\n")
+            should_emit_std_namespace = False
+            defer_std_namespace_to_solver_section = False
 
     return "".join(output_lines)
 
@@ -630,6 +655,7 @@ def main() -> None:
         source_prefix,
         strict_profile_enabled=strict_profile_enabled,
         relaxed_profile_enabled=relaxed_profile_enabled,
+        warn_stream=sys.stderr,
     )
 
     used_identifiers = frozenset(extract_identifiers(source_content))

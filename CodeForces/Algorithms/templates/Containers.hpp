@@ -14,7 +14,7 @@ template <typename F>
 I64 binary_search(F&& predicate, I64 left, I64 right) {
   my_assert(left < right);
   while (left + 1 < right) {
-    I64 mid                         = left + (right - left) / 2;
+    I64 mid = left + (right - left) / 2;
     (predicate(mid) ? left : right) = mid;
   }
   return left;
@@ -24,7 +24,7 @@ template <typename F>
   requires cp::Predicate<F&, F64>
 F64 binary_search_real(F&& predicate, F64 left, F64 right, I32 iterations = 100) {
   for (I32 i = 0; i < iterations; ++i) {
-    F64 mid                         = left + (right - left) / 2;
+    F64 mid = left + (right - left) / 2;
     (predicate(mid) ? left : right) = mid;
   }
   return left + (right - left) / 2;

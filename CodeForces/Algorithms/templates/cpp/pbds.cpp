@@ -25,6 +25,8 @@
 //===----------------------------------------------------------------------===//
 /* Main Solver Function */
 
+using namespace std;
+
 void solve() {
   // Optimized solution here
 }

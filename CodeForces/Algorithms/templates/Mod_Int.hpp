@@ -38,8 +38,7 @@ struct ModInt {
 #else
     // Without __int128 the product a*b is computed in U64 arithmetic, so we
     // need (MOD - 1)^2 <= 2^64 - 1, i.e. MOD <= 2^32 = 4'294'967'296.
-    static_assert(
-        MOD <= (1LL << 32), "ModInt multiplication may overflow U64 for MOD > 2^32 without __int128 support.");
+    static_assert(MOD <= (1LL << 32), "ModInt multiplication may overflow U64 for MOD > 2^32 without __int128 support.");
     value = value * other.value % static_cast<U64>(MOD);
 #endif
     return *this;
