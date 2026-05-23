@@ -15,7 +15,25 @@
 /* Main Solver Function */
 
 void solve() {
-  // Optimized solution here
+  STR(s);
+  I32 right13 = 0;
+  for (char c : s) {
+    if (c == '1' || c == '3') right13++;
+  }
+
+  I32 left2 = 0;
+  I32 max_kept = right13;
+
+  for (char c : s) {
+    if (c == '1' || c == '3') {
+      right13--;
+    } else if (c == '2') {
+      left2++;
+    }
+    max_kept = max(max_kept, left2 + right13);
+  }
+
+  OUT(sz(s) - max_kept);
 }
 
 //===----------------------------------------------------------------------===//

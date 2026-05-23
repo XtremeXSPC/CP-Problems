@@ -15,7 +15,9 @@
 /* Main Solver Function */
 
 void solve() {
-  // Optimized solution here
+  LL(n, a, b);
+  I64 ans = min(n * a, (n / 3) * b + min((n % 3) * a, b));
+  OUT(ans);
 }
 
 //===----------------------------------------------------------------------===//
