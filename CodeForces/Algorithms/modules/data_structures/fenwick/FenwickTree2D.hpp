@@ -1,7 +1,7 @@
 #ifndef CP_MODULES_DATA_STRUCTURES_FENWICK_TREE_2D_HPP
 #define CP_MODULES_DATA_STRUCTURES_FENWICK_TREE_2D_HPP
 
-#include "_Common.hpp"
+#include "../_Common.hpp"
 
 /// @brief 2D Fenwick tree for point updates and rectangle sums.
 template <typename T>

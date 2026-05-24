@@ -1,7 +1,7 @@
 #ifndef CP_MODULES_DATA_STRUCTURES_SPARSE_TABLE_HPP
 #define CP_MODULES_DATA_STRUCTURES_SPARSE_TABLE_HPP
 
-#include "_Common.hpp"
+#include "../_Common.hpp"
 
 /// @brief Default min operation functor for SparseTable.
 template <typename T>

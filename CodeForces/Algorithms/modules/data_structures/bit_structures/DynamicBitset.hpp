@@ -1,7 +1,7 @@
 #ifndef CP_MODULES_DATA_STRUCTURES_DYNAMIC_BITSET_HPP
 #define CP_MODULES_DATA_STRUCTURES_DYNAMIC_BITSET_HPP
 
-#include "_Common.hpp"
+#include "../_Common.hpp"
 
 /// @brief Dynamic bitset backed by 64-bit words.
 struct DynamicBitset {
@@ -21,7 +21,9 @@ struct DynamicBitset {
   inline void set_bit(const I32 pos) { words[pos >> 6] |= (U64(1) << (pos & 63)); }
 
   /// @brief Checks whether bit at @p pos is set.
-  [[nodiscard]] inline auto test_bit(const I32 pos) const -> bool { return ((words[pos >> 6] >> (pos & 63)) & U64(1)) != 0; }
+  [[nodiscard]] inline auto test_bit(const I32 pos) const -> bool {
+    return ((words[pos >> 6] >> (pos & 63)) & U64(1)) != 0;
+  }
 
   /// @brief Bitwise OR with @p other.
   inline void or_with(const DynamicBitset& other) {

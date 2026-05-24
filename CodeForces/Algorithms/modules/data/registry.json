@@ -54,10 +54,22 @@
       "description": "Advanced data structures",
       "features": [
         "segment_tree",
+        "acted_lazy_segment_tree",
+        "dual_segment_tree",
+        "dynamic_segment_tree",
+        "dynamic_lazy_segment_tree",
+        "monoid_segment_tree",
+        "rollback_lazy_segment_tree",
         "segment_tree_hull",
         "range_line_hull",
+        "dual_fenwick_tree",
         "fenwick_tree",
+        "group_fenwick_tree",
+        "range_add_fenwick_tree",
+        "sliding_window_aggregation",
+        "potentialized_union_find",
         "sparse_table",
+        "monoid_sparse_table",
         "heap",
         "treap"
       ],
@@ -116,5 +128,5 @@
       "compile_time_impact": "low"
     }
   },
-  "updated": "2025-09-01T15:47:41.583014"
+  "updated": "2026-05-24T23:10:00"
 }

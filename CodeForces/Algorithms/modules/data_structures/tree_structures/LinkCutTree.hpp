@@ -1,7 +1,7 @@
 #ifndef CP_MODULES_DATA_STRUCTURES_LINK_CUT_TREE_HPP
 #define CP_MODULES_DATA_STRUCTURES_LINK_CUT_TREE_HPP
 
-#include "_Common.hpp"
+#include "../_Common.hpp"
 
 /**
  * @brief Link-Cut Tree (splay-based) for dynamic forest path queries.

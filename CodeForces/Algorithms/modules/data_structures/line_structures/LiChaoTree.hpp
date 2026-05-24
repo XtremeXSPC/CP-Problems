@@ -1,7 +1,7 @@
 #ifndef CP_MODULES_DATA_STRUCTURES_LI_CHAO_TREE_HPP
 #define CP_MODULES_DATA_STRUCTURES_LI_CHAO_TREE_HPP
 
-#include "_Common.hpp"
+#include "../_Common.hpp"
 
 /**
  * @brief Dynamic Li Chao tree for minimum line queries.

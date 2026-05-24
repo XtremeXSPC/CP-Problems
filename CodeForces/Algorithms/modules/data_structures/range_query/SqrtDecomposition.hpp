@@ -1,7 +1,7 @@
 #ifndef CP_MODULES_DATA_STRUCTURES_SQRT_DECOMPOSITION_HPP
 #define CP_MODULES_DATA_STRUCTURES_SQRT_DECOMPOSITION_HPP
 
-#include "_Common.hpp"
+#include "../_Common.hpp"
 
 /**
  * @brief Sqrt decomposition for point updates and range-sum queries.

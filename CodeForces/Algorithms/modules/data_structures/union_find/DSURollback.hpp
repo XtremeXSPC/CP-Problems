@@ -1,7 +1,7 @@
 #ifndef CP_MODULES_DATA_STRUCTURES_DSU_ROLLBACK_HPP
 #define CP_MODULES_DATA_STRUCTURES_DSU_ROLLBACK_HPP
 
-#include "_Common.hpp"
+#include "../_Common.hpp"
 
 /**
  * @brief Disjoint Set Union with rollback/snapshot support.

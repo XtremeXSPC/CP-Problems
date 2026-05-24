@@ -1,7 +1,7 @@
 #ifndef CP_MODULES_DATA_STRUCTURES_RANGE_LINE_HULL_HPP
 #define CP_MODULES_DATA_STRUCTURES_RANGE_LINE_HULL_HPP
 
-#include "_Common.hpp"
+#include "../_Common.hpp"
 
 /**
  * @brief Static segment tree of convex hulls for max line queries on ranges.

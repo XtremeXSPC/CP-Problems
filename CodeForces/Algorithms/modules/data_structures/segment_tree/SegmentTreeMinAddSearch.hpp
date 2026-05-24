@@ -1,7 +1,7 @@
 #ifndef CP_MODULES_DATA_STRUCTURES_SEGMENT_TREE_MIN_ADD_SEARCH_HPP
 #define CP_MODULES_DATA_STRUCTURES_SEGMENT_TREE_MIN_ADD_SEARCH_HPP
 
-#include "_Common.hpp"
+#include "../_Common.hpp"
 
 /**
  * @brief Segment tree with range add and min/max-based positional search.

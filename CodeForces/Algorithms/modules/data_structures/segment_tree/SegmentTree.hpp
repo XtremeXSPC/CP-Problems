@@ -1,7 +1,7 @@
 #ifndef CP_MODULES_DATA_STRUCTURES_SEGMENT_TREE_HPP
 #define CP_MODULES_DATA_STRUCTURES_SEGMENT_TREE_HPP
 
-#include "_Common.hpp"
+#include "../_Common.hpp"
 
 /// @brief Iterative segment tree for point updates and range queries.
 template <typename T, typename F = std::plus<T>>

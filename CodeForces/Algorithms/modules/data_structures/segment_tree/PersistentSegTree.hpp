@@ -1,7 +1,7 @@
 #ifndef CP_MODULES_DATA_STRUCTURES_PERSISTENT_SEG_TREE_HPP
 #define CP_MODULES_DATA_STRUCTURES_PERSISTENT_SEG_TREE_HPP
 
-#include "_Common.hpp"
+#include "../_Common.hpp"
 
 /// @brief Persistent segment tree supporting versioned point updates.
 struct PersistentSegTree {

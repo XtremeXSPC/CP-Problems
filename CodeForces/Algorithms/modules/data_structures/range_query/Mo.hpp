@@ -1,7 +1,7 @@
 #ifndef CP_MODULES_DATA_STRUCTURES_MO_HPP
 #define CP_MODULES_DATA_STRUCTURES_MO_HPP
 
-#include "_Common.hpp"
+#include "../_Common.hpp"
 
 /**
  * @brief Mo's algorithm for offline range queries.

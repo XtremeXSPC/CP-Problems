@@ -1,7 +1,7 @@
 #ifndef CP_MODULES_DATA_STRUCTURES_SEGMENT_TREE_HULL_HPP
 #define CP_MODULES_DATA_STRUCTURES_SEGMENT_TREE_HULL_HPP
 
-#include "_Common.hpp"
+#include "../_Common.hpp"
 
 /**
  * @brief Segment tree with range assignment and max query over static line hulls.
@@ -9,7 +9,7 @@
  * @details
  *  - Each node stores a convex hull built from a contiguous segment of lines.
  *  - Update operation assigns one x value to a range, and each covered node keeps
- *   the value `max(m*x + c)` over its local hull.
+ *    the value `max(m*x + c)` over its local hull.
  *  - Query operation returns the maximum value over an index interval.
  *
  * @warning
@@ -91,7 +91,7 @@ private:
   void build(I32 u, I32 l, I32 r, const Vec<Pair<I64, I64>>& lines) {
     lazy[u] = 0;
     has_lazy[u] = false;
-    max_val[u] = NEG_INF;
+    max_val[u]  = NEG_INF;
 
     if (l == r) {
       hull_start[u] = isz(hull_m);
