@@ -34,6 +34,11 @@ from need_resolver import extract_need_macros_from_source, load_need_mapping  # 
 
 class FlattenerAuditTests(unittest.TestCase):
     def _project_header_graph(self) -> dict[str, list[str]]:
+        """Build a dependency graph of all project .hpp headers by scanning includes.
+
+        Only project-local .hpp targets are kept; the debug.h stub is allowed
+        because it is resolved outside the Algorithms tree at runtime.
+        """
         root = ALGORITHMS_DIR
         headers = sorted((root / "templates").rglob("*.hpp"))
         headers += sorted((root / "modules").glob("**/*.hpp"))

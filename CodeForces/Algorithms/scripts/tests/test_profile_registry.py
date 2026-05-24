@@ -23,9 +23,11 @@ def _write_toml(body: str) -> Path:
 
 class ProfileRegistryTests(unittest.TestCase):
     def setUp(self) -> None:
+        """Reset the profile registry cache before each test to avoid cross-test state."""
         profile_registry.reset_cache()
 
     def test_loads_default_profiles_toml(self) -> None:
+        """Default profiles.toml should parse with expected schema version and known profiles."""
         registry = profile_registry.load_registry()
         self.assertEqual(registry.schema_version, 1)
         self.assertIn("simple", registry.io_profiles)
@@ -36,6 +38,7 @@ class ProfileRegistryTests(unittest.TestCase):
         )
 
     def test_expand_scaffold_unions_io_needs(self) -> None:
+        """Expanding 'advanced' scaffold should include fast-I/O, ModInt, and bit-ops needs."""
         registry = profile_registry.load_registry()
         needs, defines = registry.expand_scaffold("advanced")
         self.assertIn("NEED_FAST_IO", needs)
@@ -44,6 +47,7 @@ class ProfileRegistryTests(unittest.TestCase):
         self.assertEqual(defines.get("CP_FAST_IO_ENABLE_MODINT"), 1)
 
     def test_config_defaults_apply_strict_overrides(self) -> None:
+        """Strict profile should disable global std namespace and enforce explicit NEED_* flags."""
         registry = profile_registry.load_registry()
         relaxed = registry.config_defaults_as_dict(strict=False)
         strict = registry.config_defaults_as_dict(strict=True)
@@ -52,12 +56,14 @@ class ProfileRegistryTests(unittest.TestCase):
         self.assertEqual(strict["CP_STRICT_TEMPLATE_NEEDS"], 1)
 
     def test_io_profile_to_needs_uses_macro_names(self) -> None:
+        """IO profile mapping should translate CP_IO_PROFILE_SIMPLE into NEED_IO tuple."""
         registry = profile_registry.load_registry()
         mapping = registry.io_profile_to_needs()
         self.assertIn("CP_IO_PROFILE_SIMPLE", mapping)
         self.assertEqual(mapping["CP_IO_PROFILE_SIMPLE"], ("NEED_IO",))
 
     def test_rejects_unsupported_schema_version(self) -> None:
+        """profiles.toml with unsupported schema_version should raise ValueError."""
         path = _write_toml("schema_version = 0\n")
         try:
             with self.assertRaisesRegex(ValueError, "schema_version"):
@@ -66,6 +72,7 @@ class ProfileRegistryTests(unittest.TestCase):
             path.unlink(missing_ok=True)
 
     def test_rejects_scaffold_referencing_unknown_io_profile(self) -> None:
+        """Scaffold that references a non-existent io_profile should raise ValueError."""
         path = _write_toml(
             """\
             schema_version = 1
@@ -85,6 +92,7 @@ class ProfileRegistryTests(unittest.TestCase):
             path.unlink(missing_ok=True)
 
     def test_rejects_non_int_default(self) -> None:
+        """Defaults section containing non-integer values should raise ValueError."""
         path = _write_toml(
             """\
             schema_version = 1
@@ -100,6 +108,7 @@ class ProfileRegistryTests(unittest.TestCase):
             path.unlink(missing_ok=True)
 
     def test_rejects_non_list_needs(self) -> None:
+        """io_profile with a string instead of a list for 'needs' should raise ValueError."""
         path = _write_toml(
             """\
             schema_version = 1
@@ -119,10 +128,12 @@ class GeneratedArtefactStalenessTests(unittest.TestCase):
     """Regenerate the committed outputs and assert nothing drifts from the spec."""
 
     def setUp(self) -> None:
+        """Reset cache and resolve the templates directory for every staleness test."""
         profile_registry.reset_cache()
         self.templates_dir = SCRIPTS_DIR.parent / "templates"
 
     def _backup_and_run(self, generator_module_name: str, output_paths: list[Path]) -> None:
+        """Import a generator, run it, and assert no drift from committed files."""
         import importlib
 
         module = importlib.import_module(generator_module_name)
@@ -143,15 +154,17 @@ class GeneratedArtefactStalenessTests(unittest.TestCase):
                 path.write_text(content, encoding="utf-8")
 
     def test_gen_config_outputs_match_committed_files(self) -> None:
+        """gen_config.py should not alter core/Config_defaults.hpp or Base_profiles.hpp."""
         self._backup_and_run(
             "gen_config",
             [
-                self.templates_dir / "Config_defaults.hpp",
+                self.templates_dir / "core" / "Config_defaults.hpp",
                 self.templates_dir / "Base_profiles.hpp",
             ],
         )
 
     def test_gen_scaffold_outputs_match_committed_files(self) -> None:
+        """gen_scaffold.py should not alter any committed cpp/ starter files."""
         registry = profile_registry.load_registry()
         scaffold_paths = [
             self.templates_dir / "cpp" / f"{name}.cpp"
