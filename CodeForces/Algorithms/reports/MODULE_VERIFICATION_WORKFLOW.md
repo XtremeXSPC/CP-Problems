@@ -85,15 +85,15 @@ Each module has a JSON manifest plus one or more `.cpp` probes.
 
 Supported case fields:
 
-| Field | Required | Description |
-| --- | --- | --- |
-| `name` | yes | case identifier shown in output |
-| `kind` | yes | `compile` or `run` |
-| `source` | yes | repo-relative path to the `.cpp` probe |
-| `stdin` | no | input fed to the process on `run` cases |
-| `expected_stdout` | no | exact stdout expected; failure if mismatched |
-| `expected_exit_code` | no | defaults to `0` |
-| `timeout_seconds` | no | kills the process if exceeded (requires `timeout`/`gtimeout`) |
+| Field                | Required | Description                                                   |
+| -------------------- | -------- | ------------------------------------------------------------- |
+| `name`               | yes      | case identifier shown in output                               |
+| `kind`               | yes      | `compile` or `run`                                            |
+| `source`             | yes      | repo-relative path to the `.cpp` probe                        |
+| `stdin`              | no       | input fed to the process on `run` cases                       |
+| `expected_stdout`    | no       | exact stdout expected; failure if mismatched                  |
+| `expected_exit_code` | no       | defaults to `0`                                               |
+| `timeout_seconds`    | no       | kills the process if exceeded (requires `timeout`/`gtimeout`) |
 
 Safety rules:
 

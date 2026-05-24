@@ -92,10 +92,10 @@ is present.
 
 These can be set independently of any profile:
 
-| Macro | Default | Requirement |
-| --- | --- | --- |
-| `CP_FAST_IO_ENABLE_MODINT` | `1` when `NEED_MOD_INT` is defined | none |
-| `CP_FAST_IO_ENABLE_STRONG_TYPE` | `0` | requires `CP_USE_ADVANCED` |
+| Macro                           | Default                            | Requirement                |
+| ------------------------------- | ---------------------------------- | -------------------------- |
+| `CP_FAST_IO_ENABLE_MODINT`      | `1` when `NEED_MOD_INT` is defined | none                       |
+| `CP_FAST_IO_ENABLE_STRONG_TYPE` | `0`                                | requires `CP_USE_ADVANCED` |
 
 Set them to `0` before the include to suppress a specific extension even when
 its parent feature is active:

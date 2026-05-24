@@ -25,7 +25,7 @@ cmake --preset algorithms-workspace-debug
 
 This writes the compilation database to:
 
-```
+```path
 CodeForces/Algorithms/build/workspace/debug/compile_commands.json
 ```
 
@@ -34,7 +34,7 @@ because the template surface relies on GNU-style headers such as `bits/stdc++.h`
 
 A symlink at the workspace root already points to it:
 
-```
+```path
 CodeForces/Algorithms/compile_commands.json -> build/workspace/debug/compile_commands.json
 ```
 
@@ -88,7 +88,7 @@ make all-probes
 
 After `cmake --preset algorithms-workspace-debug`, the configure step prints:
 
-```
+```example
 -- CP Algorithms Workspace configured:
 --   Verify probes   : <N>
 --   Header probes   : <N>

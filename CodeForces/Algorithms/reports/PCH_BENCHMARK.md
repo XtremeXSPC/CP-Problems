@@ -8,13 +8,13 @@ Compiler: GCC (`cp-debug-gcc` preset)
 
 Raw numbers (`reports/PCHBenchmarkResult.json`):
 
-| Scenario | PCH ON | PCH OFF |
-| --- | --- | --- |
-| Configure | 1.188s | 1.070s |
-| Cold build | 4.730s | 2.304s |
-| **Incremental build** | **0.867s** | **2.428s** |
-| Reconfigure | 0.104s | 0.110s |
-| Post-reconfigure build | 4.834s | 1.651s |
+| Scenario               | PCH ON     | PCH OFF    |
+| ---------------------- | ---------- | ---------- |
+| Configure              | 1.188s     | 1.070s     |
+| Cold build             | 4.730s     | 2.304s     |
+| **Incremental build**  | **0.867s** | **2.428s** |
+| Reconfigure            | 0.104s     | 0.110s     |
+| Post-reconfigure build | 4.834s     | 1.651s     |
 
 ## Interpretation
 
