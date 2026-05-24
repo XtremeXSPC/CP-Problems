@@ -1,0 +1,23 @@
+{
+  "name": "GroupFenwickTree",
+  "header": "modules/data_structures/fenwick/GroupFenwickTree.hpp",
+  "category": "data_structures",
+  "tags": [
+    "fenwick",
+    "group",
+    "abstraction"
+  ],
+  "cases": [
+    {
+      "name": "runtime",
+      "kind": "run",
+      "source": "verify/modules/data_structures/fenwick/GroupFenwickTree.runtime.cpp",
+      "timeout_seconds": 15.0
+    },
+    {
+      "name": "compile",
+      "kind": "compile",
+      "source": "verify/modules/data_structures/fenwick/GroupFenwickTree.compile.cpp"
+    }
+  ]
+}

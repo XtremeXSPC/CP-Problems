@@ -1,0 +1,23 @@
+{
+  "name": "MonoidSparseTable",
+  "header": "modules/data_structures/range_query/MonoidSparseTable.hpp",
+  "category": "data_structures",
+  "tags": [
+    "sparse_table",
+    "monoid",
+    "abstraction"
+  ],
+  "cases": [
+    {
+      "name": "runtime",
+      "kind": "run",
+      "source": "verify/modules/data_structures/range_query/MonoidSparseTable.runtime.cpp",
+      "timeout_seconds": 15.0
+    },
+    {
+      "name": "compile",
+      "kind": "compile",
+      "source": "verify/modules/data_structures/range_query/MonoidSparseTable.compile.cpp"
+    }
+  ]
+}

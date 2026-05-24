@@ -1,0 +1,23 @@
+{
+  "name": "DualFenwickTree",
+  "header": "modules/data_structures/fenwick/DualFenwickTree.hpp",
+  "category": "data_structures",
+  "tags": [
+    "fenwick",
+    "dual",
+    "range-update"
+  ],
+  "cases": [
+    {
+      "name": "runtime",
+      "kind": "run",
+      "source": "verify/modules/data_structures/fenwick/DualFenwickTree.runtime.cpp",
+      "timeout_seconds": 15.0
+    },
+    {
+      "name": "compile",
+      "kind": "compile",
+      "source": "verify/modules/data_structures/fenwick/DualFenwickTree.compile.cpp"
+    }
+  ]
+}

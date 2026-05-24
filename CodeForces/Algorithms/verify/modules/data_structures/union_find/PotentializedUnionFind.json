@@ -1,0 +1,23 @@
+{
+  "name": "PotentializedUnionFind",
+  "header": "modules/data_structures/union_find/PotentializedUnionFind.hpp",
+  "category": "data_structures",
+  "tags": [
+    "dsu",
+    "group",
+    "maspy-import"
+  ],
+  "cases": [
+    {
+      "name": "runtime",
+      "kind": "run",
+      "source": "verify/modules/data_structures/union_find/PotentializedUnionFind.runtime.cpp",
+      "timeout_seconds": 15.0
+    },
+    {
+      "name": "compile",
+      "kind": "compile",
+      "source": "verify/modules/data_structures/union_find/PotentializedUnionFind.compile.cpp"
+    }
+  ]
+}

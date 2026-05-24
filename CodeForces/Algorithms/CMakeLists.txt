@@ -125,17 +125,12 @@ if(CP_ALGORITHMS_ENABLE_VERIFY_PROBES)
 endif()
 
 if(CP_ALGORITHMS_ENABLE_HEADER_PROBES)
-  set(cp_algorithms_header_globs
-    "${CP_ALGORITHMS_ROOT}/templates/Base.hpp"
-    "${CP_ALGORITHMS_ROOT}/templates/advanced/*.hpp"
-    "${CP_ALGORITHMS_ROOT}/templates/core/*.hpp"
-    "${CP_ALGORITHMS_ROOT}/templates/modules/*.hpp"
+  file(GLOB_RECURSE cp_algorithms_public_headers CONFIGURE_DEPENDS
+    "${CP_ALGORITHMS_ROOT}/templates/*.hpp"
     "${CP_ALGORITHMS_ROOT}/modules/*.hpp"
-    "${CP_ALGORITHMS_ROOT}/modules/*/*.hpp"
     "${CP_ALGORITHMS_ROOT}/libs/*.h"
     "${CP_ALGORITHMS_ROOT}/libs/*.hpp"
   )
-  file(GLOB_RECURSE cp_algorithms_public_headers CONFIGURE_DEPENDS ${cp_algorithms_header_globs})
   foreach(header_path IN LISTS cp_algorithms_public_headers)
     cp_algorithms_generate_header_probe("${header_path}")
   endforeach()

@@ -1,0 +1,23 @@
+{
+  "name": "RangeAddFenwickTree",
+  "header": "modules/data_structures/fenwick/RangeAddFenwickTree.hpp",
+  "category": "data_structures",
+  "tags": [
+    "fenwick",
+    "range-add",
+    "range-query"
+  ],
+  "cases": [
+    {
+      "name": "runtime",
+      "kind": "run",
+      "source": "verify/modules/data_structures/fenwick/RangeAddFenwickTree.runtime.cpp",
+      "timeout_seconds": 15.0
+    },
+    {
+      "name": "compile",
+      "kind": "compile",
+      "source": "verify/modules/data_structures/fenwick/RangeAddFenwickTree.compile.cpp"
+    }
+  ]
+}

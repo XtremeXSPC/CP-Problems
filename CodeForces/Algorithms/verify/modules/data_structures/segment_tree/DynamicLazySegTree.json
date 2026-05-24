@@ -1,0 +1,23 @@
+{
+  "name": "DynamicLazySegTree",
+  "header": "modules/data_structures/segment_tree/DynamicLazySegTree.hpp",
+  "category": "data_structures",
+  "tags": [
+    "segment_tree",
+    "dynamic",
+    "lazy_propagation"
+  ],
+  "cases": [
+    {
+      "name": "runtime",
+      "kind": "run",
+      "source": "verify/modules/data_structures/segment_tree/DynamicLazySegTree.runtime.cpp",
+      "timeout_seconds": 15.0
+    },
+    {
+      "name": "compile",
+      "kind": "compile",
+      "source": "verify/modules/data_structures/segment_tree/DynamicLazySegTree.compile.cpp"
+    }
+  ]
+}

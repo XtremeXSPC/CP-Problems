@@ -1,0 +1,23 @@
+{
+  "name": "MonoidSegmentTree",
+  "header": "modules/data_structures/segment_tree/MonoidSegmentTree.hpp",
+  "category": "data_structures",
+  "tags": [
+    "segment_tree",
+    "monoid",
+    "abstraction"
+  ],
+  "cases": [
+    {
+      "name": "runtime",
+      "kind": "run",
+      "source": "verify/modules/data_structures/segment_tree/MonoidSegmentTree.runtime.cpp",
+      "timeout_seconds": 15.0
+    },
+    {
+      "name": "compile",
+      "kind": "compile",
+      "source": "verify/modules/data_structures/segment_tree/MonoidSegmentTree.compile.cpp"
+    }
+  ]
+}
