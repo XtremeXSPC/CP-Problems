@@ -1,0 +1,53 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "algorithms-workspace-debug",
+      "displayName": "Algorithms Workspace Debug",
+      "description": "CMake workspace for templates, module probes, and clangd compile_commands.",
+      "binaryDir": "${sourceDir}/build/workspace/debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_COMPILER": "/opt/homebrew/bin/g++-15",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CP_ALGORITHMS_ENABLE_VERIFY_PROBES": "ON",
+        "CP_ALGORITHMS_ENABLE_HEADER_PROBES": "ON",
+        "CP_ALGORITHMS_ENABLE_TEMPLATE_SCAFFOLDS": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "algorithms-workspace-verify",
+      "displayName": "Build Module Verification Probes",
+      "configurePreset": "algorithms-workspace-debug",
+      "targets": [
+        "cp_algorithms_verify_probes"
+      ]
+    },
+    {
+      "name": "algorithms-workspace-headers",
+      "displayName": "Build Header Probe Targets",
+      "configurePreset": "algorithms-workspace-debug",
+      "targets": [
+        "cp_algorithms_header_probes"
+      ]
+    },
+    {
+      "name": "algorithms-workspace-scaffolds",
+      "displayName": "Build Template Scaffold Targets",
+      "configurePreset": "algorithms-workspace-debug",
+      "targets": [
+        "cp_algorithms_template_scaffolds"
+      ]
+    },
+    {
+      "name": "algorithms-workspace-all-probes",
+      "displayName": "Build All Probe Families",
+      "configurePreset": "algorithms-workspace-debug",
+      "targets": [
+        "cp_algorithms_all_probes"
+      ]
+    }
+  ]
+}
