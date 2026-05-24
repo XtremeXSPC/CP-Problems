@@ -80,6 +80,7 @@ auto make_vec4(std::size_t n1, std::size_t n2, std::size_t n3, std::size_t n4, c
 #define all(x) (x).begin(), (x).end()
 #define rall(x) (x).rbegin(), (x).rend()
 #define sz(x) (I64)(x).size()
+#define isz(x) (I32)(x).size()
 #define len(x) sz(x)
 #define eb emplace_back
 #define elif else if
