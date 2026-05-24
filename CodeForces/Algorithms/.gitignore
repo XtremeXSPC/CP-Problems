@@ -5,3 +5,4 @@ lib/
 compile_commands.json
 *.DS_Store
 reports/Audits/
+reports/Internal/
