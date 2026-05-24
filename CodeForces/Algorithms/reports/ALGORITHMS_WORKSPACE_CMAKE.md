@@ -11,15 +11,13 @@ bootstrap used under `CodeForces/Rounds/*`.
 
 This workspace CMake layer exists primarily to:
 
-- generate a high-quality `compile_commands.json`
-- give clangd/language-server tooling real target context
+- generate a high-quality `compile_commands.json` for clangd and other language servers
+- give the language server real target context (include paths, C++ standard, flags)
 - register reusable verification probes under `verify/modules/`
 - register template scaffold sources under `templates/cpp/`
-- generate header probes so public headers inherit realistic compile flags
+- generate header probes so every public header appears in the compilation database
 
 ## 2. Configure
-
-Use:
 
 ```bash
 cmake --preset algorithms-workspace-debug
@@ -27,25 +25,34 @@ cmake --preset algorithms-workspace-debug
 
 This writes the compilation database to:
 
-- `CodeForces/Algorithms/build/workspace/debug/compile_commands.json`
+```
+CodeForces/Algorithms/build/workspace/debug/compile_commands.json
+```
 
 The default preset pins Homebrew GNU C++ (`/opt/homebrew/bin/g++-15`) on purpose
 because the template surface relies on GNU-style headers such as `bits/stdc++.h`.
 
-Recommended symlink targets for editor tooling:
+A symlink at the workspace root already points to it:
 
-- `CodeForces/Algorithms/compile_commands.json`
-- `CodeForces/Algorithms/.ide-configs/compile_commands.json`
+```
+CodeForces/Algorithms/compile_commands.json -> build/workspace/debug/compile_commands.json
+```
+
+Configure clangd to consume it by keeping `.clangd` at the workspace root. No
+manual symlink management is needed beyond the initial `cmake --preset`.
 
 ## 3. Build presets
 
-Verification probes:
+All probe targets are `EXCLUDE_FROM_ALL` — nothing builds unless explicitly
+requested.
+
+Module verification probes:
 
 ```bash
 cmake --build --preset algorithms-workspace-verify
 ```
 
-Header probes:
+Header probes (compile-tests one per public header):
 
 ```bash
 cmake --build --preset algorithms-workspace-headers
@@ -57,13 +64,58 @@ Template scaffold sources:
 cmake --build --preset algorithms-workspace-scaffolds
 ```
 
-## 4. Design notes
+All probe families at once:
 
-This workspace now registers three target families:
+```bash
+cmake --build --preset algorithms-workspace-all-probes
+```
 
-- verification probes from `verify/modules/*.cpp`
-- scaffold sources from `templates/cpp/*.cpp`
-- generated header probes for public headers
+Or via the Makefile shorthand from the workspace root:
 
-The generated header probes are mainly for compile database coverage and editor
-intelligence; they are not meant to replace focused runtime verification.
+```bash
+make all-probes
+```
+
+## 4. Probe families
+
+| Family    | CMake property                   | Source pattern            | Purpose                              |
+| --------- | -------------------------------- | ------------------------- | ------------------------------------ |
+| verify    | `CP_ALGORITHMS_VERIFY_TARGETS`   | `verify/modules/**/*.cpp` | compile + run module smoke tests     |
+| headers   | `CP_ALGORITHMS_HEADER_TARGETS`   | all public `.hpp`/`.h`    | ensure every header resolves cleanly |
+| scaffolds | `CP_ALGORITHMS_SCAFFOLD_TARGETS` | `templates/cpp/*.cpp`     | index template sources in clangd     |
+
+## 5. Configure-time summary
+
+After `cmake --preset algorithms-workspace-debug`, the configure step prints:
+
+```
+-- CP Algorithms Workspace configured:
+--   Verify probes   : <N>
+--   Header probes   : <N>
+--   Scaffold probes : <N>
+```
+
+Use these counts to verify that new headers and verify sources are being picked
+up correctly after reorganizations.
+
+## 6. Options
+
+All three probe families can be disabled independently:
+
+```bash
+cmake --preset algorithms-workspace-debug \
+  -DCP_ALGORITHMS_ENABLE_VERIFY_PROBES=OFF \
+  -DCP_ALGORITHMS_ENABLE_HEADER_PROBES=OFF \
+  -DCP_ALGORITHMS_ENABLE_TEMPLATE_SCAFFOLDS=OFF
+```
+
+## 7. Design notes
+
+The workspace INTERFACE library `cp_algorithms_workspace` owns the include paths
+and compiler flags. Every probe executable links against it privately, inheriting
+the same flags that a contest solution would see.
+
+This file is intentionally separate from the contest round bootstrap
+(`cmake/CPRoundBootstrap.cmake`). Round builds are driven by thin per-round
+`CMakeLists.txt` files; the workspace build is a permanent fixture of the
+library repository.
