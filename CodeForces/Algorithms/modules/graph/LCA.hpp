@@ -21,7 +21,7 @@ struct LCA {
     VecBool visited(n, false);
 
     // DFS to set up parent[0], depth and component id.
-    std::function<void(I32, I32, I32)> dfs = [&](I32 u, I32 p, I32 comp_id) {
+    Function<void(I32, I32, I32)> dfs = [&](I32 u, I32 p, I32 comp_id) {
       visited[u] = true;
       parent[0][u] = p;
       component[u] = comp_id;

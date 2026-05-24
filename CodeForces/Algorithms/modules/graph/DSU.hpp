@@ -5,7 +5,7 @@
 
 /// @brief Disjoint Set Union (Union-Find) with union by rank + path compression.
 struct DSU {
-  Vec<I32> parent, rank, size;
+  VecI32 parent, rank, size;
   I32 components;
 
   DSU(I32 n) : parent(n), rank(n, 0), size(n, 1), components(n) {

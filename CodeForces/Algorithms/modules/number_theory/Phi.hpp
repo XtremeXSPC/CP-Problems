@@ -17,8 +17,8 @@ inline I64 euler_phi(I64 n) {
 }
 
 /// @brief Computes totients for all values in [0, n].
-inline Vec<I32> euler_phi_sieve(I32 n) {
-  Vec<I32> phi(n + 1);
+inline VecI32 euler_phi_sieve(I32 n) {
+  VecI32 phi(n + 1);
   std::iota(all(phi), 0);
 
   FOR(i, 2, n + 1) {

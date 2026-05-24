@@ -34,10 +34,10 @@ inline I64 pollard_rho(I64 n) {
 }
 
 /// @brief Full prime factorization for 64-bit integer.
-inline Vec<I64> factorize(I64 n) {
-  Vec<I64> factors;
+inline VecI64 factorize(I64 n) {
+  VecI64 factors;
 
-  std::function<void(I64)> factor = [&](I64 x) {
+  Function<void(I64)> factor = [&](I64 x) {
     if (x == 1) return;
     if (miller_rabin(x)) {
       factors.push_back(x);

@@ -12,7 +12,7 @@
  * @Complexity: O(E log E).
  */
 template <typename Weight = I64>
-Pair<Weight, Vec<I32>> kruskal_mst(I32 n, const Vec<std::tuple<I32, I32, Weight>>& edges) {
+Pair<Weight, VecI32> kruskal_mst(I32 n, const Vec<Tuple<I32, I32, Weight>>& edges) {
   struct EdgeWithId {
     I32 u;
     I32 v;
@@ -33,7 +33,7 @@ Pair<Weight, Vec<I32>> kruskal_mst(I32 n, const Vec<std::tuple<I32, I32, Weight>
 
   DSU dsu(n);
   Weight total_weight = 0;
-  Vec<I32> mst_edges;
+  VecI32 mst_edges;
   if (n > 0) mst_edges.reserve(n - 1);
 
   for (const auto& e : sorted_edges) {

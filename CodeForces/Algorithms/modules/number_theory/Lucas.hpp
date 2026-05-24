@@ -6,7 +6,7 @@
 /// @brief Lucas theorem for binomial coefficients modulo prime.
 struct Lucas {
   I64 p;
-  Vec<I64> fact, inv_fact;
+  VecI64 fact, inv_fact;
 
   /// @brief Precomputes factorials modulo prime p for [0, p-1].
   Lucas(I64 prime) : p(prime), fact(p), inv_fact(p) {

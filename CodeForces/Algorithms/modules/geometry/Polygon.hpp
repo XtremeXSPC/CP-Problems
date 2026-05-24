@@ -111,18 +111,18 @@ Vec<Point2D<T>> convex_hull(Vec<Point2D<T>> points) {
 
 /// @brief Closest pair of points by divide-and-conquer.
 template <typename T>
-std::pair<Point2D<T>, Point2D<T>> closest_pair(Vec<Point2D<T>> points) {
+Pair<Point2D<T>, Point2D<T>> closest_pair(Vec<Point2D<T>> points) {
   I32 n = sz(points);
   if (n == 0) return {Point2D<T>{}, Point2D<T>{}};
   if (n == 1) return {points[0], points[0]};
   sort(all(points));
 
-  std::function<std::pair<Point2D<T>, Point2D<T>>(I32, I32)> solve =
-    [&](I32 l, I32 r) -> std::pair<Point2D<T>, Point2D<T>> {
+  Function<Pair<Point2D<T>, Point2D<T>>(I32, I32)> solve =
+    [&](I32 l, I32 r) -> Pair<Point2D<T>, Point2D<T>> {
 
     if (r - l <= 3) {
       T min_dist = infinity<T>;
-      std::pair<Point2D<T>, Point2D<T>> result;
+      Pair<Point2D<T>, Point2D<T>> result;
       FOR(i, l, r) {
         FOR(j, i + 1, r) {
           T d = (points[i] - points[j]).norm();
