@@ -14,7 +14,7 @@ struct DynamicBitset {
   void init(const I32 n) {
     n_bits = n;
     const I32 w = (n + 63) >> 6;
-    words.assign(as<Size>(w), 0);
+    words.assign(w, 0);
   }
 
   /// @brief Sets bit at position @p pos.
@@ -25,14 +25,14 @@ struct DynamicBitset {
 
   /// @brief Bitwise OR with @p other.
   inline void or_with(const DynamicBitset& other) {
-    const I32 w = as<I32>(words.size());
+    const I32 w = isz(words);
     for (I32 i = 0; i < w; ++i) words[i] |= other.words[i];
   }
 
   /// @brief Logical right shift by one bit.
   inline void shift_right_one() {
     U64 carry = 0;
-    for (I32 i = as<I32>(words.size()) - 1; i >= 0; --i) {
+    for (I32 i = isz(words) - 1; i >= 0; --i) {
       const U64 next_carry = (words[i] & U64(1)) << 63;
       words[i] = (words[i] >> 1) | carry;
       carry = next_carry;

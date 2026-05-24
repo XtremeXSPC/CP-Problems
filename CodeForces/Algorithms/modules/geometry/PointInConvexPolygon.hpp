@@ -11,9 +11,8 @@
  * ordered counter-clockwise, and without duplicated final vertex.
  */
 template <typename T>
-bool point_in_convex_polygon(
-    const Vec<Point2D<T>>& poly, const Point2D<T>& p, bool strict = false) {
-  I32 n = as<I32>(poly.size());
+bool point_in_convex_polygon(const Vec<Point2D<T>>& poly, const Point2D<T>& p, bool strict = false) {
+  I32 n = isz(poly);
   if (n < 3) return false;
 
   auto orient = [](const Point2D<T>& a, const Point2D<T>& b, const Point2D<T>& c) -> F80 {

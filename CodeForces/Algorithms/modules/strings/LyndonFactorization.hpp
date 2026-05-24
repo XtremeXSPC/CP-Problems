@@ -14,13 +14,13 @@
 /// @brief Returns factor ranges [l, r) of Lyndon factorization.
 inline VecPairI32 lyndon_factor_ranges(const String& s) {
   VecPairI32 ranges;
-  const I32 n = as<I32>(s.size());
+  const I32 n = isz(s);
   I32 i = 0;
   while (i < n) {
     I32 j = i + 1;
     I32 k = i;
-    while (j < n && s[as<Size>(k)] <= s[as<Size>(j)]) {
-      if (s[as<Size>(k)] < s[as<Size>(j)]) {
+    while (j < n && s[k] <= s[j]) {
+      if (s[k] < s[j]) {
         k = i;
       } else {
         ++k;
@@ -42,14 +42,14 @@ inline VecStr lyndon_factorization(const String& s) {
   VecStr factors;
   factors.reserve(ranges.size());
   for (const auto& [l, r] : ranges) {
-    factors.push_back(s.substr(as<Size>(l), as<Size>(r - l)));
+    factors.push_back(s.substr(l, (r - l)));
   }
   return factors;
 }
 
 /// @brief Returns index of lexicographically minimal cyclic shift.
 inline I32 minimal_cyclic_shift_index(const String& s) {
-  const I32 n = as<I32>(s.size());
+  const I32 n = isz(s);
   if (n == 0) return 0;
 
   String ss = s + s;
@@ -59,8 +59,8 @@ inline I32 minimal_cyclic_shift_index(const String& s) {
     ans = i;
     I32 j = i + 1;
     I32 k = i;
-    while (j < 2 * n && ss[as<Size>(k)] <= ss[as<Size>(j)]) {
-      if (ss[as<Size>(k)] < ss[as<Size>(j)]) {
+    while (j < 2 * n && ss[k] <= ss[j]) {
+      if (ss[k] < ss[j]) {
         k = i;
       } else {
         ++k;
@@ -76,7 +76,7 @@ inline I32 minimal_cyclic_shift_index(const String& s) {
 inline String minimal_cyclic_shift(const String& s) {
   if (s.empty()) return {};
   const I32 idx = minimal_cyclic_shift_index(s);
-  return s.substr(as<Size>(idx)) + s.substr(0, as<Size>(idx));
+  return s.substr(idx) + s.substr(0, idx);
 }
 
 #endif

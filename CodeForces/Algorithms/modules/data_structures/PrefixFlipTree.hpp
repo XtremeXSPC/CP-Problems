@@ -66,43 +66,43 @@ struct PrefixFlipTree {
 
 private:
   static auto make_leaves(const Vec<T>& values, const Vec<char>& active) -> Vec<Node> {
-    const I32 n = as<I32>(values.size());
+    const I32 n = isz(values);
     Vec<Node> leaves(n);
     FOR(i, n) {
-      if (active[as<Size>(i)]) {
-        leaves[as<Size>(i)] = {values[as<Size>(i)], values[as<Size>(i)]};
+      if (active[i]) {
+        leaves[i] = {values[i], values[i]};
       }
     }
     return leaves;
   }
 
   void apply(I32 node) {
-    const Node old = seg.tree[as<Size>(node)];
-    seg.tree[as<Size>(node)].mx = (old.mn == infinity<T> ? neg_infinity<T> : -old.mn);
-    seg.tree[as<Size>(node)].mn = (old.mx == neg_infinity<T> ? infinity<T> : -old.mx);
-    lazy[as<Size>(node)] ^= 1;
+    const Node old = seg.tree[node];
+    seg.tree[node].mx = (old.mn == infinity<T> ? neg_infinity<T> : -old.mn);
+    seg.tree[node].mn = (old.mx == neg_infinity<T> ? infinity<T> : -old.mx);
+    lazy[node] ^= 1;
   }
 
   void push(I32 node) {
-    if (!lazy[as<Size>(node)] || node >= seg.n) return;
+    if (!lazy[node] || node >= seg.n) return;
     apply(node << 1);
     apply(node << 1 | 1);
-    lazy[as<Size>(node)] = false;
+    lazy[node] = false;
   }
 
   void pull(I32 node) {
-    seg.tree[as<Size>(node)] = seg.op(
-        seg.tree[as<Size>(node << 1)],
-        seg.tree[as<Size>(node << 1 | 1)]);
+    seg.tree[node] = seg.op(
+        seg.tree[node << 1],
+        seg.tree[node << 1 | 1]);
   }
 
   auto first_positive(I32 node, I32 l, I32 r) -> I32 {
-    if (seg.tree[as<Size>(node)].mx <= T{}) return -1;
+    if (seg.tree[node].mx <= T{}) return -1;
     if (l + 1 == r) return l;
     push(node);
 
     const I32 mid = (l + r) >> 1;
-    if (seg.tree[as<Size>(node << 1)].mx > T{}) {
+    if (seg.tree[node << 1].mx > T{}) {
       return first_positive(node << 1, l, mid);
     }
     return first_positive(node << 1 | 1, mid, r);
@@ -110,7 +110,7 @@ private:
 
   void assign(I32 pos, Node value, I32 node, I32 l, I32 r) {
     if (l + 1 == r) {
-      seg.tree[as<Size>(node)] = value;
+      seg.tree[node] = value;
       return;
     }
     push(node);
@@ -138,13 +138,13 @@ private:
 
 template <typename T>
 auto prefix_flip_ops_for_signs_1based(const Vec<T>& values, const VecI32& signs) -> VecI32 {
-  const I32 n = as<I32>(values.size());
+  const I32 n = isz(values);
   Vec<char> active(n, false);
   I32 cnt = 0;
 
   FOR(i, n) {
-    if (signs[as<Size>(i)] == signs[as<Size>(i + 1)]) continue;
-    active[as<Size>(i)] = true;
+    if (signs[i] == signs[i + 1]) continue;
+    active[i] = true;
     ++cnt;
   }
 

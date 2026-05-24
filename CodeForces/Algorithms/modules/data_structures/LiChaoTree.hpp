@@ -56,39 +56,39 @@ struct LiChaoTree {
 private:
   I32 new_node() {
     nodes.push_back(Node{});
-    return as<I32>(nodes.size()) - 1;
+    return isz(nodes) - 1;
   }
 
   void add_line_internal(I32 v, I64 l, I64 r, Line nw) {
     I64 mid = l + (r - l) / 2;
-    bool left_better = nw.eval(l) < nodes[as<Size>(v)].ln.eval(l);
-    bool mid_better = nw.eval(mid) < nodes[as<Size>(v)].ln.eval(mid);
+    bool left_better = nw.eval(l) < nodes[v].ln.eval(l);
+    bool mid_better = nw.eval(mid) < nodes[v].ln.eval(mid);
 
-    if (mid_better) std::swap(nodes[as<Size>(v)].ln, nw);
+    if (mid_better) std::swap(nodes[v].ln, nw);
     if (l == r) return;
 
     if (left_better != mid_better) {
-      if (nodes[as<Size>(v)].left == -1) {
-        nodes[as<Size>(v)].left = new_node();
+      if (nodes[v].left == -1) {
+        nodes[v].left = new_node();
       }
-      add_line_internal(nodes[as<Size>(v)].left, l, mid, nw);
+      add_line_internal(nodes[v].left, l, mid, nw);
     } else {
-      if (nodes[as<Size>(v)].right == -1) {
-        nodes[as<Size>(v)].right = new_node();
+      if (nodes[v].right == -1) {
+        nodes[v].right = new_node();
       }
-      add_line_internal(nodes[as<Size>(v)].right, mid + 1, r, nw);
+      add_line_internal(nodes[v].right, mid + 1, r, nw);
     }
   }
 
   I64 query_internal(I32 v, I64 l, I64 r, I64 x) const {
-    I64 res = nodes[as<Size>(v)].ln.eval(x);
+    I64 res = nodes[v].ln.eval(x);
     if (l == r) return res;
     I64 mid = l + (r - l) / 2;
-    if (x <= mid && nodes[as<Size>(v)].left != -1) {
-      return std::min(res, query_internal(nodes[as<Size>(v)].left, l, mid, x));
+    if (x <= mid && nodes[v].left != -1) {
+      return std::min(res, query_internal(nodes[v].left, l, mid, x));
     }
-    if (x > mid && nodes[as<Size>(v)].right != -1) {
-      return std::min(res, query_internal(nodes[as<Size>(v)].right, mid + 1, r, x));
+    if (x > mid && nodes[v].right != -1) {
+      return std::min(res, query_internal(nodes[v].right, mid + 1, r, x));
     }
     return res;
   }

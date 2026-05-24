@@ -20,16 +20,16 @@ struct Dinic {
   };
 
   I32 n;
-  Vec<Vec<Edge>> g;
-  Vec<I32> level;
-  Vec<I32> ptr;
+  Vec2D<Edge> g;
+  VecI32 level;
+  VecI32 ptr;
 
   Dinic(I32 n) : n(n), g(n), level(n), ptr(n) {}
 
   /// @brief Adds a directed edge with capacity.
   void add_edge(I32 from, I32 to, Cap cap) {
-    I32 from_index = as<I32>(g[from].size());
-    I32 to_index = as<I32>(g[to].size());
+    I32 from_index = isz(g[from]);
+    I32 to_index = isz(g[to]);
     if (from == to) ++to_index;
     Edge fwd{to, to_index, cap};
     Edge rev{from, from_index, 0};
@@ -77,7 +77,7 @@ struct Dinic {
     Cap flow = 0;
     while (build_level_graph(source, sink)) {
       std::fill(all(ptr), 0);
-      while (Cap pushed = dfs(source, sink, std::numeric_limits<Cap>::max() / 4)) {
+      while (Cap pushed = dfs(source, sink, Limits<Cap>::max() / 4)) {
         flow += pushed;
       }
     }

@@ -24,16 +24,16 @@ struct XorBoundIntervals {
     limit = xor_limit;
     top_bit = ::bit_width(as<U32>(std::max(1, m))) - 1;
 
-    overlap.assign(as<Size>(limit), 0);
-    offset.assign(as<Size>(limit + 1), 0);
+    overlap.assign(limit, 0);
+    offset.assign((limit + 1), 0);
     intervals.clear();
-    intervals.reserve(as<Size>(limit) * 10);
+    intervals.reserve(limit * 10);
 
     VecPairI32 tmp;
     tmp.reserve(32);
 
     FOR(x, limit) {
-      offset[x] = as<I32>(intervals.size());
+      offset[x] = isz(intervals);
       collect_for_x(x, tmp);
 
       I32 covered = 0;
@@ -43,7 +43,7 @@ struct XorBoundIntervals {
       }
       overlap[x] = covered;
     }
-    offset[limit] = as<I32>(intervals.size());
+    offset[limit] = isz(intervals);
   }
 
   [[nodiscard]] inline auto overlap_count(const I32 x) const -> I32 { return overlap[x]; }

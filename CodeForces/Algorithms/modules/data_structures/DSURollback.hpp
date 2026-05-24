@@ -13,8 +13,8 @@
 struct DSURollback {
 private:
   struct Change {
-    I32 a = -1;      // Parent after merge.
-    I32 b = -1;      // Child root attached to 'a'.
+    I32 a = -1; // Parent after merge.
+    I32 b = -1; // Child root attached to 'a'.
     I32 size_a = 0;  // Size[a] before merge.
   };
 
@@ -29,16 +29,16 @@ public:
 
   void init(I32 n) {
     n = std::max<I32>(n, 0);
-    parent.resize(as<Size>(n));
+    parent.resize(n);
     std::iota(all(parent), 0);
-    size.assign(as<Size>(n), 1);
+    size.assign(n, 1);
     history.clear();
     components = n;
   }
 
   I32 find(I32 v) const {
-    while (parent[as<Size>(v)] != v) {
-      v = parent[as<Size>(v)];
+    while (parent[v] != v) {
+      v = parent[v];
     }
     return v;
   }
@@ -51,13 +51,13 @@ public:
       return false;
     }
 
-    if (size[as<Size>(a)] < size[as<Size>(b)]) {
+    if (size[a] < size[b]) {
       std::swap(a, b);
     }
 
-    history.push_back(Change{a, b, size[as<Size>(a)]});
-    parent[as<Size>(b)] = a;
-    size[as<Size>(a)] += size[as<Size>(b)];
+    history.push_back(Change{a, b, size[a]});
+    parent[b] = a;
+    size[a] += size[b];
     --components;
     return true;
   }
@@ -70,23 +70,25 @@ public:
     while (history.size() > snap) {
       Change ch = history.back();
       history.pop_back();
-      if (ch.a == -1) continue;  // no-op merge
+      if (ch.a == -1)
+        continue; // no-op merge
 
-      parent[as<Size>(ch.b)] = ch.b;
-      size[as<Size>(ch.a)] = ch.size_a;
+      parent[ch.b] = ch.b;
+      size[ch.a]   = ch.size_a;
       ++components;
     }
   }
 
   /// @brief Reverts the last unite() call (if any).
   void rollback_one() {
-    if (history.empty()) return;
+    if (history.empty())
+      return;
     rollback(history.size() - 1);
   }
 
   bool connected(I32 a, I32 b) const { return find(a) == find(b); }
 
-  I32 component_size(I32 v) const { return size[as<Size>(find(v))]; }
+  I32 component_size(I32 v) const { return size[find(v)]; }
 
   I32 num_components() const { return components; }
 };

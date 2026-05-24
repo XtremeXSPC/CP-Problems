@@ -36,7 +36,7 @@ inline void write(const Pair<T, U>& p) {
 
 template <class T>
 inline void write(const Vec<T>& v) {
-  for (I64 i = 0; i < as<I64>(v.size()); ++i) {
+  for (I64 i = 0; i < sz(v); ++i) {
     if (i)
       write(' ');
     write(v[i]);

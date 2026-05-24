@@ -17,10 +17,10 @@ struct SparseDeltaSweep {
   void init(const I32 max_pos) {
     my_assert(max_pos >= 0);
     max_position = max_pos;
-    delta.assign(as<Size>(max_position + 1), 0);
-    stamp.assign(as<Size>(max_position + 1), 0);
+    delta.assign((max_position + 1), 0);
+    stamp.assign((max_position + 1), 0);
     used_positions.clear();
-    used_positions.reserve(as<Size>(max_position + 1));
+    used_positions.reserve((max_position + 1));
     round_id = 1;
   }
 
@@ -37,12 +37,12 @@ struct SparseDeltaSweep {
   /// @brief Adds @p delta_value to the difference-array event at @p position.
   inline void add(const I32 position, const I32 delta_value) {
     my_assert(0 <= position && position <= max_position);
-    if (stamp[as<Size>(position)] != round_id) {
-      stamp[as<Size>(position)] = round_id;
-      delta[as<Size>(position)] = 0;
+    if (stamp[position] != round_id) {
+      stamp[position] = round_id;
+      delta[position] = 0;
       used_positions.push_back(position);
     }
-    delta[as<Size>(position)] += delta_value;
+    delta[position] += delta_value;
   }
 
   /// @brief Computes sum_{j=0..right_inclusive} cover(j)^2 from the current round events.
@@ -61,7 +61,7 @@ struct SparseDeltaSweep {
         const I64 len = as<I64>(pos - last);
         result += as<I128>(len) * active * active;
       }
-      active += delta[as<Size>(pos)];
+      active += delta[pos];
       last = pos;
     }
 

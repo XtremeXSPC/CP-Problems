@@ -34,7 +34,7 @@ inline I64 discrete_log(I64 a, I64 b, I64 m) {
   FOR(i, n) an = as<I64>((as<__int128>(an) * a) % m);
 
   UnorderedMap<I64, I64> values;
-  values.reserve(as<Size>(n + 1));
+  values.reserve((n + 1));
   I64 cur = b;
   FOR(q, n + 1) {
     values[cur] = q;

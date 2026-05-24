@@ -25,7 +25,7 @@ struct TarjanSCC {
   explicit TarjanSCC(I32 n = 0) { init(n); }
 
   explicit TarjanSCC(const Vec2D<I32>& g) {
-    init(as<I32>(g.size()));
+    init(isz(g));
     adj = g;
   }
 
@@ -33,19 +33,19 @@ struct TarjanSCC {
   explicit TarjanSCC(const Graph<Weight>& g) {
     init(g.n);
     FOR(v, g.n) {
-      for (const auto& e : g.adj[as<Size>(v)]) {
-        adj[as<Size>(v)].push_back(e.to);
+      for (const auto& e : g.adj[v]) {
+        adj[v].push_back(e.to);
       }
     }
   }
 
   void init(I32 vertices) {
     n = std::max<I32>(vertices, 0);
-    adj.assign(as<Size>(n), VecI32{});
-    index.assign(as<Size>(n), -1);
-    low.assign(as<Size>(n), 0);
-    comp.assign(as<Size>(n), -1);
-    on_stack.assign(as<Size>(n), false);
+    adj.assign(n, VecI32{});
+    index.assign(n, -1);
+    low.assign(n, 0);
+    comp.assign(n, -1);
+    on_stack.assign(n, false);
     while (!st.empty()) st.pop();
     timer = 0;
     comp_cnt = 0;
@@ -54,15 +54,15 @@ struct TarjanSCC {
 
   void add_edge(I32 u, I32 v) {
     if (u < 0 || u >= n || v < 0 || v >= n) return;
-    adj[as<Size>(u)].push_back(v);
+    adj[u].push_back(v);
   }
 
   /// @brief Runs SCC decomposition and returns comp[v] for each vertex.
   const VecI32& build() {
-    index.assign(as<Size>(n), -1);
-    low.assign(as<Size>(n), 0);
-    comp.assign(as<Size>(n), -1);
-    on_stack.assign(as<Size>(n), false);
+    index.assign(n, -1);
+    low.assign(n, 0);
+    comp.assign(n, -1);
+    on_stack.assign(n, false);
     while (!st.empty()) st.pop();
     timer = 0;
     comp_cnt = 0;
@@ -75,7 +75,7 @@ struct TarjanSCC {
     };
 
     for (I32 start = 0; start < n; ++start) {
-      if (index[as<Size>(start)] != -1) continue;
+      if (index[start] != -1) continue;
       Stack<Frame> dfs;
       dfs.push({start, 0, -1});
 
@@ -84,35 +84,35 @@ struct TarjanSCC {
         dfs.pop();
         I32 v = cur.v;
 
-        if (cur.it == 0 && index[as<Size>(v)] == -1) {
-          index[as<Size>(v)] = low[as<Size>(v)] = timer++;
+        if (cur.it == 0 && index[v] == -1) {
+          index[v] = low[v] = timer++;
           st.push(v);
-          on_stack[as<Size>(v)] = true;
+          on_stack[v] = true;
         }
 
-        if (cur.it < as<I32>(adj[as<Size>(v)].size())) {
-          I32 to = adj[as<Size>(v)][as<Size>(cur.it)];
+        if (cur.it < isz(adj[v])) {
+          I32 to = adj[v][cur.it];
           dfs.push({v, cur.it + 1, cur.parent});
-          if (index[as<Size>(to)] == -1) {
+          if (index[to] == -1) {
             dfs.push({to, 0, v});
-          } else if (on_stack[as<Size>(to)]) {
-            low[as<Size>(v)] = std::min(low[as<Size>(v)], index[as<Size>(to)]);
+          } else if (on_stack[to]) {
+            low[v] = std::min(low[v], index[to]);
           }
           continue;
         }
 
         if (cur.parent != -1) {
-          low[as<Size>(cur.parent)] = std::min(
-              low[as<Size>(cur.parent)], low[as<Size>(v)]);
+          low[cur.parent] = std::min(
+              low[cur.parent], low[v]);
         }
 
-        if (low[as<Size>(v)] == index[as<Size>(v)]) {
+        if (low[v] == index[v]) {
           components.push_back({});
           while (true) {
             I32 u = st.top();
             st.pop();
-            on_stack[as<Size>(u)] = false;
-            comp[as<Size>(u)] = comp_cnt;
+            on_stack[u] = false;
+            comp[u] = comp_cnt;
             components.back().push_back(u);
             if (u == v) break;
           }

@@ -10,15 +10,15 @@
  * which is also a suffix of s[0..i]. Complexity: O(n).
  */
 inline VecI32 prefix_function(const String& s) {
-  I32 n = as<I32>(s.size());
-  VecI32 pi(as<Size>(n), 0);
+  I32 n = isz(s);
+  VecI32 pi(n, 0);
   FOR(i, 1, n) {
-    I32 j = pi[as<Size>(i - 1)];
-    while (j > 0 && s[as<Size>(i)] != s[as<Size>(j)]) {
-      j = pi[as<Size>(j - 1)];
+    I32 j = pi[i - 1];
+    while (j > 0 && s[i] != s[j]) {
+      j = pi[j - 1];
     }
-    if (s[as<Size>(i)] == s[as<Size>(j)]) ++j;
-    pi[as<Size>(i)] = j;
+    if (s[i] == s[j]) ++j;
+    pi[i] = j;
   }
   return pi;
 }

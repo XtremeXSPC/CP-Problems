@@ -78,7 +78,7 @@ struct Mobius {
   /// @brief Computes weights w[T] = sum_{d|gcd(T, value)} mu(T/d) for T in [1..limit].
   [[nodiscard]] auto build_divisibility_weights(const I64 value, const I32 limit) const -> VecI32 {
     my_assert(limit <= n);
-    VecI32 weights(as<Size>(limit + 1), 0);
+    VecI32 weights((limit + 1), 0);
     if (value <= 0 || limit <= 0) return weights;
 
     const VecI32 divisors = divisors_up_to_limit(value, limit);

@@ -17,23 +17,23 @@ inline Optional<VecI32> eulerian_path_undirected(I32 n, const Vec<PairI32>& edge
   if (n < 0) return std::nullopt;
   if (n == 0) return VecI32{};
 
-  const I32 m = as<I32>(edges.size());
-  Vec2D<PairI32> adj(as<Size>(n));  // {to, edge_id}
-  VecI32 deg(as<Size>(n), 0);
+  const I32 m = isz(edges);
+  Vec2D<PairI32> adj(n);  // {to, edge_id}
+  VecI32 deg(n, 0);
 
   FOR(id, m) {
-    auto [u, v] = edges[as<Size>(id)];
+    auto [u, v] = edges[id];
     if (u < 0 || u >= n || v < 0 || v >= n) return std::nullopt;
-    adj[as<Size>(u)].push_back({v, id});
-    adj[as<Size>(v)].push_back({u, id});
-    ++deg[as<Size>(u)];
-    ++deg[as<Size>(v)];
+    adj[u].push_back({v, id});
+    adj[v].push_back({u, id});
+    ++deg[u];
+    ++deg[v];
   }
 
   VecI32 odd;
   odd.reserve(2);
   FOR(v, n) {
-    if (deg[as<Size>(v)] & 1) odd.push_back(v);
+    if (deg[v] & 1) odd.push_back(v);
   }
   if (!(odd.empty() || odd.size() == 2)) return std::nullopt;
 
@@ -42,7 +42,7 @@ inline Optional<VecI32> eulerian_path_undirected(I32 n, const Vec<PairI32>& edge
     start = odd[0];
   } else {
     FOR(v, n) {
-      if (deg[as<Size>(v)] > 0) {
+      if (deg[v] > 0) {
         start = v;
         break;
       }
@@ -51,55 +51,54 @@ inline Optional<VecI32> eulerian_path_undirected(I32 n, const Vec<PairI32>& edge
   }
 
   // Connectivity check on vertices with deg > 0.
-  VecBool vis(as<Size>(n), false);
+  VecBool vis(n, false);
   Stack<I32> dfs;
   dfs.push(start);
-  vis[as<Size>(start)] = true;
+  vis[start] = true;
   while (!dfs.empty()) {
     I32 v = dfs.top();
     dfs.pop();
-    for (const auto& [to, id] : adj[as<Size>(v)]) {
+    for (const auto& [to, id] : adj[v]) {
       (void)id;
-      if (!vis[as<Size>(to)]) {
-        vis[as<Size>(to)] = true;
+      if (!vis[to]) {
+        vis[to] = true;
         dfs.push(to);
       }
     }
   }
   FOR(v, n) {
-    if (deg[as<Size>(v)] > 0 && !vis[as<Size>(v)]) {
+    if (deg[v] > 0 && !vis[v]) {
       return std::nullopt;
     }
   }
 
-  VecBool used(as<Size>(m), false);
-  VecI32 it(as<Size>(n), 0);
+  VecBool used(m, false);
+  VecI32 it(n, 0);
   VecI32 path;
-  path.reserve(as<Size>(m + 1));
+  path.reserve((m + 1));
 
   Stack<I32> st;
   st.push(start);
   while (!st.empty()) {
     I32 v = st.top();
-    auto& idx = it[as<Size>(v)];
-    while (idx < as<I32>(adj[as<Size>(v)].size()) &&
-           used[as<Size>(
-               adj[as<Size>(v)][as<Size>(idx)].second)]) {
+    auto& idx = it[v];
+    while (idx < isz(adj[v]) &&
+           used[adj[v][idx].second]) {
       ++idx;
     }
-    if (idx == as<I32>(adj[as<Size>(v)].size())) {
+    if (idx == isz(adj[v])) {
       path.push_back(v);
       st.pop();
       continue;
     }
 
-    auto [to, id] = adj[as<Size>(v)][as<Size>(idx++)];
-    if (used[as<Size>(id)]) continue;
-    used[as<Size>(id)] = true;
+    auto [to, id] = adj[v][idx++];
+    if (used[id]) continue;
+    used[id] = true;
     st.push(to);
   }
 
-  if (as<I32>(path.size()) != m + 1) return std::nullopt;
+  if (isz(path) != m + 1) return std::nullopt;
   std::reverse(all(path));
   return path;
 }
@@ -108,26 +107,26 @@ inline Optional<VecI32> eulerian_path_directed(I32 n, const Vec<PairI32>& edges)
   if (n < 0) return std::nullopt;
   if (n == 0) return VecI32{};
 
-  const I32 m = as<I32>(edges.size());
-  Vec2D<PairI32> adj(as<Size>(n));      // {to, edge_id}
-  Vec2D<I32> und_adj(as<Size>(n));        // weak connectivity check
-  VecI32 in_deg(as<Size>(n), 0);
-  VecI32 out_deg(as<Size>(n), 0);
+  const I32 m = isz(edges);
+  Vec2D<PairI32> adj(n);      // {to, edge_id}
+  Vec2D<I32> und_adj(n);        // weak connectivity check
+  VecI32 in_deg(n, 0);
+  VecI32 out_deg(n, 0);
 
   FOR(id, m) {
-    auto [u, v] = edges[as<Size>(id)];
+    auto [u, v] = edges[id];
     if (u < 0 || u >= n || v < 0 || v >= n) return std::nullopt;
-    adj[as<Size>(u)].push_back({v, id});
-    und_adj[as<Size>(u)].push_back(v);
-    und_adj[as<Size>(v)].push_back(u);
-    ++out_deg[as<Size>(u)];
-    ++in_deg[as<Size>(v)];
+    adj[u].push_back({v, id});
+    und_adj[u].push_back(v);
+    und_adj[v].push_back(u);
+    ++out_deg[u];
+    ++in_deg[v];
   }
 
   I32 start = -1;
   I32 finish = -1;
   FOR(v, n) {
-    I32 diff = out_deg[as<Size>(v)] - in_deg[as<Size>(v)];
+    I32 diff = out_deg[v] - in_deg[v];
     if (diff == 1) {
       if (start != -1) return std::nullopt;
       start = v;
@@ -142,7 +141,7 @@ inline Optional<VecI32> eulerian_path_directed(I32 n, const Vec<PairI32>& edges)
 
   if (start == -1) {
     FOR(v, n) {
-      if (out_deg[as<Size>(v)] > 0) {
+      if (out_deg[v] > 0) {
         start = v;
         break;
       }
@@ -151,54 +150,54 @@ inline Optional<VecI32> eulerian_path_directed(I32 n, const Vec<PairI32>& edges)
   }
 
   /// @brief Weak connectivity check on active vertices (in_deg + out_deg > 0).
-  VecBool vis(as<Size>(n), false);
+  VecBool vis(n, false);
   Stack<I32> dfs;
   dfs.push(start);
-  vis[as<Size>(start)] = true;
+  vis[start] = true;
   while (!dfs.empty()) {
     I32 v = dfs.top();
     dfs.pop();
-    for (I32 to : und_adj[as<Size>(v)]) {
-      if (!vis[as<Size>(to)]) {
-        vis[as<Size>(to)] = true;
+    for (I32 to : und_adj[v]) {
+      if (!vis[to]) {
+        vis[to] = true;
         dfs.push(to);
       }
     }
   }
   FOR(v, n) {
-    if (in_deg[as<Size>(v)] + out_deg[as<Size>(v)] > 0 &&
-        !vis[as<Size>(v)]) {
+    if (in_deg[v] + out_deg[v] > 0 &&
+        !vis[v]) {
       return std::nullopt;
     }
   }
 
-  VecBool used(as<Size>(m), false);
-  VecI32 it(as<Size>(n), 0);
+  VecBool used(m, false);
+  VecI32 it(n, 0);
   VecI32 path;
-  path.reserve(as<Size>(m + 1));
+  path.reserve((m + 1));
 
   Stack<I32> st;
   st.push(start);
   while (!st.empty()) {
     I32 v = st.top();
-    auto& idx = it[as<Size>(v)];
-    while (idx < as<I32>(adj[as<Size>(v)].size()) &&
-           used[as<Size>( adj[as<Size>(v)][as<Size>(idx)].second)]) {
+    auto& idx = it[v];
+    while (idx < isz(adj[v]) &&
+           used[adj[v][idx].second]) {
       ++idx;
     }
-    if (idx == as<I32>(adj[as<Size>(v)].size())) {
+    if (idx == isz(adj[v])) {
       path.push_back(v);
       st.pop();
       continue;
     }
 
-    auto [to, id] = adj[as<Size>(v)][as<Size>(idx++)];
-    if (used[as<Size>(id)]) continue;
-    used[as<Size>(id)] = true;
+    auto [to, id] = adj[v][idx++];
+    if (used[id]) continue;
+    used[id] = true;
     st.push(to);
   }
 
-  if (as<I32>(path.size()) != m + 1) return std::nullopt;
+  if (isz(path) != m + 1) return std::nullopt;
   std::reverse(all(path));
   return path;
 }

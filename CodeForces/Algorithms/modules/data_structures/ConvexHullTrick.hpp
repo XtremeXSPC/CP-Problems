@@ -34,8 +34,8 @@ struct ConvexHullTrick {
     Line ln{m, b};
     while (hull.size() >= 2 && bad(hull[hull.size() - 2], hull[hull.size() - 1], ln)) {
       hull.pop_back();
-      if (ptr > as<I32>(hull.size()) - 1) {
-        ptr = std::max<I32>(0, as<I32>(hull.size()) - 1);
+      if (ptr > isz(hull) - 1) {
+        ptr = std::max<I32>(0, isz(hull) - 1);
       }
     }
     hull.push_back(ln);
@@ -44,10 +44,10 @@ struct ConvexHullTrick {
   /// @brief Queries minimum y at x. Query x values must be non-decreasing.
   I64 query(I64 x) {
     my_assert(!hull.empty());
-    while (ptr + 1 < as<I32>(hull.size()) && hull[as<Size>(ptr + 1)].eval(x) <= hull[as<Size>(ptr)].eval(x)) {
+    while (ptr + 1 < isz(hull) && hull[ptr + 1].eval(x) <= hull[ptr].eval(x)) {
       ++ptr;
     }
-    return hull[as<Size>(ptr)].eval(x);
+    return hull[ptr].eval(x);
   }
 };
 

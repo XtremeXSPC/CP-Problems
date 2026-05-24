@@ -16,7 +16,7 @@ inline I64 garner(const Vec<I64>& residues, const Vec<I64>& moduli, I64 result_m
   if (result_mod <= 0) return -1;
   if (residues.empty()) return 0;
 
-  I32 k = as<I32>(residues.size());
+  I32 k = isz(residues);
   FOR(i, k) {
     if (moduli[i] <= 1) return -1;
   }
@@ -35,8 +35,8 @@ inline I64 garner(const Vec<I64>& residues, const Vec<I64>& moduli, I64 result_m
   Vec<I64> mods = moduli;
   mods.push_back(result_mod);
 
-  Vec<I64> coeffs(as<Size>(k + 1), 1);
-  Vec<I64> constants(as<Size>(k + 1), 0);
+  Vec<I64> coeffs((k + 1), 1);
+  Vec<I64> constants((k + 1), 0);
 
   FOR(i, k) {
     I64 mi = mods[i];
