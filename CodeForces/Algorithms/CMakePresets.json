@@ -2,17 +2,61 @@
   "version": 6,
   "configurePresets": [
     {
-      "name": "algorithms-workspace-debug",
-      "displayName": "Algorithms Workspace Debug",
-      "description": "CMake workspace for templates, module probes, and clangd compile_commands.",
-      "binaryDir": "${sourceDir}/build/workspace/debug",
+      "name": "algorithms-workspace-base",
+      "hidden": true,
+      "description": "Shared workspace configuration. Compiler is discovered from PATH; override CMAKE_CXX_COMPILER on the command line if a specific toolchain is required.",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_CXX_COMPILER": "/opt/homebrew/bin/g++-15",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "CP_ALGORITHMS_ENABLE_VERIFY_PROBES": "ON",
         "CP_ALGORITHMS_ENABLE_HEADER_PROBES": "ON",
         "CP_ALGORITHMS_ENABLE_TEMPLATE_SCAFFOLDS": "ON"
+      }
+    },
+    {
+      "name": "algorithms-workspace-debug",
+      "displayName": "Algorithms Workspace Debug",
+      "description": "Default probe build used by clangd. Uses the central GCC toolchain so compile_commands.json mirrors what contest builds see (bits/stdc++.h, PBDS).",
+      "inherits": "algorithms-workspace-base",
+      "binaryDir": "${sourceDir}/build/workspace/debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/gcc-toolchain.cmake"
+      }
+    },
+    {
+      "name": "algorithms-workspace-release",
+      "displayName": "Algorithms Workspace Release",
+      "description": "Compiles every probe with -O2. Useful to catch UB that only triggers under optimization.",
+      "inherits": "algorithms-workspace-base",
+      "binaryDir": "${sourceDir}/build/workspace/release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/gcc-toolchain.cmake"
+      }
+    },
+    {
+      "name": "algorithms-workspace-sanitize",
+      "displayName": "Algorithms Workspace Sanitize",
+      "description": "Runtime probes compiled with AddressSanitizer + UBSan. PCH is auto-disabled so probe flags stay coherent.",
+      "inherits": "algorithms-workspace-base",
+      "binaryDir": "${sourceDir}/build/workspace/sanitize",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CP_ALGORITHMS_ENABLE_PROBE_SANITIZERS": "ON",
+        "CP_ALGORITHMS_ENABLE_PROBE_PCH": "OFF",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/clang-toolchain.cmake"
+      }
+    },
+    {
+      "name": "algorithms-workspace-timing",
+      "displayName": "Algorithms Workspace Timing",
+      "description": "Emits -ftime-report / -ftime-trace per probe TU. Diagnostic only — slow.",
+      "inherits": "algorithms-workspace-base",
+      "binaryDir": "${sourceDir}/build/workspace/timing",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CP_ALGORITHMS_ENABLE_TIMING": "ON",
+        "CP_ALGORITHMS_ENABLE_PROBE_PCH": "OFF"
       }
     }
   ],
@@ -21,33 +65,59 @@
       "name": "algorithms-workspace-verify",
       "displayName": "Build Module Verification Probes",
       "configurePreset": "algorithms-workspace-debug",
-      "targets": [
-        "cp_algorithms_verify_probes"
-      ]
+      "targets": ["cp_algorithms_verify_probes"]
     },
     {
       "name": "algorithms-workspace-headers",
       "displayName": "Build Header Probe Targets",
       "configurePreset": "algorithms-workspace-debug",
-      "targets": [
-        "cp_algorithms_header_probes"
-      ]
+      "targets": ["cp_algorithms_header_probes"]
     },
     {
       "name": "algorithms-workspace-scaffolds",
       "displayName": "Build Template Scaffold Targets",
       "configurePreset": "algorithms-workspace-debug",
-      "targets": [
-        "cp_algorithms_template_scaffolds"
-      ]
+      "targets": ["cp_algorithms_template_scaffolds"]
     },
     {
       "name": "algorithms-workspace-all-probes",
       "displayName": "Build All Probe Families",
       "configurePreset": "algorithms-workspace-debug",
-      "targets": [
-        "cp_algorithms_all_probes"
-      ]
+      "targets": ["cp_algorithms_all_probes"]
+    },
+    {
+      "name": "algorithms-workspace-release-all",
+      "displayName": "Build All Probes (Release)",
+      "configurePreset": "algorithms-workspace-release",
+      "targets": ["cp_algorithms_all_probes"]
+    },
+    {
+      "name": "algorithms-workspace-sanitize-verify",
+      "displayName": "Build Verify Probes (Sanitized)",
+      "configurePreset": "algorithms-workspace-sanitize",
+      "targets": ["cp_algorithms_verify_probes"]
+    },
+    {
+      "name": "algorithms-workspace-timing-all",
+      "displayName": "Build All Probes (Timing)",
+      "configurePreset": "algorithms-workspace-timing",
+      "targets": ["cp_algorithms_all_probes"]
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "algorithms-workspace-tests",
+      "displayName": "Run Workspace Runtime Probes",
+      "configurePreset": "algorithms-workspace-debug",
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error", "stopOnFailure": false }
+    },
+    {
+      "name": "algorithms-workspace-tests-sanitize",
+      "displayName": "Run Workspace Runtime Probes (Sanitized)",
+      "configurePreset": "algorithms-workspace-sanitize",
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error", "stopOnFailure": false }
     }
   ]
 }

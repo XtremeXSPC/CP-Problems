@@ -197,9 +197,11 @@ if(NOT IS_APPLE_CLANG AND APPLE)
         if(_LLVM_LINKER_FLAGS_INDEX EQUAL -1)
             set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${_LLVM_LINKER_FLAGS}" CACHE STRING "" FORCE)
         endif()
+        unset(_LLVM_LINKER_FLAGS_INDEX)
     else()
         set(CMAKE_EXE_LINKER_FLAGS "${_LLVM_LINKER_FLAGS}" CACHE STRING "" FORCE)
     endif()
+    unset(_LLVM_LINKER_FLAGS)
 
     # Use LLVM's libc++ instead of system.
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++" CACHE STRING "" FORCE)

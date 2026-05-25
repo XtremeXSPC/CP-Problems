@@ -39,7 +39,7 @@ function(cp_add_problem TARGET_NAME SOURCE_FILE)
   )
 
   # ----- Precompiled Header Integration ----- #
-set(USE_PCH_FOR_TARGET FALSE)
+  set(USE_PCH_FOR_TARGET FALSE)
   set(PCH_REASON "")
 
   # Determine if this target should use PCH.
@@ -166,6 +166,15 @@ set(USE_PCH_FOR_TARGET FALSE)
     $<$<CONFIG:Sanitize>:${SANITIZE_FLAGS}>
   )
 
+  # Subset of SANITIZE_FLAGS that must also be passed to the linker.
+  # The full list (-g, -O1, -fno-omit-frame-pointer, ...) is compile-only.
+  set(SANITIZE_LINK_FLAGS "")
+  foreach(_san_flag IN LISTS SANITIZE_FLAGS)
+    if(_san_flag MATCHES "^-fsanitize")
+      list(APPEND SANITIZE_LINK_FLAGS "${_san_flag}")
+    endif()
+  endforeach()
+
   # ----- Include directories ----- #
   if(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/algorithms)
     target_include_directories(${TARGET_NAME} PRIVATE
@@ -209,8 +218,8 @@ set(USE_PCH_FOR_TARGET FALSE)
 
   # ----- Linker options ----- #
   target_link_options(${TARGET_NAME} PRIVATE
-    # Sanitizer linking.
-    $<$<CONFIG:Sanitize>:${SANITIZE_FLAGS}>
+    # Sanitizer linking — only -fsanitize=* tokens need to reach the linker.
+    $<$<CONFIG:Sanitize>:${SANITIZE_LINK_FLAGS}>
     # Strip symbols in release.
     $<$<CONFIG:Release>:-s>
   )

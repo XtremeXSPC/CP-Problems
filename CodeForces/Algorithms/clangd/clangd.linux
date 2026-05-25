@@ -75,6 +75,12 @@ Diagnostics:
     - shorten-64-to-32
     - builtin_definition
 
+    # When clangd indexes via query-driver against a non-default libstdc++ build
+    # (e.g. mixed Homebrew GCC + Apple Clang on macOS, or stock libstdc++ + LLVM
+    # libc++ on Linux), the indexer can see two declarations of std::X under
+    # incompatible inline namespaces. Real compilation never observes this.
+    - ambiguous_reference
+
   # Disable clang-tidy completely.
   ClangTidy:
     Remove: ["*"]

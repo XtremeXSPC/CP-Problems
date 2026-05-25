@@ -28,7 +28,9 @@ endif()
 
 # ----------------------------- ANSI Color Codes ----------------------------- #
 # Define variables for ANSI color codes to make message() output more readable.
-if(UNIX OR APPLE OR CMAKE_HOST_WIN32)
+# APPLE implies UNIX in CMake; both modern Windows Terminal and CMake's own
+# message() honor ANSI when stdout is a TTY, so the guard stays inclusive.
+if(UNIX OR CMAKE_HOST_WIN32)
   string(ASCII 27 Esc)
   set(ANSI_COLOR_RED     "${Esc}[31m")
   set(ANSI_COLOR_GREEN   "${Esc}[32m")

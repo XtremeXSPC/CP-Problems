@@ -26,20 +26,38 @@ if(CP_ENABLE_PCH AND CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
   set(PCH_SUPPORTED TRUE)
 
   # Define the PCH header path based on compiler.
+  #
+  # Round directories historically expose the PCH header at
+  #   algorithms/PCH.h  (symlink -> ../../../Algorithms/libs/PCH.h)
+  # but if the round was created after the libs/ refactor the symlink may not
+  # exist. We probe both locations so the round build degrades gracefully.
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang" OR USING_CLANG_FOR_SANITIZERS)
-    set(PCH_HEADER_PATH "${CMAKE_CURRENT_SOURCE_DIR}/algorithms/PCH.h")
+    set(_CP_PCH_HEADER_CANDIDATES
+      "${CMAKE_CURRENT_SOURCE_DIR}/algorithms/PCH.h"
+      "${CMAKE_CURRENT_SOURCE_DIR}/algorithms/libs/PCH.h"
+    )
     set(PCH_TYPE "PCH.h")
   else()
     # For GCC, we can use bits/stdc++.h directly as PCH.
-    set(PCH_HEADER_PATH "${CMAKE_CURRENT_SOURCE_DIR}/algorithms/PCH_Wrapper.h")
+    set(_CP_PCH_HEADER_CANDIDATES
+      "${CMAKE_CURRENT_SOURCE_DIR}/algorithms/PCH_Wrapper.h"
+      "${CMAKE_CURRENT_SOURCE_DIR}/algorithms/libs/PCH_Wrapper.h"
+    )
     set(PCH_TYPE "bits/stdc++.h wrapper")
-
-    # Wrapper availability is checked in the generic PCH existence guard below.
   endif()
 
-  # Verify PCH header exists.
-  if(NOT EXISTS "${PCH_HEADER_PATH}")
-    message(WARNING "${ANSI_COLOR_YELLOW}PCH: Header not found at ${PCH_HEADER_PATH}, disabling PCH${ANSI_COLOR_RESET}")
+  set(PCH_HEADER_PATH "")
+  foreach(_cp_pch_candidate IN LISTS _CP_PCH_HEADER_CANDIDATES)
+    if(EXISTS "${_cp_pch_candidate}")
+      set(PCH_HEADER_PATH "${_cp_pch_candidate}")
+      break()
+    endif()
+  endforeach()
+  unset(_CP_PCH_HEADER_CANDIDATES)
+
+  # Verify PCH header was located.
+  if(NOT PCH_HEADER_PATH)
+    message(WARNING "${ANSI_COLOR_YELLOW}PCH: Header not found in algorithms/ or algorithms/libs/, disabling PCH${ANSI_COLOR_RESET}")
     set(PCH_SUPPORTED FALSE)
   else()
     message(STATUS "${ANSI_COLOR_GREEN}PCH: Enabled using ${PCH_TYPE}${ANSI_COLOR_RESET}")

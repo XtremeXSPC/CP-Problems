@@ -30,6 +30,11 @@
 #   CP_ALGORITHMS_ENABLE_HEADER_PROBES      (default: ON)
 #   CP_ALGORITHMS_ENABLE_TEMPLATE_SCAFFOLDS (default: ON)
 #   CP_ALGORITHMS_ENABLE_PROBE_PCH          (default: ON)
+#   CP_ALGORITHMS_ENABLE_CCACHE             (default: ON)
+#   CP_ALGORITHMS_ENABLE_TIMING             (default: OFF)
+#   CP_ALGORITHMS_ENABLE_PROBE_SANITIZERS   (default: OFF)
+#   CP_ALGORITHMS_ENABLE_CTEST              (default: ON)
+#   CP_ALGORITHMS_WERROR                    (default: OFF)
 #
 # ============================================================================ #
 
@@ -52,6 +57,15 @@ option(CP_ALGORITHMS_ENABLE_VERIFY_PROBES "Register module verification probes a
 option(CP_ALGORITHMS_ENABLE_HEADER_PROBES "Generate one probe translation unit per public header for clangd coverage." ON)
 option(CP_ALGORITHMS_ENABLE_TEMPLATE_SCAFFOLDS "Register template scaffold sources as build targets." ON)
 option(CP_ALGORITHMS_ENABLE_PROBE_PCH "Enable shared precompiled headers for workspace probes." ON)
+option(CP_ALGORITHMS_ENABLE_CCACHE "Use ccache as compiler launcher if available." ON)
+option(CP_ALGORITHMS_ENABLE_TIMING "Enable compilation timing reports for probe targets." OFF)
+option(CP_ALGORITHMS_ENABLE_PROBE_SANITIZERS "Compile probes with AddressSanitizer + UBSan (probe PCH disabled if mismatched)." OFF)
+option(CP_ALGORITHMS_ENABLE_CTEST "Register runtime probes (*.runtime.cpp) as CTest tests." ON)
+option(CP_ALGORITHMS_WERROR "Treat warnings as errors for all probe targets." OFF)
+
+if(CP_ALGORITHMS_ENABLE_CTEST)
+  enable_testing()
+endif()
 
 # ----------------------------- Directory Roots ------------------------------ #
 # All paths in this file are derived from these three variables so that the
@@ -59,6 +73,36 @@ option(CP_ALGORITHMS_ENABLE_PROBE_PCH "Enable shared precompiled headers for wor
 set(CP_ALGORITHMS_ROOT "${CMAKE_CURRENT_SOURCE_DIR}")
 set(CP_ALGORITHMS_PROBE_DIR "${CMAKE_CURRENT_BINARY_DIR}/clangd_probes")
 set(CP_ALGORITHMS_RUNTIME_DIR "${CMAKE_CURRENT_BINARY_DIR}/bin/probes")
+
+# ---------------------------- ccache (optional) ----------------------------- #
+# Re-uses the same probe pattern as cmake/CPRoundConfig.cmake. We skip ccache
+# silently when the cache directory is read-only (sandboxed CI, locked $HOME).
+if(CP_ALGORITHMS_ENABLE_CCACHE AND NOT CMAKE_CXX_COMPILER_LAUNCHER)
+  find_program(CP_ALGORITHMS_CCACHE_PROGRAM ccache)
+  if(CP_ALGORITHMS_CCACHE_PROGRAM)
+    set(_cp_alg_ccache_dir "$ENV{CCACHE_DIR}")
+    if(NOT _cp_alg_ccache_dir AND DEFINED ENV{HOME} AND NOT "$ENV{HOME}" STREQUAL "")
+      set(_cp_alg_ccache_dir "$ENV{HOME}/.cache/ccache")
+    endif()
+    set(_cp_alg_ccache_ok TRUE)
+    if(_cp_alg_ccache_dir)
+      execute_process(
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${_cp_alg_ccache_dir}/tmp"
+        RESULT_VARIABLE _cp_alg_ccache_mkdir_rc
+      )
+      if(NOT _cp_alg_ccache_mkdir_rc EQUAL 0)
+        set(_cp_alg_ccache_ok FALSE)
+      endif()
+    endif()
+    if(_cp_alg_ccache_ok)
+      set(CMAKE_CXX_COMPILER_LAUNCHER "${CP_ALGORITHMS_CCACHE_PROGRAM}")
+      message(STATUS "ccache enabled for workspace probes: ${CP_ALGORITHMS_CCACHE_PROGRAM}")
+    endif()
+    unset(_cp_alg_ccache_dir)
+    unset(_cp_alg_ccache_ok)
+    unset(_cp_alg_ccache_mkdir_rc)
+  endif()
+endif()
 
 # ----------------------- Workspace Interface Library ------------------------ #
 # All probe executables link against this INTERFACE target so they inherit the
@@ -78,22 +122,73 @@ target_include_directories(
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
   target_compile_options(cp_algorithms_workspace INTERFACE -Wall -Wextra -Wpedantic)
+  if(CP_ALGORITHMS_WERROR)
+    target_compile_options(cp_algorithms_workspace INTERFACE -Werror)
+  endif()
+endif()
+
+# Neutralize the contest-focused pragmas baked into templates/core/Compiler.hpp.
+# Without this, GCC PCH ends up with `#pragma GCC target(...)` and aggressive
+# optimize() directives that conflict with probe TUs (which compile under
+# different flags), producing "target specific option mismatch" link errors.
+# The workspace is purely diagnostic — it doesn't need contest tuning.
+target_compile_definitions(
+  cp_algorithms_workspace
+  INTERFACE
+    CP_ENABLE_AGGRESSIVE_OPTIMIZATIONS=0
+    CP_ENABLE_ARCH_TARGET_PRAGMAS=0
+)
+
+# ---------------------- Sanitizer Plumbing for Probes ----------------------- #
+# Applied via the INTERFACE library so every probe (compile-only OBJECT
+# libraries and runtime executables) sees the same flags. This is critical for
+# PCH REUSE_FROM, which requires byte-identical command-line flags between
+# donor and consumers.
+set(CP_ALGORITHMS_PROBE_SANITIZER_LINK_FLAGS "")
+if(CP_ALGORITHMS_ENABLE_PROBE_SANITIZERS)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+    set(_cp_alg_san_compile -g -O1 -fno-omit-frame-pointer -fno-sanitize-recover=all)
+    set(_cp_alg_san_link "")
+    list(APPEND _cp_alg_san_compile -fsanitize=address,undefined)
+    list(APPEND _cp_alg_san_link    -fsanitize=address,undefined)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT APPLE)
+      list(APPEND _cp_alg_san_compile -fsanitize=leak)
+      list(APPEND _cp_alg_san_link    -fsanitize=leak)
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND NOT APPLE)
+      list(APPEND _cp_alg_san_compile -fsanitize=leak)
+      list(APPEND _cp_alg_san_link    -fsanitize=leak)
+    endif()
+    target_compile_options(cp_algorithms_workspace INTERFACE ${_cp_alg_san_compile})
+    set(CP_ALGORITHMS_PROBE_SANITIZER_LINK_FLAGS "${_cp_alg_san_link}")
+    message(STATUS "Probe sanitizers enabled: ${_cp_alg_san_compile}")
+    unset(_cp_alg_san_compile)
+    unset(_cp_alg_san_link)
+  else()
+    message(WARNING "CP_ALGORITHMS_ENABLE_PROBE_SANITIZERS requested but compiler is not Clang/GCC; ignoring.")
+  endif()
+endif()
+
+# ---------------------- Compilation Timing (optional) ----------------------- #
+# Reuses the round-level timing module — its flags (-ftime-report / -ftime-trace)
+# are applied via add_compile_options(), which propagates to probe targets too.
+if(CP_ALGORITHMS_ENABLE_TIMING)
+  if(NOT DEFINED CP_TIMING_CONFIGS)
+    set(CP_TIMING_CONFIGS "Debug;Sanitize;Release" CACHE STRING "Configs that receive timing flags")
+  endif()
+  set(CP_ENABLE_TIMING ON CACHE BOOL "Enable detailed GCC/Clang compilation timing reports" FORCE)
+  include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/CPRoundFeatureTiming.cmake")
 endif()
 
 # ----------------------- Shared PCH for Probe Targets ----------------------- #
-# A single donor target compiles the stdlib PCH once; every probe reuses it.
-# This mirrors the PCH-donor pattern from CPRoundTargets.cmake but scoped to
-# the workspace. The PCH is EXCLUDE_FROM_ALL and is built only when a probe
-# that needs it is explicitly requested.
+# A single donor target compiles the workspace PCH once; every probe reuses it.
+# The PCH header lives at libs/PCH_Workspace.h — a thin stdlib-only wrapper
+# kept separate from "libs/PCH.h" and "libs/PCH_Wrapper.h" because the contest PCHs
+# embed `#pragma GCC optimize(...)` and `#pragma GCC target(...)` that conflict
+# with CMake's -include-pch injection (see PCH_Workspace.h header comment).
 set(CP_ALGORITHMS_PROBE_PCH_TARGET "")
 set(CP_ALGORITHMS_PROBE_PCH_STATUS "disabled")
-if(CP_ALGORITHMS_ENABLE_PROBE_PCH AND CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
-  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    set(CP_ALGORITHMS_PROBE_PCH_HEADER "${CP_ALGORITHMS_ROOT}/libs/PCH_Wrapper.h")
-  else()
-    set(CP_ALGORITHMS_PROBE_PCH_HEADER "${CP_ALGORITHMS_ROOT}/libs/PCH.h")
-  endif()
-
+set(CP_ALGORITHMS_PROBE_PCH_HEADER "${CP_ALGORITHMS_ROOT}/libs/PCH_Workspace.h")
+if(CP_ALGORITHMS_ENABLE_PROBE_PCH AND CMAKE_VERSION VERSION_GREATER_EQUAL "3.16" AND NOT CP_ALGORITHMS_ENABLE_PROBE_SANITIZERS)
   if(EXISTS "${CP_ALGORITHMS_PROBE_PCH_HEADER}")
     set(CP_ALGORITHMS_PROBE_PCH_SOURCE "${CMAKE_CURRENT_BINARY_DIR}/cp_algorithms_probe_pch.cpp")
     file(WRITE "${CP_ALGORITHMS_PROBE_PCH_SOURCE}" "int cp_algorithms_probe_pch_anchor = 0;\n")
@@ -102,11 +197,12 @@ if(CP_ALGORITHMS_ENABLE_PROBE_PCH AND CMAKE_VERSION VERSION_GREATER_EQUAL "3.16"
     target_precompile_headers(cp_algorithms_probe_pch PRIVATE "${CP_ALGORITHMS_PROBE_PCH_HEADER}")
     set_target_properties(cp_algorithms_probe_pch PROPERTIES FOLDER "probes")
     set(CP_ALGORITHMS_PROBE_PCH_TARGET cp_algorithms_probe_pch)
-    get_filename_component(_cp_algorithms_probe_pch_name "${CP_ALGORITHMS_PROBE_PCH_HEADER}" NAME)
-    set(CP_ALGORITHMS_PROBE_PCH_STATUS "enabled (${_cp_algorithms_probe_pch_name})")
+    set(CP_ALGORITHMS_PROBE_PCH_STATUS "enabled (libs/PCH_Workspace.h)")
   else()
-    set(CP_ALGORITHMS_PROBE_PCH_STATUS "header not found")
+    set(CP_ALGORITHMS_PROBE_PCH_STATUS "header not found at libs/PCH_Workspace.h")
   endif()
+elseif(CP_ALGORITHMS_ENABLE_PROBE_PCH AND CP_ALGORITHMS_ENABLE_PROBE_SANITIZERS)
+  set(CP_ALGORITHMS_PROBE_PCH_STATUS "disabled (sanitizers active)")
 elseif(CP_ALGORITHMS_ENABLE_PROBE_PCH)
   set(CP_ALGORITHMS_PROBE_PCH_STATUS "unsupported (CMake < 3.16)")
 endif()
@@ -138,6 +234,16 @@ function(cp_algorithms_register_probe property_name target_stem source_path)
         RUNTIME_OUTPUT_DIRECTORY "${CP_ALGORITHMS_RUNTIME_DIR}"
         FOLDER "probes"
     )
+    if(CP_ALGORITHMS_PROBE_SANITIZER_LINK_FLAGS)
+      target_link_options("${target_name}" PRIVATE ${CP_ALGORITHMS_PROBE_SANITIZER_LINK_FLAGS})
+    endif()
+    if(CP_ALGORITHMS_ENABLE_CTEST)
+      add_test(
+        NAME "${target_name}"
+        COMMAND "$<TARGET_FILE:${target_name}>"
+      )
+      set_tests_properties("${target_name}" PROPERTIES LABELS "probe;runtime")
+    endif()
   else()
     add_library("${target_name}" OBJECT EXCLUDE_FROM_ALL "${source_path}")
     target_link_libraries("${target_name}" PRIVATE cp_algorithms_workspace)
@@ -265,10 +371,36 @@ endif()
 list(LENGTH cp_algorithms_verify_targets  _cp_n_verify)
 list(LENGTH cp_algorithms_header_targets  _cp_n_headers)
 list(LENGTH cp_algorithms_scaffold_targets _cp_n_scaffolds)
+
+if(CP_ALGORITHMS_ENABLE_PROBE_SANITIZERS)
+  set(_cp_alg_san_status "enabled")
+else()
+  set(_cp_alg_san_status "disabled")
+endif()
+if(CP_ALGORITHMS_ENABLE_TIMING)
+  set(_cp_alg_timing_status "enabled")
+else()
+  set(_cp_alg_timing_status "disabled")
+endif()
+if(CP_ALGORITHMS_WERROR)
+  set(_cp_alg_werror_status "enabled")
+else()
+  set(_cp_alg_werror_status "disabled")
+endif()
+if(CP_ALGORITHMS_ENABLE_CTEST)
+  set(_cp_alg_ctest_status "enabled (use 'ctest' after building runtime probes)")
+else()
+  set(_cp_alg_ctest_status "disabled")
+endif()
+
 message(STATUS "CP Algorithms Workspace configured:")
 message(STATUS "  Verify probes   : ${_cp_n_verify}")
 message(STATUS "  Header probes   : ${_cp_n_headers}")
 message(STATUS "  Scaffold probes : ${_cp_n_scaffolds}")
 message(STATUS "  Probe PCH       : ${CP_ALGORITHMS_PROBE_PCH_STATUS}")
+message(STATUS "  Sanitizers      : ${_cp_alg_san_status}")
+message(STATUS "  Timing reports  : ${_cp_alg_timing_status}")
+message(STATUS "  Warnings as err : ${_cp_alg_werror_status}")
+message(STATUS "  CTest           : ${_cp_alg_ctest_status}")
 
 # ============================================================================ #

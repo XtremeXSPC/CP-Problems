@@ -11,6 +11,9 @@ ALGORITHMS_DIR := $(ROOT:/=)
 ROUND_DIR ?=
 
 .PHONY: all configure verify headers scaffolds all-probes \
+        configure-release configure-sanitize configure-timing \
+        release-probes sanitize-probes timing-probes \
+        ctest ctest-sanitize \
         check check-report clean help doctor \
         _check-round-dir \
         preset-conf-debug-gcc preset-conf-release-gcc preset-conf-sanitize-gcc \
@@ -36,6 +39,32 @@ scaffolds:
 
 all-probes:
 	cmake --build --preset algorithms-workspace-all-probes
+
+# ── Diagnostic / Advanced probe builds ────────────────────────────────────────
+configure-release:
+	cmake --preset algorithms-workspace-release
+
+configure-sanitize:
+	cmake --preset algorithms-workspace-sanitize
+
+configure-timing:
+	cmake --preset algorithms-workspace-timing
+
+release-probes: configure-release
+	cmake --build --preset algorithms-workspace-release-all
+
+sanitize-probes: configure-sanitize
+	cmake --build --preset algorithms-workspace-sanitize-verify
+
+timing-probes: configure-timing
+	cmake --build --preset algorithms-workspace-timing-all
+
+# ── CTest: run *.runtime.cpp probes (build them first) ───────────────────────
+ctest: verify
+	ctest --preset algorithms-workspace-tests
+
+ctest-sanitize: sanitize-probes
+	ctest --preset algorithms-workspace-tests-sanitize
 
 # ── Module verification ───────────────────────────────────────────────────────
 check:
@@ -110,7 +139,7 @@ preset-build-sanitize-clang: _check-round-dir
 
 # ── Help ──────────────────────────────────────────────────────────────────────
 help:
-	@printf "\nWorkspace targets:\n"
+	@printf "\nWorkspace targets (Debug, default):\n"
 	@printf "  make configure              Configure workspace (generates compile_commands.json)\n"
 	@printf "  make verify                 Build module verify probes\n"
 	@printf "  make headers                Build header probe targets\n"
@@ -120,6 +149,12 @@ help:
 	@printf "  make check-<Module>         Run verification for a specific module\n"
 	@printf "  make check-report           Run all verifications, write reports/test_report.json\n"
 	@printf "  make clean                  Remove workspace build directory\n"
+	@printf "\nAdvanced probe builds:\n"
+	@printf "  make release-probes         Build all probes with -O2 (catches UB under optimization)\n"
+	@printf "  make sanitize-probes        Build verify probes with ASan + UBSan\n"
+	@printf "  make timing-probes          Build all probes with -ftime-trace/-ftime-report\n"
+	@printf "  make ctest                  Run runtime probes via ctest (after building)\n"
+	@printf "  make ctest-sanitize         Run runtime probes under sanitizers\n"
 	@printf "\nDiagnostics:\n"
 	@printf "  make doctor                 Run cpp-tools environment diagnostics\n"
 	@printf "\nRound build targets (pass ROUND_DIR=<path>):\n"
