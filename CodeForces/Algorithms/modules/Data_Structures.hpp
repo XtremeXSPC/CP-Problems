@@ -7,11 +7,17 @@
  */
 
 #include "data_structures/algebra/Algebra.hpp"
+#include "data_structures/bit_structures/BinaryTrie.hpp"
 #include "data_structures/bit_structures/DynamicBitset.hpp"
+#include "data_structures/bit_structures/FastSet.hpp"
+#include "data_structures/bit_structures/WaveletMatrix.hpp"
 #include "data_structures/fenwick/DualFenwickTree.hpp"
 #include "data_structures/fenwick/FenwickTree.hpp"
 #include "data_structures/fenwick/FenwickTree2D.hpp"
+#include "data_structures/fenwick/FenwickTree2D_Dense.hpp"
 #include "data_structures/fenwick/GroupFenwickTree.hpp"
+#include "data_structures/fenwick/GroupFenwickTree2D.hpp"
+#include "data_structures/fenwick/GroupFenwickTree2D_Dense.hpp"
 #include "data_structures/fenwick/RangeAddFenwickTree.hpp"
 #include "data_structures/line_structures/ConvexHullTrick.hpp"
 #include "data_structures/line_structures/LiChaoTree.hpp"
