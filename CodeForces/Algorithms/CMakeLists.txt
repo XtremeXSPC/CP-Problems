@@ -29,26 +29,41 @@
 #   CP_ALGORITHMS_ENABLE_VERIFY_PROBES      (default: ON)
 #   CP_ALGORITHMS_ENABLE_HEADER_PROBES      (default: ON)
 #   CP_ALGORITHMS_ENABLE_TEMPLATE_SCAFFOLDS (default: ON)
+#   CP_ALGORITHMS_ENABLE_PROBE_PCH          (default: ON)
 #
 # ============================================================================ #
 
 cmake_minimum_required(VERSION 3.20)
 project(CPAlgorithmsWorkspace LANGUAGES CXX)
 
+# ----------------------------- Global Settings ------------------------------ #
+# compile_commands.json must be ON so clangd can find every translation unit.
+# Extensions OFF ensures the standard is enforced without GNU-specific relaxations.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+# ----------------------------- Feature Options ------------------------------ #
+# Each probe family can be disabled independently to speed up configure when
+# only a subset is needed (e.g. disable header probes to iterate on verify only).
 option(CP_ALGORITHMS_ENABLE_VERIFY_PROBES "Register module verification probes as build targets." ON)
 option(CP_ALGORITHMS_ENABLE_HEADER_PROBES "Generate one probe translation unit per public header for clangd coverage." ON)
 option(CP_ALGORITHMS_ENABLE_TEMPLATE_SCAFFOLDS "Register template scaffold sources as build targets." ON)
+option(CP_ALGORITHMS_ENABLE_PROBE_PCH "Enable shared precompiled headers for workspace probes." ON)
 
+# ----------------------------- Directory Roots ------------------------------ #
+# All paths in this file are derived from these three variables so that the
+# workspace is fully relocatable.
 set(CP_ALGORITHMS_ROOT "${CMAKE_CURRENT_SOURCE_DIR}")
 set(CP_ALGORITHMS_PROBE_DIR "${CMAKE_CURRENT_BINARY_DIR}/clangd_probes")
 set(CP_ALGORITHMS_RUNTIME_DIR "${CMAKE_CURRENT_BINARY_DIR}/bin/probes")
 
+# ----------------------- Workspace Interface Library ------------------------ #
+# All probe executables link against this INTERFACE target so they inherit the
+# same include paths and flags that a real contest solution would see.
+# The library itself produces no binary; it is purely a compile-settings carrier.
 add_library(cp_algorithms_workspace INTERFACE)
 target_compile_features(cp_algorithms_workspace INTERFACE cxx_std_23)
 target_include_directories(
@@ -65,24 +80,81 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
   target_compile_options(cp_algorithms_workspace INTERFACE -Wall -Wextra -Wpedantic)
 endif()
 
+# ----------------------- Shared PCH for Probe Targets ----------------------- #
+# A single donor target compiles the stdlib PCH once; every probe reuses it.
+# This mirrors the PCH-donor pattern from CPRoundTargets.cmake but scoped to
+# the workspace. The PCH is EXCLUDE_FROM_ALL and is built only when a probe
+# that needs it is explicitly requested.
+set(CP_ALGORITHMS_PROBE_PCH_TARGET "")
+set(CP_ALGORITHMS_PROBE_PCH_STATUS "disabled")
+if(CP_ALGORITHMS_ENABLE_PROBE_PCH AND CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set(CP_ALGORITHMS_PROBE_PCH_HEADER "${CP_ALGORITHMS_ROOT}/libs/PCH_Wrapper.h")
+  else()
+    set(CP_ALGORITHMS_PROBE_PCH_HEADER "${CP_ALGORITHMS_ROOT}/libs/PCH.h")
+  endif()
+
+  if(EXISTS "${CP_ALGORITHMS_PROBE_PCH_HEADER}")
+    set(CP_ALGORITHMS_PROBE_PCH_SOURCE "${CMAKE_CURRENT_BINARY_DIR}/cp_algorithms_probe_pch.cpp")
+    file(WRITE "${CP_ALGORITHMS_PROBE_PCH_SOURCE}" "int cp_algorithms_probe_pch_anchor = 0;\n")
+    add_library(cp_algorithms_probe_pch STATIC EXCLUDE_FROM_ALL "${CP_ALGORITHMS_PROBE_PCH_SOURCE}")
+    target_link_libraries(cp_algorithms_probe_pch PRIVATE cp_algorithms_workspace)
+    target_precompile_headers(cp_algorithms_probe_pch PRIVATE "${CP_ALGORITHMS_PROBE_PCH_HEADER}")
+    set_target_properties(cp_algorithms_probe_pch PROPERTIES FOLDER "probes")
+    set(CP_ALGORITHMS_PROBE_PCH_TARGET cp_algorithms_probe_pch)
+    get_filename_component(_cp_algorithms_probe_pch_name "${CP_ALGORITHMS_PROBE_PCH_HEADER}" NAME)
+    set(CP_ALGORITHMS_PROBE_PCH_STATUS "enabled (${_cp_algorithms_probe_pch_name})")
+  else()
+    set(CP_ALGORITHMS_PROBE_PCH_STATUS "header not found")
+  endif()
+elseif(CP_ALGORITHMS_ENABLE_PROBE_PCH)
+  set(CP_ALGORITHMS_PROBE_PCH_STATUS "unsupported (CMake < 3.16)")
+endif()
+
+# ----------------------------- Helper Functions ----------------------------- #
+# cp_algorithms_sanitize_identifier: converts an arbitrary path or string into
+# a valid CMake/C identifier by replacing non-alphanumeric characters.
 function(cp_algorithms_sanitize_identifier out_var raw_value)
   string(MAKE_C_IDENTIFIER "${raw_value}" sanitized_value)
   set(${out_var} "${sanitized_value}" PARENT_SCOPE)
 endfunction()
 
+# cp_algorithms_register_probe: creates a single probe target and appends its
+# name to the given global property list.
+#   - .runtime.cpp sources become executables (need a main, produce a binary).
+#   - all other sources become OBJECT libraries (compile-only smoke tests).
+# PCH is applied via REUSE_FROM if a donor target was configured above.
 function(cp_algorithms_register_probe property_name target_stem source_path)
   cp_algorithms_sanitize_identifier(target_name "${target_stem}")
-  add_executable("${target_name}" EXCLUDE_FROM_ALL "${source_path}")
-  target_link_libraries("${target_name}" PRIVATE cp_algorithms_workspace)
-  set_target_properties(
-    "${target_name}"
-    PROPERTIES
-      RUNTIME_OUTPUT_DIRECTORY "${CP_ALGORITHMS_RUNTIME_DIR}"
-      FOLDER "probes"
-  )
+  get_filename_component(source_name "${source_path}" NAME)
+  string(REGEX MATCH "\\.runtime\\.cpp$" is_runtime_probe "${source_name}")
+
+  if(is_runtime_probe)
+    add_executable("${target_name}" EXCLUDE_FROM_ALL "${source_path}")
+    target_link_libraries("${target_name}" PRIVATE cp_algorithms_workspace)
+    set_target_properties(
+      "${target_name}"
+      PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CP_ALGORITHMS_RUNTIME_DIR}"
+        FOLDER "probes"
+    )
+  else()
+    add_library("${target_name}" OBJECT EXCLUDE_FROM_ALL "${source_path}")
+    target_link_libraries("${target_name}" PRIVATE cp_algorithms_workspace)
+    set_target_properties("${target_name}" PROPERTIES FOLDER "probes")
+  endif()
+
+  if(CP_ALGORITHMS_PROBE_PCH_TARGET)
+    target_precompile_headers("${target_name}" REUSE_FROM "${CP_ALGORITHMS_PROBE_PCH_TARGET}")
+    add_dependencies("${target_name}" "${CP_ALGORITHMS_PROBE_PCH_TARGET}")
+  endif()
+
   set_property(GLOBAL APPEND PROPERTY "${property_name}" "${target_name}")
 endfunction()
 
+# cp_algorithms_generate_header_probe: synthesizes a minimal .cpp that includes
+# one public header and registers it as a probe. The generated file is written
+# into the binary directory so the source tree stays clean.
 function(cp_algorithms_generate_header_probe header_path)
   file(RELATIVE_PATH relative_header "${CP_ALGORITHMS_ROOT}" "${header_path}")
   set(probe_source "${CP_ALGORITHMS_PROBE_DIR}/${relative_header}.cpp")
@@ -100,6 +172,10 @@ function(cp_algorithms_generate_header_probe header_path)
   )
 endfunction()
 
+# ------------------------- Template Scaffold Probes ------------------------- #
+# Registers each contest template source so the language server indexes it with
+# real target context. GLOB (not GLOB_RECURSE) keeps discovery flat — templates
+# live at one level under templates/cpp/.
 if(CP_ALGORITHMS_ENABLE_TEMPLATE_SCAFFOLDS)
   file(GLOB cp_algorithms_template_scaffolds CONFIGURE_DEPENDS "${CP_ALGORITHMS_ROOT}/templates/cpp/*.cpp")
   foreach(scaffold_source IN LISTS cp_algorithms_template_scaffolds)
@@ -112,6 +188,10 @@ if(CP_ALGORITHMS_ENABLE_TEMPLATE_SCAFFOLDS)
   endforeach()
 endif()
 
+# ------------------------ Module Verification Probes ------------------------ #
+# Discovers all .cpp files under "verify/modules/" recursively. The manifest-
+# driven distinction between .runtime.cpp (executable) and .compile.cpp (OBJECT
+# library) is handled inside cp_algorithms_register_probe.
 if(CP_ALGORITHMS_ENABLE_VERIFY_PROBES)
   file(GLOB_RECURSE cp_algorithms_verify_sources CONFIGURE_DEPENDS "${CP_ALGORITHMS_ROOT}/verify/modules/*.cpp")
   foreach(verify_source IN LISTS cp_algorithms_verify_sources)
@@ -124,6 +204,11 @@ if(CP_ALGORITHMS_ENABLE_VERIFY_PROBES)
   endforeach()
 endif()
 
+# ------------------------------ Header Probes ------------------------------- #
+# Generates one synthetic .cpp per public header and registers it as a probe.
+# The generated files land in CP_ALGORITHMS_PROBE_DIR (binary dir) so the
+# source tree is not polluted. These probes give clangd accurate per-header
+# compile flags without relying on heuristic include-path guessing.
 if(CP_ALGORITHMS_ENABLE_HEADER_PROBES)
   file(GLOB_RECURSE cp_algorithms_public_headers CONFIGURE_DEPENDS
     "${CP_ALGORITHMS_ROOT}/templates/*.hpp"
@@ -136,6 +221,10 @@ if(CP_ALGORITHMS_ENABLE_HEADER_PROBES)
   endforeach()
 endif()
 
+# ------------------- Per-Family Aggregate Custom Targets -------------------- #
+# Each family gets a named custom target that depends on all its probe targets.
+# These are the targets exposed via build presets (algorithms-workspace-verify,
+# algorithms-workspace-headers, algorithms-workspace-scaffolds).
 get_property(cp_algorithms_verify_targets GLOBAL PROPERTY CP_ALGORITHMS_VERIFY_TARGETS)
 if(cp_algorithms_verify_targets)
   add_custom_target(cp_algorithms_verify_probes DEPENDS ${cp_algorithms_verify_targets})
@@ -154,7 +243,9 @@ if(cp_algorithms_scaffold_targets)
   set_target_properties(cp_algorithms_template_scaffolds PROPERTIES FOLDER "probes")
 endif()
 
-# Umbrella target: build every enabled probe family with a single invocation.
+# ------------------------ Umbrella All-Probes Target ------------------------ #
+# cp_algorithms_all_probes depends on whichever family aggregates were actually
+# registered, so disabling a family via its option keeps this target valid.
 set(_cp_all_probe_deps "")
 if(cp_algorithms_verify_targets)
   list(APPEND _cp_all_probe_deps cp_algorithms_verify_probes)
@@ -170,7 +261,7 @@ if(_cp_all_probe_deps)
   set_target_properties(cp_algorithms_all_probes PROPERTIES FOLDER "probes")
 endif()
 
-# Configure-time summary.
+# ---------------------------- Configure Summary ----------------------------- #
 list(LENGTH cp_algorithms_verify_targets  _cp_n_verify)
 list(LENGTH cp_algorithms_header_targets  _cp_n_headers)
 list(LENGTH cp_algorithms_scaffold_targets _cp_n_scaffolds)
@@ -178,5 +269,6 @@ message(STATUS "CP Algorithms Workspace configured:")
 message(STATUS "  Verify probes   : ${_cp_n_verify}")
 message(STATUS "  Header probes   : ${_cp_n_headers}")
 message(STATUS "  Scaffold probes : ${_cp_n_scaffolds}")
+message(STATUS "  Probe PCH       : ${CP_ALGORITHMS_PROBE_PCH_STATUS}")
 
 # ============================================================================ #
