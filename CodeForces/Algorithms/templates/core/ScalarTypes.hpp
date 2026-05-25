@@ -17,8 +17,8 @@ using U32 = std::uint32_t;
 using U64 = std::uint64_t;
 
 #if HAS_INT128
-using I128 = __int128;
-using U128 = unsigned __int128;
+__extension__ using I128 = __int128;
+__extension__ using U128 = unsigned __int128;
 #else
 using I128 = std::int64_t;
 using U128 = std::uint64_t;

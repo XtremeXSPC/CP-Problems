@@ -17,13 +17,13 @@ struct DynamicSegmentTree {
 
   I64 left_bound = 0;
   I64 right_bound = 0;
-  std::function<Value(I64, I64)> default_value;
+  Function<Value(I64, I64)> default_value;
   Vec<Node> nodes;
 
   explicit DynamicSegmentTree(
       I64 left_bound_,
       I64 right_bound_,
-      std::function<Value(I64, I64)> default_value_ =
+      Function<Value(I64, I64)> default_value_ =
           [](I64, I64) -> Value { return Monoid::identity(); })
       : left_bound(left_bound_),
         right_bound(right_bound_),

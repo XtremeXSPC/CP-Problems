@@ -39,11 +39,11 @@ Pair<T, T> chinese_remainder(const Vec<T>& a, const Vec<T>& m) {
     T mod = m[i] / g;
     T p_norm = p % mod;
     if (p_norm < 0) p_norm += mod;
-    T t = as<T>((as<__int128>(diff / g) * p_norm) % mod);
+    T t = as<T>((as<I128>(diff / g) * p_norm) % mod);
     if (t < 0) t += mod;
 
-    __int128 next_x = as<__int128>(x) + as<__int128>(M) * t;
-    __int128 next_M = as<__int128>(M) * mod;
+    I128 next_x = as<I128>(x) + as<I128>(M) * t;
+    I128 next_M = as<I128>(M) * mod;
     if (next_M > Limits<T>::max()) return {-1, -1};
 
     x = as<T>(next_x % next_M);

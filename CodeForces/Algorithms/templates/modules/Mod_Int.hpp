@@ -1,4 +1,5 @@
 #pragma once
+#include "templates/core/Debug.hpp"
 #include "templates/core/Constants.hpp"
 #include "templates/core/ScalarTypes.hpp"
 
