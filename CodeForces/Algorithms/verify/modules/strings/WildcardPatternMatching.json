@@ -1,0 +1,23 @@
+{
+  "name": "WildcardPatternMatching",
+  "header": "modules/strings/WildcardPatternMatching.hpp",
+  "category": "string",
+  "tags": [
+    "pattern-matching",
+    "wildcard",
+    "ntt"
+  ],
+  "cases": [
+    {
+      "name": "runtime",
+      "kind": "run",
+      "source": "verify/modules/strings/WildcardPatternMatching.runtime.cpp",
+      "timeout_seconds": 15.0
+    },
+    {
+      "name": "compile",
+      "kind": "compile",
+      "source": "verify/modules/strings/WildcardPatternMatching.compile.cpp"
+    }
+  ]
+}

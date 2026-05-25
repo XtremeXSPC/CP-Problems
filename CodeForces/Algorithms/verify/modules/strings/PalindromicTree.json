@@ -1,0 +1,23 @@
+{
+  "name": "PalindromicTree",
+  "header": "modules/strings/PalindromicTree.hpp",
+  "category": "string",
+  "tags": [
+    "palindrome",
+    "eertree",
+    "suffix-links"
+  ],
+  "cases": [
+    {
+      "name": "runtime",
+      "kind": "run",
+      "source": "verify/modules/strings/PalindromicTree.runtime.cpp",
+      "timeout_seconds": 15.0
+    },
+    {
+      "name": "compile",
+      "kind": "compile",
+      "source": "verify/modules/strings/PalindromicTree.compile.cpp"
+    }
+  ]
+}
