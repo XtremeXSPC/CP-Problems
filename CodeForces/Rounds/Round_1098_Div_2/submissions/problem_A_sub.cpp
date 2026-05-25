@@ -1,7 +1,7 @@
 //===----------------------------------------------------------------------===//
 /**
  * @file: problem_A_sub.cpp
- * @generated: 2026-05-25 23:38:01
+ * @generated: 2026-05-26 00:45:45
  * @source: problem_A.cpp
  * @author: C.L.
  *
@@ -487,7 +487,7 @@ using namespace std;
 
 void solve() {
   INT(N);
-  int c0 = 0, c1 = 0, c2 = 0;
+  I32 c0 = 0, c1 = 0, c2 = 0;
   FOR(N) {
     INT(W);
     if (W == 0)

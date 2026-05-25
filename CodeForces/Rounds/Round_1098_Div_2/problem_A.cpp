@@ -16,7 +16,7 @@
 
 void solve() {
   INT(N);
-  int c0 = 0, c1 = 0, c2 = 0;
+  I32 c0 = 0, c1 = 0, c2 = 0;
   FOR(N) {
     INT(W);
     if (W == 0)
