@@ -75,7 +75,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     assert manager is not None
     if ns.json:
-        manager.emit_json("ok" if exit_code == 0 else "error")
+        manager.emit_json("valid" if exit_code == 0 else "error")
     else:
         manager.emit_summary()
     return exit_code

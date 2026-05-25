@@ -44,7 +44,7 @@ def probe_for(file: Path) -> str:
 
 
 def check(file: Path) -> tuple[bool, str]:
-"""Check syntax of the given file. Returns (ok, error_message)."""
+"""Check syntax of the given file. Returns (valid, error_message)."""
 
     source = probe_for(file)
     with tempfile.NamedTemporaryFile(suffix=".cpp", mode="w", delete=False) as tf:
@@ -98,9 +98,9 @@ def main() -> int:
 
     passed = failed = 0
     for f in files:
-        ok, err = check(f)
+        valid, err = check(f)
         rel = f.relative_to(ROOT) if str(f).startswith(str(ROOT)) else f
-        if ok:
+        if valid:
             if not args.quiet_pass:
                 print(f"PASS  {rel}")
             passed += 1

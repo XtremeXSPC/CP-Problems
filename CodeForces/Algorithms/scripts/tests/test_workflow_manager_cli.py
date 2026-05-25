@@ -62,7 +62,7 @@ class WorkflowManagerCliSmokeTests(unittest.TestCase):
     @unittest.skipIf(shutil.which("zsh") is None, "zsh is required for runtime smoke")
     def test_json_help_command_with_stub_cp_tools(self) -> None:
         """JSON mode should serialize successful delegated command output."""
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp = Path(tmpdir)
             cp_tools = tmp / "competitive_stub.sh"
@@ -70,7 +70,7 @@ class WorkflowManagerCliSmokeTests(unittest.TestCase):
                 textwrap.dedent(
                     """\
                     cpphelp() {
-                      print -- "stub-help-ok"
+                      print -- "stub-help-valid"
                     }
                     """
                 ),
@@ -88,10 +88,10 @@ class WorkflowManagerCliSmokeTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, msg=result.stderr)
 
             payload = json.loads(result.stdout)
-            self.assertEqual(payload.get("status"), "ok")
+            self.assertEqual(payload.get("status"), "valid")
             self.assertEqual(len(payload.get("steps", [])), 1)
             self.assertEqual(payload["steps"][0]["function"], "cpphelp")
-            self.assertIn("stub-help-ok", payload["steps"][0]["stdout"])
+            self.assertIn("stub-help-valid", payload["steps"][0]["stdout"])
 
 
 if __name__ == "__main__":

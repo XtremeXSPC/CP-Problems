@@ -221,17 +221,17 @@ class ScriptRegressionTests(unittest.TestCase):
                 textwrap.dedent(
                     """\
                     cpphelp() {
-                      print -- "help-ok"
+                      print -- "help-valid"
                     }
                     cppinfo() {
-                      print -- "info-ok"
+                      print -- "info-valid"
                     }
                     cppdiag() {
                       print -u2 -- "diag-failed"
                       return 7
                     }
                     cppcheck() {
-                      print -- "check-ok"
+                      print -- "check-valid"
                     }
                     """
                 ),
@@ -249,7 +249,7 @@ class ScriptRegressionTests(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, msg=result.stderr)
             payload = json.loads(result.stdout)
-            self.assertEqual(payload["status"], "ok")
+            self.assertEqual(payload["status"], "valid")
             diag_step = next(step for step in payload["steps"] if step["function"] == "cppdiag")
             self.assertEqual(diag_step["returncode"], 7)
             self.assertTrue(diag_step["non_fatal"])
