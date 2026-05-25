@@ -1,65 +1,55 @@
 //===----------------------------------------------------------------------===//
-/**
- * @file PCH_Wrapper.hpp
- * @brief Stable Precompiled Header for Competitive Programming with GCC
- *
- * Contains only stable includes and definitions for maximum compilation speed.
- * Rules: No debug headers, only standard library, stable constants only.
+/* PCH_Wrapper.h — GCC-Specific Precompiled Header for Competitive Programming
+ * Uses bits/stdc++.h and GCC Policy-Based Data Structures.
+ * Delegates compiler pragmas, types, constants, and utilities to templates/core.
+ * For Clang or MSVC use PCH.h instead.
  */
 //===----------------------------------------------------------------------===//
 // clang-format off
+
 #ifndef PCH_WRAPPER_HPP
 #define PCH_WRAPPER_HPP
 
-// GCC compiler check
 #if !defined(__GNUC__) || defined(__clang__)
-  #error "This PCH wrapper is designed for GCC. Use PCH.h for Clang instead."
+  #error "PCH_Wrapper.h is designed for GCC. Use PCH.h for Clang/MSVC."
 #endif
 
-// C++20 version check.
 #if __cplusplus < 202002L
-  #warning "C++20 or later recommended for full feature support"
+  #warning "C++20 or later recommended for full feature support."
 #endif
 
-// Core Standard Library - bits/stdc++.h includes everything.
-#include <bits/stdc++.h>
-
-// GCC-Specific Extensions - Policy-Based Data Structures.
-#if __has_include(<ext/pb_ds/assoc_container.hpp>)
-  #include <ext/pb_ds/assoc_container.hpp>
-  #include <ext/pb_ds/tree_policy.hpp>
-  #include <ext/pb_ds/hash_policy.hpp>
-  #include <ext/pb_ds/trie_policy.hpp>
-  #include <ext/pb_ds/priority_queue.hpp>
-  #define PBDS_AVAILABLE 1
-#else
-  #define PBDS_AVAILABLE 0
-  #pragma message("PBDS not available - Some advanced data structures won't be accessible.")
+// Architecture target pragmas are enabled for GCC contest use.
+#ifndef CP_ENABLE_ARCH_TARGET_PRAGMAS
+  #define CP_ENABLE_ARCH_TARGET_PRAGMAS 1
 #endif
+// Signal that this PCH manages the preamble (Compiler/StdHeaders/Debug)
+// directly, so Types.hpp must not re-enter Preamble.hpp.
+#define CP_TYPES_NO_PREAMBLE 1
 
-// Additional GCC built-ins.
-#if __has_include(<ext/numeric>)
-  #include <ext/numeric>
-#endif
+#include "templates/core/Compiler.hpp"       // GCC optimizer pragmas + diagnostic push
+#include "templates/core/StdHeaders.hpp"     // bits/stdc++.h (CP_USE_BITS_HEADER=1 default)
+#include "templates/core/FeatureDetect.hpp"  // HAS_INT128, HAS_FLOAT128, PBDS_AVAILABLE
+#include "templates/core/Debug.hpp"
 
+// Scalar types and container aliases — Preamble.hpp already handled above.
+#include "templates/core/Types.hpp"
+
+#include "templates/core/Constants.hpp"      // PI, E, INF32/64, MOD, POW10[], ...
+#include "templates/core/MinMax.hpp"         // chmin/chmax with optional Compare
+#include "templates/core/Macros.hpp"         // FOR, sz, ALL, fix, as<>, ...
+#include "templates/core/Random.hpp"         // rng (mt19937_64), rnd(), reseed()
+
+//===----------------------------------------------------------------------===//
 // Namespace imports.
+
 using namespace std;
-#if PBDS_AVAILABLE
+#if defined(PBDS_AVAILABLE) && PBDS_AVAILABLE
   using namespace __gnu_pbds;
 #endif
 
-// Type aliases.
-#ifndef CP_TYPES_NO_PREAMBLE
-  #define CP_TYPES_NO_PREAMBLE 1
-  #define CP_TYPES_NO_PREAMBLE_LOCAL_SCOPE 1
-#endif
-#include "templates/core/Types.hpp"
-#ifdef CP_TYPES_NO_PREAMBLE_LOCAL_SCOPE
-  #undef CP_TYPES_NO_PREAMBLE
-  #undef CP_TYPES_NO_PREAMBLE_LOCAL_SCOPE
-#endif
+//===----------------------------------------------------------------------===//
+// Legacy type aliases for older round sources that include this PCH directly.
 
-// Legacy aliases for older round sources that include PCH directly.
 #ifndef CP_PCH_ENABLE_SHORT_ALIASES
   #define CP_PCH_ENABLE_SHORT_ALIASES 1
 #endif
@@ -76,37 +66,33 @@ using namespace std;
   #define CP_PCH_ENABLE_CONTAINER_ALIASES 1
 #endif
 #if CP_PCH_ENABLE_CONTAINER_ALIASES
-  template <class T>
-  using VC = Vec<T>;
-  template <class T>
-  using VVC = Vec2D<T>;
-  template <class T>
-  using VVVC = Vec3D<T>;
-  template <class T, class U>
-  using P = Pair<T, U>;
-  template <class T, class U>
-  using VP = VecPair<T, U>;
-  template <class T, class U>
-  using TP = Pair<T, U>;
+  template <class T> using VC   = Vec<T>;
+  template <class T> using VVC  = Vec2D<T>;
+  template <class T> using VVVC = Vec3D<T>;
+  template <class T, class U> using P  = Pair<T, U>;
+  template <class T, class U> using VP = VecPair<T, U>;
+  template <class T, class U> using TP = Pair<T, U>;
 #endif
 
-// Fast I/O and precision macros.
-#define FAST_IO() \
-  ios_base::sync_with_stdio(false); \
-  cin.tie(nullptr); \
-  cout.tie(nullptr)
+//===----------------------------------------------------------------------===//
+// I/O setup macros.
 
-#define SET_PRECISION(n) \
-  cout << fixed << setprecision(n)
+// FAST_IO_SETUP() configures fast I/O only. Use SET_PRECISION() separately.
+#ifndef FAST_IO_SETUP
+  #define FAST_IO_SETUP() \
+    ios_base::sync_with_stdio(false); \
+    cin.tie(nullptr)
+#endif
 
-// GCC optimizations (non-debug mode only).
-#ifndef LOCAL
-  #pragma GCC optimize("O3,unroll-loops")
-  #if defined(__x86_64__) || defined(__i386__)
-    #pragma GCC target("avx2,bmi,bmi2,lzcnt,popcnt")
-  #elif defined(__aarch64__) || defined(__arm__)
-    #pragma GCC target("+simd")
-  #endif
+#ifndef SET_PRECISION
+  #define SET_PRECISION(n) (cout << fixed << setprecision(n))
+#endif
+
+// Restore diagnostic state opened by Compiler.hpp.
+#if defined(__GNUC__) && !defined(__clang__)
+  #pragma GCC diagnostic pop
+#elif defined(__clang__)
+  #pragma clang diagnostic pop
 #endif
 
 #endif // PCH_WRAPPER_HPP
