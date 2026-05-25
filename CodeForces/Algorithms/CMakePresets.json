@@ -4,7 +4,8 @@
     {
       "name": "algorithms-workspace-base",
       "hidden": true,
-      "description": "Shared workspace configuration. Compiler is discovered from PATH; override CMAKE_CXX_COMPILER on the command line if a specific toolchain is required.",
+      "description": "Shared workspace configuration. Uses Ninja (requires `brew install ninja`). Compiler is discovered from PATH; override CMAKE_CXX_COMPILER on the command line if a specific toolchain is required.",
+      "generator": "Ninja",
       "cacheVariables": {
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "CP_ALGORITHMS_ENABLE_VERIFY_PROBES": "ON",

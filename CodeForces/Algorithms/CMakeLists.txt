@@ -35,6 +35,8 @@
 #   CP_ALGORITHMS_ENABLE_PROBE_SANITIZERS   (default: OFF)
 #   CP_ALGORITHMS_ENABLE_CTEST              (default: ON)
 #   CP_ALGORITHMS_WERROR                    (default: OFF)
+#   CP_ALGORITHMS_ENABLE_UNITY_BUILD        (default: ON)
+#   CP_ALGORITHMS_ENABLE_FAST_LINKER        (default: ON)
 #
 # ============================================================================ #
 
@@ -62,6 +64,8 @@ option(CP_ALGORITHMS_ENABLE_TIMING "Enable compilation timing reports for probe 
 option(CP_ALGORITHMS_ENABLE_PROBE_SANITIZERS "Compile probes with AddressSanitizer + UBSan (probe PCH disabled if mismatched)." OFF)
 option(CP_ALGORITHMS_ENABLE_CTEST "Register runtime probes (*.runtime.cpp) as CTest tests." ON)
 option(CP_ALGORITHMS_WERROR "Treat warnings as errors for all probe targets." OFF)
+option(CP_ALGORITHMS_ENABLE_UNITY_BUILD "Bundle header probes into a single unity TU for faster compilation." ON)
+option(CP_ALGORITHMS_ENABLE_FAST_LINKER "Link runtime probes with lld when available (faster than ld64)." ON)
 
 if(CP_ALGORITHMS_ENABLE_CTEST)
   enable_testing()
@@ -168,6 +172,22 @@ if(CP_ALGORITHMS_ENABLE_PROBE_SANITIZERS)
   endif()
 endif()
 
+# ---------------------- Fast Linker for Runtime Probes ----------------------- #
+# Probe runtime executables only — lld typically beats ld64 by 2-3x for small
+# C++ binaries. Apple Clang on macOS doesn't always know how to find Homebrew
+# lld, so we restrict the substitution to LLVM Clang where lld ships alongside.
+set(CP_ALGORITHMS_FAST_LINKER_FLAGS "")
+if(CP_ALGORITHMS_ENABLE_FAST_LINKER AND CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+  find_program(CP_ALGORITHMS_LLD_PROGRAM
+    NAMES ld.lld lld
+    PATHS /opt/homebrew/opt/llvm/bin /opt/homebrew/bin /usr/local/opt/llvm/bin /usr/bin
+  )
+  if(CP_ALGORITHMS_LLD_PROGRAM)
+    set(CP_ALGORITHMS_FAST_LINKER_FLAGS "-fuse-ld=lld")
+    message(STATUS "Fast linker enabled for runtime probes: ${CP_ALGORITHMS_LLD_PROGRAM}")
+  endif()
+endif()
+
 # ---------------------- Compilation Timing (optional) ----------------------- #
 # Reuses the round-level timing module — its flags (-ftime-report / -ftime-trace)
 # are applied via add_compile_options(), which propagates to probe targets too.
@@ -237,6 +257,9 @@ function(cp_algorithms_register_probe property_name target_stem source_path)
     if(CP_ALGORITHMS_PROBE_SANITIZER_LINK_FLAGS)
       target_link_options("${target_name}" PRIVATE ${CP_ALGORITHMS_PROBE_SANITIZER_LINK_FLAGS})
     endif()
+    if(CP_ALGORITHMS_FAST_LINKER_FLAGS)
+      target_link_options("${target_name}" PRIVATE ${CP_ALGORITHMS_FAST_LINKER_FLAGS})
+    endif()
     if(CP_ALGORITHMS_ENABLE_CTEST)
       add_test(
         NAME "${target_name}"
@@ -258,24 +281,42 @@ function(cp_algorithms_register_probe property_name target_stem source_path)
   set_property(GLOBAL APPEND PROPERTY "${property_name}" "${target_name}")
 endfunction()
 
-# cp_algorithms_generate_header_probe: synthesizes a minimal .cpp that includes
-# one public header and registers it as a probe. The generated file is written
-# into the binary directory so the source tree stays clean.
-function(cp_algorithms_generate_header_probe header_path)
+# cp_algorithms_make_header_probe_source: synthesizes a minimal .cpp that
+# includes one public header. The probe TU is OBJECT-only (no linkage), so a
+# main() is not required — and omitting it makes the sources unity-buildable.
+# Returns the generated probe source path through out_var.
+function(cp_algorithms_make_header_probe_source out_var header_path)
   file(RELATIVE_PATH relative_header "${CP_ALGORITHMS_ROOT}" "${header_path}")
   set(probe_source "${CP_ALGORITHMS_PROBE_DIR}/${relative_header}.cpp")
   get_filename_component(probe_directory "${probe_source}" DIRECTORY)
   file(MAKE_DIRECTORY "${probe_directory}")
   file(
     WRITE "${probe_source}"
+    "// Auto-generated CP Algorithms header probe.\n"
+    "// OBJECT-library translation unit; no linkage, no main() required.\n"
     "#include \"${relative_header}\"\n"
-    "int main() { return 0; }\n"
   )
-  cp_algorithms_register_probe(
-    "CP_ALGORITHMS_HEADER_TARGETS"
-    "cp_algorithms_header_${relative_header}"
-    "${probe_source}"
+  set(${out_var} "${probe_source}" PARENT_SCOPE)
+endfunction()
+
+# cp_algorithms_register_unity_object_target: creates a single OBJECT library
+# whose sources are bundled into one (or a few) unity translation units. Used
+# for families where the source files are pure includes — no file-scope
+# symbols that would collide when concatenated.
+function(cp_algorithms_register_unity_object_target target_name property_name sources_var)
+  add_library("${target_name}" OBJECT EXCLUDE_FROM_ALL ${${sources_var}})
+  target_link_libraries("${target_name}" PRIVATE cp_algorithms_workspace)
+  set_target_properties("${target_name}" PROPERTIES
+    FOLDER "probes"
+    UNITY_BUILD ON
+    UNITY_BUILD_MODE BATCH
+    UNITY_BUILD_BATCH_SIZE 16
   )
+  if(CP_ALGORITHMS_PROBE_PCH_TARGET)
+    target_precompile_headers("${target_name}" REUSE_FROM "${CP_ALGORITHMS_PROBE_PCH_TARGET}")
+    add_dependencies("${target_name}" "${CP_ALGORITHMS_PROBE_PCH_TARGET}")
+  endif()
+  set_property(GLOBAL APPEND PROPERTY "${property_name}" "${target_name}")
 endfunction()
 
 # ------------------------- Template Scaffold Probes ------------------------- #
@@ -322,9 +363,33 @@ if(CP_ALGORITHMS_ENABLE_HEADER_PROBES)
     "${CP_ALGORITHMS_ROOT}/libs/*.h"
     "${CP_ALGORITHMS_ROOT}/libs/*.hpp"
   )
+
+  set(cp_algorithms_header_probe_sources "")
   foreach(header_path IN LISTS cp_algorithms_public_headers)
-    cp_algorithms_generate_header_probe("${header_path}")
+    cp_algorithms_make_header_probe_source(_cp_alg_probe_source "${header_path}")
+    list(APPEND cp_algorithms_header_probe_sources "${_cp_alg_probe_source}")
   endforeach()
+  unset(_cp_alg_probe_source)
+
+  if(CP_ALGORITHMS_ENABLE_UNITY_BUILD AND cp_algorithms_header_probe_sources)
+    # Single unity OBJECT library: CMake bundles up to UNITY_BUILD_BATCH_SIZE
+    # probe sources per generated TU, slashing parser overhead vs. 150+ TUs.
+    cp_algorithms_register_unity_object_target(
+      cp_algorithms_header_unity
+      "CP_ALGORITHMS_HEADER_TARGETS"
+      cp_algorithms_header_probe_sources
+    )
+  else()
+    foreach(probe_source IN LISTS cp_algorithms_header_probe_sources)
+      file(RELATIVE_PATH _cp_alg_rel_probe "${CP_ALGORITHMS_PROBE_DIR}" "${probe_source}")
+      cp_algorithms_register_probe(
+        "CP_ALGORITHMS_HEADER_TARGETS"
+        "cp_algorithms_header_${_cp_alg_rel_probe}"
+        "${probe_source}"
+      )
+    endforeach()
+    unset(_cp_alg_rel_probe)
+  endif()
 endif()
 
 # ------------------- Per-Family Aggregate Custom Targets -------------------- #
@@ -392,12 +457,24 @@ if(CP_ALGORITHMS_ENABLE_CTEST)
 else()
   set(_cp_alg_ctest_status "disabled")
 endif()
+if(CP_ALGORITHMS_ENABLE_UNITY_BUILD)
+  set(_cp_alg_unity_status "enabled (header probes bundled, batch=16)")
+else()
+  set(_cp_alg_unity_status "disabled")
+endif()
+if(CP_ALGORITHMS_FAST_LINKER_FLAGS)
+  set(_cp_alg_linker_status "lld")
+else()
+  set(_cp_alg_linker_status "system default")
+endif()
 
 message(STATUS "CP Algorithms Workspace configured:")
 message(STATUS "  Verify probes   : ${_cp_n_verify}")
 message(STATUS "  Header probes   : ${_cp_n_headers}")
 message(STATUS "  Scaffold probes : ${_cp_n_scaffolds}")
 message(STATUS "  Probe PCH       : ${CP_ALGORITHMS_PROBE_PCH_STATUS}")
+message(STATUS "  Unity build     : ${_cp_alg_unity_status}")
+message(STATUS "  Runtime linker  : ${_cp_alg_linker_status}")
 message(STATUS "  Sanitizers      : ${_cp_alg_san_status}")
 message(STATUS "  Timing reports  : ${_cp_alg_timing_status}")
 message(STATUS "  Warnings as err : ${_cp_alg_werror_status}")

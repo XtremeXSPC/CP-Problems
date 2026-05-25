@@ -1057,6 +1057,30 @@ namespace modern_debug {
 //===----------------------------------------------------------------------===//
 //=========================== PUBLIC DEBUG MACROS ============================//
 
+// "templates/core/Debug.hpp" installs no-op stubs for "debug/my_assert/etc"
+// when LOCAL is not defined. When "libs/debug.h" is explicitly included
+// (directly or via a unity build), it asserts ownership of these names by
+// clearing any prior definition before installing its own. Macros that are
+// intentionally deferred to sibling headers (debug_tree.h, debug_watch.h,
+// PERF_*) keep their #ifndef guards below and are NOT undef'd here.
+#undef debug
+#undef debug_info
+#undef debug_warn
+#undef debug_error
+#undef debug_if
+#undef debug_verbose
+#undef debug_trace
+#undef modern_assert
+#undef debug_assert
+#undef my_assert
+#undef COUNT_CALLS
+#undef debug_line
+#undef debug1
+#undef debug_range
+#undef debug_bits
+#undef debug_grid
+#undef debug_graph
+
 // Main debug macros with automatic source location and multi-variable name splitting.
 #if DEBUG_LEVEL >= 1
   #define debug(...) \
