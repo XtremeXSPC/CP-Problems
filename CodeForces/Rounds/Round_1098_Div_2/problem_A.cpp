@@ -1,8 +1,8 @@
 #if !defined(CP_TEMPLATE_PROFILE_RELAXED)
-  #define CP_TEMPLATE_PROFILE_STRICT
+#define CP_TEMPLATE_PROFILE_STRICT
 #endif
 #ifndef CP_USE_GLOBAL_STD_NAMESPACE
-  #define CP_USE_GLOBAL_STD_NAMESPACE 1
+#define CP_USE_GLOBAL_STD_NAMESPACE 1
 #endif
 
 #define NEED_CORE
@@ -15,7 +15,22 @@
 /* Main Solver Function */
 
 void solve() {
-  // Optimized solution here
+  INT(N);
+  int c0 = 0, c1 = 0, c2 = 0;
+  FOR(N) {
+    INT(W);
+    if (W == 0)
+      ++c0;
+    else if (W == 1)
+      ++c1;
+    else
+      ++c2;
+  }
+  I32 pairs = min(c1, c2);
+  I32 rem   = abs(c1 - c2);
+
+  I32 ans = c0 + pairs + rem / 3;
+  OUT(ans);
 }
 
 //===----------------------------------------------------------------------===//

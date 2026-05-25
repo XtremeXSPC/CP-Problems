@@ -1,8 +1,8 @@
 #if !defined(CP_TEMPLATE_PROFILE_RELAXED)
-  #define CP_TEMPLATE_PROFILE_STRICT
+#define CP_TEMPLATE_PROFILE_STRICT
 #endif
 #ifndef CP_USE_GLOBAL_STD_NAMESPACE
-  #define CP_USE_GLOBAL_STD_NAMESPACE 1
+#define CP_USE_GLOBAL_STD_NAMESPACE 1
 #endif
 
 #define NEED_CORE
@@ -15,7 +15,17 @@
 /* Main Solver Function */
 
 void solve() {
-  // Optimized solution here
+  INT(N, X1, X2, K);
+
+  if (N <= 3) {
+    OUT(1);
+    return;
+  }
+
+  I32 diff = abs(X1 - X2);
+  I32 d    = min(diff, N - diff);
+
+  OUT(K + d);
 }
 
 //===----------------------------------------------------------------------===//
