@@ -1,43 +1,39 @@
 #ifndef CP_MODULES_DATA_STRUCTURES_FENWICK_TREE_2D_HPP
 #define CP_MODULES_DATA_STRUCTURES_FENWICK_TREE_2D_HPP
 
-#include "../_Common.hpp"
+#include "GroupFenwickTree2D.hpp"
 
-/// @brief 2D Fenwick tree for point updates and rectangle sums.
+/// @brief Additive dense 2D Fenwick tree on half-open rectangles.
 template <typename T>
-struct FenwickTree2D {
-  I32 n, m;
-  Vec2D<T> tree;
+struct FenwickTree2D : GroupFenwickTree2D<AddGroup<T>> {
+  using Base = GroupFenwickTree2D<AddGroup<T>>;
+  using Value = typename Base::Value;
 
-  /// @brief Constructs rows x cols empty BIT.
-  FenwickTree2D(I32 rows, I32 cols) : n(rows), m(cols), tree(n + 1, Vec<T>(m + 1)) {}
+  using Base::Base;
+  using Base::apply;
+  using Base::build;
+  using Base::get;
+  using Base::get_all;
+  using Base::prod;
+  using Base::query;
+  using Base::set;
 
-  /// @brief Adds @p val at cell (x, y).
-  void add(I32 x, I32 y, T val) {
-    x++; y++;
-    for (I32 i = x; i <= n; i += i & -i) {
-      for (I32 j = y; j <= m; j += j & -j) {
-        tree[i][j] += val;
-      }
-    }
+  /// @brief Returns the sum on the prefix rectangle [0, rx) x [0, ry).
+  [[nodiscard]] auto prefix_sum(I32 rx, I32 ry) const -> Value { return Base::prefix_query(rx, ry); }
+
+  /// @brief Alias of prefix_sum().
+  [[nodiscard]] auto sum(I32 rx, I32 ry) const -> Value { return prefix_sum(rx, ry); }
+
+  /// @brief Returns the sum on [lx, rx) x [ly, ry).
+  [[nodiscard]] auto sum(I32 lx, I32 rx, I32 ly, I32 ry) const -> Value {
+    return Base::query(lx, rx, ly, ry);
   }
 
-  /// @brief Prefix sum over rectangle [0..x] x [0..y].
-  T sum(I32 x, I32 y) {
-    x++; y++;
-    T res{};
-    for (I32 i = x; i > 0; i -= i & -i) {
-      for (I32 j = y; j > 0; j -= j & -j) {
-        res += tree[i][j];
-      }
-    }
-    return res;
-  }
+  /// @brief Adds @p delta at cell (@p x, @p y).
+  void add(I32 x, I32 y, const Value& delta) { Base::apply(x, y, delta); }
 
-  /// @brief Rectangle sum over inclusive box [x1..x2] x [y1..y2].
-  T range_sum(I32 x1, I32 y1, I32 x2, I32 y2) {
-    return sum(x2, y2) - sum(x1 - 1, y2) - sum(x2, y1 - 1) + sum(x1 - 1, y1 - 1);
-  }
+  /// @brief Alias of add().
+  void multiply(I32 x, I32 y, const Value& delta) { Base::apply(x, y, delta); }
 };
 
 #endif

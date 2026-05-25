@@ -1,0 +1,23 @@
+{
+  "name": "FenwickTree2D",
+  "header": "modules/data_structures/fenwick/FenwickTree2D.hpp",
+  "category": "data_structures",
+  "tags": [
+    "fenwick",
+    "2d",
+    "additive"
+  ],
+  "cases": [
+    {
+      "name": "runtime",
+      "kind": "run",
+      "source": "verify/modules/data_structures/fenwick/FenwickTree2D.runtime.cpp",
+      "timeout_seconds": 15.0
+    },
+    {
+      "name": "compile",
+      "kind": "compile",
+      "source": "verify/modules/data_structures/fenwick/FenwickTree2D.compile.cpp"
+    }
+  ]
+}

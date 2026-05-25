@@ -1,0 +1,23 @@
+{
+  "name": "GroupFenwickTree2D",
+  "header": "modules/data_structures/fenwick/GroupFenwickTree2D.hpp",
+  "category": "data_structures",
+  "tags": [
+    "fenwick",
+    "2d",
+    "group"
+  ],
+  "cases": [
+    {
+      "name": "runtime",
+      "kind": "run",
+      "source": "verify/modules/data_structures/fenwick/GroupFenwickTree2D.runtime.cpp",
+      "timeout_seconds": 15.0
+    },
+    {
+      "name": "compile",
+      "kind": "compile",
+      "source": "verify/modules/data_structures/fenwick/GroupFenwickTree2D.compile.cpp"
+    }
+  ]
+}

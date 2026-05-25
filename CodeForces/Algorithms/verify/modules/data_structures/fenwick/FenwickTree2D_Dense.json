@@ -1,0 +1,24 @@
+{
+  "name": "FenwickTree2D_Dense",
+  "header": "modules/data_structures/fenwick/FenwickTree2D_Dense.hpp",
+  "category": "data_structures",
+  "tags": [
+    "fenwick",
+    "2d",
+    "dense",
+    "additive"
+  ],
+  "cases": [
+    {
+      "name": "runtime",
+      "kind": "run",
+      "source": "verify/modules/data_structures/fenwick/FenwickTree2D_Dense.runtime.cpp",
+      "timeout_seconds": 15.0
+    },
+    {
+      "name": "compile",
+      "kind": "compile",
+      "source": "verify/modules/data_structures/fenwick/FenwickTree2D_Dense.compile.cpp"
+    }
+  ]
+}
