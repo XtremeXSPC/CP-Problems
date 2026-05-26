@@ -1,7 +1,7 @@
 #ifndef CP_MODULES_DATA_STRUCTURES_MONOID_SPARSE_TABLE_HPP
 #define CP_MODULES_DATA_STRUCTURES_MONOID_SPARSE_TABLE_HPP
 
-#include "../algebra/Algebra.hpp"
+#include "../_Common.hpp"
 
 /// @brief Static sparse table for idempotent monoids.
 template <typename Monoid>
@@ -11,7 +11,7 @@ struct MonoidSparseTable {
   I32 n = 0;
   I32 levels = 0;
   VecI32 lg;
-  Vec<Vec<Value>> table;
+  Vec2D<Value> table;
 
   MonoidSparseTable() = default;
   explicit MonoidSparseTable(I32 size_) { build(size_); }
@@ -75,14 +75,14 @@ struct MonoidSparseTable {
   [[nodiscard]] auto max_right(I32 l, F check) const -> I32 {
     my_assert(0 <= l && l <= n);
     my_assert(check(Monoid::identity()));
-    I32 ok = l;
+    I32 last = l;
     I32 ng = n + 1;
-    while (ok + 1 < ng) {
-      const I32 mid = (ok + ng) >> 1;
-      if (check(query(l, mid))) ok = mid;
+    while (last + 1 < ng) {
+      const I32 mid = (last + ng) >> 1;
+      if (check(query(l, mid))) last = mid;
       else ng = mid;
     }
-    return ok;
+    return last;
   }
 
   /// @brief Smallest `l` such that `check(query(l, r))` holds.
@@ -90,14 +90,14 @@ struct MonoidSparseTable {
   [[nodiscard]] auto min_left(I32 r, F check) const -> I32 {
     my_assert(0 <= r && r <= n);
     my_assert(check(Monoid::identity()));
-    I32 ok = r;
+    I32 first = r;
     I32 ng = -1;
-    while (ng + 1 < ok) {
-      const I32 mid = (ok + ng) >> 1;
-      if (check(query(mid, r))) ok = mid;
+    while (ng + 1 < first) {
+      const I32 mid = (first + ng) >> 1;
+      if (check(query(mid, r))) first = mid;
       else ng = mid;
     }
-    return ok;
+    return first;
   }
 };
 

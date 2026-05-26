@@ -1,7 +1,7 @@
 #ifndef CP_MODULES_DATA_STRUCTURES_DYNAMIC_LAZY_SEG_TREE_HPP
 #define CP_MODULES_DATA_STRUCTURES_DYNAMIC_LAZY_SEG_TREE_HPP
 
-#include "../algebra/Algebra.hpp"
+#include "../_Common.hpp"
 
 /// @brief Dynamic lazy segment tree on an arbitrary integer interval.
 template <typename ActedMonoid, bool Persistent = false>
@@ -123,10 +123,10 @@ private:
   [[nodiscard]] auto build_rec(const Vec<Value>& values, I64 l, I64 r) -> Root {
     if (l + 1 == r) return make_node(values[as<I32>(l)]);
     const I64 mid = (l + r) >> 1;
-    const Root left = build_rec(values, l, mid);
+    const Root left  = build_rec(values, l, mid);
     const Root right = build_rec(values, mid, r);
-    const Root root = make_node(ActedMonoid::combine(nodes[left].value, nodes[right].value));
-    nodes[root].left = left;
+    const Root root  = make_node(ActedMonoid::combine(nodes[left].value, nodes[right].value));
+    nodes[root].left  = left;
     nodes[root].right = right;
     return root;
   }
@@ -136,10 +136,10 @@ private:
   }
 
   [[nodiscard]] auto make_node(const Value& value) -> Root {
-    nodes.push_back(Node{.left = -1,
+    nodes.push_back(Node{.left  = -1,
                          .right = -1,
                          .value = value,
-                         .lazy = ActedMonoid::action_identity(),
+                         .lazy  = ActedMonoid::action_identity(),
                          .has_lazy = false});
     return isz(nodes) - 1;
   }

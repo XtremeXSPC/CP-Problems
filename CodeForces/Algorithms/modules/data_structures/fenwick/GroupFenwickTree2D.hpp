@@ -1,7 +1,7 @@
 #ifndef CP_MODULES_DATA_STRUCTURES_GROUP_FENWICK_TREE_2D_HPP
 #define CP_MODULES_DATA_STRUCTURES_GROUP_FENWICK_TREE_2D_HPP
 
-#include "../algebra/Algebra.hpp"
+#include "../_Common.hpp"
 
 /// @brief Dense 2D Fenwick tree over a commutative group on half-open rectangles.
 template <typename Group>

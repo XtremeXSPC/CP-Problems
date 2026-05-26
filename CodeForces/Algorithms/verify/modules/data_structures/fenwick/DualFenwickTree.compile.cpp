@@ -1,4 +1,5 @@
 #include "modules/data_structures/fenwick/DualFenwickTree.hpp"
+#include "modules/algebra/monoid/AddGroup.hpp"
 
 int main() {
   DualFenwickTree<AddGroup<I32>> bit(4, [](I32 i) { return i; });

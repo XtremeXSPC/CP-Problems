@@ -2,6 +2,7 @@
 #define CP_MODULES_DATA_STRUCTURES_FENWICK_TREE_2D_HPP
 
 #include "GroupFenwickTree2D.hpp"
+#include "modules/algebra/monoid/AddGroup.hpp"
 
 /// @brief Additive dense 2D Fenwick tree on half-open rectangles.
 template <typename T>

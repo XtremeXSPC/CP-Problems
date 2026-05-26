@@ -1,7 +1,7 @@
 #ifndef CP_MODULES_DATA_STRUCTURES_MONOID_SEGMENT_TREE_HPP
 #define CP_MODULES_DATA_STRUCTURES_MONOID_SEGMENT_TREE_HPP
 
-#include "../algebra/Algebra.hpp"
+#include "../_Common.hpp"
 
 /// @brief Iterative segment tree driven by a static monoid interface.
 template <typename Monoid>

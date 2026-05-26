@@ -1,7 +1,7 @@
 #ifndef CP_MODULES_DATA_STRUCTURES_ACTED_LAZY_SEG_TREE_HPP
 #define CP_MODULES_DATA_STRUCTURES_ACTED_LAZY_SEG_TREE_HPP
 
-#include "../algebra/Algebra.hpp"
+#include "../_Common.hpp"
 
 /// @brief Iterative lazy segment tree driven by a value monoid and an action monoid.
 template <typename ActedMonoid>

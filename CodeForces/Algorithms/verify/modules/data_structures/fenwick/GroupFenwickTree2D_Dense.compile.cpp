@@ -1,4 +1,5 @@
 #include "modules/data_structures/fenwick/GroupFenwickTree2D_Dense.hpp"
+#include "modules/algebra/monoid/AddGroup.hpp"
 
 int main() {
   GroupFenwickTree2D_Dense<AddGroup<I32>> bit(1, 1);

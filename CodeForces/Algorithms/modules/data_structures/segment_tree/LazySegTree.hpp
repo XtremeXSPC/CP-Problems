@@ -2,6 +2,9 @@
 #define CP_MODULES_DATA_STRUCTURES_LAZY_SEG_TREE_HPP
 
 #include "ActedLazySegTree.hpp"
+#include "modules/algebra/ActedMonoid.hpp"
+#include "modules/algebra/monoid/AddMonoid.hpp"
+#include "modules/algebra/monoid/InplaceAddMonoid.hpp"
 
 template <typename Value, typename Action>
 struct LegacyLazySegTreeAction {

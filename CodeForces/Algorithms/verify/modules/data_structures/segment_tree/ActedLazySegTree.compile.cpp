@@ -1,4 +1,5 @@
 #include "modules/data_structures/segment_tree/ActedLazySegTree.hpp"
+#include "modules/algebra/ActedMonoid.hpp"
 
 struct LocalMaxMonoid {
   using value_type = I32;

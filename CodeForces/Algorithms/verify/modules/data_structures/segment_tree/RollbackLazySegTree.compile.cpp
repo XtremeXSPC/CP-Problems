@@ -1,4 +1,5 @@
 #include "modules/data_structures/segment_tree/RollbackLazySegTree.hpp"
+#include "modules/algebra/ActedMonoid.hpp"
 
 struct LocalMinMonoid {
   using value_type = I32;
@@ -9,7 +10,7 @@ struct LocalMinMonoid {
   }
 };
 
-struct AssignMonoid {
+struct LocalAssignMonoid {
   struct Tag {
     I32 value = 0;
     bool active = false;
@@ -24,13 +25,13 @@ struct AssignMonoid {
 };
 
 struct AssignAction {
-  static auto apply(const I32& value, const AssignMonoid::Tag& tag, I32) -> I32 {
+  static auto apply(const I32& value, const LocalAssignMonoid::Tag& tag, I32) -> I32 {
     return (tag.active ? tag.value : value);
   }
 };
 
 int main() {
-  using Seg = RollbackLazySegTree<ActedMonoid<LocalMinMonoid, AssignMonoid, AssignAction>>;
+  using Seg = RollbackLazySegTree<ActedMonoid<LocalMinMonoid, LocalAssignMonoid, AssignAction>>;
   Seg seg(VecI32{5, 7, 9});
   seg.apply(0, 2, {3, true});
   return seg.query(0, 3) == 3 ? 0 : 1;

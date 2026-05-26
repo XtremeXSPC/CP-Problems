@@ -1,4 +1,6 @@
 #include "modules/data_structures/segment_tree/MonoidSegmentTree.hpp"
+#include "modules/algebra/monoid/AddMonoid.hpp"
+#include "modules/algebra/monoid/MaxMonoid.hpp"
 
 #include <cassert>
 

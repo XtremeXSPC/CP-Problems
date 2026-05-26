@@ -38,7 +38,7 @@ struct DualSegmentTree {
   template <typename F>
   void build(I32 size_, F init) {
     n = std::max<I32>(size_, 0);
-    log = 0;
+    log  = 0;
     size = 1;
     while (size < std::max<I32>(n, 1)) {
       size <<= 1;

@@ -2,7 +2,6 @@
 #define CP_MODULES_DATA_STRUCTURES_ROLLBACK_LAZY_SEG_TREE_HPP
 
 #include "RollbackArray.hpp"
-#include "../algebra/Algebra.hpp"
 
 /// @brief Iterative lazy segment tree with snapshot and rollback support.
 template <typename ActedMonoid>

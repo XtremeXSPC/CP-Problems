@@ -1,4 +1,5 @@
 #include "modules/data_structures/range_query/MonoidSparseTable.hpp"
+#include "modules/algebra/monoid/MinMonoid.hpp"
 
 #include <cassert>
 

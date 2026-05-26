@@ -1,4 +1,5 @@
 #include "modules/data_structures/segment_tree/RollbackLazySegTree.hpp"
+#include "modules/algebra/acted/RangeAddRangeSum.hpp"
 
 #include <cassert>
 

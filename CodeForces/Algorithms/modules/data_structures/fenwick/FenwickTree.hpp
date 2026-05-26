@@ -2,6 +2,7 @@
 #define CP_MODULES_DATA_STRUCTURES_FENWICK_TREE_HPP
 
 #include "GroupFenwickTree.hpp"
+#include "modules/algebra/monoid/AddGroup.hpp"
 
 /// @brief Additive Fenwick tree on half-open ranges.
 template <typename T>

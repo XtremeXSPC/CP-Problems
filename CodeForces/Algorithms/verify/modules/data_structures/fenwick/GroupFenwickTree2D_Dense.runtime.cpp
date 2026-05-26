@@ -1,4 +1,5 @@
 #include "modules/data_structures/fenwick/GroupFenwickTree2D_Dense.hpp"
+#include "modules/algebra/monoid/AddGroup.hpp"
 
 #include <cassert>
 #include <type_traits>

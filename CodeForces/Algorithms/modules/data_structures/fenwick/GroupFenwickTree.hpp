@@ -1,7 +1,7 @@
 #ifndef CP_MODULES_DATA_STRUCTURES_GROUP_FENWICK_TREE_HPP
 #define CP_MODULES_DATA_STRUCTURES_GROUP_FENWICK_TREE_HPP
 
-#include "../algebra/Algebra.hpp"
+#include "../_Common.hpp"
 
 /// @brief Fenwick tree over a commutative group on half-open ranges.
 template <typename Group>
