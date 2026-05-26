@@ -1,0 +1,23 @@
+{
+  "name": "Algebra",
+  "header": "modules/algebra/Algebra.hpp",
+  "category": "algebra",
+  "tags": [
+    "monoid",
+    "group",
+    "lazy_action"
+  ],
+  "cases": [
+    {
+      "name": "runtime",
+      "kind": "run",
+      "source": "verify/modules/algebra/Algebra.runtime.cpp",
+      "timeout_seconds": 30.0
+    },
+    {
+      "name": "compile",
+      "kind": "compile",
+      "source": "verify/modules/algebra/Algebra.compile.cpp"
+    }
+  ]
+}

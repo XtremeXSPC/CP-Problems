@@ -6,7 +6,7 @@
  * @brief Umbrella include for advanced data structures.
  */
 
-#include "data_structures/algebra/Algebra.hpp"
+#include "algebra/Algebra.hpp"
 #include "data_structures/bit_structures/BinaryTrie.hpp"
 #include "data_structures/bit_structures/DynamicBitset.hpp"
 #include "data_structures/bit_structures/FastSet.hpp"
