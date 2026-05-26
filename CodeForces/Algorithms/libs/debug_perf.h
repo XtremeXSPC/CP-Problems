@@ -42,10 +42,11 @@ public:
     for (const auto& [label, duration] : accumulated) {
       auto us = std::chrono::duration_cast<std::chrono::microseconds>(duration).count();
       auto count = call_counts.at(label);
+      using I64Debug = long long;
       std::cerr << colors::CYAN << "│ " << std::left << std::setw(24) << label
                 << ": " << colors::YELLOW << std::right << std::setw(8) << us << "μs"
                 << colors::DIM << " (" << count << " calls, avg "
-                << (count > 0 ? us / static_cast<long long>(count) : 0) << "μs)"
+                << (count > 0 ? us / I64Debug(count) : 0) << "μs)"
                 << colors::RESET << "\n";
     }
     auto total = std::chrono::duration_cast<std::chrono::microseconds>(clock::now() - global_start).count();

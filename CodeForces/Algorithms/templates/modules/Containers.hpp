@@ -39,8 +39,8 @@ F64 binary_search_real(F&& predicate, F64 left, F64 right, I32 iterations = 100)
 template <typename T>
 VecI32 argsort(const Vec<T>& v, bool reverse = false) {
   my_assert(v.size() <= as<Size>(Limits<I32>::max()) && "argsort(): input too large for I32 indices.");
-  VecI32 indices(static_cast<I64>(v.size()));
-  std::iota(indices.begin(), indices.end(), static_cast<I32>(0));
+  VecI32 indices(v.size());
+  std::iota(indices.begin(), indices.end(), I32(0));
   if (reverse) {
     std::ranges::sort(indices, [&](I32 i, I32 j) { return v[i] == v[j] ? i < j : v[i] > v[j]; });
   } else {
@@ -51,7 +51,7 @@ VecI32 argsort(const Vec<T>& v, bool reverse = false) {
 
 template <typename T>
 Vec<T> rearrange(const Vec<T>& v, const VecI32& indices) {
-  Vec<T> result(static_cast<I64>(indices.size()));
+  Vec<T> result(indices.size());
   for (Size i = 0; i < indices.size(); ++i)
     result[i] = v[indices[i]];
   return result;
@@ -59,7 +59,7 @@ Vec<T> rearrange(const Vec<T>& v, const VecI32& indices) {
 
 template <typename T>
 Vec<T> cumsum(const Vec<T>& v, bool include_zero = true) {
-  Vec<T> result(static_cast<I64>(v.size()) + (include_zero ? 1 : 0));
+  Vec<T> result(v.size() + (include_zero ? 1 : 0));
   if (v.empty())
     return result;
   if (include_zero) {
@@ -88,7 +88,7 @@ ReturnT sum_as(const Container& c) {
 // Convert a string to a vector of integers based on a base character.
 inline VecI32 string_to_ints(const String& s, char base_char = 'a') {
   my_assert(s.size() <= as<Size>(Limits<I32>::max()) && "string_to_ints(): input too large for I32 output.");
-  VecI32 result(static_cast<I64>(s.size()));
+  VecI32 result(s.size());
   for (Size i = 0; i < s.size(); ++i) {
     result[i] = s[i] == '?' ? -1 : s[i] - base_char;
   }

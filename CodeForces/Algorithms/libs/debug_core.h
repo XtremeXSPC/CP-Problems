@@ -334,7 +334,8 @@ namespace modern_debug {
       if (std::isprint(c)) {
         output << colors::GREEN << "'" << c << "'" << colors::RESET;
       } else {
-        output << colors::DIM << "'\\x" << std::hex << static_cast<unsigned char>(c) << std::dec << "'" << colors::RESET;
+        using UChar = unsigned char;
+        output << colors::DIM << "'\\x" << std::hex << UChar(c) << std::dec << "'" << colors::RESET;
       }
     }
 
@@ -348,9 +349,10 @@ namespace modern_debug {
       requires (!std::same_as<T, char> && !std::same_as<T, bool>) {
       if constexpr (sizeof(T) == 1) {
         if constexpr (std::is_signed_v<T>) {
-          output << static_cast<int>(value);
+          output << int(value);
         } else {
-          output << static_cast<unsigned int>(value);
+          using UInt = unsigned int;
+          output << UInt(value);
         }
       } else {
         output << value;
@@ -766,7 +768,8 @@ namespace modern_debug {
       if (i > 0 && i % 4 == 0) std::cerr << colors::DIM << "'" << colors::CYAN;
     }
     std::cerr << colors::RESET;
-    std::cerr << colors::DIM << " (" << display_bits << " bits, popcount=" << __builtin_popcountll(static_cast<unsigned long long>(value)) << ")" << colors::RESET;
+    using ULL = unsigned long long;
+    std::cerr << colors::DIM << " (" << display_bits << " bits, popcount=" << __builtin_popcountll(ULL(value)) << ")" << colors::RESET;
   }
 
   //===--------------------------------------------------------------------===//
@@ -799,7 +802,7 @@ namespace modern_debug {
         max_width = std::max(max_width, clean.size());
       }
     }
-    int w = static_cast<int>(max_width);
+    int w = int(max_width);
 
     std::cerr << colors::MAGENTA << name << colors::DIM
               << " (" << rows << "x" << cols << "):" << colors::RESET << "\n";
@@ -826,7 +829,7 @@ namespace modern_debug {
           if (in_esc) { if (ch == 'm') in_esc = false; continue; }
           clean += ch;
         }
-        int pad = w + 1 - static_cast<int>(clean.size());
+        int pad = w + 1 - int(clean.size());
         for (int i = 0; i < pad; i++) std::cerr << ' ';
         std::cerr << raw;
       }

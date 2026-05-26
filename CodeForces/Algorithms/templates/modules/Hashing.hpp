@@ -18,9 +18,9 @@ namespace cp::hashing {
 
 [[gnu::always_inline]] inline U64& fixed_random_seed_storage() noexcept {
 #ifdef CP_SEED
-  static U64 seed = static_cast<U64>(CP_SEED);
+  static U64 seed = U64(CP_SEED);
 #else
-  static U64 seed = static_cast<U64>(std::chrono::steady_clock::now().time_since_epoch().count());
+  static U64 seed = U64(std::chrono::steady_clock::now().time_since_epoch().count());
 #endif
   return seed;
 }
@@ -38,38 +38,38 @@ template <class T>
   using U = cp::remove_cvref_t<T>;
 #ifdef CP_USE_ADVANCED
   if constexpr (Integral<U>)
-    return static_cast<U64>(value);
+    return U64(value);
   else if constexpr (Enum<U>)
-    return static_cast<U64>(static_cast<std::underlying_type_t<U>>(value));
+    return U64(std::underlying_type_t<U>(value));
   else if constexpr (Hashable<U>)
-    return static_cast<U64>(std::hash<U>{}(value));
+    return U64(std::hash<U>{}(value));
   else {
     static_assert(Hashable<U>, "raw_hash(): type is not hashable; provide std::hash specialization.");
     return 0;
   }
 #else
   if constexpr (std::is_integral_v<U>)
-    return static_cast<U64>(value);
+    return U64(value);
   else if constexpr (std::is_enum_v<U>)
-    return static_cast<U64>(static_cast<std::underlying_type_t<U>>(value));
+    return U64(std::underlying_type_t<U>(value));
   else
-    return static_cast<U64>(std::hash<U>{}(value));
+    return U64(std::hash<U>{}(value));
 #endif
 }
 
 template <class T>
 struct SplitMixHash {
   size_t operator()(const T& value) const noexcept {
-    return static_cast<size_t>(splitmix64(raw_hash(value) + fixed_random_seed()));
+    return size_t(splitmix64(raw_hash(value) + fixed_random_seed()));
   }
 };
 
 template <class T, class U>
 struct PairHash {
   size_t operator()(const std::pair<T, U>& value) const noexcept {
-    U64 lhs = static_cast<U64>(SplitMixHash<T>{}(value.first));
-    U64 rhs = static_cast<U64>(SplitMixHash<U>{}(value.second));
-    return static_cast<size_t>(splitmix64(hash_combine(lhs, rhs) + fixed_random_seed()));
+    U64 lhs = U64(SplitMixHash<T>{}(value.first));
+    U64 rhs = U64(SplitMixHash<U>{}(value.second));
+    return size_t(splitmix64(hash_combine(lhs, rhs) + fixed_random_seed()));
   }
 };
 

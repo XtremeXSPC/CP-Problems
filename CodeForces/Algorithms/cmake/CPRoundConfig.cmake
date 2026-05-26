@@ -122,7 +122,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND NOT APPLE)
     "#include <stacktrace>
      int main() {
        auto trace = std::stacktrace::current();
-       return static_cast<int>(trace.size());
+       return int(trace.size());
      }"
     CP_GNU_STACKTRACE_AVAILABLE
   )

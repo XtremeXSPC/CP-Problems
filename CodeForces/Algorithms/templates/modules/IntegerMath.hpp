@@ -142,9 +142,9 @@ CP_INTMATH_TPL_INT
     return as<T>(ux);
 
   if constexpr (sizeof(U) > sizeof(U64)) {
-    constexpr int bits = static_cast<int>(sizeof(U) * 8);
-    U             lo   = 1;
-    U             hi   = U{1} << ((bits + 1) / 2);
+    constexpr int bits = int(sizeof(U) * 8);
+    U lo = 1;
+    U hi = U{1} << ((bits + 1) / 2);
     while (lo + 1 < hi) {
       const U mid = lo + (hi - lo) / 2;
       if (mid <= ux / mid)
@@ -165,7 +165,7 @@ CP_INTMATH_TPL_INT
 
 CP_INTMATH_TPL_INT
 [[gnu::always_inline]] inline T ceil_sqrt(T x) {
-  using U      = cp::make_unsigned_t<T>;
+  using U = cp::make_unsigned_t<T>;
   const T root = floor_sqrt(x);
   const U uf   = as<U>(root);
   if (uf == 0)

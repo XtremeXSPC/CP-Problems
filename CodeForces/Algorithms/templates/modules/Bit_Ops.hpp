@@ -15,12 +15,12 @@ CP_BITOPS_TPL
   using Raw = std::remove_cv_t<T>;
   using U   = cp::make_unsigned_t<Raw>;
   if constexpr (sizeof(Raw) <= 4)
-    return __builtin_popcount(static_cast<U32>(static_cast<U>(x)));
+    return __builtin_popcount(U32(U(x)));
   else if constexpr (sizeof(Raw) <= 8)
-    return __builtin_popcountll(static_cast<U64>(static_cast<U>(x)));
+    return __builtin_popcountll(U64(U(x)));
   else {
-    const U ux = static_cast<U>(x);
-    return __builtin_popcountll(static_cast<U64>(ux)) + __builtin_popcountll(static_cast<U64>(ux >> 64));
+    const U ux = U(x);
+    return __builtin_popcountll(U64(ux)) + __builtin_popcountll(U64(ux >> 64));
   }
 }
 
@@ -28,18 +28,18 @@ CP_BITOPS_TPL
 [[gnu::always_inline]] constexpr I32 leading_zeros(T x) {
   using Raw = std::remove_cv_t<T>;
   using U   = cp::make_unsigned_t<Raw>;
-  U ux      = static_cast<U>(x);
+  U ux      = U(x);
   if (ux == 0)
     return sizeof(Raw) * 8;
   if constexpr (sizeof(Raw) <= 4) {
-    return __builtin_clz(static_cast<U32>(ux)) - (32 - static_cast<I32>(sizeof(Raw) * 8));
+    return __builtin_clz(U32(ux)) - (32 - I32(sizeof(Raw) * 8));
   } else if constexpr (sizeof(Raw) <= 8) {
-    return __builtin_clzll(static_cast<U64>(ux)) - (64 - static_cast<I32>(sizeof(Raw) * 8));
+    return __builtin_clzll(U64(ux)) - (64 - I32(sizeof(Raw) * 8));
   } else {
-    const U64 hi = static_cast<U64>(ux >> 64);
+    const U64 hi = U64(ux >> 64);
     if (hi != 0)
       return __builtin_clzll(hi);
-    return 64 + __builtin_clzll(static_cast<U64>(ux));
+    return 64 + __builtin_clzll(U64(ux));
   }
 }
 
@@ -47,18 +47,18 @@ CP_BITOPS_TPL
 [[gnu::always_inline]] constexpr I32 trailing_zeros(T x) {
   using Raw = std::remove_cv_t<T>;
   using U   = cp::make_unsigned_t<Raw>;
-  U ux      = static_cast<U>(x);
+  U ux      = U(x);
   if (ux == 0)
     return sizeof(Raw) * 8;
   if constexpr (sizeof(Raw) <= 4)
-    return __builtin_ctz(static_cast<U32>(ux));
+    return __builtin_ctz(U32(ux));
   else if constexpr (sizeof(Raw) <= 8)
-    return __builtin_ctzll(static_cast<U64>(ux));
+    return __builtin_ctzll(U64(ux));
   else {
-    const U64 lo = static_cast<U64>(ux);
+    const U64 lo = U64(ux);
     if (lo != 0)
       return __builtin_ctzll(lo);
-    return 64 + __builtin_ctzll(static_cast<U64>(ux >> 64));
+    return 64 + __builtin_ctzll(U64(ux >> 64));
   }
 }
 

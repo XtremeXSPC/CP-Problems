@@ -27,7 +27,7 @@ struct SqrtDecomposition {
 
   void init(I32 size, T initial_value = T{}) {
     n = std::max<I32>(size, 0);
-    block_size = std::max<I32>(1, as<I32>(std::sqrt(as<F80>(n)) + 1));
+    block_size  = std::max<I32>(1, as<I32>(std::sqrt(as<F80>(n)) + 1));
     block_count = (n + block_size - 1) / block_size;
     data.assign(n, initial_value);
     block_sum.assign(block_count, T{});
@@ -72,7 +72,7 @@ struct SqrtDecomposition {
     r = std::min<I32>(r, n);
     if (l >= r) return T{};
 
-    I32 left_block = l / block_size;
+    I32 left_block  = l / block_size;
     I32 right_block = (r - 1) / block_size;
     T result = T{};
 

@@ -18,7 +18,7 @@ struct ModInt {
 
   constexpr ModInt(I64 x) {
     I64 r = x % MOD;
-    value = static_cast<U64>(r < 0 ? r + MOD : r);
+    value = U64(r < 0 ? r + MOD : r);
   }
 
   constexpr ModInt& operator+=(const ModInt& other) {
@@ -35,13 +35,13 @@ struct ModInt {
 
   constexpr ModInt& operator*=(const ModInt& other) {
 #if HAS_INT128
-    value = static_cast<U64>(static_cast<U128>(value) * other.value % static_cast<U128>(MOD));
+    value = U64(U128(value) * other.value % U128(MOD));
 #else
     // Without __int128 the product a*b is computed in U64 arithmetic, so we
     // need (MOD - 1)^2 <= 2^64 - 1, i.e. MOD <= 2^32 = 4'294'967'296.
     static_assert(
         MOD <= (1LL << 32), "ModInt multiplication may overflow U64 for MOD > 2^32 without __int128 support.");
-    value = value * other.value % static_cast<U64>(MOD);
+    value = value * other.value % U64(MOD);
 #endif
     return *this;
   }
@@ -71,7 +71,7 @@ struct ModInt {
 
   constexpr ModInt inverse() const {
     // Extended Euclidean algorithm; inverse exists iff gcd(value, MOD) == 1.
-    I64 a = static_cast<I64>(value), b = MOD, u = 1, v = 0;
+    I64 a = I64(value), b = MOD, u = 1, v = 0;
     while (b > 0) {
       I64 t = a / b;
       a -= t * b;

@@ -19,18 +19,18 @@ struct WildcardPatternMatching {
     const I32 m = sz(pattern);
     if (m == 0) return Vec<char>(n + 1, true);
     if (m > n) return {};
-    Vec<char> ok = match_table_with_shift(text, pattern, wildcard, rnd<I64>(1, MOD2 - 1));
+    Vec<char> valid = match_table_with_shift(text, pattern, wildcard, rnd<I64>(1, MOD2 - 1));
     const Vec<char> confirm = match_table_with_shift(text, pattern, wildcard, rnd<I64>(1, MOD2 - 1));
-    FOR(i, sz(ok)) ok[i] = ok[i] && confirm[i];
-    return ok;
+    FOR(i, sz(valid)) valid[i] = valid[i] && confirm[i];
+    return valid;
   }
 
   /// @brief Start positions of all valid pattern occurrences in @p text.
   static VecI32 search(const String& text, const String& pattern, char wildcard = '?') {
-    const Vec<char> ok = match_table(text, pattern, wildcard);
+    const Vec<char> valid = match_table(text, pattern, wildcard);
     VecI32 pos;
-    FOR(i, sz(ok)) {
-      if (ok[i]) pos.eb(i);
+    FOR(i, sz(valid)) {
+      if (valid[i]) pos.eb(i);
     }
     return pos;
   }
@@ -45,8 +45,8 @@ struct WildcardPatternMatching {
   ) {
     const I32 n = sz(text);
     const I32 m = sz(pattern);
-    Vec<I64> a1(n), a2(n), a3(n);
-    Vec<I64> b1(m), b2(m), b3(m);
+    VecI64 a1(n), a2(n), a3(n);
+    VecI64 b1(m), b2(m), b3(m);
 
     FOR(i, n) {
       const I64 x = lift(text[i], wildcard, shift);
@@ -62,19 +62,19 @@ struct WildcardPatternMatching {
       b3[i] = b2[i] * y % MOD2;
     }
 
-    const Vec<I64> c13 = NTT::multiply(a1, b3);
-    const Vec<I64> c22 = NTT::multiply(a2, b2);
-    const Vec<I64> c31 = NTT::multiply(a3, b1);
+    const VecI64 c13 = NTT::multiply(a1, b3);
+    const VecI64 c22 = NTT::multiply(a2, b2);
+    const VecI64 c31 = NTT::multiply(a3, b1);
 
-    Vec<char> ok(n - m + 1, false);
-    FOR(i, sz(ok)) {
+    Vec<char> valid(n - m + 1, false);
+    FOR(i, sz(valid)) {
       const I32 k = i + m - 1;
       I64 val = c13[k] - 2 * c22[k] + c31[k];
       val %= MOD2;
       if (val < 0) val += MOD2;
-      ok[i] = (val == 0);
+      valid[i] = (val == 0);
     }
-    return ok;
+    return valid;
   }
 
   static I64 lift(char c, char wildcard, I64 shift) {
