@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Generate templates/cpp/<scaffold>.cpp from profiles.toml."""
+"""Code-generate the per-profile scaffold ``.cpp`` files under ``templates/cpp/``.
+
+Each scaffold (``default.cpp``, ``advanced.cpp``, ``pbds.cpp``, ...) starts
+from a common skeleton and applies the profile-specific ``NEED_*`` /
+``CP_*`` block declared in ``profiles.toml``. Running this script keeps the
+scaffolds aligned with the central registry so a new round can be spun up
+from any profile without manual editing.
+"""
 
 from __future__ import annotations
 

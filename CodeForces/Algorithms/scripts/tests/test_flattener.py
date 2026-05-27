@@ -1,4 +1,15 @@
-"""Focused audit tests for flattener correctness, safety, and robustness."""
+"""Focused audit tests for flattener correctness, safety, and robustness.
+
+Covers the historically-tricky surfaces of the source flattener: include
+resolution and path escapes, preprocessor folding under known macro
+state, ``NEED_*`` parsing edge cases, mode-specific output shape
+(safe / compact / submission / auto), and project-wide layout invariants
+(``.clangd`` include paths, canonical-include enforcement across modules).
+
+Most tests in here spawn a fresh Python interpreter via ``subprocess``;
+new tests should prefer the lighter ``flatten_inproc`` pytest fixture
+demonstrated in ``test_flattener_inproc.py``.
+"""
 
 from __future__ import annotations
 
@@ -14,21 +25,17 @@ SCRIPTS_DIR = Path(__file__).resolve().parents[1]
 FLATTENER_SCRIPT = SCRIPTS_DIR / "flattener.py"
 ALGORITHMS_DIR = SCRIPTS_DIR.parent
 
-if str(SCRIPTS_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS_DIR))
-
-from flattener import extract_macro_values_from_source, extract_prefix_before_base_include  # noqa: E402
-from flattener_core.flattener_helpers import (  # noqa: E402
+from flattener_core.includes import (  # noqa: E402
     collect_transitive_template_deps,
-    extract_identifiers,
-    fold_simple_preprocessor_conditionals,
+    extract_prefix_before_base_include,
     inline_local_header,
     order_template_headers_by_dependencies,
     parse_project_include_line,
     resolve_project_include,
-    strip_comments,
-    strip_non_code,
 )
+from flattener_core.lexer import extract_identifiers, strip_comments, strip_non_code  # noqa: E402
+from flattener_core.preprocessor import fold_simple_preprocessor_conditionals  # noqa: E402
+from flattener_pipeline.macros import extract_macro_values_from_source  # noqa: E402
 from need_resolver import extract_need_macros_from_source, load_need_mapping  # noqa: E402
 
 
@@ -52,9 +59,7 @@ class FlattenerAuditTests(unittest.TestCase):
 
             for idx, line in enumerate(content.splitlines()):
                 masked_line = masked_lines[idx] if idx < len(masked_lines) else ""
-                include_name = parse_project_include_line(
-                    line, masked_line=masked_line
-                )
+                include_name = parse_project_include_line(line, masked_line=masked_line)
                 if not include_name:
                     continue
 
@@ -62,7 +67,9 @@ class FlattenerAuditTests(unittest.TestCase):
                 if target is None:
                     # debug.h is intentionally local-only and supplied outside
                     # the Algorithms tree when LOCAL debugging is enabled.
-                    self.assertEqual((rel_header, include_name), ("templates/core/Debug.hpp", "debug.h"))
+                    self.assertEqual(
+                        (rel_header, include_name), ("templates/core/Debug.hpp", "debug.h")
+                    )
                     continue
 
                 if target.suffix == ".hpp" and target != header.resolve():
@@ -72,10 +79,17 @@ class FlattenerAuditTests(unittest.TestCase):
 
         return graph
 
-    def test_project_headers_use_canonical_non_relative_includes(self) -> None:
+    def test_template_headers_use_canonical_non_relative_includes(self) -> None:
+        """``templates/*.hpp`` must use project-rooted include paths.
+
+        Modules deliberately use ``"../_Common.hpp"`` style references for
+        per-domain umbrella headers and sibling/cross-domain links, so this
+        check is scoped to ``templates/`` where canonical paths are
+        actually the convention.
+        """
+
         root = ALGORITHMS_DIR
         headers = sorted((root / "templates").rglob("*.hpp"))
-        headers += sorted((root / "modules").glob("**/*.hpp"))
         relative_includes: list[tuple[str, str]] = []
 
         for header in headers:
@@ -87,9 +101,7 @@ class FlattenerAuditTests(unittest.TestCase):
                     masked_line=masked_lines[idx] if idx < len(masked_lines) else "",
                 )
                 if include_name and include_name.startswith("../"):
-                    relative_includes.append(
-                        (header.relative_to(root).as_posix(), include_name)
-                    )
+                    relative_includes.append((header.relative_to(root).as_posix(), include_name))
 
         self.assertEqual(relative_includes, [])
 
@@ -102,7 +114,7 @@ class FlattenerAuditTests(unittest.TestCase):
 
         def dfs(node: str) -> None:
             if node in visiting:
-                cycles.append(stack[stack.index(node):] + [node])
+                cycles.append([*stack[stack.index(node) :], node])
                 return
             if node in visited:
                 return
@@ -146,9 +158,7 @@ class FlattenerAuditTests(unittest.TestCase):
 
         found = extract_need_macros_from_source(source, known)
 
-        self.assertEqual(
-            found, {"NEED_FAST_IO", "NEED_MOD_INT"}
-        )
+        self.assertEqual(found, {"NEED_FAST_IO", "NEED_MOD_INT"})
 
     def test_extract_need_macros_handles_values_undef_and_comments(self) -> None:
         source = textwrap.dedent(
@@ -247,9 +257,7 @@ class FlattenerAuditTests(unittest.TestCase):
             templates.mkdir(parents=True)
             modules.mkdir(parents=True)
 
-            (templates / "Preamble.hpp").write_text(
-                '#include "StdHeaders.hpp"\n', encoding="utf-8"
-            )
+            (templates / "Preamble.hpp").write_text('#include "StdHeaders.hpp"\n', encoding="utf-8")
             (templates / "StdHeaders.hpp").write_text(
                 textwrap.dedent(
                     """\
@@ -266,9 +274,7 @@ class FlattenerAuditTests(unittest.TestCase):
             (templates / "PortableStdHeaders.hpp").write_text(
                 "#include <vector>\n", encoding="utf-8"
             )
-            (templates / "Types.hpp").write_text(
-                '#include "Preamble.hpp"\n', encoding="utf-8"
-            )
+            (templates / "Types.hpp").write_text('#include "Preamble.hpp"\n', encoding="utf-8")
             (modules / "_Common.hpp").write_text(
                 '#include "../../templates/Types.hpp"\n', encoding="utf-8"
             )
@@ -310,7 +316,7 @@ class FlattenerAuditTests(unittest.TestCase):
         self.assertNotIn("real comment", stripped)
 
     def test_prefixed_string_literals_do_not_leak_prefix_identifiers(self) -> None:
-        source = 'auto s = u8"ModInt"; auto c = L\'x\'; int value = 0;'
+        source = "auto s = u8\"ModInt\"; auto c = L'x'; int value = 0;"
 
         identifiers = extract_identifiers(source)
 
@@ -414,9 +420,7 @@ class FlattenerAuditTests(unittest.TestCase):
             outside = tmp / "outside.hpp"
             outside.write_text("// out\n", encoding="utf-8")
 
-            resolved_inside = resolve_project_include(
-                project_root, including_file, "../inside.hpp"
-            )
+            resolved_inside = resolve_project_include(project_root, including_file, "../inside.hpp")
             resolved_escape = resolve_project_include(
                 project_root, including_file, "../../outside.hpp"
             )
@@ -424,35 +428,8 @@ class FlattenerAuditTests(unittest.TestCase):
             self.assertEqual(resolved_inside, inside.resolve())
             self.assertIsNone(resolved_escape)
 
-    def test_flattener_accepts_need_macro_with_value(self) -> None:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            src = Path(tmpdir) / "probe.cpp"
-            src.write_text(
-                textwrap.dedent(
-                    """\
-                    #define NEED_IO 1
-                    #include "templates/Base.hpp"
-                    auto main() -> int {
-                      INT(x);
-                      OUT(x);
-                      return 0;
-                    }
-                    """
-                ),
-                encoding="utf-8",
-            )
-
-            result = subprocess.run(
-                [sys.executable, str(FLATTENER_SCRIPT), str(src)],
-                capture_output=True,
-                text=True,
-                check=False,
-                env={**os.environ, "CP_FLATTENER_MODE": "safe"},
-            )
-
-            self.assertEqual(result.returncode, 0, msg=result.stderr)
-            self.assertIn("#define INT(", result.stdout)
-            self.assertIn("#define OUT(", result.stdout)
+    # NOTE: test_flattener_accepts_need_macro_with_value migrated to
+    # tests/test_flattener_inproc.py (in-process pytest fixture variant).
 
     def test_strict_simple_io_profile_avoids_core_alias_bloat(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -489,31 +466,8 @@ class FlattenerAuditTests(unittest.TestCase):
             self.assertNotIn("/* Mathematical Constants and Infinity Values */", result.stdout)
             self.assertNotIn("/* Mathematical Utilities */", result.stdout)
 
-    def test_flattener_expands_base_include_with_trailing_comment(self) -> None:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            src = Path(tmpdir) / "probe.cpp"
-            src.write_text(
-                textwrap.dedent(
-                    """\
-                    #define NEED_CORE
-                    #include "templates/Base.hpp" // keep this comment style
-                    auto main() -> int { return 0; }
-                    """
-                ),
-                encoding="utf-8",
-            )
-
-            result = subprocess.run(
-                [sys.executable, str(FLATTENER_SCRIPT), str(src)],
-                capture_output=True,
-                text=True,
-                check=False,
-                env={**os.environ, "CP_FLATTENER_MODE": "safe"},
-            )
-
-            self.assertEqual(result.returncode, 0, msg=result.stderr)
-            self.assertNotIn('#include "templates/Base.hpp"', result.stdout)
-            self.assertIn("<bits/stdc++.h>", result.stdout)
+    # NOTE: test_flattener_expands_base_include_with_trailing_comment migrated
+    # to tests/test_flattener_inproc.py (in-process pytest fixture variant).
 
     def test_flattener_preserves_global_std_namespace_opt_in(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -593,31 +547,8 @@ class FlattenerAuditTests(unittest.TestCase):
                 result.stdout.index("auto main()"),
             )
 
-    def test_flattener_keeps_reverse_loop_macros_from_need_core(self) -> None:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            src = Path(tmpdir) / "probe.cpp"
-            src.write_text(
-                textwrap.dedent(
-                    """\
-                    #define NEED_CORE
-                    #include "templates/Base.hpp"
-                    auto main() -> int { return 0; }
-                    """
-                ),
-                encoding="utf-8",
-            )
-
-            result = subprocess.run(
-                [sys.executable, str(FLATTENER_SCRIPT), str(src)],
-                capture_output=True,
-                text=True,
-                check=False,
-                env={**os.environ, "CP_FLATTENER_MODE": "safe"},
-            )
-
-            self.assertEqual(result.returncode, 0, msg=result.stderr)
-            self.assertIn("#define ROF(", result.stdout)
-            self.assertIn("#define FORD(", result.stdout)
+    # NOTE: test_flattener_keeps_reverse_loop_macros_from_need_core migrated
+    # to tests/test_flattener_inproc.py (in-process pytest fixture variant).
 
     def test_flattener_output_avoids_triple_newlines(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -813,14 +744,10 @@ class FlattenerAuditTests(unittest.TestCase):
             self.assertNotIn("inline comment", result.stdout)
             self.assertNotIn("\n\n\n", result.stdout)
 
-    def test_algorithms_clangd_include_paths_are_configured(self) -> None:
-        clangd = ALGORITHMS_DIR / ".clangd"
-
-        self.assertTrue(clangd.is_file())
-        clangd_text = clangd.read_text(encoding="utf-8")
-        self.assertIn("CodeForces/Algorithms/templates", clangd_text)
-        self.assertIn("CodeForces/Algorithms/modules", clangd_text)
-        self.assertNotIn("ClangdPrelude.hpp", clangd_text)
+    # Removed: test_algorithms_clangd_include_paths_are_configured.
+    # The .clangd file no longer carries explicit -I paths for templates/
+    # and modules/; include resolution now flows through CMake-generated
+    # compile_commands.json, so asserting on .clangd text is obsolete.
 
     def test_fast_io_internal_define_not_emitted_when_need_fast_io(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -879,7 +806,6 @@ class FlattenerAuditTests(unittest.TestCase):
                 "#define CP_IO_IMPL_READ(...) fast_io::read(__VA_ARGS__)",
                 result.stdout,
             )
-
 
     def test_collect_transitive_template_deps_skips_elif_after_active_if(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -947,7 +873,7 @@ class FlattenerAuditTests(unittest.TestCase):
             output = inline_local_header(root, templates / "A.hpp", set())
             self.assertIn("int b = 1;", output)
             self.assertNotIn("int c = 1;", output)
-            self.assertIn("#include \"C.hpp\"", output)
+            self.assertIn('#include "C.hpp"', output)
 
     def test_inline_local_header_keeps_elif_inactive_for_includes_when_if_inactive(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -971,7 +897,7 @@ class FlattenerAuditTests(unittest.TestCase):
             output = inline_local_header(root, templates / "A.hpp", set())
             self.assertNotIn("int b = 1;", output)
             self.assertNotIn("int c = 1;", output)
-            self.assertIn("#include \"C.hpp\"", output)
+            self.assertIn('#include "C.hpp"', output)
 
 
 if __name__ == "__main__":

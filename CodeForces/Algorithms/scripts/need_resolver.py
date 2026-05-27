@@ -1,5 +1,15 @@
 #!/usr/bin/env python3
-"""Shared NEED_* parsing helpers for CP template scripts."""
+"""Parse ``NEED_*`` macros from user source and load the canonical mapping.
+
+``load_need_mapping`` reads ``templates/Base.hpp`` and reconstructs the
+authoritative ``NEED_<feature> -> [template headers...]`` table that the
+flattener uses to decide which template sections to emit.
+
+``extract_need_macros_from_source`` walks a user file and reports which
+``NEED_*`` macros are actually enabled (honoring ``#define``/``#undef``,
+simple conditional folding, and the per-IO profile guards). Used by both
+``flattener_pipeline.pipeline`` and ``flattener_pipeline.cli``.
+"""
 
 from __future__ import annotations
 
@@ -7,20 +17,18 @@ import re
 from collections import OrderedDict
 from collections.abc import Iterable
 from pathlib import Path
+from typing import TextIO
 
-from flattener_core.flattener_helpers import (
+from flattener_core.includes import (
     extract_prefix_before_base_include,
-    fold_simple_preprocessor_conditionals,
     parse_project_include_line,
-    strip_comments,
-    strip_non_code,
 )
+from flattener_core.lexer import strip_comments, strip_non_code
+from flattener_core.preprocessor import fold_simple_preprocessor_conditionals
 from profile_registry import load_registry
 
 NEED_IFDEF_RE = re.compile(r"^\s*#\s*ifdef\s+(NEED_\w+)\s*$")
-NEED_IF_DEFINED_RE = re.compile(
-    r"^\s*#\s*if\s+defined(?:\s*\(\s*|\s+)(NEED_\w+)\s*\)?\s*$"
-)
+NEED_IF_DEFINED_RE = re.compile(r"^\s*#\s*if\s+defined(?:\s*\(\s*|\s+)(NEED_\w+)\s*\)?\s*$")
 IF_DIRECTIVE_RE = re.compile(r"^\s*#\s*(if|ifdef|ifndef)\b")
 ENDIF_DIRECTIVE_RE = re.compile(r"^\s*#\s*endif\b")
 ELSE_OR_ELIF_DIRECTIVE_RE = re.compile(r"^\s*#\s*(else|elif)\b")
@@ -52,7 +60,7 @@ def load_need_mapping(base_header: Path) -> OrderedDict[str, list[str]]:
     active_stack: list[str | None] = [None]
     frame_kind_stack: list[str] = ["root"]
 
-    with open(base_header, "r", encoding="utf-8") as f:
+    with open(base_header, encoding="utf-8") as f:
         file_text = f.read()
 
     stripped_lines = strip_comments(file_text).splitlines()
@@ -61,9 +69,7 @@ def load_need_mapping(base_header: Path) -> OrderedDict[str, list[str]]:
         masked_line = masked_lines[idx] if idx < len(masked_lines) else ""
         stripped = masked_line.strip()
 
-        need_match = NEED_IFDEF_RE.match(stripped) or NEED_IF_DEFINED_RE.match(
-            stripped
-        )
+        need_match = NEED_IFDEF_RE.match(stripped) or NEED_IF_DEFINED_RE.match(stripped)
         if need_match:
             macro = need_match.group(1)
             mapping.setdefault(macro, [])
@@ -90,13 +96,11 @@ def load_need_mapping(base_header: Path) -> OrderedDict[str, list[str]]:
                 frame_kind_stack.pop()
             continue
 
-        include_name_raw = parse_project_include_line(
-            raw_line, masked_line=masked_line
-        )
+        include_name_raw = parse_project_include_line(raw_line, masked_line=masked_line)
         if include_name_raw and active_stack[-1] is not None:
             include_name = include_name_raw
             if include_name.startswith("templates/"):
-                include_name = include_name[len("templates/"):]
+                include_name = include_name[len("templates/") :]
             entries = mapping[active_stack[-1]]
             if include_name not in entries:
                 entries.append(include_name)
@@ -108,7 +112,7 @@ def extract_need_macros_from_source(
     source_content: str,
     known_macros: Iterable[str],
     *,
-    warn_stream=None,
+    warn_stream: TextIO | None = None,
 ) -> set[str]:
     """Extract enabled NEED_* macros from a source file content.
 
@@ -177,7 +181,8 @@ def extract_need_macros_from_source(
         unique = sorted(set(skipped_needs))
         warn_stream.write(
             "warning: ignoring conditional NEED_* defines (guard unresolved): "
-            + ", ".join(unique) + "\n"
+            + ", ".join(unique)
+            + "\n"
         )
 
     io_profile_to_needs = _io_profile_to_needs()

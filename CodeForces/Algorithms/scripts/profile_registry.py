@@ -1,14 +1,22 @@
 #!/usr/bin/env python3
-"""Loader for templates/profiles.toml. Requires Python 3.11+."""
+"""Typed loader for ``templates/profiles.toml`` (uses :mod:`tomllib`).
+
+Parses the central profile registry into immutable dataclasses exposing:
+``config_defaults`` (strict vs relaxed CP_* values), ``io_profiles`` (per
+``CP_IO_PROFILE_*`` ``NEED_*`` lists + extra defines), and scaffold
+recipes. Consumers (``flattener_pipeline.macros``, ``gen_config``,
+``gen_scaffold``) reach the registry exclusively through this loader so
+schema changes stay in one place.
+"""
 
 from __future__ import annotations
 
 import tomllib
+from collections.abc import Mapping
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import Mapping
-
+from typing import Any
 
 SCRIPTS_DIR = Path(__file__).resolve().parent
 TEMPLATES_DIR = SCRIPTS_DIR.parent / "templates"
@@ -81,7 +89,7 @@ def _int_map(payload: object, *, where: str) -> dict[str, int]:
     return out
 
 
-def _io(name: str, payload: dict) -> IOProfile:
+def _io(name: str, payload: dict[str, Any]) -> IOProfile:
     needs = payload.get("needs", [])
     if not isinstance(needs, list) or not all(isinstance(n, str) for n in needs):
         raise ValueError(f"io_profile.{name}.needs must be list[str]")
@@ -92,7 +100,7 @@ def _io(name: str, payload: dict) -> IOProfile:
     )
 
 
-def _scaffold(name: str, payload: dict, known_io: frozenset[str]) -> ScaffoldProfile:
+def _scaffold(name: str, payload: dict[str, Any], known_io: frozenset[str]) -> ScaffoldProfile:
     needs = payload.get("needs", [])
     io_profile = payload.get("io_profile", "")
     if not isinstance(needs, list) or not all(isinstance(n, str) for n in needs):
@@ -109,7 +117,7 @@ def _scaffold(name: str, payload: dict, known_io: frozenset[str]) -> ScaffoldPro
     )
 
 
-def _build(payload: dict) -> ProfileRegistry:
+def _build(payload: dict[str, Any]) -> ProfileRegistry:
     schema = payload.get("schema_version", 0)
     if schema != 1:
         raise ValueError(f"unsupported schema_version: {schema}")

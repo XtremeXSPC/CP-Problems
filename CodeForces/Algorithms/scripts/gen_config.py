@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
-"""Generate Config_defaults.hpp and Base_profiles.hpp from profiles.toml."""
+"""Code-generate ``Config_defaults.hpp`` and ``Base_profiles.hpp`` from ``profiles.toml``.
+
+The TOML file is the single source of truth for template tunables (strict vs
+relaxed defaults, per-IO profile defines, ``NEED_*`` aliases). This script
+materializes those values into the two C++ headers the template system
+includes, so the compiler sees the same defaults the Python pipeline does.
+
+Intended to be re-run via ``make regen-templates`` whenever ``profiles.toml``
+changes; the output is committed alongside the source.
+"""
 
 from __future__ import annotations
 
@@ -24,11 +33,11 @@ def _render_config_defaults(registry: ProfileRegistry) -> str:
     lines = ["#pragma once", "", AUTOGEN_HEADER.rstrip("\n"), ""]
     lines.append("#if defined(CP_TEMPLATE_PROFILE_STRICT)")
     for macro, value in registry.defaults.strict_overrides.items():
-        lines += [f"  #ifndef {macro}", f"    #define {macro} {value}", f"  #endif"]
+        lines += [f"  #ifndef {macro}", f"    #define {macro} {value}", "  #endif"]
     lines.append("#endif")
     lines.append("")
     for macro, value in registry.defaults.base.items():
-        lines += [f"#ifndef {macro}", f"  #define {macro} {value}", f"#endif"]
+        lines += [f"#ifndef {macro}", f"  #define {macro} {value}", "#endif"]
     lines += [
         "",
         "#ifndef CP_IO_ENABLE_COMPOSITE",
@@ -59,12 +68,12 @@ def _render_base_profiles(registry: ProfileRegistry) -> str:
         macro = f"CP_IO_PROFILE_{name.upper()}"
         lines.append(f"#ifdef {macro}")
         for need in sorted(profile.needs):
-            lines += [f"  #ifndef {need}", f"    #define {need}", f"  #endif"]
+            lines += [f"  #ifndef {need}", f"    #define {need}", "  #endif"]
         for define_name, define_value in profile.defines.items():
             lines += [
                 f"  #ifndef {define_name}",
                 f"    #define {define_name} {define_value}",
-                f"  #endif",
+                "  #endif",
             ]
         lines += ["#endif", ""]
 
