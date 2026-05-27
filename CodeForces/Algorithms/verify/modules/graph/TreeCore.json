@@ -1,0 +1,24 @@
+{
+  "name": "TreeCore",
+  "header": "modules/graph/tree/TreeCore.hpp",
+  "category": "graph",
+  "tags": [
+    "tree",
+    "hld",
+    "lca",
+    "euler"
+  ],
+  "cases": [
+    {
+      "name": "runtime",
+      "kind": "run",
+      "source": "verify/modules/graph/TreeCore.runtime.cpp",
+      "timeout_seconds": 15.0
+    },
+    {
+      "name": "compile",
+      "kind": "compile",
+      "source": "verify/modules/graph/TreeCore.compile.cpp"
+    }
+  ]
+}

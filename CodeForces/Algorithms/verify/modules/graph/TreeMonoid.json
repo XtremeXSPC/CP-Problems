@@ -1,0 +1,24 @@
+{
+  "name": "TreeMonoid",
+  "header": "modules/graph/tree/TreeMonoid.hpp",
+  "category": "graph",
+  "tags": [
+    "tree",
+    "hld",
+    "monoid",
+    "path-query"
+  ],
+  "cases": [
+    {
+      "name": "runtime",
+      "kind": "run",
+      "source": "verify/modules/graph/TreeMonoid.runtime.cpp",
+      "timeout_seconds": 15.0
+    },
+    {
+      "name": "compile",
+      "kind": "compile",
+      "source": "verify/modules/graph/TreeMonoid.compile.cpp"
+    }
+  ]
+}
