@@ -1,8 +1,19 @@
-"""Static constants used by workflow manager components."""
+"""Static constants used by workflow manager components.
 
-from pathlib import Path
+The user-facing CLI choices are exposed as ``enum.StrEnum`` types so that:
+
+- mypy can spot typos like ``BuildType.DEBUF`` at check time;
+- argparse keeps accepting the same string literals (``StrEnum`` members are
+  ``str`` subclasses, so ``choices=tuple(e.value for e in BuildType)`` is
+  unchanged on the command line);
+- downstream dispatch (``match preset:``) can branch on enum members rather
+  than fragile string comparisons.
+"""
+
 import re
 import sys
+from enum import StrEnum
+from pathlib import Path
 
 DEFAULT_WORKSPACE_ROOT = Path(__file__).resolve().parents[4]
 # Resolution chain in utils.discover_cp_tools_script covers $CPP_TOOLS_SCRIPT
@@ -15,28 +26,70 @@ if str(_SCRIPTS_DIR) not in sys.path:
 from profile_registry import load_registry  # noqa: E402
 
 TEMPLATE_CHOICES = load_registry().all_scaffold_names()
-BUILD_TYPE_CHOICES = ("Debug", "Release", "Sanitize")
-COMPILER_CHOICES = ("gcc", "clang", "auto")
-TOGGLE_CHOICES = ("on", "off")
-PCH_CHOICES = ("on", "off", "auto")
 
-CMAKE_CONFIG_PRESET_CHOICES = (
-    "cp-debug-gcc",
-    "cp-release-gcc",
-    "cp-sanitize-gcc",
-    "cp-debug-clang",
-    "cp-release-clang",
-    "cp-sanitize-clang",
-)
 
-CMAKE_BUILD_PRESET_CHOICES = (
-    "cp-build-debug-gcc",
-    "cp-build-release-gcc",
-    "cp-build-sanitize-gcc",
-    "cp-build-debug-clang",
-    "cp-build-release-clang",
-    "cp-build-sanitize-clang",
-)
+class BuildType(StrEnum):
+    """CMake build-type identifiers accepted by ``cppconf``."""
+
+    DEBUG = "Debug"
+    RELEASE = "Release"
+    SANITIZE = "Sanitize"
+
+
+class CompilerChoice(StrEnum):
+    """Front-end compiler families exposed to the CLI."""
+
+    GCC = "gcc"
+    CLANG = "clang"
+    AUTO = "auto"
+
+
+class Toggle(StrEnum):
+    """Generic on/off switch used by tuning flags (timing, etc.)."""
+
+    ON = "on"
+    OFF = "off"
+
+
+class PchMode(StrEnum):
+    """Precompiled-header toggle, including the ``auto`` heuristic."""
+
+    ON = "on"
+    OFF = "off"
+    AUTO = "auto"
+
+
+class ConfigPreset(StrEnum):
+    """CMake configure preset names registered in ``CPRoundPresets.json``."""
+
+    CP_DEBUG_GCC = "cp-debug-gcc"
+    CP_RELEASE_GCC = "cp-release-gcc"
+    CP_SANITIZE_GCC = "cp-sanitize-gcc"
+    CP_DEBUG_CLANG = "cp-debug-clang"
+    CP_RELEASE_CLANG = "cp-release-clang"
+    CP_SANITIZE_CLANG = "cp-sanitize-clang"
+
+
+class BuildPreset(StrEnum):
+    """CMake build preset names registered in ``CPRoundPresets.json``."""
+
+    CP_BUILD_DEBUG_GCC = "cp-build-debug-gcc"
+    CP_BUILD_RELEASE_GCC = "cp-build-release-gcc"
+    CP_BUILD_SANITIZE_GCC = "cp-build-sanitize-gcc"
+    CP_BUILD_DEBUG_CLANG = "cp-build-debug-clang"
+    CP_BUILD_RELEASE_CLANG = "cp-build-release-clang"
+    CP_BUILD_SANITIZE_CLANG = "cp-build-sanitize-clang"
+
+
+# Tuple views kept for argparse ``choices`` argument compatibility.
+# ``StrEnum`` members iterate as strings, so this stays bit-identical to the
+# pre-Phase-3 tuples that argparse accepted.
+BUILD_TYPE_CHOICES: tuple[str, ...] = tuple(e.value for e in BuildType)
+COMPILER_CHOICES: tuple[str, ...] = tuple(e.value for e in CompilerChoice)
+TOGGLE_CHOICES: tuple[str, ...] = tuple(e.value for e in Toggle)
+PCH_CHOICES: tuple[str, ...] = tuple(e.value for e in PchMode)
+CMAKE_CONFIG_PRESET_CHOICES: tuple[str, ...] = tuple(e.value for e in ConfigPreset)
+CMAKE_BUILD_PRESET_CHOICES: tuple[str, ...] = tuple(e.value for e in BuildPreset)
 
 TARGET_RE = re.compile(r"^[A-Za-z]\w*$")
 CONTEST_SEGMENT_RE = re.compile(r"^[A-Za-z0-9._-]+$")

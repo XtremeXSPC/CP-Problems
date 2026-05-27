@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Thin CLI entrypoint for the 'Competitive Programming' workflow manager."""
+"""Thin CLI entry point for the Competitive Programming workflow manager.
+
+Builds the argparse parser via ``workflow_manager_core.parser``, dispatches
+the selected subcommand to a handler in ``workflow_manager_core.commands``
+or ``workflow_manager_core.workflows``, and converts any
+``WorkflowCommandError`` into the right exit code. All real logic lives in
+the ``workflow_manager_core`` package.
+"""
 
 from __future__ import annotations
 

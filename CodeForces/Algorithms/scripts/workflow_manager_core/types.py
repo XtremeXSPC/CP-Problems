@@ -1,7 +1,17 @@
-"""Error and result types for workflow manager execution."""
+"""Error and result value objects shared across the workflow layers.
 
-from dataclasses import dataclass, replace
+``WorkflowError`` / ``WorkflowCommandError`` are the canonical exception
+hierarchy that handlers raise on logical or delegated-command failures.
+
+``CommandResult`` is the immutable record emitted for every delegated
+invocation, with ``failed``/``non_fatal`` semantics, ANSI-stripping JSON
+serialization, and a ``Self``-typed ``as_non_fatal`` builder for the
+orchestration layer's demotion rule.
+"""
+
 import re
+from dataclasses import dataclass, replace
+from typing import Self
 
 ANSI_RE = re.compile(r"\x1B\[[0-9;]*[A-Za-z]")
 
@@ -37,7 +47,7 @@ class CommandResult:
         """Return True when the command should count as a workflow failure."""
         return self.returncode != 0 and not self.non_fatal
 
-    def as_non_fatal(self) -> "CommandResult":
+    def as_non_fatal(self) -> Self:
         """Return a copy of this result marked as non-fatal for workflow status."""
         return replace(self, non_fatal=True)
 
@@ -55,8 +65,8 @@ class CommandResult:
             "non_fatal": self.non_fatal,
         }
         if strip_ansi:
-            payload["stdout"] = remove_ansi(payload["stdout"])
-            payload["stderr"] = remove_ansi(payload["stderr"])
+            payload["stdout"] = remove_ansi(self.stdout)
+            payload["stderr"] = remove_ansi(self.stderr)
         return payload
 
 

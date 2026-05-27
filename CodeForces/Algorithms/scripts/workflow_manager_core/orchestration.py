@@ -1,12 +1,22 @@
-"""Workflow orchestration state and execution policies."""
+"""Multi-step workflow execution, retry policy, and JSON output marshalling.
 
+Sits between the per-command handlers (``commands``) and the underlying
+process runner (``runner`` / ``_lib.process``). Owns:
+
+  - the live workflow state collected as each step runs;
+  - the non-fatal demotion rules (some doctor checks must not fail the run);
+  - the JSON serialization the ``--json`` CLI mode consumes, with optional
+    ANSI stripping for downstream tooling.
+"""
+
+import argparse
 import json
 import os
-import subprocess
 import sys
-import time
 from collections.abc import Sequence
 from pathlib import Path
+
+from _lib.process import ProcessRequest, run_capture
 
 from .constants import DEFAULT_WORKSPACE_ROOT
 from .runner import CppToolsRunner
@@ -14,8 +24,6 @@ from .types import (
     CommandResult,
     WorkflowCommandError,
     WorkflowError,
-    ensure_text,
-    format_timeout_stderr,
 )
 from .utils import is_under
 
@@ -31,9 +39,7 @@ class WorkflowManager:
         self.results: list[CommandResult] = []
         self.notes: list[str] = []
 
-        workspace_root = Path(
-            os.environ.get("CP_WORKSPACE_ROOT", str(DEFAULT_WORKSPACE_ROOT))
-        )
+        workspace_root = Path(os.environ.get("CP_WORKSPACE_ROOT", str(DEFAULT_WORKSPACE_ROOT)))
         if not is_under(self.runner.cwd, workspace_root):
             self.notes.append(
                 f"warning: cwd '{self.runner.cwd}' is outside CP_WORKSPACE_ROOT '{workspace_root}'"
@@ -89,44 +95,25 @@ class WorkflowManager:
         if self.verbose and not self.json_mode:
             print(f"[workflow] -> {' '.join(argv)}")
 
-        env = os.environ.copy()
-        if env_overrides:
-            env.update(env_overrides)
-
-        start = time.perf_counter()
-        try:
-            completed = subprocess.run(
-                list(argv),
-                cwd=str(self.runner.cwd),
-                env=env,
-                capture_output=True,
-                text=True,
-                timeout=timeout if timeout is not None else self.runner.default_timeout,
-                check=False,
+        effective_timeout = float(timeout if timeout is not None else self.runner.default_timeout)
+        process_result = run_capture(
+            ProcessRequest(
+                argv=list(argv),
+                cwd=self.runner.cwd,
+                env_overrides=dict(env_overrides or {}),
+                timeout=effective_timeout,
             )
-            elapsed_ms = int((time.perf_counter() - start) * 1000)
-            result = CommandResult(
-                function=argv[0],
-                args=tuple(argv[1:]),
-                cwd=str(self.runner.cwd),
-                returncode=completed.returncode,
-                duration_ms=elapsed_ms,
-                stdout=completed.stdout,
-                stderr=completed.stderr,
-                timed_out=False,
-            )
-        except subprocess.TimeoutExpired as exc:
-            elapsed_ms = int((time.perf_counter() - start) * 1000)
-            result = CommandResult(
-                function=argv[0],
-                args=tuple(argv[1:]),
-                cwd=str(self.runner.cwd),
-                returncode=124,
-                duration_ms=elapsed_ms,
-                stdout=ensure_text(exc.stdout),
-                stderr=format_timeout_stderr(exc.stderr),
-                timed_out=True,
-            )
+        )
+        result = CommandResult(
+            function=argv[0],
+            args=tuple(argv[1:]),
+            cwd=str(self.runner.cwd),
+            returncode=process_result.returncode,
+            duration_ms=process_result.duration_ms,
+            stdout=process_result.stdout,
+            stderr=process_result.stderr,
+            timed_out=process_result.timed_out,
+        )
 
         self.results.append(result)
 
@@ -164,7 +151,7 @@ class WorkflowManager:
         )
 
 
-def build_cppconf_args(ns) -> list[str]:
+def build_cppconf_args(ns: argparse.Namespace) -> list[str]:
     """Translate CLI namespace fields into raw `cppconf` arguments."""
 
     args: list[str] = []
@@ -185,7 +172,7 @@ def build_cppconf_args(ns) -> list[str]:
 
 def run_step_with_policy(
     manager: WorkflowManager,
-    ns,
+    ns: argparse.Namespace,
     function: str,
     args: Sequence[str] = (),
     auto_confirm_deepclean: bool = False,
@@ -201,15 +188,14 @@ def run_step_with_policy(
     )
     if not check and result.failed:
         manager.note(
-            f"[workflow] step failed but continuing: {function} "
-            f"(exit {result.returncode})"
+            f"[workflow] step failed but continuing: {function} (exit {result.returncode})"
         )
     return result
 
 
 def run_external_step_with_policy(
     manager: WorkflowManager,
-    ns,
+    ns: argparse.Namespace,
     argv: Sequence[str],
     env_overrides: dict[str, str] | None = None,
 ) -> CommandResult:
@@ -223,7 +209,6 @@ def run_external_step_with_policy(
     )
     if not check and result.failed:
         manager.note(
-            f"[workflow] step failed but continuing: {' '.join(argv)} "
-            f"(exit {result.returncode})"
+            f"[workflow] step failed but continuing: {' '.join(argv)} (exit {result.returncode})"
         )
     return result

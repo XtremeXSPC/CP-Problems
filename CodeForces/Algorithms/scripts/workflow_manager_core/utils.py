@@ -1,4 +1,11 @@
-"""Validation and discovery helpers for workflow manager CLI."""
+"""Input validation and resource-discovery helpers for the workflow CLI.
+
+Provides argparse-friendly validators (positive int / non-empty string /
+absolute path) and the resolution chain used to locate the cpp-tools
+shell script (``$CPP_TOOLS_SCRIPT`` → ``~/.config/cpp-tools/competitive.sh``
+→ project-local discovery). Centralizing these prevents the handlers from
+reinventing fragile lookup logic.
+"""
 
 import argparse
 import os
@@ -34,8 +41,7 @@ def normalize_target(raw: str) -> str:
         candidate = Path(candidate).stem
     if not TARGET_RE.fullmatch(candidate):
         raise argparse.ArgumentTypeError(
-            "invalid target name; expected [A-Za-z][A-Za-z0-9_]* "
-            "(optionally with .cpp/.cc/.cxx)"
+            "invalid target name; expected [A-Za-z][A-Za-z0-9_]* (optionally with .cpp/.cc/.cxx)"
         )
     return candidate
 
@@ -87,8 +93,7 @@ def normalize_contest_dir(raw: str) -> str:
             raise argparse.ArgumentTypeError("contest path contains invalid segment")
         if not CONTEST_SEGMENT_RE.fullmatch(seg):
             raise argparse.ArgumentTypeError(
-                f"invalid contest path segment '{seg}' "
-                "(allowed: letters, digits, '.', '_' and '-')"
+                f"invalid contest path segment '{seg}' (allowed: letters, digits, '.', '_' and '-')"
             )
     return str(p)
 

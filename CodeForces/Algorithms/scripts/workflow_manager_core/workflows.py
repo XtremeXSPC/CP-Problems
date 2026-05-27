@@ -1,7 +1,17 @@
-"""Higher-level workflow handlers used by command registration."""
+"""High-level multi-step workflows exposed as CLI subcommands.
+
+``handle_cycle`` runs the canonical "configure → build → test" loop for a
+round, ``handle_doctor`` runs the environment diagnostics (toolchain
+versions, cpp-tools discovery, profile registry sanity), and any future
+composite recipe lives here too.
+
+Each handler is a thin facade around ``orchestration`` and ``runner``, so
+the bulk of the logic stays testable without exercising argparse.
+"""
 
 from __future__ import annotations
 
+import argparse
 import shutil
 
 from .orchestration import WorkflowManager, build_cppconf_args, run_step_with_policy
@@ -9,7 +19,7 @@ from .types import WorkflowCommandError
 from .utils import find_existing_target_source
 
 
-def handle_doctor(manager: WorkflowManager, ns) -> None:
+def handle_doctor(manager: WorkflowManager, ns: argparse.Namespace) -> None:
     """Run diagnostics around cpp-tools health and environment readiness."""
 
     manager.note(f"[workflow] cp-tools script: {manager.runner.script_path}")
@@ -38,7 +48,7 @@ def handle_doctor(manager: WorkflowManager, ns) -> None:
     run_step_with_policy(manager, ns, "cppcheck")
 
 
-def handle_cycle(manager: WorkflowManager, ns) -> None:
+def handle_cycle(manager: WorkflowManager, ns: argparse.Namespace) -> None:
     """Run the default CP lifecycle with optional skip flags."""
 
     input_name = ns.input

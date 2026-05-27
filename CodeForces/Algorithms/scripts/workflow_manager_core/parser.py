@@ -1,4 +1,13 @@
-"""Argparse construction for workflow manager CLI."""
+"""Argparse parser construction for the workflow manager CLI.
+
+Builds the root parser and wires every subparser declared by ``commands``,
+keeping the user-facing shape of the CLI in one place so changes to flags
+don't ripple into the handlers themselves.
+
+Tuples derived from the ``constants`` enums (``BUILD_TYPE_CHOICES`` etc.)
+are reused as ``choices=`` so argparse error messages and the enum surface
+stay in sync.
+"""
 
 import argparse
 from pathlib import Path
@@ -11,9 +20,7 @@ def build_parser() -> argparse.ArgumentParser:
     """Build and return the workflow manager CLI parser."""
 
     parser = argparse.ArgumentParser(
-        description=(
-            "Competitive Programming workflow manager built on top of cpp-tools."
-        )
+        description=("Competitive Programming workflow manager built on top of cpp-tools.")
     )
     parser.add_argument(
         "--cwd",

@@ -1,10 +1,18 @@
-"""Command registry and handlers for workflow manager CLI."""
+"""Command registry, handlers, and preset-profile lookup tables.
+
+Each user-facing subcommand (``build``, ``test``, ``run``, ``verify``,
+``flatten``, presets like ``debug``/``perf``, ...) is registered here with
+its argparse declaration and a handler that delegates to ``runner`` or
+``orchestration``. The ``ConfigPreset`` / ``BuildPreset`` enums from
+``constants`` drive type-safe lookup into ``_PRESET_PROFILES_BY_*`` so the
+``match`` statements in handlers stay exhaustive.
+"""
 
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
 from collections.abc import Callable, Iterable
+from dataclasses import dataclass
 from pathlib import Path
 
 from .constants import (
@@ -16,6 +24,8 @@ from .constants import (
     PCH_CHOICES,
     TEMPLATE_CHOICES,
     TOGGLE_CHOICES,
+    BuildPreset,
+    ConfigPreset,
 )
 from .orchestration import (
     WorkflowManager,
@@ -29,8 +39,8 @@ from .utils import (
     find_existing_target_source,
     normalize_contest_dir,
     normalize_input_name,
-    parse_positive_int,
     normalize_target,
+    parse_positive_int,
 )
 from .workflows import handle_cycle as _handle_cycle
 from .workflows import handle_doctor as _handle_doctor
@@ -61,59 +71,59 @@ class PresetProfile:
     build_preset: str
 
 
-_PRESET_PROFILES_BY_CONFIG = {
-    "cp-debug-gcc": PresetProfile(
+_PRESET_PROFILES_BY_CONFIG: dict[ConfigPreset, PresetProfile] = {
+    ConfigPreset.CP_DEBUG_GCC: PresetProfile(
         build_type="Debug",
         compiler="gcc",
         pch="ON",
         build_dir="build/gcc/debug",
-        config_preset="cp-debug-gcc",
-        build_preset="cp-build-debug-gcc",
+        config_preset=ConfigPreset.CP_DEBUG_GCC.value,
+        build_preset=BuildPreset.CP_BUILD_DEBUG_GCC.value,
     ),
-    "cp-release-gcc": PresetProfile(
+    ConfigPreset.CP_RELEASE_GCC: PresetProfile(
         build_type="Release",
         compiler="gcc",
         pch="OFF",
         build_dir="build/gcc/release",
-        config_preset="cp-release-gcc",
-        build_preset="cp-build-release-gcc",
+        config_preset=ConfigPreset.CP_RELEASE_GCC.value,
+        build_preset=BuildPreset.CP_BUILD_RELEASE_GCC.value,
     ),
-    "cp-sanitize-gcc": PresetProfile(
+    ConfigPreset.CP_SANITIZE_GCC: PresetProfile(
         build_type="Sanitize",
         compiler="gcc",
         pch="OFF",
         build_dir="build/gcc/sanitize",
-        config_preset="cp-sanitize-gcc",
-        build_preset="cp-build-sanitize-gcc",
+        config_preset=ConfigPreset.CP_SANITIZE_GCC.value,
+        build_preset=BuildPreset.CP_BUILD_SANITIZE_GCC.value,
     ),
-    "cp-debug-clang": PresetProfile(
+    ConfigPreset.CP_DEBUG_CLANG: PresetProfile(
         build_type="Debug",
         compiler="clang",
         pch="OFF",
         build_dir="build/clang/debug",
-        config_preset="cp-debug-clang",
-        build_preset="cp-build-debug-clang",
+        config_preset=ConfigPreset.CP_DEBUG_CLANG.value,
+        build_preset=BuildPreset.CP_BUILD_DEBUG_CLANG.value,
     ),
-    "cp-release-clang": PresetProfile(
+    ConfigPreset.CP_RELEASE_CLANG: PresetProfile(
         build_type="Release",
         compiler="clang",
         pch="OFF",
         build_dir="build/clang/release",
-        config_preset="cp-release-clang",
-        build_preset="cp-build-release-clang",
+        config_preset=ConfigPreset.CP_RELEASE_CLANG.value,
+        build_preset=BuildPreset.CP_BUILD_RELEASE_CLANG.value,
     ),
-    "cp-sanitize-clang": PresetProfile(
+    ConfigPreset.CP_SANITIZE_CLANG: PresetProfile(
         build_type="Sanitize",
         compiler="clang",
         pch="OFF",
         build_dir="build/clang/sanitize",
-        config_preset="cp-sanitize-clang",
-        build_preset="cp-build-sanitize-clang",
+        config_preset=ConfigPreset.CP_SANITIZE_CLANG.value,
+        build_preset=BuildPreset.CP_BUILD_SANITIZE_CLANG.value,
     ),
 }
 
-_PRESET_PROFILES_BY_BUILD = {
-    profile.build_preset: profile for profile in _PRESET_PROFILES_BY_CONFIG.values()
+_PRESET_PROFILES_BY_BUILD: dict[BuildPreset, PresetProfile] = {
+    BuildPreset(profile.build_preset): profile for profile in _PRESET_PROFILES_BY_CONFIG.values()
 }
 
 
@@ -327,8 +337,8 @@ def _preset_profile_from_config(preset: str) -> PresetProfile:
     """Return profile metadata for one configure preset name."""
 
     try:
-        return _PRESET_PROFILES_BY_CONFIG[preset]
-    except KeyError as exc:
+        return _PRESET_PROFILES_BY_CONFIG[ConfigPreset(preset)]
+    except (KeyError, ValueError) as exc:
         raise WorkflowError(f"unsupported configure preset: {preset}") from exc
 
 
@@ -336,8 +346,8 @@ def _preset_profile_from_build(preset: str) -> PresetProfile:
     """Return profile metadata for one build preset name."""
 
     try:
-        return _PRESET_PROFILES_BY_BUILD[preset]
-    except KeyError as exc:
+        return _PRESET_PROFILES_BY_BUILD[BuildPreset(preset)]
+    except (KeyError, ValueError) as exc:
         raise WorkflowError(f"unsupported build preset: {preset}") from exc
 
 
@@ -729,7 +739,9 @@ def get_command_specs() -> Iterable[CommandSpec]:
     )
 
 
-def register_subcommands(subparsers) -> None:
+def register_subcommands(
+    subparsers: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
     """Attach all command specs to argparse subparsers."""
 
     for spec in get_command_specs():
