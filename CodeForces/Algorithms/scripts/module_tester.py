@@ -1,33 +1,41 @@
 #!/usr/bin/env python3
-"""
-Module Testing Framework for Competitive Programming templates.
+"""Compile-test harness for ``NEED_*`` template combinations.
 
-This tool validates that configured NEED_* module combinations compile.
+Builds a synthetic probe per profile/combination, includes the matching
+template surface (via ``module_runtime``), and routes the compilation
+through the shared ``_lib.process`` layer. Reports which combinations
+compile cleanly and which fail, so a regression in a template header is
+caught before any round depends on it.
+
+A thin ``module_runtime`` deprecation shim is preserved here for callers
+that still reach for the underscored helpers — emits ``DeprecationWarning``
+on use; will be removed once the in-tree imports are migrated.
 """
 
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import json
-import shutil
-import subprocess
-import sys
-import tempfile
-import time
+import threading
+import warnings
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Literal, TypedDict
+from typing import Any, Literal
 
+from module_runtime import (
+    DEFAULT_PROBE_JOBS,
+    CompilationOutcome,
+    CompilerInvocation,
+    build_compiler_flags,
+    compiler_supports_std_headers,
+    load_template_config,
+    parse_jobs_argument,
+    select_compiler,
+)
 from need_resolver import load_need_mapping
-
-
-class TemplateConfigPayload(TypedDict, total=False):
-    """Validated subset of `.template_config.json` consumed by this tool."""
-
-    compiler: str
-    compiler_flags: list[str]
-
 
 ModuleTestKind = Literal["individual", "combination", "strict_profile", "benchmark"]
 
@@ -144,15 +152,6 @@ BENCHMARK_CANDIDATES = (
 
 
 @dataclass(frozen=True, slots=True)
-class CompilationOutcome:
-    """Result of compiling one generated test translation unit."""
-
-    success: bool
-    error: str | None = None
-    elapsed_seconds: float | None = None
-
-
-@dataclass(frozen=True, slots=True)
 class ModuleTestCase:
     """One logical module test scenario to compile and report."""
 
@@ -212,129 +211,6 @@ class ModuleTestRecord:
         return payload
 
 
-@dataclass(frozen=True, slots=True)
-class CompilerInvocation:
-    """Compiler executable and flags used to compile generated probes."""
-
-    compiler: str
-    compiler_flags: tuple[str, ...]
-    include_dir: Path
-
-    def compile_source(self, source: str, *, timeout_seconds: float = 10.0) -> CompilationOutcome:
-        """Compile one source string and return normalized result metadata."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            source_file = Path(tmpdir) / "probe.cpp"
-            source_file.write_text(source, encoding="utf-8")
-
-            command = [
-                self.compiler,
-                *self.compiler_flags,
-                f"-I{self.include_dir}",
-                str(source_file),
-            ]
-            start = time.perf_counter()
-            try:
-                result = subprocess.run(
-                    command,
-                    capture_output=True,
-                    text=True,
-                    timeout=timeout_seconds,
-                    check=False,
-                )
-            except subprocess.TimeoutExpired:
-                return CompilationOutcome(success=False, error="Compilation timeout")
-            except OSError as exc:
-                return CompilationOutcome(
-                    success=False,
-                    error=f"Unable to execute compiler '{self.compiler}': {exc}",
-                )
-
-            elapsed = time.perf_counter() - start
-            if result.returncode == 0:
-                return CompilationOutcome(success=True, elapsed_seconds=elapsed)
-            return CompilationOutcome(
-                success=False,
-                error=result.stderr,
-                elapsed_seconds=elapsed,
-            )
-
-
-def _load_template_config(templates_dir: Path) -> TemplateConfigPayload:
-    """Load and lightly validate `.template_config.json` if present."""
-
-    config_path = templates_dir.parent / ".template_config.json"
-    if not config_path.is_file():
-        return {}
-
-    try:
-        payload = json.loads(config_path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
-        return {}
-
-    if not isinstance(payload, dict):
-        return {}
-
-    config: TemplateConfigPayload = {}
-    compiler = payload.get("compiler")
-    if isinstance(compiler, str) and compiler.strip():
-        config["compiler"] = compiler.strip()
-
-    compiler_flags = payload.get("compiler_flags")
-    if isinstance(compiler_flags, list) and all(isinstance(flag, str) for flag in compiler_flags):
-        config["compiler_flags"] = list(compiler_flags)
-
-    return config
-
-
-def _build_compiler_flags(config: TemplateConfigPayload) -> tuple[str, ...]:
-    """Build compiler flags from config plus tester defaults."""
-
-    config_flags = list(config.get("compiler_flags", ()))
-    if not any(flag.startswith("-std=") for flag in config_flags):
-        config_flags.insert(0, "-std=c++23")
-    if "-fsyntax-only" not in config_flags:
-        config_flags.append("-fsyntax-only")
-    return tuple(config_flags)
-
-
-def _compiler_supports_std_headers(compiler: str) -> bool:
-    """Quick probe to ensure compiler supports template header style."""
-
-    with tempfile.TemporaryDirectory() as tmpdir:
-        probe_file = Path(tmpdir) / "probe.cpp"
-        probe_file.write_text(
-            "#include <bits/stdc++.h>\nint main() { return 0; }\n",
-            encoding="utf-8",
-        )
-        try:
-            result = subprocess.run(
-                [compiler, "-std=c++23", "-fsyntax-only", str(probe_file)],
-                capture_output=True,
-                text=True,
-                timeout=5,
-                check=False,
-            )
-        except (OSError, subprocess.TimeoutExpired):
-            return False
-        return result.returncode == 0
-
-
-def _select_compiler(config: TemplateConfigPayload) -> str:
-    """Pick the most suitable compiler for CP templates."""
-
-    configured = config.get("compiler")
-    candidates = [configured, "g++-15", "g++-14", "g++-13", "g++", "c++"]
-    seen: set[str] = set()
-    for candidate in candidates:
-        if not candidate or candidate in seen:
-            continue
-        seen.add(candidate)
-        resolved = shutil.which(candidate)
-        if resolved and _compiler_supports_std_headers(resolved):
-            return resolved
-    return configured or "g++"
-
-
 def _discover_need_mapping(templates_dir: Path) -> dict[str, list[str]]:
     """Load NEED_* mapping from Base.hpp; fallback to known defaults."""
 
@@ -347,13 +223,13 @@ def _discover_need_mapping(templates_dir: Path) -> dict[str, list[str]]:
 class ModuleTester:
     """Orchestrate generation, compilation, reporting, and summaries of module tests."""
 
-    def __init__(self, templates_dir: Path):
-        """Initialize tester state, compiler selection, and NEED_* discovery."""
+    def __init__(self, templates_dir: Path, *, jobs: int = 1):
+        """Initialize tester state, compiler selection, NEED_* discovery, parallelism."""
         self.templates_dir = templates_dir.expanduser().resolve()
         self.test_results: list[ModuleTestRecord] = []
-        self.config = _load_template_config(self.templates_dir)
-        self.compiler = _select_compiler(self.config)
-        self.compiler_flags = _build_compiler_flags(self.config)
+        self.config = load_template_config(self.templates_dir)
+        self.compiler = select_compiler(self.config)
+        self.compiler_flags = build_compiler_flags(self.config)
         self.need_mapping = _discover_need_mapping(self.templates_dir)
         self.need_macros = list(self.need_mapping.keys())
         self._compiler_invocation = CompilerInvocation(
@@ -361,6 +237,8 @@ class ModuleTester:
             compiler_flags=self.compiler_flags,
             include_dir=self.templates_dir.parent,
         )
+        self.jobs = max(1, jobs)
+        self._print_lock = threading.Lock()
 
     def create_test_file(
         self,
@@ -393,14 +271,14 @@ class ModuleTester:
         outcome = self._compiler_invocation.compile_source(test_content)
         return outcome.success, outcome.error or ""
 
-    def _available_candidates(self, candidates):
-        """Filter candidate macro sets to those supported by current templates."""
+    def _available_candidates(self, candidates: Sequence[tuple[Any, ...]]) -> list[tuple[Any, ...]]:
+        """Filter heterogeneous (macros, description, [source]) candidate tuples."""
 
         available = set(self.need_macros)
-        filtered = []
-        seen = set()
+        filtered: list[tuple[Any, ...]] = []
+        seen: set[tuple[str, ...]] = set()
         for entry in candidates:
-            macros = tuple(entry[0])
+            macros: tuple[str, ...] = tuple(entry[0])
             if not set(macros).issubset(available):
                 continue
             if macros in seen:
@@ -468,9 +346,7 @@ class ModuleTester:
         benchmarks = self._available_candidates(BENCHMARK_CANDIDATES)
         if not benchmarks:
             benchmarks = (
-                [((self.need_macros[0],), "Single discovered macro")]
-                if self.need_macros
-                else []
+                [((self.need_macros[0],), "Single discovered macro")] if self.need_macros else []
             )
         return [
             ModuleTestCase(
@@ -510,13 +386,17 @@ class ModuleTester:
     def _print_case_result(self, case: ModuleTestCase, outcome: CompilationOutcome) -> None:
         """Emit one console result line plus trimmed error context when needed."""
 
-        status = "PASS" if outcome.success else "FAIL"
-        if case.kind == "benchmark" and outcome.elapsed_seconds is not None:
-            print(f"{case.display_label:{case.display_width}} {outcome.elapsed_seconds:.3f}s {status}")
-        else:
-            print(f"{case.display_label:{case.display_width}} {status}")
-        if not outcome.success and outcome.error:
-            print(f"  Error: {outcome.error[:200]}...")
+        with self._print_lock:
+            status = "PASS" if outcome.success else "FAIL"
+            if case.kind == "benchmark" and outcome.elapsed_seconds is not None:
+                print(
+                    f"{case.display_label:{case.display_width}}"
+                    f" {outcome.elapsed_seconds:.3f}s {status}"
+                )
+            else:
+                print(f"{case.display_label:{case.display_width}} {status}")
+            if not outcome.success and outcome.error:
+                print(f"  Error: {outcome.error[:200]}...")
 
     def _run_case_group(
         self,
@@ -524,8 +404,14 @@ class ModuleTester:
         title: str,
         cases: list[ModuleTestCase],
         empty_message: str | None = None,
+        parallel: bool = True,
     ) -> None:
-        """Run a homogeneous case group with shared console/reporting behavior."""
+        """Run a homogeneous case group with shared console/reporting behavior.
+
+        ``parallel=False`` is required for benchmarks so the per-case
+        ``elapsed_seconds`` reflects an isolated compile rather than one
+        running under contention with siblings.
+        """
 
         print(title)
         print("-" * 50)
@@ -533,10 +419,28 @@ class ModuleTester:
             print(empty_message)
             return
 
-        for case in cases:
-            outcome = self._compile_case(case)
-            self._print_case_result(case, outcome)
-            self._record_case(case, outcome)
+        effective_jobs = self.jobs if parallel else 1
+        if effective_jobs == 1:
+            for case in cases:
+                outcome = self._compile_case(case)
+                self._print_case_result(case, outcome)
+                self._record_case(case, outcome)
+            return
+
+        outcomes_by_index: dict[int, CompilationOutcome] = {}
+        with concurrent.futures.ThreadPoolExecutor(max_workers=effective_jobs) as executor:
+            futures = {
+                executor.submit(self._compile_case, case): (idx, case)
+                for idx, case in enumerate(cases)
+            }
+            for future in concurrent.futures.as_completed(futures):
+                idx, case = futures[future]
+                outcome = future.result()
+                outcomes_by_index[idx] = outcome
+                self._print_case_result(case, outcome)
+
+        for idx in range(len(cases)):
+            self._record_case(cases[idx], outcomes_by_index[idx])
 
     def test_individual_modules(self) -> None:
         """Test each discovered NEED_* macro individually."""
@@ -569,6 +473,7 @@ class ModuleTester:
         self._run_case_group(
             title="\nBenchmarking compilation times...",
             cases=self._build_benchmark_cases(),
+            parallel=False,
         )
 
     def generate_report(self, output_file: Path) -> None:
@@ -618,9 +523,7 @@ class ModuleTester:
 def build_parser() -> argparse.ArgumentParser:
     """Build CLI parser for module test execution."""
 
-    parser = argparse.ArgumentParser(
-        description="Compile-test CP template NEED_* modules."
-    )
+    parser = argparse.ArgumentParser(description="Compile-test CP template NEED_* modules.")
     parser.add_argument(
         "templates_dir",
         nargs="?",
@@ -633,6 +536,16 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=None,
         help="optional output path for JSON report",
+    )
+    parser.add_argument(
+        "--jobs",
+        "-j",
+        type=parse_jobs_argument,
+        default=DEFAULT_PROBE_JOBS,
+        help=(
+            "number of compile probes to run in parallel "
+            f"(benchmarks stay sequential; default: min(CPU, 8) = {DEFAULT_PROBE_JOBS})"
+        ),
     )
     return parser
 
@@ -653,13 +566,40 @@ def main() -> int:
         print(f"Error: Templates directory not found: {templates_dir}")
         return 1
 
-    tester = ModuleTester(templates_dir)
+    tester = ModuleTester(templates_dir, jobs=args.jobs)
     success = tester.run_all_tests()
 
     if args.report is not None:
         tester.generate_report(args.report.expanduser())
 
     return 0 if success else 1
+
+
+_DEPRECATED_NAMES: dict[str, Callable[..., Any]] = {
+    "_load_template_config": load_template_config,
+    "_select_compiler": select_compiler,
+    "_build_compiler_flags": build_compiler_flags,
+    "_compiler_supports_std_headers": compiler_supports_std_headers,
+}
+
+
+def __getattr__(name: str) -> object:
+    """Back-compat shim for the underscore-prefixed helpers moved to module_runtime.
+
+    The legacy names were imported by ``module_verify`` (now migrated) and
+    possibly by external user scripts. Accessing them emits a
+    ``DeprecationWarning`` and returns the public ``module_runtime`` symbol.
+    """
+
+    if name in _DEPRECATED_NAMES:
+        warnings.warn(
+            f"module_tester.{name} is deprecated; "
+            f"import {_DEPRECATED_NAMES[name].__name__} from module_runtime instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return _DEPRECATED_NAMES[name]
+    raise AttributeError(f"module 'module_tester' has no attribute {name!r}")
 
 
 if __name__ == "__main__":

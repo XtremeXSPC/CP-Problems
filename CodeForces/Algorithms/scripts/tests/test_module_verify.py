@@ -1,4 +1,12 @@
-"""Tests for the manifest-driven module verification harness."""
+"""Tests for the manifest-driven module verification harness.
+
+Exercises the discovery, compile, and run paths of ``module_verify``: how
+``.verify.toml`` manifests are parsed, how probes under
+``verify/modules/<name>.{compile,runtime}.cpp`` are matched to module
+names with word-boundary precision, and how filters / categories shape
+the test set. Compile probes use stub manifests rather than real headers
+so the suite stays decoupled from the C++ template surface.
+"""
 
 from __future__ import annotations
 
@@ -6,15 +14,11 @@ import contextlib
 import io
 import json
 import shutil
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 
 SCRIPTS_DIR = Path(__file__).resolve().parents[1]
-
-if str(SCRIPTS_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS_DIR))
 
 import module_verify  # noqa: E402
 
@@ -34,7 +38,7 @@ class ModuleVerifyTests(unittest.TestCase):
         (root / "verify" / "modules" / f"{module_name}.runtime.cpp").write_text(
             '#include "modules/demo/Demo.hpp"\n'
             "#include <iostream>\n"
-            "int main() { std::cout << demo_answer() << \"\\n\"; return 0; }\n",
+            'int main() { std::cout << demo_answer() << "\\n"; return 0; }\n',
             encoding="utf-8",
         )
         manifest = {
@@ -157,3 +161,24 @@ class ModuleVerifyTests(unittest.TestCase):
             verifier = module_verify.ModuleVerifier(root)
             with self.assertRaisesRegex(ValueError, "must start with module name"):
                 verifier.discover_cases()
+
+
+class ProbeNameMatchingTests(unittest.TestCase):
+    """Direct unit coverage for the probe-name word-boundary guard."""
+
+    def test_exact_module_name_matches(self) -> None:
+        self.assertTrue(module_verify._probe_name_matches_module("Foo", "Foo"))
+
+    def test_dot_separator_matches(self) -> None:
+        self.assertTrue(module_verify._probe_name_matches_module("Foo.runtime.cpp", "Foo"))
+
+    def test_underscore_separator_matches(self) -> None:
+        self.assertTrue(module_verify._probe_name_matches_module("Foo_extra.cpp", "Foo"))
+
+    def test_letter_extension_does_not_match(self) -> None:
+        """`Foo` should NOT match `Foobar.cpp` even though it is a prefix."""
+
+        self.assertFalse(module_verify._probe_name_matches_module("Foobar.cpp", "Foo"))
+
+    def test_unrelated_prefix_does_not_match(self) -> None:
+        self.assertFalse(module_verify._probe_name_matches_module("Bar.cpp", "Foo"))

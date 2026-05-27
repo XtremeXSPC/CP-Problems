@@ -10,18 +10,29 @@ This complements `module_tester.py`:
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
+import functools
 import json
-import subprocess
 import tempfile
+import threading
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Literal, TypedDict
 
-from module_tester import _build_compiler_flags, _load_template_config, _select_compiler
+from _lib.process import ProcessRequest, run_capture
+from module_runtime import (
+    DEFAULT_PROBE_JOBS,
+    TemplateConfigPayload,
+    build_compiler_flags,
+    load_template_config,
+    parse_jobs_argument,
+    select_compiler,
+)
 
 VerificationKind = Literal["compile", "run"]
+_PROBE_NAME_SEPARATORS = frozenset({".", "_"})
 
 
 class VerificationCasePayload(TypedDict, total=False):
@@ -114,27 +125,69 @@ class VerificationRecord:
         return payload
 
 
+def _probe_name_matches_module(probe_filename: str, module_name: str) -> bool:
+    """Return True when a probe filename starts with the module name on a token boundary.
+
+    Accepts exact prefix followed by ``.`` or ``_`` (e.g. ``Foo.runtime.cpp``,
+    ``Foo_extra.cpp``) and rejects accidental prefix matches such as
+    ``Foobar.cpp`` when ``module_name`` is ``Foo``.
+    """
+
+    if not probe_filename.startswith(module_name):
+        return False
+    rest = probe_filename[len(module_name) :]
+    return rest == "" or rest[0] in _PROBE_NAME_SEPARATORS
+
+
 class ModuleVerifier:
     """Discover module manifests, compile probes, and run focused checks."""
 
-    def __init__(self, algorithms_dir: Path, module_filters: tuple[str, ...] = ()) -> None:
-        """Initialize repository paths, compiler selection, and optional filters."""
+    def __init__(
+        self,
+        algorithms_dir: Path,
+        module_filters: tuple[str, ...] = (),
+        *,
+        jobs: int = 1,
+    ) -> None:
+        """Initialize repository paths, optional filters, and parallelism.
+
+        Compiler selection and flag derivation are deferred to
+        ``cached_property``s so unit tests that do not exercise the compile
+        path avoid the cost of probing toolchains and the I/O of reading
+        ``.template_config.json``.
+        """
 
         self.algorithms_dir = algorithms_dir.expanduser().resolve()
         self.templates_dir = self.algorithms_dir / "templates"
         self.verify_dir = self.algorithms_dir / "verify" / "modules"
-        self.config = _load_template_config(self.templates_dir)
-        self.compiler = _select_compiler(self.config)
-        self.compile_only_flags = _build_compiler_flags(self.config)
-        self.runtime_flags = self._build_runtime_flags(self.compile_only_flags)
         self.module_filters = tuple(filter(None, module_filters))
         self.results: list[VerificationRecord] = []
+        self.jobs = max(1, jobs)
+        self._print_lock = threading.Lock()
 
-    @staticmethod
-    def _build_runtime_flags(flags: tuple[str, ...]) -> tuple[str, ...]:
-        """Convert compile-only flags into executable-build flags for runtime probes."""
+    @functools.cached_property
+    def config(self) -> TemplateConfigPayload:
+        """Lazily loaded ``.template_config.json`` payload."""
 
-        runtime_flags = [flag for flag in flags if flag != "-fsyntax-only"]
+        return load_template_config(self.templates_dir)
+
+    @functools.cached_property
+    def compiler(self) -> str:
+        """Resolved C++ compiler used for compile/run probes."""
+
+        return select_compiler(self.config)
+
+    @functools.cached_property
+    def compile_only_flags(self) -> tuple[str, ...]:
+        """Cached compile-only flags derived from the active template config."""
+
+        return build_compiler_flags(self.config)
+
+    @functools.cached_property
+    def runtime_flags(self) -> tuple[str, ...]:
+        """Cached executable-build flags (``-fsyntax-only`` stripped, ``-O2`` added)."""
+
+        runtime_flags = [flag for flag in self.compile_only_flags if flag != "-fsyntax-only"]
         if not any(flag.startswith("-O") for flag in runtime_flags):
             runtime_flags.append("-O2")
         return tuple(runtime_flags)
@@ -220,9 +273,10 @@ class ModuleVerifier:
             )
             if not source_path.is_file():
                 raise ValueError(f"Source not found for case {case_name}: {source_path}")
-            if not source_path.name.startswith(name):
+            if not _probe_name_matches_module(source_path.name, name):
                 raise ValueError(
-                    f"Source filename must start with module name '{name}' in {manifest_path}: "
+                    f"Source filename must start with module name '{name}' followed by "
+                    f"'.' or '_' (or be exactly the module name) in {manifest_path}: "
                     f"{source_path.name}"
                 )
             expected_stdout = case_payload.get("expected_stdout")
@@ -254,57 +308,51 @@ class ModuleVerifier:
             )
         return cases
 
-    def _compile_binary(self, case: VerificationCase, output_path: Path) -> tuple[bool, str | None]:
-        """Compile one runtime probe to an executable binary."""
+    def _run_compiler(
+        self,
+        argv: list[str],
+        *,
+        timeout_seconds: float,
+    ) -> tuple[bool, str | None]:
+        """Shared compiler invocation honoring the unified ``run_capture`` layer."""
 
-        command = [
-            self.compiler,
-            *self.runtime_flags,
-            f"-I{self.algorithms_dir}",
-            str(case.source),
-            "-o",
-            str(output_path),
-        ]
         try:
-            result = subprocess.run(
-                command,
-                capture_output=True,
-                text=True,
-                timeout=case.timeout_seconds,
-                check=False,
-            )
-        except subprocess.TimeoutExpired:
-            return False, "Compilation timeout"
+            result = run_capture(ProcessRequest(argv=argv, timeout=timeout_seconds))
         except OSError as exc:
             return False, f"Unable to execute compiler '{self.compiler}': {exc}"
+        if result.timed_out:
+            return False, "Compilation timeout"
         if result.returncode == 0:
             return True, None
         return False, result.stderr
+
+    def _compile_binary(self, case: VerificationCase, output_path: Path) -> tuple[bool, str | None]:
+        """Compile one runtime probe to an executable binary."""
+
+        return self._run_compiler(
+            [
+                self.compiler,
+                *self.runtime_flags,
+                f"-I{self.algorithms_dir}",
+                str(case.source),
+                "-o",
+                str(output_path),
+            ],
+            timeout_seconds=case.timeout_seconds,
+        )
 
     def _compile_only(self, case: VerificationCase) -> tuple[bool, str | None]:
         """Run a syntax-only compilation pass for one compile-smoke probe."""
 
-        command = [
-            self.compiler,
-            *self.compile_only_flags,
-            f"-I{self.algorithms_dir}",
-            str(case.source),
-        ]
-        try:
-            result = subprocess.run(
-                command,
-                capture_output=True,
-                text=True,
-                timeout=case.timeout_seconds,
-                check=False,
-            )
-        except subprocess.TimeoutExpired:
-            return False, "Compilation timeout"
-        except OSError as exc:
-            return False, f"Unable to execute compiler '{self.compiler}': {exc}"
-        if result.returncode == 0:
-            return True, None
-        return False, result.stderr
+        return self._run_compiler(
+            [
+                self.compiler,
+                *self.compile_only_flags,
+                f"-I{self.algorithms_dir}",
+                str(case.source),
+            ],
+            timeout_seconds=case.timeout_seconds,
+        )
 
     def run_case(self, case: VerificationCase) -> VerificationRecord:
         """Execute one verification case and normalize its outcome."""
@@ -344,17 +392,15 @@ class ModuleVerifier:
                     compile_error=compile_error,
                 )
 
-            try:
-                result = subprocess.run(
-                    [str(binary_path)],
-                    input=case.stdin,
-                    capture_output=True,
-                    text=True,
+            result = run_capture(
+                ProcessRequest(
+                    argv=[str(binary_path)],
+                    stdin=case.stdin,
                     timeout=case.timeout_seconds,
-                    check=False,
                 )
-            except subprocess.TimeoutExpired:
-                elapsed = time.perf_counter() - start
+            )
+            elapsed = time.perf_counter() - start
+            if result.timed_out:
                 return VerificationRecord(
                     module_name=case.module_name,
                     header=case.header,
@@ -368,12 +414,12 @@ class ModuleVerifier:
                     runtime_error="Runtime timeout",
                 )
 
-            elapsed = time.perf_counter() - start
             success = result.returncode == case.expected_exit_code
-            runtime_error = None
+            runtime_error: str | None = None
             if not success:
                 runtime_error = (
-                    f"Exit code mismatch: expected {case.expected_exit_code}, got {result.returncode}"
+                    f"Exit code mismatch: expected {case.expected_exit_code}, "
+                    f"got {result.returncode}"
                 )
             if case.expected_stdout is not None and result.stdout != case.expected_stdout:
                 success = False
@@ -394,6 +440,17 @@ class ModuleVerifier:
                 stderr=result.stderr,
             )
 
+    def _print_case_outcome(self, case: VerificationCase, record: VerificationRecord) -> None:
+        """Print one case result under a lock so parallel lines stay intact."""
+
+        with self._print_lock:
+            status = "PASS" if record.success else "FAIL"
+            print(f"{case.display_label:45} {status} {record.elapsed_seconds:.3f}s")
+            if record.compile_error:
+                print(f"  Compile error: {record.compile_error[:240]}...")
+            if record.runtime_error:
+                print(f"  Runtime error: {record.runtime_error}")
+
     def run_all(self) -> bool:
         """Run all discovered verification cases and print a concise summary."""
 
@@ -406,15 +463,18 @@ class ModuleVerifier:
             print("No module verification cases discovered.")
             return False
 
-        for case in cases:
-            record = self.run_case(case)
-            self.results.append(record)
-            status = "PASS" if record.success else "FAIL"
-            print(f"{case.display_label:45} {status} {record.elapsed_seconds:.3f}s")
-            if record.compile_error:
-                print(f"  Compile error: {record.compile_error[:240]}...")
-            if record.runtime_error:
-                print(f"  Runtime error: {record.runtime_error}")
+        records_by_index: dict[int, VerificationRecord] = {}
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.jobs) as executor:
+            futures = {
+                executor.submit(self.run_case, case): (idx, case) for idx, case in enumerate(cases)
+            }
+            for future in concurrent.futures.as_completed(futures):
+                idx, case = futures[future]
+                record = future.result()
+                records_by_index[idx] = record
+                self._print_case_outcome(case, record)
+
+        self.results.extend(records_by_index[i] for i in range(len(cases)))
 
         passed = sum(1 for record in self.results if record.success)
         total = len(self.results)
@@ -464,6 +524,16 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="optional output path for JSON report",
     )
+    parser.add_argument(
+        "--jobs",
+        "-j",
+        type=parse_jobs_argument,
+        default=DEFAULT_PROBE_JOBS,
+        help=(
+            "number of verification probes to run in parallel "
+            f"(default: min(CPU, 8) = {DEFAULT_PROBE_JOBS})"
+        ),
+    )
     return parser
 
 
@@ -482,7 +552,7 @@ def main() -> int:
         print(f"Error: Algorithms directory not found: {algorithms_dir}")
         return 1
 
-    verifier = ModuleVerifier(algorithms_dir, tuple(args.module))
+    verifier = ModuleVerifier(algorithms_dir, tuple(args.module), jobs=args.jobs)
     success = verifier.run_all()
 
     if args.report is not None:
