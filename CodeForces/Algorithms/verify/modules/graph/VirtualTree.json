@@ -1,0 +1,23 @@
+{
+  "name": "VirtualTree",
+  "header": "modules/graph/tree/VirtualTree.hpp",
+  "category": "graph",
+  "tags": [
+    "tree",
+    "virtual_tree",
+    "lca"
+  ],
+  "cases": [
+    {
+      "name": "runtime",
+      "kind": "run",
+      "source": "verify/modules/graph/VirtualTree.runtime.cpp",
+      "timeout_seconds": 15.0
+    },
+    {
+      "name": "compile",
+      "kind": "compile",
+      "source": "verify/modules/graph/VirtualTree.compile.cpp"
+    }
+  ]
+}

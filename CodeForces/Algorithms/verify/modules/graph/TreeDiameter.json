@@ -1,0 +1,23 @@
+{
+  "name": "TreeDiameter",
+  "header": "modules/graph/tree/TreeDiameter.hpp",
+  "category": "graph",
+  "tags": [
+    "tree",
+    "diameter",
+    "path"
+  ],
+  "cases": [
+    {
+      "name": "runtime",
+      "kind": "run",
+      "source": "verify/modules/graph/TreeDiameter.runtime.cpp",
+      "timeout_seconds": 15.0
+    },
+    {
+      "name": "compile",
+      "kind": "compile",
+      "source": "verify/modules/graph/TreeDiameter.compile.cpp"
+    }
+  ]
+}

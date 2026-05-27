@@ -1,0 +1,23 @@
+{
+  "name": "DSUOnTree",
+  "header": "modules/graph/tree/DSUOnTree.hpp",
+  "category": "graph",
+  "tags": [
+    "tree",
+    "small_to_large",
+    "offline_query"
+  ],
+  "cases": [
+    {
+      "name": "runtime",
+      "kind": "run",
+      "source": "verify/modules/graph/DSUOnTree.runtime.cpp",
+      "timeout_seconds": 15.0
+    },
+    {
+      "name": "compile",
+      "kind": "compile",
+      "source": "verify/modules/graph/DSUOnTree.compile.cpp"
+    }
+  ]
+}

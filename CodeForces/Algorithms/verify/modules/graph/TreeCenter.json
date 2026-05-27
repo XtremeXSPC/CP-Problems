@@ -1,0 +1,23 @@
+{
+  "name": "TreeCenter",
+  "header": "modules/graph/tree/TreeCenter.hpp",
+  "category": "graph",
+  "tags": [
+    "tree",
+    "center",
+    "diameter"
+  ],
+  "cases": [
+    {
+      "name": "runtime",
+      "kind": "run",
+      "source": "verify/modules/graph/TreeCenter.runtime.cpp",
+      "timeout_seconds": 15.0
+    },
+    {
+      "name": "compile",
+      "kind": "compile",
+      "source": "verify/modules/graph/TreeCenter.compile.cpp"
+    }
+  ]
+}
