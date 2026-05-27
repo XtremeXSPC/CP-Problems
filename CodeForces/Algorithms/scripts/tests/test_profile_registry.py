@@ -1,16 +1,21 @@
-"""Tests for profile_registry: load behavior, validation, and registry queries."""
+"""Tests for the ``profile_registry`` TOML loader.
+
+Validates the contract that downstream consumers (``flattener_pipeline``,
+``gen_config``, ``gen_scaffold``) rely on: schema-version parsing,
+strict-vs-relaxed default selection, IO profile lookup with ``NEED_*``
+and define lists, scaffold recipe materialization, and cache reset
+semantics between tests.
+"""
 
 from __future__ import annotations
 
-import sys
+import importlib
 import tempfile
 import textwrap
 import unittest
 from pathlib import Path
 
 SCRIPTS_DIR = Path(__file__).resolve().parents[1]
-if str(SCRIPTS_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS_DIR))
 
 import profile_registry  # noqa: E402
 
@@ -134,7 +139,6 @@ class GeneratedArtefactStalenessTests(unittest.TestCase):
 
     def _backup_and_run(self, generator_module_name: str, output_paths: list[Path]) -> None:
         """Import a generator, run it, and assert no drift from committed files."""
-        import importlib
 
         module = importlib.import_module(generator_module_name)
         backups = {p: p.read_text(encoding="utf-8") for p in output_paths if p.is_file()}
@@ -167,8 +171,7 @@ class GeneratedArtefactStalenessTests(unittest.TestCase):
         """gen_scaffold.py should not alter any committed cpp/ starter files."""
         registry = profile_registry.load_registry()
         scaffold_paths = [
-            self.templates_dir / "cpp" / f"{name}.cpp"
-            for name in registry.all_scaffold_names()
+            self.templates_dir / "cpp" / f"{name}.cpp" for name in registry.all_scaffold_names()
         ]
         self._backup_and_run("gen_scaffold", scaffold_paths)
 

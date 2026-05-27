@@ -1,4 +1,11 @@
-"""Smoke tests for workflow_manager CLI contract."""
+"""Smoke tests for the ``workflow_manager`` CLI surface and zsh wrapper.
+
+Verifies the user-facing argparse contract (subcommand visibility,
+argument validation, JSON output shape) plus the runtime details of
+``CppToolsRunner``: login-vs-non-login shell selection driven by
+``CP_WORKFLOW_NO_LOGIN``, and the externalized ``_wrapper.zsh`` template
+loading with allowlist-injection safety.
+"""
 
 import json
 import shutil
@@ -7,13 +14,22 @@ import sys
 import tempfile
 import textwrap
 import unittest
+from collections.abc import Callable
 from pathlib import Path
 
-SCRIPT = Path(__file__).resolve().parents[1] / "workflow_manager.py"
+import pytest
+
+SCRIPTS_DIR = Path(__file__).resolve().parents[1]
+SCRIPT = SCRIPTS_DIR / "workflow_manager.py"
+
+from workflow_manager_core import runner as runner_module  # noqa: E402
+from workflow_manager_core.constants import ALLOWED_FUNCTIONS  # noqa: E402
+from workflow_manager_core.runner import CppToolsRunner  # noqa: E402
+from workflow_manager_core.types import WorkflowError  # noqa: E402
 
 
 class WorkflowManagerCliSmokeTests(unittest.TestCase):
-    def _run(self, *args: str) -> subprocess.CompletedProcess:
+    def _run(self, *args: str) -> subprocess.CompletedProcess[str]:
         """Execute workflow_manager.py with provided arguments."""
 
         return subprocess.run(
@@ -92,6 +108,116 @@ class WorkflowManagerCliSmokeTests(unittest.TestCase):
             self.assertEqual(len(payload.get("steps", [])), 1)
             self.assertEqual(payload["steps"][0]["function"], "cpphelp")
             self.assertIn("stub-help-valid", payload["steps"][0]["stdout"])
+
+
+# Function-style tests for ``CppToolsRunner`` login-shell selection.
+# Drives the runner with the shared ``make_stub_cpp_tools`` + ``tmp_path``
+# fixtures so the previous ``_make_runner`` + ``addCleanup`` dance and the
+# manual ``os.environ`` push/pop are no longer needed.
+
+
+_zsh_required = pytest.mark.skipif(
+    shutil.which("zsh") is None,
+    reason="zsh is required to construct CppToolsRunner",
+)
+
+
+def _build_runner(
+    stub_factory: Callable[..., Path],
+    tmp_path: Path,
+    *,
+    login_shell: bool | None = None,
+) -> CppToolsRunner:
+    """Build a ``CppToolsRunner`` rooted at ``tmp_path`` with a minimal stub."""
+
+    stub = stub_factory(cpphelp=":")
+    return CppToolsRunner(
+        cp_tools_script=stub,
+        cwd=tmp_path,
+        default_timeout=5,
+        login_shell=login_shell,
+    )
+
+
+@_zsh_required
+def test_default_runner_uses_login_shell(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    make_stub_cpp_tools: Callable[..., Path],
+) -> None:
+    """Without env override or explicit flag the runner stays on login zsh."""
+
+    monkeypatch.delenv("CP_WORKFLOW_NO_LOGIN", raising=False)
+    runner = _build_runner(make_stub_cpp_tools, tmp_path)
+    assert runner.login_shell is True
+
+
+@_zsh_required
+def test_env_flag_disables_login_shell(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    make_stub_cpp_tools: Callable[..., Path],
+) -> None:
+    """``CP_WORKFLOW_NO_LOGIN=1`` should drop the ``-l`` flag for ``zsh -c``."""
+
+    monkeypatch.setenv("CP_WORKFLOW_NO_LOGIN", "1")
+    runner = _build_runner(make_stub_cpp_tools, tmp_path)
+    assert runner.login_shell is False
+
+
+@_zsh_required
+def test_explicit_argument_beats_env_flag(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    make_stub_cpp_tools: Callable[..., Path],
+) -> None:
+    """Explicit ``login_shell=True`` must override the env opt-out."""
+
+    monkeypatch.setenv("CP_WORKFLOW_NO_LOGIN", "1")
+    runner = _build_runner(make_stub_cpp_tools, tmp_path, login_shell=True)
+    assert runner.login_shell is True
+
+
+class WrapperTemplateTests(unittest.TestCase):
+    """Cover the externalized zsh wrapper loaded via ``importlib.resources``."""
+
+    def test_template_loads_with_placeholder(self) -> None:
+        """The on-disk wrapper template must expose the substitution marker exactly once."""
+
+        runner_module._wrapper_template.cache_clear()
+        template = runner_module._wrapper_template()
+        self.assertEqual(
+            template.count(runner_module._ALLOWED_CASES_PLACEHOLDER),
+            1,
+            "placeholder must appear exactly once or replace() would rewrite comments",
+        )
+        self.assertIn('source "$1"', template)
+
+    def test_render_substitutes_every_allowlisted_name(self) -> None:
+        """Every entry in ``ALLOWED_FUNCTIONS`` must appear as a ``name) ;;`` arm."""
+
+        rendered = runner_module._render_wrapper(frozenset(ALLOWED_FUNCTIONS))
+        self.assertNotIn(runner_module._ALLOWED_CASES_PLACEHOLDER, rendered)
+        for name in ALLOWED_FUNCTIONS:
+            self.assertIn(f"  {name}) ;;", rendered)
+
+    def test_render_rejects_shell_metacharacters(self) -> None:
+        """Allowlist entries that break the identifier shape must fail fast."""
+
+        bad = frozenset({"cppbuild", "rm -rf /"})
+        with self.assertRaises(WorkflowError) as ctx:
+            runner_module._render_wrapper(bad)
+        self.assertIn("rm -rf /", str(ctx.exception))
+
+    def test_template_read_is_cached(self) -> None:
+        """``_wrapper_template`` is wrapped in ``functools.cache``."""
+
+        runner_module._wrapper_template.cache_clear()
+        runner_module._wrapper_template()
+        runner_module._wrapper_template()
+        info = runner_module._wrapper_template.cache_info()
+        self.assertEqual(info.misses, 1)
+        self.assertGreaterEqual(info.hits, 1)
 
 
 if __name__ == "__main__":

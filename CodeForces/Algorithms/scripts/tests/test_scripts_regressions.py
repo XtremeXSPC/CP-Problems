@@ -1,9 +1,19 @@
-"""Regression tests for scripts-level bugs and edge cases."""
+"""Regression tests that pin scripts-tree contracts the team relies on.
+
+Each class encodes a non-obvious invariant whose violation has historically
+broken either the CLI surface or downstream tooling: importability of every
+top-level script, the subprocess-routing rule that funnels all process
+spawning through ``_lib/process.py``, the StrEnum-to-argparse mirroring
+in ``constants``, the deprecation shim that keeps the old
+``module_tester`` private names resolvable, and the cached-property
+laziness used to avoid expensive cold imports.
+"""
 
 from __future__ import annotations
 
 import argparse
 import contextlib
+import importlib
 import io
 import json
 import os
@@ -13,13 +23,13 @@ import sys
 import tempfile
 import textwrap
 import unittest
+import warnings
 from pathlib import Path
+from typing import ClassVar
 from unittest import mock
 
 SCRIPTS_DIR = Path(__file__).resolve().parents[1]
 WORKFLOW_SCRIPT = SCRIPTS_DIR / "workflow_manager.py"
-# build_template.sh was retired (Phase 3); migration scripts archived.
-BUILD_TEMPLATE_SCRIPT = SCRIPTS_DIR / "build_template.sh"
 _MIGRATIONS_DIR = SCRIPTS_DIR / "migrations" / "archive"
 MIGRATE_CMAKE_SCRIPT = _MIGRATIONS_DIR / "migrate_round_cmake.py"
 MIGRATE_PRESETS_SCRIPT = _MIGRATIONS_DIR / "migrate_round_presets.py"
@@ -27,17 +37,26 @@ MIGRATE_TOOLCHAINS_SCRIPT = _MIGRATIONS_DIR / "migrate_round_toolchains.py"
 MIGRATE_VSCODE_SCRIPT = _MIGRATIONS_DIR / "migrate_round_vscode.py"
 ALGORITHMS_DIR = SCRIPTS_DIR.parent
 
-if str(SCRIPTS_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS_DIR))
-
 import benchmark_pch  # noqa: E402
 import module_tester  # noqa: E402
+import module_verify  # noqa: E402
+from workflow_manager_core.constants import (  # noqa: E402
+    BUILD_TYPE_CHOICES,
+    CMAKE_BUILD_PRESET_CHOICES,
+    CMAKE_CONFIG_PRESET_CHOICES,
+    COMPILER_CHOICES,
+    BuildPreset,
+    BuildType,
+    CompilerChoice,
+    ConfigPreset,
+)
+from workflow_manager_core.types import CommandResult  # noqa: E402
 
 
 class ScriptRegressionTests(unittest.TestCase):
     def _run_workflow(
         self, *args: str, env: dict[str, str] | None = None
-    ) -> subprocess.CompletedProcess:
+    ) -> subprocess.CompletedProcess[str]:
         """Run workflow_manager.py with optional environment overrides."""
 
         return subprocess.run(
@@ -129,24 +148,9 @@ class ScriptRegressionTests(unittest.TestCase):
             self.assertIn("Command timed out.", result.stderr)
             self.assertNotIn("Traceback", result.stderr + result.stdout)
 
-    @unittest.skipUnless(
-        BUILD_TEMPLATE_SCRIPT.is_file(),
-        "build_template.sh was retired during Phase 3 refactor",
-    )
-    def test_build_template_without_argument_uses_default_output(self) -> None:
-        """build_template.sh should default to template.hpp when no arg is passed."""
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmp = Path(tmpdir)
-            result = subprocess.run(
-                ["bash", str(BUILD_TEMPLATE_SCRIPT)],
-                cwd=str(tmp),
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-            self.assertEqual(result.returncode, 0, msg=result.stderr)
-            self.assertTrue((tmp / "template.hpp").is_file())
+    # Removed: test_build_template_without_argument_uses_default_output.
+    # ``build_template.sh`` was retired from the scripts tree; the test was
+    # permanently skipped and added no coverage.
 
     def test_benchmark_json_out_creates_parent_directories(self) -> None:
         """Benchmark JSON output should create missing parent directories."""
@@ -363,10 +367,14 @@ class ScriptRegressionTests(unittest.TestCase):
             central_vscode = algorithms_root / ".vscode"
 
             round_dir.mkdir(parents=True)
-            (round_dir / "CMakeLists.txt").write_text("cmake_minimum_required(VERSION 3.20)\n", encoding="utf-8")
+            (round_dir / "CMakeLists.txt").write_text(
+                "cmake_minimum_required(VERSION 3.20)\n", encoding="utf-8"
+            )
             central_vscode.mkdir(parents=True)
             (central_vscode / "scripts").mkdir()
-            (central_vscode / "scripts" / "cp_sanitize_task.sh").write_text("#!/bin/sh\n", encoding="utf-8")
+            (central_vscode / "scripts" / "cp_sanitize_task.sh").write_text(
+                "#!/bin/sh\n", encoding="utf-8"
+            )
             for name in ("settings.json", "tasks.json", "launch.json", "c_cpp_properties.json"):
                 (central_vscode / name).write_text("{}\n", encoding="utf-8")
 
@@ -403,11 +411,15 @@ class ScriptRegressionTests(unittest.TestCase):
             central_vscode = algorithms_root / ".vscode"
 
             round_dir.mkdir(parents=True)
-            (round_dir / "CMakeLists.txt").write_text("cmake_minimum_required(VERSION 3.20)\n", encoding="utf-8")
+            (round_dir / "CMakeLists.txt").write_text(
+                "cmake_minimum_required(VERSION 3.20)\n", encoding="utf-8"
+            )
             central_vscode.mkdir(parents=True)
             (central_vscode / "scripts").mkdir()
-            (central_vscode / "scripts" / "cp_sanitize_task.sh").write_text("#!/bin/sh\n", encoding="utf-8")
-            original_settings = "{\n  \"marker\": true\n}\n"
+            (central_vscode / "scripts" / "cp_sanitize_task.sh").write_text(
+                "#!/bin/sh\n", encoding="utf-8"
+            )
+            original_settings = '{\n  "marker": true\n}\n'
             (central_vscode / "settings.json").write_text(original_settings, encoding="utf-8")
             for name in ("tasks.json", "launch.json", "c_cpp_properties.json"):
                 (central_vscode / name).write_text("{}\n", encoding="utf-8")
@@ -489,7 +501,9 @@ class ScriptRegressionTests(unittest.TestCase):
             rounds_root = tmp / "Rounds"
             round_dir = rounds_root / "Round_Test"
             round_dir.mkdir(parents=True)
-            (round_dir / "CMakeLists.txt").write_text("cmake_minimum_required(VERSION 3.20)\n", encoding="utf-8")
+            (round_dir / "CMakeLists.txt").write_text(
+                "cmake_minimum_required(VERSION 3.20)\n", encoding="utf-8"
+            )
             presets_path = round_dir / "CMakePresets.json"
             original = '{\n  "version": 3\n}\n'
             presets_path.write_text(original, encoding="utf-8")
@@ -536,7 +550,9 @@ class ScriptRegressionTests(unittest.TestCase):
             untouched_round = rounds_root / "Round_Untouched"
             for round_dir in (selected_round, untouched_round):
                 round_dir.mkdir(parents=True)
-                (round_dir / "CMakeLists.txt").write_text("cmake_minimum_required(VERSION 3.20)\n", encoding="utf-8")
+                (round_dir / "CMakeLists.txt").write_text(
+                    "cmake_minimum_required(VERSION 3.20)\n", encoding="utf-8"
+                )
                 for name in ("gcc-toolchain.cmake", "clang-toolchain.cmake"):
                     (round_dir / name).write_text(f"# local {round_dir.name}\n", encoding="utf-8")
 
@@ -564,6 +580,235 @@ class ScriptRegressionTests(unittest.TestCase):
                     1,
                 )
                 self.assertTrue((untouched_round / name).is_file())
+
+
+class ModuleRuntimeShimTests(unittest.TestCase):
+    """Compatibility shim: underscore-prefixed module_tester names still resolve.
+
+    ``module_tester`` re-exports a handful of helpers that were renamed when
+    they migrated to ``module_runtime``. The shim emits ``DeprecationWarning``
+    on access; these tests pin that contract so the shim cannot quietly
+    disappear before in-tree callers have all moved over.
+    """
+
+    def test_no_internal_caller_imports_private_module_tester_names(self) -> None:
+        """The codebase must not regress to importing module_tester._* internally."""
+
+        scripts_dir = Path(__file__).resolve().parents[1]
+        offending: list[str] = []
+        for path in scripts_dir.rglob("*.py"):
+            if "__pycache__" in path.parts or "migrations/archive" in path.as_posix():
+                continue
+            if path.resolve() == Path(__file__).resolve():
+                continue
+            text = path.read_text(encoding="utf-8")
+            if "from module_tester import _" in text:
+                offending.append(str(path.relative_to(scripts_dir)))
+        self.assertEqual(offending, [], msg="should import from module_runtime instead")
+
+    def test_legacy_underscore_names_resolve_with_deprecation_warning(self) -> None:
+        """External callers using the old names get the public symbol + a warning."""
+
+        module_runtime = importlib.import_module("module_runtime")
+        module_tester = importlib.import_module("module_tester")
+
+        with warnings.catch_warnings(record=True) as captured:
+            warnings.simplefilter("always")
+            fn = module_tester._load_template_config
+        self.assertIs(fn, module_runtime.load_template_config)
+        self.assertTrue(
+            any(issubclass(w.category, DeprecationWarning) for w in captured),
+            msg="accessing the legacy name must raise a DeprecationWarning",
+        )
+
+    def test_unknown_attribute_still_raises_attribute_error(self) -> None:
+        """The shim must not swallow unrelated lookups."""
+
+        module_tester = importlib.import_module("module_tester")
+
+        with self.assertRaises(AttributeError):
+            _ = module_tester._does_not_exist
+
+
+class StrEnumChoicesTests(unittest.TestCase):
+    """Argparse-facing tuples in ``constants`` must mirror their ``StrEnum`` source.
+
+    Every CLI-choices tuple (``BUILD_TYPE_CHOICES``, ``COMPILER_CHOICES``,
+    ``TOGGLE_CHOICES``, ``PCH_CHOICES``, ``CMAKE_*_PRESET_CHOICES``) is
+    derived from a ``StrEnum`` so mypy and argparse agree on the legal
+    surface. If someone adds a new enum member without rebuilding the tuple
+    the contract breaks silently — these tests catch that drift.
+    """
+
+    def test_build_type_choices_match_strenum(self) -> None:
+        self.assertEqual(BUILD_TYPE_CHOICES, tuple(e.value for e in BuildType))
+
+    def test_compiler_choices_match_strenum(self) -> None:
+        self.assertEqual(COMPILER_CHOICES, tuple(e.value for e in CompilerChoice))
+
+    def test_config_preset_choices_match_strenum(self) -> None:
+        self.assertEqual(CMAKE_CONFIG_PRESET_CHOICES, tuple(e.value for e in ConfigPreset))
+
+    def test_build_preset_choices_match_strenum(self) -> None:
+        self.assertEqual(CMAKE_BUILD_PRESET_CHOICES, tuple(e.value for e in BuildPreset))
+
+    def test_strenum_members_compare_equal_to_their_string_values(self) -> None:
+        """``StrEnum`` substitutability is what keeps argparse happy."""
+
+        self.assertEqual(BuildType.DEBUG, "Debug")
+        self.assertEqual(str(BuildType.DEBUG), "Debug")
+
+
+class CachedPropertyLazinessTests(unittest.TestCase):
+    """``ModuleVerifier.compiler`` must defer toolchain probing to first access."""
+
+    def test_compiler_attribute_not_computed_until_accessed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            (root / "templates").mkdir(parents=True)
+            verifier = module_verify.ModuleVerifier(root)
+            # Pre-access: compiler must not yet live on the instance dict.
+            self.assertNotIn("compiler", verifier.__dict__)
+            _ = verifier.compiler
+            self.assertIn("compiler", verifier.__dict__)
+
+
+class CommandResultSelfReturnTypeTests(unittest.TestCase):
+    """``CommandResult.as_non_fatal`` returns the same subclass it was called on."""
+
+    def test_as_non_fatal_preserves_instance_class(self) -> None:
+        original = CommandResult(
+            function="cppdiag",
+            args=(),
+            cwd="/tmp",
+            returncode=7,
+            duration_ms=100,
+            stdout="",
+            stderr="diag-failed",
+        )
+        copied = original.as_non_fatal()
+        self.assertIsInstance(copied, CommandResult)
+        self.assertTrue(copied.non_fatal)
+        self.assertEqual(copied.returncode, 7)
+
+
+class SubprocessLayerEnforcementTests(unittest.TestCase):
+    """Only ``_lib/process.py`` may call ``subprocess.run`` directly.
+
+    Every other script in the tree must route through ``_lib.process.run_capture``
+    so timeout handling, text decoding, and elapsed-time accounting stay
+    uniform. This test scans the working copy and rejects any new direct
+    ``subprocess.run`` call that slips past code review.
+    """
+
+    _ALLOWED_DIRECT_SUBPROCESS: ClassVar[set[str]] = {
+        "_lib/process.py",
+        # syntax_check still calls git rev-parse / git diff directly; both are
+        # synchronous one-shots where check=True is the desired behavior and
+        # routing them through run_capture would obscure the intent.
+        "syntax_check.py",
+    }
+
+    def test_only_lib_process_uses_raw_subprocess_run(self) -> None:
+        """Every other script must go through ``_lib.process.run_capture``."""
+
+        scripts_dir = Path(__file__).resolve().parents[1]
+        offenders: list[str] = []
+        for path in scripts_dir.rglob("*.py"):
+            posix = path.relative_to(scripts_dir).as_posix()
+            if posix.startswith(("tests/", "migrations/archive/", "__pycache__")):
+                continue
+            if posix in self._ALLOWED_DIRECT_SUBPROCESS:
+                continue
+            if "subprocess.run" in path.read_text(encoding="utf-8"):
+                offenders.append(posix)
+        self.assertEqual(
+            offenders,
+            [],
+            msg="route these subprocess.run calls through _lib.process.run_capture",
+        )
+
+
+class ScriptsImportabilityTests(unittest.TestCase):
+    """Guard against unparseable top-level scripts shipping unnoticed."""
+
+    EXPECTED_MODULES = (
+        "benchmark_pch",
+        "flattener",
+        "gen_config",
+        "gen_scaffold",
+        "module_runtime",
+        "module_tester",
+        "module_verify",
+        "need_resolver",
+        "profile_registry",
+        "strip_index_casts",
+        "syntax_check",
+        "workflow_manager",
+    )
+
+    def test_every_top_level_script_imports_cleanly(self) -> None:
+        """All shipped scripts must be importable without side effects failing."""
+
+        for name in self.EXPECTED_MODULES:
+            with self.subTest(module=name):
+                module = importlib.import_module(name)
+                self.assertTrue(hasattr(module, "__file__"))
+
+
+class FlattenerLazyAugmentationTests(unittest.TestCase):
+    """Verify the templates/ rglob no longer fires on plain import."""
+
+    def test_headers_import_does_not_eagerly_walk_templates(self) -> None:
+        """Importing flattener_core.headers must not augment tables."""
+
+        headers = importlib.import_module("flattener_core.headers")
+        importlib.reload(headers)
+        # ensure_augmented_tables is wrapped in @functools.cache; cache_info()
+        # reports 0 hits / 0 misses immediately after import.
+        self.assertEqual(
+            headers.ensure_augmented_tables.cache_info().misses,
+            0,
+            "Importing flattener_core.headers should not trigger augmentation",
+        )
+
+    def test_augmentation_runs_on_first_pruning_call(self) -> None:
+        """Calling ``prune_template_headers_with_policy`` should fire augmentation."""
+
+        headers = importlib.import_module("flattener_core.headers")
+        importlib.reload(headers)
+        self.assertEqual(headers.ensure_augmented_tables.cache_info().misses, 0)
+        headers.prune_template_headers_with_policy([], "", enable_pruning=True)
+        self.assertEqual(
+            headers.ensure_augmented_tables.cache_info().misses,
+            1,
+            "First pruning call must execute the augmentation body exactly once",
+        )
+
+
+class SyntaxCheckGitToplevelTests(unittest.TestCase):
+    """Ensure syntax_check uses git rev-parse, with safe fall-back."""
+
+    def test_git_toplevel_resolves_to_a_directory(self) -> None:
+        """In the current repo the lookup must succeed and point to a real dir."""
+
+        syntax_check = importlib.import_module("syntax_check")
+        syntax_check._git_toplevel.cache_clear()
+        top = syntax_check._git_toplevel()
+        self.assertTrue(top.is_dir(), msg=f"toplevel {top} is not a directory")
+
+    def test_git_toplevel_falls_back_to_root_when_git_missing(self) -> None:
+        """When ``git`` raises OSError the fallback should be ``ROOT``."""
+
+        syntax_check = importlib.import_module("syntax_check")
+        syntax_check._git_toplevel.cache_clear()
+        with mock.patch.object(
+            syntax_check.subprocess,
+            "run",
+            side_effect=OSError("git missing"),
+        ):
+            self.assertEqual(syntax_check._git_toplevel(), syntax_check.ROOT)
+        syntax_check._git_toplevel.cache_clear()
 
 
 if __name__ == "__main__":
