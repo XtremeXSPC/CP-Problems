@@ -1,0 +1,86 @@
+# Python tooling configuration for the Algorithms/scripts/ tree.
+# This file is intentionally not a packaging manifest — the scripts run
+# directly and are not pip-installed. It exists so `ruff` and `mypy` can be
+# invoked from this directory with consistent settings.
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+extend-exclude = [
+    "__pycache__",
+    "migrations/archive",
+    "tests/__pycache__",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "I",    # import sorting
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "RUF",  # ruff-specific rules
+    "PIE",  # flake8-pie
+    "PL",   # pylint (subset)
+]
+ignore = [
+    "E501",    # line too long           — handled by formatter
+    "PLR0911", # too-many-returns        — early-return pattern is intentional for parsers/lexers
+    "PLR0913", # too-many-arguments      — dataclasses + ctor injection make this noisy
+    "PLR0912", # too-many-branches       — flattener pipeline is intrinsically branchy
+    "PLR0915", # too-many-statements     — same as above
+    "PLR2004", # magic-value-comparison  — exit codes / timeouts are inherently magic
+    "SIM108",  # ternary-rewriting       — sometimes hurts readability
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["PLR2004", "B011"]  # asserts / magic values are normal in tests
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unreachable = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+show_error_codes = true
+mypy_path = "."
+explicit_package_bases = true
+namespace_packages = true
+exclude = [
+    "migrations/archive/",
+    "__pycache__/",
+]
+
+[[tool.mypy.overrides]]
+# Tests intentionally exercise private APIs and stub objects; relax there.
+# ``disallow_untyped_decorators`` is dropped because ``@pytest.fixture`` is
+# typed via runtime classes the strict checker still sees as untyped.
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_untyped_calls = false
+disallow_incomplete_defs = false
+disallow_untyped_decorators = false
+check_untyped_defs = true
+
+[[tool.mypy.overrides]]
+# Pytest ships with its own type information but mypy's strict mode still
+# refuses to type-check decorators it cannot resolve. Accept untyped pytest
+# without disabling type-checking on the rest of the tests/ tree.
+module = "pytest"
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+# Pytest discovers both the unittest.TestCase classes inherited from the
+# pre-Phase-7 suite and the function-based tests written against the new
+# fixtures. ``-q`` keeps the output dense; ``-ra`` surfaces skips and
+# unexpected statuses so they don't get lost in the streaming output.
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*", "*Tests"]
+python_functions = ["test_*"]
+addopts = "-q -ra --strict-markers"
+filterwarnings = [
+    # Keep our own DeprecationWarning shim from polluting CI output.
+    "ignore::DeprecationWarning:module_tester",
+]
