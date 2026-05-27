@@ -4,11 +4,20 @@
 #include "_Common.hpp"
 #include "Graph.hpp"
 
+/// @brief Strongly connected components and their condensation DAG.
+struct SCCResult {
+  I32 count = 0;
+  VecI32 comp;
+  Vec2D<I32> components;
+  Vec2D<I32> dag;
+};
+
 /**
  * @brief Tarjan strongly connected components (iterative DFS).
  *
  * @details Computes SCC ids in O(V + E), avoiding recursion depth issues.
- * Component ids are assigned in reverse topological order of condensation DAG.
+ * Component ids are assigned in reverse topological order of the condensation
+ * DAG: for every condensation edge a -> b, a is greater than b.
  */
 struct TarjanSCC {
   I32 n = 0;
@@ -122,6 +131,37 @@ struct TarjanSCC {
     }
 
     return comp;
+  }
+
+  /// @brief Runs decomposition and returns component ids, groups, and DAG.
+  [[nodiscard]] SCCResult decompose() {
+    build();
+    return result();
+  }
+
+  /// @brief Returns current result after build/decompose has been called.
+  [[nodiscard]] SCCResult result() const {
+    return {.count = comp_cnt,
+            .comp = comp,
+            .components = components,
+            .dag = condensation_dag()};
+  }
+
+  /// @brief Builds the condensation DAG of the current decomposition.
+  [[nodiscard]] Vec2D<I32> condensation_dag() const {
+    Vec2D<I32> dag(comp_cnt);
+    FOR(u, n) {
+      if (comp[u] == -1) continue;
+      for (I32 v : adj[u]) {
+        if (comp[v] == -1 || comp[u] == comp[v]) continue;
+        dag[comp[u]].push_back(comp[v]);
+      }
+    }
+    for (auto& edges : dag) {
+      std::ranges::sort(edges);
+      edges.erase(std::ranges::unique(edges).begin(), edges.end());
+    }
+    return dag;
   }
 };
 

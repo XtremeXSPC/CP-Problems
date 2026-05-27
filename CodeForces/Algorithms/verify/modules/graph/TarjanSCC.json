@@ -1,0 +1,23 @@
+{
+  "name": "TarjanSCC",
+  "header": "modules/graph/TarjanSCC.hpp",
+  "category": "graph",
+  "tags": [
+    "scc",
+    "condensation",
+    "dag"
+  ],
+  "cases": [
+    {
+      "name": "runtime",
+      "kind": "run",
+      "source": "verify/modules/graph/TarjanSCC.runtime.cpp",
+      "timeout_seconds": 15.0
+    },
+    {
+      "name": "compile",
+      "kind": "compile",
+      "source": "verify/modules/graph/TarjanSCC.compile.cpp"
+    }
+  ]
+}
