@@ -82,23 +82,18 @@ using Vec3D = Vec<Vec2D<T>>;
 template <class T>
 using Vec4D = Vec<Vec3D<T>>;
 
-template <class T>
-using Vec2 = Vec2D<T>;
-template <class T>
-using Vec3 = Vec3D<T>;
-template <class T>
-using Vec4 = Vec4D<T>;
-
-using VecI32  = Vec<I32>;
-using VecI64  = Vec<I64>;
-using VecBool = Vec<bool>;
-using VecStr  = Vec<String>;
 using VecU8   = Vec<U8>;
 using VecU16  = Vec<U16>;
 using VecU32  = Vec<U32>;
 using VecU64  = Vec<U64>;
+using VecI8   = Vec<I8>;
+using VecI16  = Vec<I16>;
+using VecI32  = Vec<I32>;
+using VecI64  = Vec<I64>;
 using VecF64  = Vec<F64>;
 using VecF80  = Vec<F80>;
+using VecBool = Vec<bool>;
+using VecStr  = Vec<String>;
 
 template <class T, class U>
 using VecPair = Vec<Pair<T, U>>;

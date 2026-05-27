@@ -32,7 +32,7 @@
 
   #if CP_ENABLE_LEGACY_IO_VEC_MACROS
     #define VEC(type, name, size) Vec<type> name(size); IN(name)
-    #define VV(type, name, h, w) Vec2<type> name(h, Vec<type>(w)); IN(name)
+    #define VV(type, name, h, w) Vec2D<type> name(h, Vec<type>(w)); IN(name)
   #endif
 #endif
 
