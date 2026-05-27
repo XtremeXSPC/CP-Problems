@@ -24,6 +24,7 @@ import argparse
 import difflib
 import re
 import sys
+from fnmatch import fnmatch
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -69,7 +70,7 @@ def find_matching_paren(text: str, open_idx: int) -> int:
 
 
 def is_word_char(c: str) -> bool:
-  """Return True if c is a letter, digit, or underscore (i.e. valid in C++ identifiers)."""
+    """Return True if c is a letter, digit, or underscore (i.e. valid in C++ identifiers)."""
 
     return c.isalnum() or c == "_"
 
@@ -113,7 +114,7 @@ def render_signed_size(kind: str, inner: str) -> str | None:
 
 
 def transform_pass(text: str) -> str:
-  """Apply one pass of the transformations. Returns the updated text."""
+    """Apply one pass of the transformations. Returns the updated text."""
 
     out: list[str] = []
     i = 0
@@ -146,7 +147,7 @@ def transform_pass(text: str) -> str:
 
 
 def transform(text: str, max_passes: int = 8) -> str:
-  """Apply transformations iteratively until fix-point or max_passes reached. """
+    """Apply transformations iteratively until fix-point or max_passes reached."""
 
     for _ in range(max_passes):
         new = transform_pass(text)
@@ -187,7 +188,7 @@ def strip_subscript_parens(text: str) -> str:
 
 
 def _has_top_level_comma(expr: str) -> bool:
-  """Return True if expr contains a comma at the top level (not nested in parens/brackets/angles)."""
+    """Return True if expr contains a comma at the top level (not nested in parens/brackets/angles)."""
 
     depth_paren = depth_brack = depth_angle = 0
     for c in expr:
@@ -209,9 +210,8 @@ def _has_top_level_comma(expr: str) -> bool:
 
 
 def collect_files(scope: Path, exclude_globs: list[str]) -> list[Path]:
-  """Collect .hpp files under scope, excluding paths matching any of exclude_globs."""
+    """Collect .hpp files under scope, excluding paths matching any of exclude_globs."""
 
-    from fnmatch import fnmatch
     files = sorted(scope.rglob("*.hpp"))
     if exclude_globs:
         files = [f for f in files if not any(fnmatch(str(f), pat) for pat in exclude_globs)]
@@ -222,29 +222,37 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--dry-run", action="store_true", help="show diffs only")
     parser.add_argument(
-        "--scope", default=str(DEFAULT_SCOPE),
+        "--scope",
+        default=str(DEFAULT_SCOPE),
         help="directory to walk for .hpp files (default: modules)",
     )
     parser.add_argument(
-        "--only", action="append", default=[], metavar="GLOB",
+        "--only",
+        action="append",
+        default=[],
+        metavar="GLOB",
         help="restrict to file paths matching GLOB (repeatable)",
     )
     parser.add_argument(
-        "--exclude", action="append", default=[], metavar="GLOB",
+        "--exclude",
+        action="append",
+        default=[],
+        metavar="GLOB",
         help="skip file paths matching GLOB (repeatable)",
     )
     parser.add_argument(
-        "--mode", choices=("casts", "parens", "both"), default="casts",
+        "--mode",
+        choices=("casts", "parens", "both"),
+        default="casts",
         help="casts: strip as<Size>/as<I32|I64>(.size()); "
-             "parens: cleanup [(EXPR)] -> [EXPR]; "
-             "both: run casts then parens",
+        "parens: cleanup [(EXPR)] -> [EXPR]; "
+        "both: run casts then parens",
     )
     args = parser.parse_args()
 
     scope = Path(args.scope).resolve()
     files = collect_files(scope, args.exclude)
     if args.only:
-        from fnmatch import fnmatch
         files = [f for f in files if any(fnmatch(str(f), pat) for pat in args.only)]
 
     if not files:
@@ -268,7 +276,8 @@ def main() -> int:
             continue
         total_files += 1
         cast_delta = (
-            original.count("as<Size>(") - updated.count("as<Size>(")
+            original.count("as<Size>(")
+            - updated.count("as<Size>(")
             + sum(original.count(f"as<{k}>(") - updated.count(f"as<{k}>(") for k in ("I32", "I64"))
         )
         paren_delta = original.count("[(") - updated.count("[(")
@@ -297,8 +306,10 @@ def main() -> int:
 
     summary = f"~{total_cast_delta} casts, ~{total_paren_delta} parens"
     prefix = "[dry-run] " if args.dry_run else ""
-    print(f"\n{prefix}{total_files} files {'would change' if args.dry_run else 'modified'}, {summary}",
-          file=sys.stderr)
+    print(
+        f"\n{prefix}{total_files} files {'would change' if args.dry_run else 'modified'}, {summary}",
+        file=sys.stderr,
+    )
     return 0
 
 

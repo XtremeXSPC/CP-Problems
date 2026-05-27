@@ -1,17 +1,24 @@
 #!/usr/bin/env python3
-"""Benchmark PCH impact for CP round builds (cold, incremental, post-reconfigure)."""
+"""Benchmark precompiled-header impact on CP round build times.
+
+Runs three repeatable scenarios per configuration (PCH enabled vs disabled):
+cold full build, single-file incremental, and post-reconfigure rebuild. The
+script invokes the project's CMake configure + build through the shared
+``_lib.process.run_capture`` layer and reports wall-time deltas, so the
+team can decide whether the PCH cache is paying for itself on a given
+toolchain.
+"""
 
 from __future__ import annotations
 
 import argparse
 import json
-import os
-import subprocess
-import time
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Literal
+
+from _lib.process import ProcessRequest, run_capture
 
 BenchmarkRecommendation = Literal["disable_default_pch", "keep_default_pch"]
 
@@ -78,7 +85,7 @@ def _round_seconds(value: float) -> float:
 def _run_command(
     argv: Sequence[str],
     cwd: Path,
-    env: Mapping[str, str],
+    env_overrides: Mapping[str, str],
     verbose: bool,
 ) -> float:
     """Run a command and return wall-clock duration in seconds."""
@@ -86,35 +93,29 @@ def _run_command(
     if verbose:
         print(f"[bench] {' '.join(argv)}")
 
-    start = time.perf_counter()
-    completed = subprocess.run(
-        argv,
-        cwd=str(cwd),
-        env=env,
-        capture_output=True,
-        text=True,
-        check=False,
+    result = run_capture(
+        ProcessRequest(
+            argv=argv,
+            cwd=cwd,
+            env_overrides=env_overrides,
+        )
     )
-    elapsed = time.perf_counter() - start
-
-    if completed.returncode != 0:
+    if result.failed:
         raise BenchmarkError(
             "Command failed\n"
             f"cmd: {' '.join(argv)}\n"
             f"cwd: {cwd}\n"
-            f"exit: {completed.returncode}\n"
-            f"stdout:\n{completed.stdout}\n"
-            f"stderr:\n{completed.stderr}"
+            f"exit: {result.returncode}\n"
+            f"stdout:\n{result.stdout}\n"
+            f"stderr:\n{result.stderr}"
         )
-    return elapsed
+    return result.duration_ms / 1000.0
 
 
 def _discover_target(round_dir: Path) -> str:
     """Pick a default target from round sources when none is provided."""
 
-    candidates = sorted(
-        p for p in round_dir.glob("*.cpp") if "template" not in p.name.lower()
-    )
+    candidates = sorted(p for p in round_dir.glob("*.cpp") if "template" not in p.name.lower())
     if not candidates:
         raise BenchmarkError(f"No candidate .cpp targets found in {round_dir}")
     return candidates[0].stem
@@ -152,9 +153,10 @@ def _benchmark_mode(
 ) -> BenchmarkMetrics:
     """Measure configure/build timings for one PCH mode."""
 
-    env = os.environ.copy()
-    env["CP_ALGORITHMS_DIR"] = str(algorithms_dir)
-    env["CCACHE_DISABLE"] = "1"
+    env_overrides: dict[str, str] = {
+        "CP_ALGORITHMS_DIR": str(algorithms_dir),
+        "CCACHE_DISABLE": "1",
+    }
 
     configure_preset = f"cp-debug-{compiler}"
     build_preset = f"cp-build-debug-{compiler}"
@@ -183,11 +185,11 @@ def _benchmark_mode(
     ]
 
     try:
-        configure_sec = _run_command(configure_argv, round_dir, env, verbose)
-        cold_build_sec = _run_command(cold_build_argv, round_dir, env, verbose)
+        configure_sec = _run_command(configure_argv, round_dir, env_overrides, verbose)
+        cold_build_sec = _run_command(cold_build_argv, round_dir, env_overrides, verbose)
 
         _write_touch_marker(source_file, f"bench-incremental-{mode}")
-        incremental_build_sec = _run_command(cold_build_argv, round_dir, env, verbose)
+        incremental_build_sec = _run_command(cold_build_argv, round_dir, env_overrides, verbose)
 
         _write_new_target(round_dir, bench_target)
         reconfigure_sec = _run_command(
@@ -199,7 +201,7 @@ def _benchmark_mode(
                 "-DCP_FORCE_PCH_REBUILD=OFF",
             ],
             round_dir,
-            env,
+            env_overrides,
             verbose,
         )
         post_reconfigure_build_sec = _run_command(
@@ -212,7 +214,7 @@ def _benchmark_mode(
                 bench_target,
             ],
             round_dir,
-            env,
+            env_overrides,
             verbose,
         )
     finally:
@@ -243,19 +245,14 @@ def _build_result(
         incremental_gain_sec=_round_seconds(
             off_metrics.incremental_build_sec - on_metrics.incremental_build_sec
         ),
-        cold_penalty_sec=_round_seconds(
-            on_metrics.cold_build_sec - off_metrics.cold_build_sec
-        ),
+        cold_penalty_sec=_round_seconds(on_metrics.cold_build_sec - off_metrics.cold_build_sec),
         post_reconfigure_penalty_sec=_round_seconds(
-            on_metrics.post_reconfigure_build_sec
-            - off_metrics.post_reconfigure_build_sec
+            on_metrics.post_reconfigure_build_sec - off_metrics.post_reconfigure_build_sec
         ),
     )
 
     recommendation: BenchmarkRecommendation = (
-        "disable_default_pch"
-        if delta.incremental_gain_sec < threshold_sec
-        else "keep_default_pch"
+        "disable_default_pch" if delta.incremental_gain_sec < threshold_sec else "keep_default_pch"
     )
 
     return BenchmarkResult(
@@ -377,4 +374,4 @@ if __name__ == "__main__":
         raise SystemExit(main())
     except BenchmarkError as exc:
         print(f"Error: {exc}")
-        raise SystemExit(1)
+        raise SystemExit(1) from exc

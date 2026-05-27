@@ -10,16 +10,42 @@ Usage:
 """
 
 from __future__ import annotations
+
 import argparse
+import functools
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
+from _lib.process import ProcessRequest, run_capture
+
 ROOT = Path(__file__).resolve().parents[1]
 COMPILER = "g++-15"
 CXX_FLAGS = ["-std=c++23", "-fsyntax-only", "-Wno-unused-variable", "-Wno-unused-parameter"]
 INCLUDE_DIR = str(ROOT)
+
+
+@functools.cache
+def _git_toplevel() -> Path:
+    """Locate the git working tree containing this script, or fall back to ROOT.
+
+    Avoids assumptions about how many directories above ``Algorithms`` the
+    repository root sits at (the legacy code hardcoded ``ROOT.parent.parent``).
+    """
+
+    try:
+        completed = subprocess.run(
+            ["git", "-C", str(ROOT), "rev-parse", "--show-toplevel"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return ROOT
+    toplevel = completed.stdout.strip()
+    return Path(toplevel) if toplevel else ROOT
+
 
 PROBE_TEMPLATE = """\
 #define CP_USE_ADVANCED
@@ -37,45 +63,50 @@ int main() {{ return 0; }}
 
 
 def probe_for(file: Path) -> str:
-  """Generate probe.cpp source for syntax-checking the given file."""
+    """Generate probe.cpp source for syntax-checking the given file."""
 
     rel = file.resolve().relative_to(ROOT)
     return PROBE_TEMPLATE.format(include_path=rel.as_posix())
 
 
 def check(file: Path) -> tuple[bool, str]:
-"""Check syntax of the given file. Returns (valid, error_message)."""
+    """Check syntax of the given file. Returns (valid, error_message)."""
 
     source = probe_for(file)
     with tempfile.NamedTemporaryFile(suffix=".cpp", mode="w", delete=False) as tf:
         tf.write(source)
         probe = tf.name
     try:
-        cp = subprocess.run(
-            [COMPILER, *CXX_FLAGS, f"-I{INCLUDE_DIR}", probe],
-            capture_output=True, text=True, timeout=120,
+        result = run_capture(
+            ProcessRequest(
+                argv=[COMPILER, *CXX_FLAGS, f"-I{INCLUDE_DIR}", probe],
+                timeout=120.0,
+            )
         )
-    except subprocess.TimeoutExpired:
-        return False, "TIMEOUT"
     finally:
         Path(probe).unlink(missing_ok=True)
-    if cp.returncode == 0:
+    if result.timed_out:
+        return False, "TIMEOUT"
+    if result.returncode == 0:
         return True, ""
-    return False, cp.stderr.strip()
+    return False, result.stderr.strip()
 
 
 def git_modified() -> list[Path]:
-  """Return list of .hpp files modified in git (compared to HEAD)."""
+    """Return list of .hpp files modified in git (compared to HEAD)."""
 
+    toplevel = _git_toplevel()
     cp = subprocess.run(
         ["git", "diff", "--name-only", "HEAD", "--", "*.hpp"],
-        capture_output=True, text=True, check=True,
-        cwd=ROOT.parent.parent,
+        capture_output=True,
+        text=True,
+        check=True,
+        cwd=toplevel,
     )
-    paths = []
+    paths: list[Path] = []
     for line in cp.stdout.splitlines():
-        p = (ROOT.parent.parent / line).resolve()
-        if p.exists() and p.suffix == ".hpp":
+        p = (toplevel / line).resolve()
+        if p.is_file() and p.suffix == ".hpp":
             paths.append(p)
     return paths
 
