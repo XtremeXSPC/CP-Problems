@@ -1,0 +1,23 @@
+{
+  "name": "Doubling",
+  "header": "modules/data_structures/utility/Doubling.hpp",
+  "category": "data_structures",
+  "tags": [
+    "utility",
+    "binary_lifting",
+    "monoid"
+  ],
+  "cases": [
+    {
+      "name": "runtime",
+      "kind": "run",
+      "source": "verify/modules/data_structures/utility/Doubling.runtime.cpp",
+      "timeout_seconds": 15.0
+    },
+    {
+      "name": "compile",
+      "kind": "compile",
+      "source": "verify/modules/data_structures/utility/Doubling.compile.cpp"
+    }
+  ]
+}

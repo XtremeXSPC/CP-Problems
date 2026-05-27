@@ -1,0 +1,23 @@
+{
+  "name": "RemovableQueue",
+  "header": "modules/data_structures/utility/RemovableQueue.hpp",
+  "category": "data_structures",
+  "tags": [
+    "utility",
+    "priority_queue",
+    "lazy_deletion"
+  ],
+  "cases": [
+    {
+      "name": "runtime",
+      "kind": "run",
+      "source": "verify/modules/data_structures/utility/RemovableQueue.runtime.cpp",
+      "timeout_seconds": 15.0
+    },
+    {
+      "name": "compile",
+      "kind": "compile",
+      "source": "verify/modules/data_structures/utility/RemovableQueue.compile.cpp"
+    }
+  ]
+}

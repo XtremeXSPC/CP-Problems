@@ -1,0 +1,23 @@
+{
+  "name": "CSR",
+  "header": "modules/data_structures/utility/CSR.hpp",
+  "category": "data_structures",
+  "tags": [
+    "utility",
+    "csr",
+    "buckets"
+  ],
+  "cases": [
+    {
+      "name": "runtime",
+      "kind": "run",
+      "source": "verify/modules/data_structures/utility/CSR.runtime.cpp",
+      "timeout_seconds": 15.0
+    },
+    {
+      "name": "compile",
+      "kind": "compile",
+      "source": "verify/modules/data_structures/utility/CSR.compile.cpp"
+    }
+  ]
+}

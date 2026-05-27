@@ -1,0 +1,23 @@
+{
+  "name": "Cumsum2D",
+  "header": "modules/data_structures/utility/Cumsum2D.hpp",
+  "category": "data_structures",
+  "tags": [
+    "utility",
+    "prefix_sum",
+    "2d"
+  ],
+  "cases": [
+    {
+      "name": "runtime",
+      "kind": "run",
+      "source": "verify/modules/data_structures/utility/Cumsum2D.runtime.cpp",
+      "timeout_seconds": 15.0
+    },
+    {
+      "name": "compile",
+      "kind": "compile",
+      "source": "verify/modules/data_structures/utility/Cumsum2D.compile.cpp"
+    }
+  ]
+}
