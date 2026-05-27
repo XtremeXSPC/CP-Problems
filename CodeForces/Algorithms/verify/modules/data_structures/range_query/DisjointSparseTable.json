@@ -1,0 +1,23 @@
+{
+  "name": "DisjointSparseTable",
+  "header": "modules/data_structures/range_query/DisjointSparseTable.hpp",
+  "category": "data_structures",
+  "tags": [
+    "range-query",
+    "sparse-table",
+    "monoid"
+  ],
+  "cases": [
+    {
+      "name": "runtime",
+      "kind": "run",
+      "source": "verify/modules/data_structures/range_query/DisjointSparseTable.runtime.cpp",
+      "timeout_seconds": 15.0
+    },
+    {
+      "name": "compile",
+      "kind": "compile",
+      "source": "verify/modules/data_structures/range_query/DisjointSparseTable.compile.cpp"
+    }
+  ]
+}

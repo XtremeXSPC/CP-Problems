@@ -23,6 +23,7 @@
 #include "data_structures/line_structures/LiChaoTree.hpp"
 #include "data_structures/line_structures/RangeLineHull.hpp"
 #include "data_structures/range_query/Mo.hpp"
+#include "data_structures/range_query/DisjointSparseTable.hpp"
 #include "data_structures/range_query/MonoidSparseTable.hpp"
 #include "data_structures/range_query/SparseDeltaSweep.hpp"
 #include "data_structures/range_query/SparseTable.hpp"
@@ -44,5 +45,12 @@
 #include "data_structures/tree_structures/LinkCutTree.hpp"
 #include "data_structures/union_find/DSURollback.hpp"
 #include "data_structures/union_find/PotentializedUnionFind.hpp"
+#include "data_structures/utility/CSR.hpp"
+#include "data_structures/utility/Cumsum2D.hpp"
+#include "data_structures/utility/Doubling.hpp"
+#include "data_structures/utility/IndexCompression.hpp"
+#include "data_structures/utility/Intervals.hpp"
+#include "data_structures/utility/RemovableQueue.hpp"
+#include "data_structures/utility/StaticRangeFrequency.hpp"
 
 #endif

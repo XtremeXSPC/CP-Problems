@@ -24,5 +24,16 @@
 #include "graph/HLD.hpp"
 #include "graph/CentroidDecomposition.hpp"
 #include "graph/TwoSAT.hpp"
+#include "graph/connectivity/LowLink.hpp"
+#include "graph/connectivity/TwoEdgeConnectedComponents.hpp"
+#include "graph/connectivity/BlockCutTree.hpp"
+#include "graph/tree/VirtualTree.hpp"
+#include "graph/tree/DSUOnTree.hpp"
+#include "graph/tree/TreeDiameter.hpp"
+#include "graph/tree/TreeCenter.hpp"
+#include "graph/tree/TreeCore.hpp"
+#include "graph/tree/TreeMonoid.hpp"
+#include "graph/tree/StaticTreeMonoid.hpp"
+#include "graph/functional/FunctionalGraph.hpp"
 
 #endif

@@ -1,0 +1,24 @@
+{
+  "name": "StaticTreeMonoid",
+  "header": "modules/graph/tree/StaticTreeMonoid.hpp",
+  "category": "graph",
+  "tags": [
+    "tree",
+    "hld",
+    "monoid",
+    "static-query"
+  ],
+  "cases": [
+    {
+      "name": "runtime",
+      "kind": "run",
+      "source": "verify/modules/graph/StaticTreeMonoid.runtime.cpp",
+      "timeout_seconds": 15.0
+    },
+    {
+      "name": "compile",
+      "kind": "compile",
+      "source": "verify/modules/graph/StaticTreeMonoid.compile.cpp"
+    }
+  ]
+}
