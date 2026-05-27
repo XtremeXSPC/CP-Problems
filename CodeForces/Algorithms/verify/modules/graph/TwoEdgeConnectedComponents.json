@@ -1,0 +1,23 @@
+{
+  "name": "TwoEdgeConnectedComponents",
+  "header": "modules/graph/connectivity/TwoEdgeConnectedComponents.hpp",
+  "category": "graph",
+  "tags": [
+    "bridge",
+    "components",
+    "tree"
+  ],
+  "cases": [
+    {
+      "name": "runtime",
+      "kind": "run",
+      "source": "verify/modules/graph/TwoEdgeConnectedComponents.runtime.cpp",
+      "timeout_seconds": 15.0
+    },
+    {
+      "name": "compile",
+      "kind": "compile",
+      "source": "verify/modules/graph/TwoEdgeConnectedComponents.compile.cpp"
+    }
+  ]
+}

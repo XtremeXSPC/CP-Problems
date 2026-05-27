@@ -1,0 +1,23 @@
+{
+  "name": "LowLink",
+  "header": "modules/graph/connectivity/LowLink.hpp",
+  "category": "graph",
+  "tags": [
+    "lowlink",
+    "bridge",
+    "articulation"
+  ],
+  "cases": [
+    {
+      "name": "runtime",
+      "kind": "run",
+      "source": "verify/modules/graph/LowLink.runtime.cpp",
+      "timeout_seconds": 15.0
+    },
+    {
+      "name": "compile",
+      "kind": "compile",
+      "source": "verify/modules/graph/LowLink.compile.cpp"
+    }
+  ]
+}

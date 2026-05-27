@@ -1,0 +1,23 @@
+{
+  "name": "BlockCutTree",
+  "header": "modules/graph/connectivity/BlockCutTree.hpp",
+  "category": "graph",
+  "tags": [
+    "biconnected_components",
+    "articulation",
+    "tree"
+  ],
+  "cases": [
+    {
+      "name": "runtime",
+      "kind": "run",
+      "source": "verify/modules/graph/BlockCutTree.runtime.cpp",
+      "timeout_seconds": 15.0
+    },
+    {
+      "name": "compile",
+      "kind": "compile",
+      "source": "verify/modules/graph/BlockCutTree.compile.cpp"
+    }
+  ]
+}

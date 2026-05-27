@@ -1,0 +1,23 @@
+{
+  "name": "FunctionalGraph",
+  "header": "modules/graph/functional/FunctionalGraph.hpp",
+  "category": "graph",
+  "tags": [
+    "functional_graph",
+    "cycle",
+    "decomposition"
+  ],
+  "cases": [
+    {
+      "name": "runtime",
+      "kind": "run",
+      "source": "verify/modules/graph/FunctionalGraph.runtime.cpp",
+      "timeout_seconds": 15.0
+    },
+    {
+      "name": "compile",
+      "kind": "compile",
+      "source": "verify/modules/graph/FunctionalGraph.compile.cpp"
+    }
+  ]
+}
