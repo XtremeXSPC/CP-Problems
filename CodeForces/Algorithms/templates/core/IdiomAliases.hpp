@@ -1,0 +1,36 @@
+#pragma once
+#include "ScalarTypes.hpp"
+
+//===----------------------------------------------------------------------===//
+/* Library Function Aliases */
+
+namespace cp {
+
+template <class T>
+using cvref_t = std::remove_cvref_t<T>;
+
+template <class T, class U>
+concept Same = std::same_as<cvref_t<T>, cvref_t<U>>;
+
+template <class T>
+concept Int = std::integral<cvref_t<T>>
+#if HAS_INT128
+    || std::same_as<cvref_t<T>, I128>
+    || std::same_as<cvref_t<T>, U128>
+#endif
+    ;
+
+template <class T>
+concept Float = std::floating_point<cvref_t<T>>;
+
+template <class T>
+concept Signed = Int<T> && (std::is_signed_v<cvref_t<T>>
+#if HAS_INT128
+  || std::same_as<cvref_t<T>, I128>
+#endif
+);
+
+template <class T>
+concept Unsigned = Int<T> && !Signed<T>;
+
+} // namespace cp

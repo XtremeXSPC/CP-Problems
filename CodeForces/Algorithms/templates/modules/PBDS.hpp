@@ -26,19 +26,20 @@ using ordered_multiset = __gnu_pbds::tree<
     __gnu_pbds::tree_order_statistics_node_update>;
 
 template <typename K, typename V>
-using ordered_map =
-    __gnu_pbds::tree<K, V, std::less<K>, __gnu_pbds::rb_tree_tag, __gnu_pbds::tree_order_statistics_node_update>;
+using ordered_map = __gnu_pbds::tree<
+    K, V,
+    std::less<K>,
+    __gnu_pbds::rb_tree_tag,
+    __gnu_pbds::tree_order_statistics_node_update>;
 
 template <typename K, typename V>
 using gp_hash_table = __gnu_pbds::gp_hash_table<
-    K,
-    V,
-    std::hash<K>,
-    std::equal_to<K>,
+    K, V,
+    std::hash<K>, std::equal_to<K>,
     __gnu_pbds::direct_mask_range_hashing<>,
     __gnu_pbds::linear_probe_fn<>,
     __gnu_pbds::hash_standard_resize_policy<
-        __gnu_pbds::hash_exponential_size_policy<>,
-        __gnu_pbds::hash_load_check_resize_trigger<>,
-        true>>;
+    __gnu_pbds::hash_exponential_size_policy<>,
+    __gnu_pbds::hash_load_check_resize_trigger<>,
+    true>>;
 #endif

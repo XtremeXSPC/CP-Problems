@@ -1,16 +1,11 @@
 #pragma once
+#include "templates/core/IdiomAliases.hpp"
 #include "templates/core/TypeTraits.hpp"
-#ifdef CP_USE_ADVANCED
-  #include "templates/advanced/Concepts.hpp"
-  #define CP_BITOPS_TPL template <cp::Integral T>
-#else
-  #define CP_BITOPS_TPL template <class T>
-#endif
 
 //===----------------------------------------------------------------------===//
 /* Advanced Bitwise Operations */
 
-CP_BITOPS_TPL
+template <cp::Int T>
 [[gnu::always_inline]] constexpr I32 popcount(T x) {
   using Raw = std::remove_cv_t<T>;
   using U   = cp::make_unsigned_t<Raw>;
@@ -24,7 +19,7 @@ CP_BITOPS_TPL
   }
 }
 
-CP_BITOPS_TPL
+template <cp::Int T>
 [[gnu::always_inline]] constexpr I32 leading_zeros(T x) {
   using Raw = std::remove_cv_t<T>;
   using U   = cp::make_unsigned_t<Raw>;
@@ -43,7 +38,7 @@ CP_BITOPS_TPL
   }
 }
 
-CP_BITOPS_TPL
+template <cp::Int T>
 [[gnu::always_inline]] constexpr I32 trailing_zeros(T x) {
   using Raw = std::remove_cv_t<T>;
   using U   = cp::make_unsigned_t<Raw>;
@@ -62,37 +57,36 @@ CP_BITOPS_TPL
   }
 }
 
-CP_BITOPS_TPL
+template <cp::Int T>
 [[gnu::always_inline]] constexpr I32 bit_width(T x) {
   return sizeof(T) * 8 - leading_zeros(x);
 }
 
-CP_BITOPS_TPL
+template <cp::Int T>
 [[gnu::always_inline]] constexpr T bit_floor(T x) {
   if (x == 0)
     return 0;
   return T(1) << (bit_width(x) - 1);
 }
 
-CP_BITOPS_TPL
+template <cp::Int T>
 [[gnu::always_inline]] constexpr T bit_ceil(T x) {
   if (x <= 1)
     return 1;
   return T(1) << bit_width(x - 1);
 }
 
-CP_BITOPS_TPL
+template <cp::Int T>
 [[gnu::always_inline]] constexpr I32 parity_sign(T x) { return (popcount(x) & 1) ? -1 : 1; }
 
-CP_BITOPS_TPL
+template <cp::Int T>
 constexpr T kth_bit(I32 k) { return T(1) << k; }
 
-CP_BITOPS_TPL
+template <cp::Int T>
 constexpr bool has_kth_bit(T x, I32 k) { return (x >> k) & 1; }
 
 /// @brief Iterate over set bits in a mask, yielding their 0-based indices.
-CP_BITOPS_TPL
-
+template <cp::Int T>
 struct bit_range {
   T mask;
 
@@ -100,6 +94,7 @@ struct bit_range {
     T current;
 
     iterator(T mask) : current(mask) {}
+
     I32 operator*() const { return trailing_zeros(current); }
 
     iterator& operator++() {
@@ -111,12 +106,12 @@ struct bit_range {
   };
 
   bit_range(T mask) : mask(mask) {}
+
   iterator begin() const { return iterator(mask); }
   iterator end() const { return iterator(0); }
 };
 
-CP_BITOPS_TPL
-
+template <cp::Int T>
 struct subset_range {
   T mask;
 
@@ -125,6 +120,7 @@ struct subset_range {
     bool finished;
 
     iterator(T mask) : subset(mask), original(mask), finished(false) {}
+
     T operator*() const { return original ^ subset; }
 
     iterator& operator++() {
@@ -139,8 +135,7 @@ struct subset_range {
   };
 
   subset_range(T mask) : mask(mask) {}
+
   iterator begin() const { return iterator(mask); }
   iterator end() const { return iterator(0); }
 };
-
-#undef CP_BITOPS_TPL

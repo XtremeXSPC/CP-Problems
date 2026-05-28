@@ -1,9 +1,15 @@
 #pragma once
+
+#ifndef CP_FAST_IO_VARIANT
+  #define CP_FAST_IO_VARIANT 1
+#endif
+
 #include "templates/core/Macros.hpp"
 #include "templates/core/ScalarTypes.hpp"
+#include "templates/core/IdiomAliases.hpp"
 
 //===----------------------------------------------------------------------===//
-/* High-Performance Buffered I/O */
+/* Buffered I/O (variant-driven) */
 
 #ifndef CP_FAST_IO_NAMESPACE_DEFINED
   #define CP_FAST_IO_NAMESPACE_DEFINED 1
@@ -19,31 +25,32 @@
 
 namespace fast_io {
 
-static constexpr U32 BUFFER_SIZE = 1U << 17; // 128 KB
+static constexpr U32 BUFFER_SIZE = 1U << 20; // 1 MB
 alignas(64) inline char input_buffer[BUFFER_SIZE];
 alignas(64) inline char output_buffer[BUFFER_SIZE];
 alignas(64) inline char number_buffer[128];
 
-inline U32  input_pos   = 0;
-inline U32  input_end   = 0;
-inline U32  output_pos  = 0;
-inline bool input_eof   = false;
-inline bool input_error = false;
+inline U32 input_pos  = 0;
+inline U32 input_end  = 0;
+inline U32 output_pos = 0;
+
+#if CP_FAST_IO_VARIANT == 1
+inline bool input_eof = false;
+#endif
 
 /* ------------------------------- INPUT API -------------------------------- */
 
 inline void load_input() {
+#if CP_FAST_IO_VARIANT == 1
+  // memmove + sentinel: preserves tokens spanning a refill boundary.
   if (input_eof && input_pos >= input_end) {
     input_pos = input_end = 0;
     return;
   }
-
   const U32 remaining = input_end - input_pos;
   std::memmove(input_buffer, input_buffer + input_pos, remaining);
   const U32 capacity   = BUFFER_SIZE - remaining;
   const U32 bytes_read = as<U32>(std::fread(input_buffer + remaining, 1, capacity, stdin));
-  input_error          = input_error || (std::ferror(stdin) != 0);
-  my_assert(!input_error && "Fast_IO: fread failed.");
   input_end = remaining + bytes_read;
   input_pos = 0;
   if (bytes_read < capacity) {
@@ -51,12 +58,19 @@ inline void load_input() {
     if (input_end < BUFFER_SIZE)
       input_buffer[input_end++] = '\n';
   }
+#else
+  // Full reload: assumes any single token fits within BUFFER_SIZE.
+  input_end = as<U32>(std::fread(input_buffer, 1, BUFFER_SIZE, stdin));
+  input_pos = 0;
+#endif
 }
 
-inline char next_input_char() {
-  if (input_pos >= input_end)
+[[gnu::always_inline]] inline char next_input_char() {
+  if (input_pos >= input_end) {
     load_input();
-  my_assert(input_pos < input_end && "Fast_IO: unexpected end of input.");
+    if (input_pos >= input_end)
+      return 0;
+  }
   return input_buffer[input_pos++];
 }
 
@@ -70,7 +84,7 @@ inline void flush_output() {
 inline void read_char(char& c) {
   do {
     c = next_input_char();
-  } while (std::isspace(as<unsigned char>(c)));
+  } while (c <= ' ' && c != 0);
 }
 
 template <typename T>
@@ -78,26 +92,23 @@ inline void read_integer(T& x) {
   char c;
   do {
     c = next_input_char();
-  } while (std::isspace(as<unsigned char>(c)));
+  } while (c <= ' ' && c != 0);
 
   bool negative = false;
-  if constexpr (std::is_signed_v<T>) {
+  if constexpr (cp::Signed<T>) {
     if (c == '-') {
       negative = true;
-      c        = next_input_char();
+      c = next_input_char();
     }
   }
 
-  x              = 0;
-  bool has_digit = false;
-  while (c >= '0' && c <= '9') {
-    has_digit = true;
-    x         = x * 10 + (c - '0');
-    c         = next_input_char();
+  x = 0;
+  while (c > ' ') {
+    x = x * 10 + (c - '0');
+    c = next_input_char();
   }
-  my_assert(has_digit && "Fast_IO: expected an integer token.");
 
-  if constexpr (std::is_signed_v<T>) {
+  if constexpr (cp::Signed<T>) {
     if (negative)
       x = -x;
   }
@@ -109,31 +120,35 @@ inline void read_string(std::string& s) {
   char c;
   do {
     c = next_input_char();
-  } while (std::isspace(as<unsigned char>(c)));
+  } while (c <= ' ' && c != 0);
 
-  do {
+  while (c > ' ') {
     s.push_back(c);
     c = next_input_char();
-  } while (!std::isspace(as<unsigned char>(c)));
+  }
 }
 
 template <typename T>
 inline void read_floating(T& x) {
-  std::string token;
-  read_string(token);
-  const char* ptr = token.c_str();
-  char*       end = nullptr;
-  if constexpr (std::same_as<std::remove_cvref_t<T>, F32>) {
-    x = std::strtof(ptr, &end);
-  } else if constexpr (std::same_as<std::remove_cvref_t<T>, F64>) {
-    x = std::strtod(ptr, &end);
-  } else {
-    x = std::strtold(ptr, &end);
+  char token[64];
+  U32 len = 0;
+  char c;
+  do {
+    c = next_input_char();
+  } while (c <= ' ' && c != 0);
+  while (c > ' ' && len + 1 < sizeof(token)) {
+    token[len++] = c;
+    c = next_input_char();
   }
-  if (end == ptr || *end != '\0') {
-    my_assert(false && "read_floating(): failed to parse floating-point token.");
-    x = as<T>(0);
-  }
+  token[len] = '\0';
+
+  char* end = nullptr;
+  if constexpr (cp::Same<T, F32>)
+    x = std::strtof(token, &end);
+  else if constexpr (cp::Same<T, F64>)
+    x = std::strtod(token, &end);
+  else
+    x = std::strtold(token, &end);
 }
 
 template <FastIntegral T>
@@ -153,10 +168,10 @@ inline void write_integer(T x) {
 
   using UnsignedT = std::make_unsigned_t<T>;
   UnsignedT ux;
-  if constexpr (std::is_signed_v<T>) {
+  if constexpr (cp::Signed<T>) {
     if (x < 0) {
       output_buffer[output_pos++] = '-';
-      ux                          = as<UnsignedT>(-(x + 1));
+      ux = as<UnsignedT>(-(x + 1));
       ux += 1;
     } else {
       ux = as<UnsignedT>(x);
@@ -177,24 +192,23 @@ inline void write_integer(T x) {
 }
 
 #ifndef CP_FLOAT_PRECISION
-#define CP_FLOAT_PRECISION 10
+  #define CP_FLOAT_PRECISION 10
 #endif
 
 template <typename T>
 inline void write_floating(T x) {
-  char      local_buffer[128];
-  const int n = std::snprintf(local_buffer, sizeof(local_buffer), "%.*Lf", CP_FLOAT_PRECISION, as<long double>(x));
+  char local_buffer[128];
+  const int n = std::snprintf(local_buffer, sizeof(local_buffer), "%.*Lf", CP_FLOAT_PRECISION, as<F80>(x));
   if (n <= 0)
     return;
 
   U32 len = as<U32>(std::min(n, as<int>(sizeof(local_buffer) - 1)));
-  if (len >= BUFFER_SIZE) {
+  if (output_pos + len >= BUFFER_SIZE)
     flush_output();
+  if (len >= BUFFER_SIZE) {
     std::fwrite(local_buffer, 1, len, stdout);
     return;
   }
-  if (output_pos + len >= BUFFER_SIZE)
-    flush_output();
   std::memcpy(output_buffer + output_pos, local_buffer, len);
   output_pos += len;
 }
@@ -206,8 +220,8 @@ inline void write_char(char c) {
 }
 
 inline void write_string(std::string_view s) {
-  const char* data      = s.data();
-  U32         remaining = as<U32>(s.size());
+  const char* data = s.data();
+  U32 remaining = as<U32>(s.size());
   while (remaining > 0) {
     if (output_pos >= BUFFER_SIZE)
       flush_output();
@@ -225,28 +239,40 @@ inline void write(T x) { write_integer(x); }
 
 template <FastFloating T>
 inline void write(T x) { write_floating(x); }
-
 inline void write(char x) { write_char(x); }
-
 inline void write(const std::string& x) { write_string(x); }
-
 inline void write(const char* x) { write_string(x); }
 
-#ifndef CP_FAST_IO_ENABLE_MODINT
-  #ifdef NEED_MOD_INT
-    #define CP_FAST_IO_ENABLE_MODINT 1
-  #else
-    #define CP_FAST_IO_ENABLE_MODINT 0
-  #endif
-#endif
+} // namespace fast_io
 
-#ifndef CP_FAST_IO_ENABLE_STRONG_TYPE
-  #define CP_FAST_IO_ENABLE_STRONG_TYPE 0
-#endif
-#if CP_FAST_IO_ENABLE_STRONG_TYPE && !defined(CP_USE_ADVANCED)
-  #undef CP_FAST_IO_ENABLE_STRONG_TYPE
-  #define CP_FAST_IO_ENABLE_STRONG_TYPE 0
-#endif
+/* ------------------------------- EXTENSIONS ------------------------------- */
+
+#if CP_FAST_IO_VARIANT == 1
+  #ifndef CP_FAST_IO_ENABLE_MODINT
+    #ifdef NEED_MOD_INT
+      #define CP_FAST_IO_ENABLE_MODINT 1
+    #else
+      #define CP_FAST_IO_ENABLE_MODINT 0
+    #endif
+  #endif
+
+  #ifndef CP_FAST_IO_ENABLE_STRONG_TYPE
+    #define CP_FAST_IO_ENABLE_STRONG_TYPE 0
+  #endif
+  #if CP_FAST_IO_ENABLE_STRONG_TYPE && !defined(CP_USE_ADVANCED)
+    #undef CP_FAST_IO_ENABLE_STRONG_TYPE
+    #define CP_FAST_IO_ENABLE_STRONG_TYPE 0
+  #endif
+
+  #if CP_FAST_IO_ENABLE_MODINT
+    #include "Fast_IO_Ext_ModInt.hpp"
+  #endif
+  #if CP_FAST_IO_ENABLE_STRONG_TYPE
+    #include "templates/advanced/Fast_IO_Ext_StrongType.hpp"
+  #endif
+#endif // CP_FAST_IO_VARIANT == 1
+
+namespace fast_io {
 
 #if CP_IO_ENABLE_COMPOSITE
   #define CP_IO_COMPOSITE_CONTEXT 1
@@ -280,9 +306,11 @@ inline void writeln(const Args&... args) {
 
 // Single-arg fallbacks: error on types lacking a concrete overload.
 template <class T>
+  requires(!FastIntegral<T> && !FastFloating<T>)
 void read(T&) = delete;
 
 template <class T>
+  requires(!FastIntegral<T> && !FastFloating<T>)
 void write(const T&) = delete;
 
 struct IOFlusher {
@@ -293,21 +321,13 @@ inline IOFlusher io_flusher;
 
 } // namespace fast_io
 
-#if CP_FAST_IO_ENABLE_MODINT
-  #include "Fast_IO_Ext_ModInt.hpp"
-#endif
-
-#if CP_FAST_IO_ENABLE_STRONG_TYPE
-  #include "templates/advanced/Fast_IO_Ext_StrongType.hpp"
-#endif
-
 #ifdef CP_IO_IMPL_READ
   #undef CP_IO_IMPL_READ
 #endif
 #ifdef CP_IO_IMPL_WRITELN
   #undef CP_IO_IMPL_WRITELN
 #endif
-  #ifdef CP_IO_IMPL_FLUSH
+#ifdef CP_IO_IMPL_FLUSH
   #undef CP_IO_IMPL_FLUSH
 #endif
 

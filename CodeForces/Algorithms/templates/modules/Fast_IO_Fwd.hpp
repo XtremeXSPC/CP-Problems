@@ -1,4 +1,5 @@
 #pragma once
+#include "templates/core/IdiomAliases.hpp"
 #include "templates/core/ScalarTypes.hpp"
 
 template <I64 MOD>
@@ -12,11 +13,10 @@ class StrongType;
 namespace fast_io {
 
 template <class T>
-concept FastIntegral = std::integral<std::remove_cvref_t<T>> && !std::same_as<std::remove_cvref_t<T>, bool>
-                    && !std::same_as<std::remove_cvref_t<T>, char>;
+concept FastIntegral = cp::Int<T> && !cp::Same<T, bool> && !cp::Same<T, char>;
 
 template <class T>
-concept FastFloating = std::floating_point<std::remove_cvref_t<T>>;
+concept FastFloating = cp::Float<T>;
 
 template <class T>
 inline void read_integer(T&);

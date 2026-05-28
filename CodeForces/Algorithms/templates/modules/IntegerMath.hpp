@@ -1,26 +1,14 @@
 #pragma once
+#include "templates/core/IdiomAliases.hpp"
 #include "templates/core/Macros.hpp"
 #include "templates/core/TypeTraits.hpp"
-#ifdef CP_USE_ADVANCED
-#include "templates/advanced/Concepts.hpp"
-#endif
 
 //===----------------------------------------------------------------------===//
 /* Integer Mathematical Utilities */
 
-#ifdef CP_USE_ADVANCED
-  #define CP_INTMATH_TPL_UINT template <cp::UnsignedIntegral T>
-  #define CP_INTMATH_TPL_INT template <cp::NonBoolIntegral T>
-  #define CP_INTMATH_IS_SIGNED(T) cp::SignedIntegral<T>
-#else
-  #define CP_INTMATH_TPL_UINT template <class T>
-  #define CP_INTMATH_TPL_INT template <class T>
-  #define CP_INTMATH_IS_SIGNED(T) std::is_signed_v<T>
-#endif
-
 namespace cp::detail {
 
-CP_INTMATH_TPL_UINT
+template <cp::Unsigned T>
 [[gnu::always_inline]] constexpr T mul_mod_unsigned(T a, T b, T mod) {
 #if HAS_INT128
   if constexpr (sizeof(T) <= sizeof(U64)) {
@@ -49,10 +37,10 @@ CP_INTMATH_TPL_UINT
 
 } // namespace cp::detail
 
-CP_INTMATH_TPL_INT
+template <cp::Int T>
 [[gnu::always_inline]] constexpr T div_floor(T a, T b) {
   my_assert(b != 0);
-  if constexpr (CP_INTMATH_IS_SIGNED(T)) {
+  if constexpr (cp::Signed<T>) {
     T q = a / b;
     T r = a % b;
     if (r != 0 && ((r > 0) != (b > 0)))
@@ -63,10 +51,10 @@ CP_INTMATH_TPL_INT
   }
 }
 
-CP_INTMATH_TPL_INT
+template <cp::Int T>
 [[gnu::always_inline]] constexpr T div_ceil(T a, T b) {
   my_assert(b != 0);
-  if constexpr (CP_INTMATH_IS_SIGNED(T)) {
+  if constexpr (cp::Signed<T>) {
     T q = a / b;
     T r = a % b;
     if (r != 0 && ((r > 0) == (b > 0)))
@@ -77,18 +65,18 @@ CP_INTMATH_TPL_INT
   }
 }
 
-CP_INTMATH_TPL_INT
+template <cp::Int T>
 [[gnu::always_inline]] constexpr T mod_floor(T a, T b) {
   return a - b * div_floor(a, b);
 }
 
-CP_INTMATH_TPL_INT
+template <cp::Int T>
 [[gnu::always_inline]] constexpr std::pair<T, T> divmod(T a, T b) {
   T q = div_floor(a, b);
   return {q, a - q * b};
 }
 
-CP_INTMATH_TPL_INT
+template <cp::Int T>
 [[gnu::always_inline]] constexpr T power(T base, T exp) {
   T result = 1;
   while (exp > 0) {
@@ -100,10 +88,10 @@ CP_INTMATH_TPL_INT
   return result;
 }
 
-CP_INTMATH_TPL_INT
+template <cp::Int T>
 [[gnu::always_inline]] constexpr T mod_pow(T base, T exp, T mod) {
   my_assert(mod != 0);
-  if constexpr (CP_INTMATH_IS_SIGNED(T)) {
+  if constexpr (cp::Signed<T>) {
     my_assert(mod > 0);
     my_assert(exp >= 0);
     if (mod <= 0)
@@ -128,9 +116,9 @@ CP_INTMATH_TPL_INT
   return as<T>(result);
 }
 
-CP_INTMATH_TPL_INT
+template <cp::Int T>
 [[gnu::always_inline]] inline T floor_sqrt(T x) {
-  if constexpr (CP_INTMATH_IS_SIGNED(T)) {
+  if constexpr (cp::Signed<T>) {
     my_assert(x >= 0);
     if (x < 0)
       return 0;
@@ -163,9 +151,9 @@ CP_INTMATH_TPL_INT
   return as<T>(r);
 }
 
-CP_INTMATH_TPL_INT
+template <cp::Int T>
 [[gnu::always_inline]] inline T ceil_sqrt(T x) {
-  using U = cp::make_unsigned_t<T>;
+  using U      = cp::make_unsigned_t<T>;
   const T root = floor_sqrt(x);
   const U uf   = as<U>(root);
   if (uf == 0)
@@ -176,7 +164,3 @@ CP_INTMATH_TPL_INT
     return root;
   return as<T>(uf + 1);
 }
-
-#undef CP_INTMATH_TPL_UINT
-#undef CP_INTMATH_TPL_INT
-#undef CP_INTMATH_IS_SIGNED

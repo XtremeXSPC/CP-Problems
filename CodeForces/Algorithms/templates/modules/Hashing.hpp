@@ -1,7 +1,7 @@
 #pragma once
 #include "templates/core/TypeTraits.hpp"
 #ifdef CP_USE_ADVANCED
-#include "templates/advanced/Concepts.hpp"
+  #include "templates/advanced/Concepts.hpp"
 #endif
 
 //===----------------------------------------------------------------------===//
