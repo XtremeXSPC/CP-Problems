@@ -356,9 +356,13 @@ $RECYCLE.BIN/
 *.lnk
 
 # Custom Additions
+AGENTS.md
+
 Docs/*
 Problems/*
-AGENTS.md
+
 .sisyphus/*
+.claude/*
+.agents/*
 
 # End of https://www.toptal.com/developers/gitignore/api/c,c++,python,cmake,visualstudiocode,macos,linux,windows
