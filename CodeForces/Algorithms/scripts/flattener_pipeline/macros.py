@@ -2,8 +2,8 @@
 
 ``extract_macro_values_from_source`` walks the source prefix before
 ``templates/Base.hpp``, applies a conservative folder to skip unevaluable
-``#if`` blocks, then layers in: defaults from ``profile_registry`` (with
-strict/relaxed selection), per-IO-profile triggers (``CP_IO_PROFILE_*``),
+``#if`` blocks, then layers in: defaults from ``profile_registry`` (strict
+selection), per-IO-profile triggers (``CP_IO_PROFILE_*``),
 and the composite-IO opt-in driven by the ``COMPOSITE_IO_TRIGGER_TOKENS``
 identifier set.
 
@@ -34,9 +34,6 @@ _NUMERIC_LITERAL_RE = re.compile(r"^[+-]?(?:0|[1-9]\d*|0[xX][0-9A-Fa-f]+)(?:[uUl
 COMPOSITE_IO_TRIGGER_TOKENS: frozenset[str] = frozenset(
     {
         "Vec",
-        "Vec2",
-        "Vec3",
-        "Vec4",
         "VecI32",
         "VecI64",
         "VecBool",
@@ -82,7 +79,6 @@ def extract_macro_values_from_source(
     source_prefix_content: str,
     *,
     strict_profile_enabled: bool,
-    relaxed_profile_enabled: bool,
     warn_stream: TextIO | None = None,
 ) -> MacroValueMap:
     """Extract simple macro values from user source for conservative folding.
@@ -139,8 +135,7 @@ def extract_macro_values_from_source(
         )
 
     registry = load_registry()
-    apply_strict = strict_profile_enabled and not relaxed_profile_enabled
-    for name, value in registry.config_defaults_as_dict(strict=apply_strict).items():
+    for name, value in registry.config_defaults_as_dict(strict=strict_profile_enabled).items():
         macro_values.setdefault(name, value)
 
     if "CP_IO_ENABLE_COMPOSITE" not in macro_values:
@@ -152,14 +147,21 @@ def extract_macro_values_from_source(
         value = macro_values.get(name)
         return value is not None and value != 0
 
-    for profile_name, profile in registry.io_profiles.items():
-        guard_macro = f"CP_IO_PROFILE_{profile_name.upper()}"
-        if not _is_enabled(guard_macro):
-            continue
-        for need in profile.needs:
-            macro_values.setdefault(need, 1)
-        for define_name, define_value in profile.defines.items():
-            macro_values.setdefault(define_name, define_value)
+    enabled_profiles = [
+        profile.macro for profile in registry.io_profiles.values() if _is_enabled(profile.macro)
+    ]
+    io_needs, io_defines = registry.expand_io_profiles(enabled_profiles)
+    for need in io_needs:
+        macro_values.setdefault(need, 1)
+    for define_name, define_value in io_defines.items():
+        macro_values.setdefault(define_name, define_value)
+
+    enabled_needs = {
+        name for name, value in macro_values.items() if name.startswith("NEED_") and value != 0
+    }
+    normalized_needs = registry.normalize_needs(enabled_needs)
+    for need in enabled_needs - normalized_needs:
+        macro_values.pop(need, None)
 
     if extract_identifiers(source_prefix_content) & COMPOSITE_IO_TRIGGER_TOKENS:
         macro_values["CP_IO_ENABLE_COMPOSITE"] = 1

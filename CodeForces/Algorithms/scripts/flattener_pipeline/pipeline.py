@@ -31,6 +31,7 @@ from flattener_core.lexer import append_with_blank_separator
 from flattener_core.macros import MacroValueMap
 from flattener_pipeline.context import FlattenContext, FlattenedTemplateBundle
 from need_resolver import extract_need_macros_from_source
+from profile_registry import load_registry
 
 NEED_DEFINE_LINE_RE = re.compile(r"^\s*#\s*define\s+(NEED_\w+)\b")
 MAIN_SOLVER_SECTION_MARKER = "/* Main Solver Function */"
@@ -45,9 +46,7 @@ def _collect_needed_template_headers(
 ) -> list[Path]:
     """Resolve and prune template headers implied by enabled ``NEED_*`` macros."""
 
-    # Mirror Base_profiles.hpp: NEED_FAST_IO wins over NEED_IO.
-    if "NEED_FAST_IO" in need_macros_found and "NEED_IO" in need_macros_found:
-        need_macros_found.remove("NEED_IO")
+    need_macros_found = set(load_registry().normalize_needs(need_macros_found))
 
     files_to_include: list[Path] = []
     included_names: set[str] = set()
@@ -102,7 +101,7 @@ def _render_template_bundle(
         ctx.source_content, ctx.need_mapping.keys(), warn_stream=sys.stderr
     )
     effective_macro_values: MacroValueMap = dict(ctx.macro_values)
-    if "NEED_FAST_IO" in need_macros_found:
+    if "NEED_FAST_IO" in need_macros_found or "NEED_FAST_IO_MINIMAL" in need_macros_found:
         effective_macro_values["CP_FAST_IO_NAMESPACE_DEFINED"] = 1
 
     files_to_include = _collect_needed_template_headers(

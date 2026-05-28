@@ -1,8 +1,9 @@
 # I/O Profile Policy
 
-This project supports explicit I/O profiles defined in `templates/Base_profiles.hpp`
-(generated from `profiles.toml`). Profiles are convenience shortcuts that expand
-into one or more `NEED_*` defines before `templates/Base.hpp` is processed.
+This project supports explicit I/O profiles defined in `templates/profiles.toml`
+and materialized into generated headers. `Base_profiles.hpp` expands profile
+macros into `NEED_*` defines; `Base_features.hpp` maps those `NEED_*` defines
+to concrete template headers.
 
 ## Profiles
 
@@ -30,12 +31,14 @@ Use when standard `cin`/`cout` is adequate and you want the minimum overhead.
 Expands to:
 
 ```cpp
-#define NEED_FAST_IO
+#define NEED_FAST_IO_MINIMAL
 ```
 
-Pulls in: `modules/Fast_IO.hpp` (buffered, non-stream I/O).
+Pulls in: `modules/Fast_IO_Minimal.hpp`, a small shim that sets
+`CP_FAST_IO_VARIANT 0` before including `modules/Fast_IO.hpp`.
 
-Use when throughput matters but typed abstractions are not needed.
+Use when throughput matters but the compile-time checking baggage for ModInt
+and StrongType extensions is not needed.
 
 ```cpp
 #define CP_IO_PROFILE_FAST_MINIMAL
@@ -85,8 +88,9 @@ supported and are preferable when you need a non-standard combination:
 ```
 
 Defining both `NEED_IO` and `NEED_FAST_IO` simultaneously is handled
-gracefully: `Base.hpp` automatically drops `NEED_IO` when `NEED_FAST_IO`
-is present.
+gracefully: `Base_profiles.hpp` automatically drops `NEED_IO` when either
+fast backend is present. If both fast backends are requested, the extended
+backend wins and `NEED_FAST_IO_MINIMAL` is dropped.
 
 ## Fast_IO extension toggles
 
@@ -109,8 +113,10 @@ its parent feature is active:
 ## Relationship to Base.hpp
 
 `Base.hpp` includes `Base_profiles.hpp` first, which expands the active profile
-into its constituent `NEED_*` defines. The rest of `Base.hpp` then processes
-those defines in the standard conditional-include chain.
+into its constituent `NEED_*` defines and normalizes backend collisions. It then
+includes `Base_features.hpp`, generated from the `[feature.NEED_*]` manifest in
+`profiles.toml`, to process those defines in the standard conditional-include
+chain.
 
 Do not define `NEED_*` macros and a profile macro simultaneously unless you
 intend the union of both effects.

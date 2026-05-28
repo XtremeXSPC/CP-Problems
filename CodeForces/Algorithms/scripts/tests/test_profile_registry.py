@@ -2,7 +2,7 @@
 
 Validates the contract that downstream consumers (``flattener_pipeline``,
 ``gen_config``, ``gen_scaffold``) rely on: schema-version parsing,
-strict-vs-relaxed default selection, IO profile lookup with ``NEED_*``
+base-vs-strict default selection, IO profile lookup with ``NEED_*``
 and define lists, scaffold recipe materialization, and cache reset
 semantics between tests.
 """
@@ -36,11 +36,27 @@ class ProfileRegistryTests(unittest.TestCase):
         registry = profile_registry.load_registry()
         self.assertEqual(registry.schema_version, 1)
         self.assertIn("simple", registry.io_profiles)
+        self.assertIn("fast_minimal", registry.io_profiles)
         self.assertIn("fast_extended", registry.io_profiles)
         self.assertEqual(
             set(registry.all_scaffold_names()),
             {"base", "default", "pbds", "advanced"},
         )
+
+    def test_fast_minimal_profile_drives_minimal_need(self) -> None:
+        """fast_minimal io_profile should request NEED_FAST_IO_MINIMAL only."""
+        registry = profile_registry.load_registry()
+        profile = registry.io_profiles["fast_minimal"]
+        self.assertEqual(set(profile.needs), {"NEED_FAST_IO_MINIMAL"})
+        self.assertEqual(dict(profile.defines), {})
+
+    def test_feature_manifest_exposes_need_to_headers_mapping(self) -> None:
+        """Feature headers should be available without parsing Base.hpp."""
+        registry = profile_registry.load_registry()
+        mapping = registry.feature_headers()
+        self.assertEqual(mapping["NEED_IO"], ["modules/IO.hpp"])
+        self.assertIn("core/Types.hpp", mapping["NEED_CORE"])
+        self.assertIn("modules/IntegerMath.hpp", mapping["NEED_CORE"])
 
     def test_expand_scaffold_unions_io_needs(self) -> None:
         """Expanding 'advanced' scaffold should include fast-I/O, ModInt, and bit-ops needs."""
@@ -50,6 +66,16 @@ class ProfileRegistryTests(unittest.TestCase):
         self.assertIn("NEED_MOD_INT", needs)
         self.assertIn("NEED_BIT_OPS", needs)
         self.assertEqual(defines.get("CP_FAST_IO_ENABLE_MODINT"), 1)
+        self.assertEqual(defines.get("CP_USE_GLOBAL_STD_NAMESPACE"), 1)
+
+    def test_scaffold_policy_is_loaded_from_registry(self) -> None:
+        """Scaffold strictness and local defines should come from profiles.toml."""
+        registry = profile_registry.load_registry()
+        profile = registry.scaffolds["base"]
+        self.assertTrue(profile.strict)
+        self.assertFalse(profile.header_doc)
+        self.assertFalse(profile.advanced)
+        self.assertEqual(dict(profile.defines), {"CP_USE_GLOBAL_STD_NAMESPACE": 1})
 
     def test_config_defaults_apply_strict_overrides(self) -> None:
         """Strict profile should disable global std namespace and enforce explicit NEED_* flags."""
@@ -66,6 +92,38 @@ class ProfileRegistryTests(unittest.TestCase):
         mapping = registry.io_profile_to_needs()
         self.assertIn("CP_IO_PROFILE_SIMPLE", mapping)
         self.assertEqual(mapping["CP_IO_PROFILE_SIMPLE"], ("NEED_IO",))
+        self.assertIn("CP_IO_PROFILE_FAST_MINIMAL", mapping)
+        self.assertEqual(mapping["CP_IO_PROFILE_FAST_MINIMAL"], ("NEED_FAST_IO_MINIMAL",))
+
+    def test_expand_io_profiles_accepts_macro_names_and_defines(self) -> None:
+        """IO expansion should be available from profile macro names, not only TOML keys."""
+        registry = profile_registry.load_registry()
+
+        needs, defines = registry.expand_io_profiles(["CP_IO_PROFILE_FAST_EXTENDED"])
+
+        self.assertEqual(needs, {"NEED_FAST_IO", "NEED_MOD_INT"})
+        self.assertEqual(defines["CP_FAST_IO_ENABLE_MODINT"], 1)
+        self.assertEqual(defines["CP_FAST_IO_ENABLE_STRONG_TYPE"], 1)
+
+    def test_rejects_multiple_enabled_io_profiles(self) -> None:
+        """The single-profile rule should be enforced by the registry itself."""
+        registry = profile_registry.load_registry()
+
+        with self.assertRaisesRegex(ValueError, "at most one CP_IO_PROFILE"):
+            registry.expand_io_profiles(["CP_IO_PROFILE_SIMPLE", "CP_IO_PROFILE_FAST_MINIMAL"])
+
+    def test_normalize_needs_matches_generated_io_precedence(self) -> None:
+        """Fast backends should shadow simple IO, and extended should shadow minimal."""
+        registry = profile_registry.load_registry()
+
+        self.assertEqual(
+            registry.normalize_needs({"NEED_IO", "NEED_FAST_IO_MINIMAL"}),
+            {"NEED_FAST_IO_MINIMAL"},
+        )
+        self.assertEqual(
+            registry.normalize_needs({"NEED_IO", "NEED_FAST_IO", "NEED_FAST_IO_MINIMAL"}),
+            {"NEED_FAST_IO"},
+        )
 
     def test_rejects_unsupported_schema_version(self) -> None:
         """profiles.toml with unsupported schema_version should raise ValueError."""
@@ -128,6 +186,43 @@ class ProfileRegistryTests(unittest.TestCase):
         finally:
             path.unlink(missing_ok=True)
 
+    def test_rejects_non_need_feature_names(self) -> None:
+        """Feature manifest table names should be explicit NEED_* macros."""
+        path = _write_toml(
+            """\
+            schema_version = 1
+
+            [feature.CP_BAD]
+            headers = ["core/Macros.hpp"]
+            """
+        )
+        try:
+            with self.assertRaisesRegex(ValueError, "NEED_"):
+                profile_registry.load_registry(str(path))
+        finally:
+            path.unlink(missing_ok=True)
+
+    def test_rejects_non_bool_scaffold_flags(self) -> None:
+        """Scaffold booleans should reject strings instead of using Python truthiness."""
+        path = _write_toml(
+            """\
+            schema_version = 1
+
+            [io_profile.simple]
+            needs = ["NEED_IO"]
+
+            [scaffold.broken]
+            needs = ["NEED_MACROS"]
+            io_profile = "simple"
+            strict = "false"
+            """
+        )
+        try:
+            with self.assertRaisesRegex(ValueError, "expected bool"):
+                profile_registry.load_registry(str(path))
+        finally:
+            path.unlink(missing_ok=True)
+
 
 class GeneratedArtefactStalenessTests(unittest.TestCase):
     """Regenerate the committed outputs and assert nothing drifts from the spec."""
@@ -158,12 +253,13 @@ class GeneratedArtefactStalenessTests(unittest.TestCase):
                 path.write_text(content, encoding="utf-8")
 
     def test_gen_config_outputs_match_committed_files(self) -> None:
-        """gen_config.py should not alter core/Config_defaults.hpp or Base_profiles.hpp."""
+        """gen_config.py should not alter committed generated config headers."""
         self._backup_and_run(
             "gen_config",
             [
                 self.templates_dir / "core" / "Config_defaults.hpp",
                 self.templates_dir / "Base_profiles.hpp",
+                self.templates_dir / "Base_features.hpp",
             ],
         )
 

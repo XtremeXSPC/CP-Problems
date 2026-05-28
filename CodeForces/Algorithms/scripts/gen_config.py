@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Code-generate ``Config_defaults.hpp`` and ``Base_profiles.hpp`` from ``profiles.toml``.
+"""Code-generate C++ template config headers from ``profiles.toml``.
 
-The TOML file is the single source of truth for template tunables (strict vs
-relaxed defaults, per-IO profile defines, ``NEED_*`` aliases). This script
-materializes those values into the two C++ headers the template system
+The TOML file is the single source of truth for template tunables (base vs
+strict defaults), per-IO profile defines, and ``NEED_*`` feature headers. This
+script materializes those values into the C++ headers the template system
 includes, so the compiler sees the same defaults the Python pipeline does.
 
 Intended to be re-run via ``make regen-templates`` whenever ``profiles.toml``
@@ -25,11 +25,14 @@ from profile_registry import (
 
 CONFIG_OUTPUT = TEMPLATES_DIR / "core" / "Config_defaults.hpp"
 BASE_PROFILES_OUTPUT = TEMPLATES_DIR / "Base_profiles.hpp"
+BASE_FEATURES_OUTPUT = TEMPLATES_DIR / "Base_features.hpp"
 
 AUTOGEN_HEADER = "// Generated from profiles.toml. Do not edit by hand.\n"
 
 
 def _render_config_defaults(registry: ProfileRegistry) -> str:
+    """Render default ``CP_*`` config values and strict-profile overrides."""
+
     lines = ["#pragma once", "", AUTOGEN_HEADER.rstrip("\n"), ""]
     lines.append("#if defined(CP_TEMPLATE_PROFILE_STRICT)")
     for macro, value in registry.defaults.strict_overrides.items():
@@ -53,7 +56,9 @@ def _render_config_defaults(registry: ProfileRegistry) -> str:
 
 
 def _render_base_profiles(registry: ProfileRegistry) -> str:
-    profile_macros = sorted(f"CP_IO_PROFILE_{n.upper()}" for n in registry.io_profiles)
+    """Render IO-profile expansion and canonical ``NEED_*`` shadow rules."""
+
+    profile_macros = registry.io_profile_macros()
     lines = [
         "#pragma once",
         "",
@@ -64,8 +69,8 @@ def _render_base_profiles(registry: ProfileRegistry) -> str:
         "#endif",
         "",
     ]
-    for name, profile in registry.io_profiles.items():
-        macro = f"CP_IO_PROFILE_{name.upper()}"
+    for profile in registry.io_profiles.values():
+        macro = profile.macro
         lines.append(f"#ifdef {macro}")
         for need in sorted(profile.needs):
             lines += [f"  #ifndef {need}", f"    #define {need}", "  #endif"]
@@ -77,17 +82,39 @@ def _render_base_profiles(registry: ProfileRegistry) -> str:
             ]
         lines += ["#endif", ""]
 
-    # NEED_IO loses to NEED_FAST_IO so IN/OUT bind to the fast backend.
-    lines += [
-        "#if defined(NEED_IO) && defined(NEED_FAST_IO)",
-        "  #undef NEED_IO",
-        "#endif",
-        "",
-    ]
+    for target, blockers in registry.need_shadow_rules():
+        condition = " || ".join(f"defined({blocker})" for blocker in sorted(blockers))
+        lines += [f"#if defined({target}) && ({condition})", f"  #undef {target}", "#endif"]
+    lines.append("")
+    return "\n".join(lines)
+
+
+def _include_line(header: str) -> str:
+    """Render one project-local include directive."""
+
+    return f'  #include "{header}"'
+
+
+def _render_base_features(registry: ProfileRegistry) -> str:
+    """Render the generated ``NEED_*`` feature-to-header include layer."""
+
+    lines = ["#pragma once", "", AUTOGEN_HEADER.rstrip("\n"), ""]
+    for feature in registry.features.values():
+        lines.append(f"#ifdef {feature.name}")
+        for header in feature.headers:
+            lines.append(_include_line(header))
+        for group in feature.conditional_headers:
+            lines.append(f"  #if {group.condition}")
+            for header in group.headers:
+                lines.append(f"    #include \"{header}\"")
+            lines.append("  #endif")
+        lines += ["#endif", ""]
     return "\n".join(lines)
 
 
 def _write_if_changed(path: Path, content: str) -> bool:
+    """Write ``content`` only when it differs from the existing file."""
+
     if not content.endswith("\n"):
         content += "\n"
     if path.is_file() and path.read_text(encoding="utf-8") == content:
@@ -97,6 +124,8 @@ def _write_if_changed(path: Path, content: str) -> bool:
 
 
 def main() -> int:
+    """Regenerate config/profile/feature headers from ``templates/profiles.toml``."""
+
     reset_cache()
     registry = load_registry(str(DEFAULT_PROFILES_PATH))
     changed = False
@@ -105,6 +134,9 @@ def main() -> int:
         changed = True
     if _write_if_changed(BASE_PROFILES_OUTPUT, _render_base_profiles(registry)):
         print(f"wrote {BASE_PROFILES_OUTPUT}")
+        changed = True
+    if _write_if_changed(BASE_FEATURES_OUTPUT, _render_base_features(registry)):
+        print(f"wrote {BASE_FEATURES_OUTPUT}")
         changed = True
     if not changed:
         print("up-to-date")

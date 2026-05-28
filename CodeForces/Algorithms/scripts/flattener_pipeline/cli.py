@@ -97,7 +97,7 @@ def _build_flatten_context(args: argparse.Namespace) -> tuple[FlattenContext, Fl
     project_root = script_dir.parent
     templates_dir = project_root / "templates"
     base_template_path = templates_dir / "Base.hpp"
-    preamble_path = templates_dir / "Preamble.hpp"
+    preamble_path = templates_dir / "core" / "Preamble.hpp"
 
     source_content = source_file.read_text(encoding="utf-8")
     source_lines = tuple(source_content.splitlines(keepends=True))
@@ -111,17 +111,9 @@ def _build_flatten_context(args: argparse.Namespace) -> tuple[FlattenContext, Fl
             re.MULTILINE,
         )
     )
-    relaxed_profile_enabled = bool(
-        re.search(
-            r"^\s*#\s*define\s+CP_TEMPLATE_PROFILE_RELAXED\b",
-            source_prefix,
-            re.MULTILINE,
-        )
-    )
     macro_values = extract_macro_values_from_source(
         source_prefix,
         strict_profile_enabled=strict_profile_enabled,
-        relaxed_profile_enabled=relaxed_profile_enabled,
         warn_stream=sys.stderr,
     )
 

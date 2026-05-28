@@ -38,28 +38,32 @@ HEADER_DOC_BLOCK = """\
 """
 
 
+def _append_macro_guard(lines: list[str], name: str, value: int | None = None) -> None:
+    """Append an ``#ifndef`` guarded macro definition to ``lines``."""
+
+    define = f"#define {name}" if value is None else f"#define {name} {value}"
+    lines += [f"#ifndef {name}", f"  {define}", "#endif"]
+
+
 def _render_scaffold(profile: ScaffoldProfile) -> str:
+    """Render one scaffold source from its declarative registry profile."""
+
     lines: list[str] = []
     if profile.header_doc:
         lines.append(HEADER_DOC_BLOCK.rstrip("\n"))
         lines.append("")
 
-    lines += [
-        "#ifndef CP_TEMPLATE_PROFILE_STRICT",
-        "  #define CP_TEMPLATE_PROFILE_STRICT",
-        "#endif",
-        "#ifndef CP_USE_GLOBAL_STD_NAMESPACE",
-        "  #define CP_USE_GLOBAL_STD_NAMESPACE 1",
-        "#endif",
-        "",
-    ]
+    if profile.strict:
+        _append_macro_guard(lines, "CP_TEMPLATE_PROFILE_STRICT")
+    for define_name, define_value in profile.defines.items():
+        _append_macro_guard(lines, define_name, define_value)
     if profile.advanced:
-        lines += [
-            "#ifndef CP_USE_ADVANCED",
-            "  #define CP_USE_ADVANCED",
-            "#endif",
-            "",
-        ]
+        if lines and lines[-1] != "":
+            lines.append("")
+        _append_macro_guard(lines, "CP_USE_ADVANCED")
+    if lines and lines[-1] != "":
+        lines.append("")
+
     for need in sorted(profile.needs):
         lines.append(f"#define {need}")
     lines.append(f"#define CP_IO_PROFILE_{profile.io_profile.upper()}")
@@ -95,6 +99,8 @@ def _render_scaffold(profile: ScaffoldProfile) -> str:
 
 
 def _write_if_changed(path: Path, content: str) -> bool:
+    """Write ``content`` only when it differs from the current file."""
+
     if not content.endswith("\n"):
         content += "\n"
     if path.is_file() and path.read_text(encoding="utf-8") == content:
@@ -105,6 +111,8 @@ def _write_if_changed(path: Path, content: str) -> bool:
 
 
 def main() -> int:
+    """Regenerate all scaffold sources from ``templates/profiles.toml``."""
+
     reset_cache()
     registry: ProfileRegistry = load_registry(str(DEFAULT_PROFILES_PATH))
     changed = False

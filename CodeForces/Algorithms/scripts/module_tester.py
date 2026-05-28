@@ -53,12 +53,12 @@ DEFAULT_NEED_MACROS = (
 DEFAULT_EMPTY_MAIN = "int main() { return 0; }"
 
 INDIVIDUAL_TEST_SNIPPETS = {
-    "NEED_CORE": "int main() { VI v; return (int)v.size(); }",
+    "NEED_CORE": "int main() { VecI32 v; return (int)v.size(); }",
     "NEED_MATH": "int main() { return div_floor<I64>(-3, 2) == -2 ? 0 : 1; }",
     "NEED_IO": "int main() { LL(n); OUT(n); return 0; }",
     "NEED_BIT_OPS": "int main() { I32 x = popcount(15); return x == 4 ? 0 : 1; }",
     "NEED_MOD_INT": "int main() { mint x(5), y(3); mint z = x * y; return (int)I64(z); }",
-    "NEED_CONTAINERS": "int main() { VI v = {3,1,2}; auto idx = argsort(v); return (int)idx.size(); }",
+    "NEED_CONTAINERS": "int main() { VecI32 v = {3,1,2}; auto idx = argsort(v); return (int)idx.size(); }",
     "NEED_TYPE_SAFETY": (
         "CP_DECLARE_STRONG_TYPE(NodeId, I32); "
         "int main() { NodeId id(3); ++id; auto sum = id + NodeId(2); "
@@ -70,12 +70,21 @@ INDIVIDUAL_TEST_SNIPPETS = {
         "cp::hashing::FastHashSet<I64> st; st.insert(42); "
         "return (freq[42] == 1 && st.contains(42)) ? 0 : 1; }"
     ),
+    "NEED_PBDS": (
+        "int main() { ordered_set<int> os; os.insert(1); os.insert(3); "
+        "return *os.find_by_order(1) == 3 && os.order_of_key(3) == 1 ? 0 : 1; }"
+    ),
 }
 
 COMBINATION_CANDIDATES = (
     (
         ("NEED_CORE", "NEED_IO"),
         "Core + I/O",
+        "int main() { LL(n); OUT(n); return 0; }",
+    ),
+    (
+        ("NEED_CORE", "NEED_FAST_IO_MINIMAL"),
+        "Core + Fast I/O (minimal variant)",
         "int main() { LL(n); OUT(n); return 0; }",
     ),
     (
@@ -91,7 +100,7 @@ COMBINATION_CANDIDATES = (
     (
         ("NEED_CORE", "NEED_CONTAINERS"),
         "Core + Containers",
-        "int main() { VI v = {3,1,2}; auto idx = argsort(v); return (int)idx.size(); }",
+        "int main() { VecI32 v = {3,1,2}; auto idx = argsort(v); return (int)idx.size(); }",
     ),
     (
         ("NEED_CORE", "NEED_TYPE_SAFETY"),
@@ -106,7 +115,7 @@ COMBINATION_CANDIDATES = (
     (
         ("NEED_CORE", "NEED_IO", "NEED_CONTAINERS"),
         "Core + I/O + Containers",
-        "int main() { VI v = {1,2,3}; OUT((I64)v.size()); return 0; }",
+        "int main() { VecI32 v = {1,2,3}; OUT((I64)v.size()); return 0; }",
     ),
     (
         (
@@ -117,7 +126,7 @@ COMBINATION_CANDIDATES = (
             "NEED_CONTAINERS",
         ),
         "All modules",
-        "int main() { mint x(5); I32 bits = popcount(15); VI v = {1,2}; OUT(bits); return (int)v.size(); }",
+        "int main() { mint x(5); I32 bits = popcount(15); VecI32 v = {1,2}; OUT(bits); return (int)v.size(); }",
     ),
 )
 

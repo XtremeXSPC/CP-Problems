@@ -25,38 +25,103 @@ needs   = ["NEED_IO"]
 defines = {}
 
 [io_profile.fast_minimal]
-needs   = ["NEED_FAST_IO"]
+needs   = ["NEED_FAST_IO_MINIMAL"]
 defines = {}
 
 [io_profile.fast_extended]
 needs   = ["NEED_FAST_IO", "NEED_MOD_INT"]
 defines = { CP_FAST_IO_ENABLE_MODINT = 1, CP_FAST_IO_ENABLE_STRONG_TYPE = 1, CP_USE_ADVANCED = 1 }
 
+[feature.NEED_CORE]
+headers = ["core/Constants.hpp", "core/Macros.hpp", "core/Types.hpp"]
+conditional_headers = [
+  { if = "CP_CORE_ENABLE_MATH", headers = ["core/MinMax.hpp", "core/Random.hpp", "modules/IntegerMath.hpp"] },
+]
+
+[feature.NEED_SCALAR_TYPES]
+headers = ["core/ScalarTypes.hpp"]
+
+[feature.NEED_TYPES]
+headers = ["core/Types.hpp"]
+
+[feature.NEED_CONSTANTS]
+headers = ["core/Constants.hpp"]
+
+[feature.NEED_MACROS]
+headers = ["core/Macros.hpp"]
+
+[feature.NEED_MATH]
+headers = ["core/MinMax.hpp", "core/Random.hpp", "modules/IntegerMath.hpp"]
+
+[feature.NEED_INTEGER_MATH]
+headers = ["modules/IntegerMath.hpp"]
+
+[feature.NEED_MINMAX]
+headers = ["core/MinMax.hpp"]
+
+[feature.NEED_RANDOM]
+headers = ["core/Random.hpp"]
+
+[feature.NEED_TIMER]
+headers = ["core/Timer.hpp"]
+
+[feature.NEED_HASHING]
+headers = ["modules/Hashing.hpp"]
+
+[feature.NEED_PBDS]
+headers = ["modules/PBDS.hpp"]
+
+[feature.NEED_FAST_IO]
+headers = ["modules/Fast_IO.hpp"]
+
+[feature.NEED_FAST_IO_MINIMAL]
+headers = ["modules/Fast_IO_Minimal.hpp"]
+
+[feature.NEED_IO]
+headers = ["modules/IO.hpp"]
+
+[feature.NEED_BIT_OPS]
+headers = ["modules/Bit_Ops.hpp"]
+
+[feature.NEED_MOD_INT]
+headers = ["modules/Mod_Int.hpp"]
+
+[feature.NEED_CONTAINERS]
+headers = ["modules/Containers.hpp"]
+
 [scaffold.base]
 description = "Minimal: macros + timer + simple I/O."
 needs       = ["NEED_MACROS", "NEED_TIMER"]
 io_profile  = "simple"
-advanced    = false
 header_doc  = false
+strict      = true
+advanced    = false
+defines     = { CP_USE_GLOBAL_STD_NAMESPACE = 1 }
 
 [scaffold.default]
 description = "Default scaffold with file-header docblock."
 needs       = ["NEED_MACROS", "NEED_TIMER"]
 io_profile  = "simple"
-advanced    = false
 header_doc  = true
+strict      = true
+advanced    = false
+defines     = { CP_USE_GLOBAL_STD_NAMESPACE = 1 }
 
 [scaffold.pbds]
 description = "Core + PBDS."
 needs       = ["NEED_CORE", "NEED_TIMER", "NEED_PBDS"]
 io_profile  = "simple"
-advanced    = false
 header_doc  = true
+strict      = true
+advanced    = false
+defines     = { CP_USE_GLOBAL_STD_NAMESPACE = 1 }
 
 [scaffold.advanced]
 description = "Fast extended I/O + PBDS + bit ops + containers (type-safe layer)."
 needs       = ["NEED_TYPES", "NEED_MACROS", "NEED_TIMER",
                "NEED_PBDS", "NEED_BIT_OPS", "NEED_CONTAINERS"]
 io_profile  = "fast_extended"
-advanced    = true
 header_doc  = true
+strict      = true
+advanced    = true
+defines     = { CP_USE_GLOBAL_STD_NAMESPACE = 1 }

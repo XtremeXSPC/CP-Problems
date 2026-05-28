@@ -98,3 +98,85 @@ def test_flattener_keeps_reverse_loop_macros_from_need_core(
     assert result.returncode == 0, result.stderr
     assert "#define ROF(" in result.stdout
     assert "#define FORD(" in result.stdout
+
+
+def test_flattener_fast_minimal_profile_selects_minimal_variant(
+    clean_cp_env: None,
+    write_source: Callable[[str, str], Path],
+    flatten_inproc: Callable[..., FlattenResult],
+) -> None:
+    """``CP_IO_PROFILE_FAST_MINIMAL`` must inline the shim and pick variant 0."""
+
+    source = write_source(
+        "probe.cpp",
+        textwrap.dedent(
+            """\
+            #define CP_IO_PROFILE_FAST_MINIMAL
+            #include "templates/Base.hpp"
+            auto main() -> int { INT(x); OUT(x); return 0; }
+            """
+        ),
+    )
+
+    result = flatten_inproc(source, env={"CP_FLATTENER_MODE": "safe"})
+
+    assert result.returncode == 0, result.stderr
+    # The shim sets the variant to 0 (minimal) before including Fast_IO.hpp.
+    assert "#define CP_FAST_IO_VARIANT 0" in result.stdout
+    # Fast I/O dispatch binds to fast_io::read.
+    assert "fast_io::read" in result.stdout
+
+
+def test_flattener_fast_extended_profile_does_not_set_minimal_variant(
+    clean_cp_env: None,
+    write_source: Callable[[str, str], Path],
+    flatten_inproc: Callable[..., FlattenResult],
+) -> None:
+    """``CP_IO_PROFILE_FAST_EXTENDED`` must not pull in the minimal shim."""
+
+    source = write_source(
+        "probe.cpp",
+        textwrap.dedent(
+            """\
+            #define CP_IO_PROFILE_FAST_EXTENDED
+            #include "templates/Base.hpp"
+            auto main() -> int { INT(x); OUT(x); return 0; }
+            """
+        ),
+    )
+
+    result = flatten_inproc(source, env={"CP_FLATTENER_MODE": "safe"})
+
+    assert result.returncode == 0, result.stderr
+    # The shim's variant override must not appear in extended flow.
+    assert "#define CP_FAST_IO_VARIANT 0" not in result.stdout
+    # ModInt extension wiring is enabled by fast_extended.
+    assert "CP_FAST_IO_ENABLE_MODINT" in result.stdout
+
+
+def test_flattener_collision_fast_io_wins_over_minimal(
+    clean_cp_env: None,
+    write_source: Callable[[str, str], Path],
+    flatten_inproc: Callable[..., FlattenResult],
+) -> None:
+    """When both NEED_FAST_IO and NEED_FAST_IO_MINIMAL are set, the extended wins."""
+
+    source = write_source(
+        "probe.cpp",
+        textwrap.dedent(
+            """\
+            #define NEED_FAST_IO
+            #define NEED_FAST_IO_MINIMAL
+            #include "templates/Base.hpp"
+            auto main() -> int { return 0; }
+            """
+        ),
+    )
+
+    result = flatten_inproc(source, env={"CP_FLATTENER_MODE": "safe"})
+
+    assert result.returncode == 0, result.stderr
+    # The shim's variant override (= 0) must NOT be emitted: extended path wins.
+    assert "#define CP_FAST_IO_VARIANT 0" not in result.stdout
+    # The fast_io namespace must still be present (Fast_IO.hpp included).
+    assert "namespace fast_io {" in result.stdout

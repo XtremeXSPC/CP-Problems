@@ -160,6 +160,19 @@ class FlattenerAuditTests(unittest.TestCase):
 
         self.assertEqual(found, {"NEED_FAST_IO", "NEED_MOD_INT"})
 
+    def test_extract_need_macros_expands_io_profile_fast_minimal(self) -> None:
+        source = textwrap.dedent(
+            """\
+            #define CP_IO_PROFILE_FAST_MINIMAL
+            #include "templates/Base.hpp"
+            """
+        )
+        known = {"NEED_CORE", "NEED_IO", "NEED_FAST_IO", "NEED_FAST_IO_MINIMAL", "NEED_MOD_INT"}
+
+        found = extract_need_macros_from_source(source, known)
+
+        self.assertEqual(found, {"NEED_FAST_IO_MINIMAL"})
+
     def test_extract_need_macros_handles_values_undef_and_comments(self) -> None:
         source = textwrap.dedent(
             """\
@@ -335,9 +348,7 @@ class FlattenerAuditTests(unittest.TestCase):
             """
         )
         prefix = extract_prefix_before_base_include(source)
-        values = extract_macro_values_from_source(
-            prefix, strict_profile_enabled=False, relaxed_profile_enabled=False
-        )
+        values = extract_macro_values_from_source(prefix, strict_profile_enabled=False)
 
         self.assertEqual(values.get("CP_ENABLE_LEGACY_IO_VEC_MACROS"), 0)
 
@@ -349,15 +360,27 @@ class FlattenerAuditTests(unittest.TestCase):
             """
         )
         prefix = extract_prefix_before_base_include(source)
-        values = extract_macro_values_from_source(
-            prefix, strict_profile_enabled=False, relaxed_profile_enabled=False
-        )
+        values = extract_macro_values_from_source(prefix, strict_profile_enabled=False)
 
         self.assertEqual(values.get("NEED_FAST_IO"), 1)
         self.assertEqual(values.get("NEED_MOD_INT"), 1)
         self.assertEqual(values.get("CP_USE_ADVANCED"), 1)
         self.assertEqual(values.get("CP_FAST_IO_ENABLE_MODINT"), 1)
         self.assertEqual(values.get("CP_FAST_IO_ENABLE_STRONG_TYPE"), 1)
+
+    def test_extract_macro_values_expands_io_profile_fast_minimal(self) -> None:
+        source = textwrap.dedent(
+            """\
+            #define CP_IO_PROFILE_FAST_MINIMAL
+            #include "templates/Base.hpp"
+            """
+        )
+        prefix = extract_prefix_before_base_include(source)
+        values = extract_macro_values_from_source(prefix, strict_profile_enabled=False)
+
+        self.assertEqual(values.get("NEED_FAST_IO_MINIMAL"), 1)
+        self.assertNotIn("NEED_FAST_IO", values)
+        self.assertNotIn("NEED_MOD_INT", values)
 
     def test_fold_simple_conditionals_supports_numeric_literals(self) -> None:
         content = textwrap.dedent(
@@ -437,9 +460,7 @@ class FlattenerAuditTests(unittest.TestCase):
             src.write_text(
                 textwrap.dedent(
                     """\
-                    #if !defined(CP_TEMPLATE_PROFILE_RELAXED)
-                      #define CP_TEMPLATE_PROFILE_STRICT
-                    #endif
+                    #define CP_TEMPLATE_PROFILE_STRICT
                     #define CP_IO_PROFILE_SIMPLE
                     #include "templates/Base.hpp"
                     auto main() -> int {
@@ -475,9 +496,7 @@ class FlattenerAuditTests(unittest.TestCase):
             src.write_text(
                 textwrap.dedent(
                     """\
-                    #if !defined(CP_TEMPLATE_PROFILE_RELAXED)
-                      #define CP_TEMPLATE_PROFILE_STRICT
-                    #endif
+                    #define CP_TEMPLATE_PROFILE_STRICT
                     #ifndef CP_USE_GLOBAL_STD_NAMESPACE
                       #define CP_USE_GLOBAL_STD_NAMESPACE 1
                     #endif
@@ -506,9 +525,7 @@ class FlattenerAuditTests(unittest.TestCase):
             src.write_text(
                 textwrap.dedent(
                     """\
-                    #if !defined(CP_TEMPLATE_PROFILE_RELAXED)
-                      #define CP_TEMPLATE_PROFILE_STRICT
-                    #endif
+                    #define CP_TEMPLATE_PROFILE_STRICT
                     #ifndef CP_USE_GLOBAL_STD_NAMESPACE
                       #define CP_USE_GLOBAL_STD_NAMESPACE 1
                     #endif
@@ -556,7 +573,6 @@ class FlattenerAuditTests(unittest.TestCase):
             src.write_text(
                 textwrap.dedent(
                     """\
-                    #define CP_TEMPLATE_PROFILE_RELAXED
                     #define NEED_CORE
                     #define NEED_IO
                     #include "templates/Base.hpp"

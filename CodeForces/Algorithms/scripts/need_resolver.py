@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Parse ``NEED_*`` macros from user source and load the canonical mapping.
 
-``load_need_mapping`` reads ``templates/Base.hpp`` and reconstructs the
-authoritative ``NEED_<feature> -> [template headers...]`` table that the
-flattener uses to decide which template sections to emit.
+``load_need_mapping`` reads the canonical feature manifest from
+``templates/profiles.toml`` and returns the authoritative
+``NEED_<feature> -> [template headers...]`` table that the flattener uses to
+decide which template sections to emit. A parser fallback remains for tests
+that exercise legacy ``Base.hpp`` snippets directly.
 
 ``extract_need_macros_from_source`` walks a user file and reports which
 ``NEED_*`` macros are actually enabled (honoring ``#define``/``#undef``,
@@ -25,7 +27,7 @@ from flattener_core.includes import (
 )
 from flattener_core.lexer import strip_comments, strip_non_code
 from flattener_core.preprocessor import fold_simple_preprocessor_conditionals
-from profile_registry import load_registry
+from profile_registry import TEMPLATES_DIR, load_registry
 
 NEED_IFDEF_RE = re.compile(r"^\s*#\s*ifdef\s+(NEED_\w+)\s*$")
 NEED_IF_DEFINED_RE = re.compile(r"^\s*#\s*if\s+defined(?:\s*\(\s*|\s+)(NEED_\w+)\s*\)?\s*$")
@@ -38,17 +40,12 @@ IO_PROFILE_DEFINE_RE = re.compile(r"^\s*#\s*define\s+(CP_IO_PROFILE_[A-Z_]+)\b")
 IO_PROFILE_UNDEF_RE = re.compile(r"^\s*#\s*undef\s+(CP_IO_PROFILE_[A-Z_]+)\b")
 
 
-def _io_profile_to_needs() -> dict[str, tuple[str, ...]]:
-    """CP_IO_PROFILE_* → NEED_* mapping derived from templates/profiles.toml."""
+def _parse_need_mapping_from_header(base_header: Path) -> OrderedDict[str, list[str]]:
+    """Parse a C++ header and reconstruct ``NEED_*`` guarded include blocks.
 
-    return load_registry().io_profile_to_needs()
-
-
-def load_need_mapping(base_header: Path) -> OrderedDict[str, list[str]]:
-    """
-    Parse templates/Base.hpp and return NEED_* -> [header files] mapping.
-
-    Mapping order follows macro declaration order in Base.hpp.
+    This is retained as a narrow fallback for unit tests and non-canonical
+    temporary headers. The production mapping comes from ``profiles.toml``.
+    Mapping order follows macro declaration order in the parsed header.
     Header order follows include order within each NEED_* block.
     """
 
@@ -106,6 +103,23 @@ def load_need_mapping(base_header: Path) -> OrderedDict[str, list[str]]:
                 entries.append(include_name)
 
     return mapping
+
+
+def load_need_mapping(base_header: Path) -> OrderedDict[str, list[str]]:
+    """Return the canonical ``NEED_*`` to header mapping for the flattener.
+
+    When called for the repository's real ``templates/Base.hpp``, the mapping
+    is loaded from ``profiles.toml``. Other paths use the legacy parser so
+    focused parser tests can still pass synthetic headers.
+    """
+
+    try:
+        is_canonical_base = base_header.resolve() == (TEMPLATES_DIR / "Base.hpp").resolve()
+    except FileNotFoundError:
+        is_canonical_base = False
+    if is_canonical_base:
+        return load_registry().feature_headers()
+    return _parse_need_mapping_from_header(base_header)
 
 
 def extract_need_macros_from_source(
@@ -185,10 +199,7 @@ def extract_need_macros_from_source(
             + "\n"
         )
 
-    io_profile_to_needs = _io_profile_to_needs()
-    for profile_name in enabled_io_profiles:
-        for macro in io_profile_to_needs.get(profile_name, ()):
-            if macro in known:
-                found.add(macro)
-
-    return found
+    registry = load_registry()
+    io_needs, _ = registry.expand_io_profiles(enabled_io_profiles)
+    found.update(macro for macro in io_needs if macro in known)
+    return set(registry.normalize_needs(found))
