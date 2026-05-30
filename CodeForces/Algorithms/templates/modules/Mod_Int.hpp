@@ -174,14 +174,21 @@ struct ModIntBase {
   template <cp::Int T>
   constexpr ModIntBase(T x) : value(Policy::normalize(x)) {}
 
-  static constexpr auto mod() { return Policy::mod(); }
-
   constexpr Value val() const { return value; }
 
-  constexpr Derived& self() { return static_cast<Derived&>(*this); }
-  constexpr const Derived& self() const { return static_cast<const Derived&>(*this); }
+  static constexpr auto mod() { return Policy::mod(); }
 
-  constexpr Derived operator-() const { return Derived(value == 0 ? 0 : Policy::sub(0, value)); }
+  constexpr Derived& self() {
+    return static_cast<Derived&>(*this);
+   }
+
+  constexpr const Derived& self() const {
+    return static_cast<const Derived&>(*this);
+  }
+
+  constexpr Derived operator-() const {
+    return Derived(value == 0 ? 0 : Policy::sub(0, value));
+  }
 
   constexpr Derived& operator+=(const Derived& other) & {
     value = Policy::add(value, other.value);
@@ -233,12 +240,22 @@ struct ModIntBase {
     return result;
   }
 
+  explicit constexpr operator I64() const { return as<I64>(value); }
+
   constexpr Derived inverse() const { return Derived(Policy::inv(value)); }
 
-  friend constexpr bool operator==(const Derived& lhs, const Derived& rhs) { return lhs.value == rhs.value; }
-  friend constexpr std::strong_ordering operator<=>(const Derived& lhs, const Derived& rhs) { return lhs.value <=> rhs.value; }
+  friend constexpr bool operator==(const Derived& lhs, const Derived& rhs) {
+    return lhs.value == rhs.value;
+  }
 
-  friend std::ostream& operator<<(std::ostream& os, const Derived& x) { return os << x.value; }
+  friend constexpr std::strong_ordering operator<=>(const Derived& lhs, const Derived& rhs) {
+    return lhs.value <=> rhs.value;
+  }
+
+  friend std::ostream& operator<<(std::ostream& os, const Derived& x) {
+    return os << x.value;
+  }
+
   friend std::istream& operator>>(std::istream& is, Derived& x) {
     I64 val;
     is >> val;
@@ -246,7 +263,6 @@ struct ModIntBase {
     return is;
   }
 
-  explicit constexpr operator I64() const { return as<I64>(value); }
 };
 
 } // namespace cp::modint_detail
