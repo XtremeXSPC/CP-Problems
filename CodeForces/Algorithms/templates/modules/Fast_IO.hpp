@@ -4,9 +4,10 @@
   #define CP_FAST_IO_VARIANT 1
 #endif
 
+#include "templates/core/IdiomAliases.hpp"
 #include "templates/core/Macros.hpp"
 #include "templates/core/ScalarTypes.hpp"
-#include "templates/core/IdiomAliases.hpp"
+#include "templates/core/TypeTraits.hpp"
 
 //===----------------------------------------------------------------------===//
 /* Buffered I/O (variant-driven) */
@@ -28,7 +29,23 @@ namespace fast_io {
 static constexpr U32 BUFFER_SIZE = 1U << 20; // 1 MB
 alignas(64) inline char input_buffer[BUFFER_SIZE];
 alignas(64) inline char output_buffer[BUFFER_SIZE];
-alignas(64) inline char number_buffer[128];
+alignas(64) inline char number_buffer[160];
+
+struct FourDigitTable {
+  char digits[10'000][4];
+
+  constexpr FourDigitTable() : digits{} {
+    for (U32 value = 0; value < 10'000; ++value) {
+      U32 x = value;
+      for (I32 pos = 3; pos >= 0; --pos) {
+        digits[value][pos] = as<char>('0' + (x % 10));
+        x /= 10;
+      }
+    }
+  }
+};
+
+inline constexpr FourDigitTable four_digit_table{};
 
 inline U32 input_pos  = 0;
 inline U32 input_end  = 0;
@@ -163,32 +180,48 @@ inline void read(std::string& x) { read_string(x); }
 
 template <typename T>
 inline void write_integer(T x) {
-  if (output_pos + 64 >= BUFFER_SIZE)
-    flush_output();
-
-  using UnsignedT = std::make_unsigned_t<T>;
+  using UnsignedT = cp::make_unsigned_t<T>;
   UnsignedT ux;
   if constexpr (cp::Signed<T>) {
-    if (x < 0) {
-      output_buffer[output_pos++] = '-';
-      ux = as<UnsignedT>(-(x + 1));
-      ux += 1;
-    } else {
-      ux = as<UnsignedT>(x);
-    }
+    ux = x < 0 ? as<UnsignedT>(-(x + 1)) + 1 : as<UnsignedT>(x);
   } else {
     ux = as<UnsignedT>(x);
   }
 
-  I32 digits = 0;
-  do {
-    number_buffer[digits++] = as<char>('0' + (ux % 10));
-    ux /= 10;
-  } while (ux > 0);
-
-  for (I32 i = digits - 1; i >= 0; --i) {
-    output_buffer[output_pos++] = number_buffer[i];
+  I32 begin = I32(sizeof(number_buffer));
+  while (ux >= 10'000) {
+    const U32 chunk = as<U32>(ux % 10'000);
+    ux /= 10'000;
+    begin -= 4;
+    std::memcpy(number_buffer + begin, four_digit_table.digits[chunk], 4);
   }
+
+  const U32 head = as<U32>(ux);
+  if (head >= 1'000) {
+    begin -= 4;
+    std::memcpy(number_buffer + begin, four_digit_table.digits[head], 4);
+  } else if (head >= 100) {
+    begin -= 3;
+    std::memcpy(number_buffer + begin, four_digit_table.digits[head] + 1, 3);
+  } else if (head >= 10) {
+    begin -= 2;
+    number_buffer[begin]     = as<char>('0' + head / 10);
+    number_buffer[begin + 1] = as<char>('0' + head % 10);
+  } else {
+    number_buffer[--begin] = as<char>('0' + head);
+  }
+
+  if constexpr (cp::Signed<T>) {
+    if (x < 0)
+      number_buffer[--begin] = '-';
+  }
+
+  [[assume(begin >= 0)]];
+  const U32 len = as<U32>(I32(sizeof(number_buffer)) - begin);
+  if (output_pos + len >= BUFFER_SIZE)
+    flush_output();
+  std::memcpy(output_buffer + output_pos, number_buffer + begin, len);
+  output_pos += len;
 }
 
 #ifndef CP_FLOAT_PRECISION
@@ -239,6 +272,7 @@ inline void write(T x) { write_integer(x); }
 
 template <FastFloating T>
 inline void write(T x) { write_floating(x); }
+
 inline void write(char x) { write_char(x); }
 inline void write(const std::string& x) { write_string(x); }
 inline void write(const char* x) { write_string(x); }

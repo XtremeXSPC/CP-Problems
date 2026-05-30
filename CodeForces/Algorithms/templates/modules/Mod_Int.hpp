@@ -1,42 +1,12 @@
 #pragma once
-#include "templates/core/Debug.hpp"
+#include "IntegerMath.hpp"
 #include "templates/core/Constants.hpp"
 #include "templates/core/IdiomAliases.hpp"
 #include "templates/core/Macros.hpp"
+#include "templates/core/Debug.hpp"
 
 //===----------------------------------------------------------------------===//
 /* Advanced Modular Arithmetic */
-
-template <class T, class U>
-using Pair = std::pair<T, U>;
-
-constexpr I64 safe_mod(I64 x, I64 m) {
-  x %= m;
-  if (x < 0)
-    x += m;
-  return x;
-}
-
-constexpr Pair<I64, I64> inv_gcd(I64 a, I64 b) {
-  a = safe_mod(a, b);
-  if (a == 0)
-    return {b, 0};
-
-  I64 s  = b, t = a;
-  I64 m0 = 0, m1 = 1;
-
-  while (t) {
-    I64 u = s / t;
-    s  -= t * u;
-    m0 -= m1 * u;
-    std::swap(s, t);
-    std::swap(m0, m1);
-  }
-
-  if (m0 < 0)
-    m0 += b / s;
-  return {s, m0};
-}
 
 struct Barrett {
   U32 m;
@@ -98,9 +68,7 @@ struct StaticModPolicy {
     return a;
   }
 
-  static constexpr Value sub(Value a, Value b) {
-    return a < b ? a + as<Value>(MOD) - b : a - b;
-  }
+  static constexpr Value sub(Value a, Value b) { return a < b ? a + as<Value>(MOD) - b : a - b; }
 
   static constexpr Value mul(Value a, Value b) {
 #if HAS_INT128
@@ -112,12 +80,8 @@ struct StaticModPolicy {
   }
 
   static constexpr Value inv(Value x) {
-    auto [g, y] = inv_gcd(as<I64>(x), MOD);
-    if (g != 1) {
-      my_assert(false && "ModInt inverse does not exist when gcd(value, MOD) != 1.");
-      return 0;
-    }
-    return normalize(y);
+    // mod_inv already returns a canonical residue in [0, MOD).
+    return as<Value>(mod_inv(as<I64>(x), MOD));
   }
 };
 
@@ -157,11 +121,8 @@ struct DynamicModPolicy {
 
   static Value mul(Value a, Value b) { return bt.mul(a, b); }
 
-  static Value inv(Value x) {
-    auto [g, y] = inv_gcd(x, mod());
-    my_assert(g == 1 && "DynModInt inverse does not exist when gcd(value, mod) != 1.");
-    return normalize(y);
-  }
+  // mod_inv already returns a canonical residue in [0, mod()).
+  static Value inv(Value x) { return as<Value>(mod_inv(as<I64>(x), as<I64>(mod()))); }
 };
 
 template <class Derived, class Policy>
@@ -178,17 +139,11 @@ struct ModIntBase {
 
   static constexpr auto mod() { return Policy::mod(); }
 
-  constexpr Derived& self() {
-    return static_cast<Derived&>(*this);
-   }
+  constexpr Derived& self() { return static_cast<Derived&>(*this); }
 
-  constexpr const Derived& self() const {
-    return static_cast<const Derived&>(*this);
-  }
+  constexpr const Derived& self() const { return static_cast<const Derived&>(*this); }
 
-  constexpr Derived operator-() const {
-    return Derived(value == 0 ? 0 : Policy::sub(0, value));
-  }
+  constexpr Derived operator-() const { return Derived(value == 0 ? 0 : Policy::sub(0, value)); }
 
   constexpr Derived& operator+=(const Derived& other) & {
     value = Policy::add(value, other.value);
@@ -205,9 +160,7 @@ struct ModIntBase {
     return self();
   }
 
-  constexpr Derived& operator/=(const Derived& other) & {
-    return *this *= other.inverse();
-  }
+  constexpr Derived& operator/=(const Derived& other) & { return *this *= other.inverse(); }
 
   friend constexpr Derived operator+(Derived lhs, const Derived& rhs) {
     lhs += rhs;
@@ -244,17 +197,13 @@ struct ModIntBase {
 
   constexpr Derived inverse() const { return Derived(Policy::inv(value)); }
 
-  friend constexpr bool operator==(const Derived& lhs, const Derived& rhs) {
-    return lhs.value == rhs.value;
-  }
+  friend constexpr bool operator==(const Derived& lhs, const Derived& rhs) { return lhs.value == rhs.value; }
 
   friend constexpr std::strong_ordering operator<=>(const Derived& lhs, const Derived& rhs) {
     return lhs.value <=> rhs.value;
   }
 
-  friend std::ostream& operator<<(std::ostream& os, const Derived& x) {
-    return os << x.value;
-  }
+  friend std::ostream& operator<<(std::ostream& os, const Derived& x) { return os << x.value; }
 
   friend std::istream& operator>>(std::istream& is, Derived& x) {
     I64 val;
@@ -262,7 +211,6 @@ struct ModIntBase {
     x = Derived(val);
     return is;
   }
-
 };
 
 } // namespace cp::modint_detail

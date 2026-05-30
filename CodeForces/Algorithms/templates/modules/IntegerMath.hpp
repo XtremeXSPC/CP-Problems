@@ -37,6 +37,68 @@ template <cp::Unsigned T>
 
 } // namespace cp::detail
 
+template <cp::Signed T>
+[[gnu::always_inline]] constexpr T safe_mod(T x, T mod) {
+  my_assert(mod > 0);
+  x %= mod;
+  if (x < 0)
+    x += mod;
+  return x;
+}
+
+template <cp::Signed T>
+[[gnu::always_inline]] constexpr std::pair<T, T> inv_gcd(T a, T b) {
+  my_assert(b > 0);
+  a = safe_mod(a, b);
+  if (a == 0)
+    return {b, 0};
+
+  T s  = b, t = a;
+  T m0 = 0, m1 = 1;
+
+  while (t) {
+    T u = s / t;
+    s  -= t * u;
+    m0 -= m1 * u;
+    std::swap(s, t);
+    std::swap(m0, m1);
+  }
+
+  if (m0 < 0)
+    m0 += b / s;
+  return {s, m0};
+}
+
+template <cp::Signed T>
+[[gnu::always_inline]] constexpr T mod_inv(T a, T mod) {
+  auto [g, x] = inv_gcd(a, mod);
+  my_assert(g == 1 && "mod_inv(): inverse does not exist when gcd(value, mod) != 1.");
+  return g == 1 ? x : 0;
+}
+
+template <cp::Signed T>
+[[gnu::always_inline]] constexpr bool merge_congruences(T& r1, T& m1, T r2, T m2) {
+  my_assert(m1 > 0 && m2 > 0);
+  r1 = safe_mod(r1, m1);
+  r2 = safe_mod(r2, m2);
+
+  T target = safe_mod(r2 - r1, m2);
+  auto [g, x] = inv_gcd(m1, m2);
+  if (target % g != 0)
+    return false;
+
+  const T m2_g = m2 / g;
+  const T lhs  = safe_mod(target / g, m2_g);
+  const T rhs  = safe_mod(x, m2_g);
+  using U = cp::make_unsigned_t<T>;
+  const T step = as<T>(cp::detail::mul_mod_unsigned(as<U>(lhs), as<U>(rhs), as<U>(m2_g)));
+
+  r1 += step * m1;
+  m1 *= m2_g;
+  r1 = safe_mod(r1, m1);
+  return true;
+}
+
 template <cp::Int T>
 [[gnu::always_inline]] constexpr T div_floor(T a, T b) {
   my_assert(b != 0);
@@ -124,7 +186,7 @@ template <cp::Int T>
       return 0;
   }
 
-  using U    = cp::make_unsigned_t<T>;
+  using U = cp::make_unsigned_t<T>;
   const U ux = as<U>(x);
   if (ux <= 1)
     return as<T>(ux);
