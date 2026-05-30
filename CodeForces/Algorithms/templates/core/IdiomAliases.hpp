@@ -6,6 +6,9 @@
 
 namespace cp {
 
+template <bool B, class T, class F>
+using Conditional = std::conditional_t<B, T, F>;
+
 template <class T>
 using cvref_t = std::remove_cvref_t<T>;
 

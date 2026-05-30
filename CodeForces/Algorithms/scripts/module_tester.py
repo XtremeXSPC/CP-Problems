@@ -57,7 +57,11 @@ INDIVIDUAL_TEST_SNIPPETS = {
     "NEED_MATH": "int main() { return div_floor<I64>(-3, 2) == -2 ? 0 : 1; }",
     "NEED_IO": "int main() { LL(n); OUT(n); return 0; }",
     "NEED_BIT_OPS": "int main() { I32 x = popcount(15); return x == 4 ? 0 : 1; }",
-    "NEED_MOD_INT": "int main() { mint x(5), y(3); mint z = x * y; return (int)I64(z); }",
+    "NEED_MOD_INT": (
+        "int main() { MInt x(5), y(3); MInt z = x * y; "
+        "DMInt::set_mod(17); DMInt a(20), b(5); DMInt c = a * b + DMInt(2); "
+        "return I64(z) == 15 && I64(c) == 15 ? 0 : 1; }"
+    ),
     "NEED_CONTAINERS": "int main() { VecI32 v = {3,1,2}; auto idx = argsort(v); return (int)idx.size(); }",
     "NEED_TYPE_SAFETY": (
         "CP_DECLARE_STRONG_TYPE(NodeId, I32); "
@@ -95,7 +99,7 @@ COMBINATION_CANDIDATES = (
     (
         ("NEED_CORE", "NEED_MOD_INT"),
         "Core + ModInt",
-        "int main() { mint a(5), b(3); mint c = a * b; return (int)I64(c); }",
+        "int main() { MInt a(5), b(3); MInt c = a * b; return (int)I64(c); }",
     ),
     (
         ("NEED_CORE", "NEED_CONTAINERS"),
@@ -126,7 +130,7 @@ COMBINATION_CANDIDATES = (
             "NEED_CONTAINERS",
         ),
         "All modules",
-        "int main() { mint x(5); I32 bits = popcount(15); VecI32 v = {1,2}; OUT(bits); return (int)v.size(); }",
+        "int main() { MInt x(5); I32 bits = popcount(15); VecI32 v = {1,2}; OUT(bits); return (int)v.size(); }",
     ),
 )
 

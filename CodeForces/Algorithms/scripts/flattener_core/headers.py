@@ -70,7 +70,7 @@ OPTIONAL_HEADER_TRIGGER_TOKENS: dict[str, set[str]] = {
         "remove_cvref_t", "make_unsigned_t",
     },
     IDIOM_ALIASES_HPP: {
-        "cvref_t", "Same", "Int", "Float", "Signed", "Unsigned",
+        "cvref_t", "Same", "Int", "Float", "Signed", "Unsigned", "Conditional",
     },
     TYPES_HPP: {
         "I8", "I16", "I32", "I64", "U8", "U16", "U32", "U64", "I128", "U128",
@@ -141,7 +141,7 @@ OPTIONAL_HEADER_TRIGGER_TOKENS: dict[str, set[str]] = {
         "concat", "sum_as", "string_to_ints", "pop_val",
     },
     MOD_INT_HPP: {
-        "ModInt", "mint", "mint2",
+        "ModInt", "DynModInt", "MInt", "MInt2", "DMInt",
     },
     CONCEPTS_HPP: {
         "remove_cvref_t", "Integral", "SignedIntegral", "UnsignedIntegral",
