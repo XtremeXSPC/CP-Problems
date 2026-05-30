@@ -4,15 +4,21 @@
 //===----------------------------------------------------------------------===//
 /* Compiler Pragmas */
 
+#ifndef CP_ENABLE_GCC_OPTIMIZE_PRAGMAS
+  #define CP_ENABLE_GCC_OPTIMIZE_PRAGMAS 1
+#endif
+
 #if defined(__GNUC__) && !defined(__clang__)
-  #if CP_ENABLE_AGGRESSIVE_OPTIMIZATIONS
-    #pragma GCC optimize("Ofast,unroll-loops,fast-math,O3,inline-functions")
-  #else
-    #pragma GCC optimize("O3,unroll-loops,inline-functions")
+  #if CP_ENABLE_GCC_OPTIMIZE_PRAGMAS
+    #if CP_ENABLE_AGGRESSIVE_OPTIMIZATIONS
+      #pragma GCC optimize("Ofast,unroll-loops,fast-math,O3,inline-functions")
+    #else
+      #pragma GCC optimize("O3,unroll-loops,inline-functions")
+    #endif
   #endif
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wunused-result"
-  #ifdef CP_ENABLE_ARCH_TARGET_PRAGMAS
+  #if CP_ENABLE_ARCH_TARGET_PRAGMAS
     #if defined(__x86_64__) && !defined(__MINGW32__) && !defined(__MINGW64__)
       #pragma GCC target("avx2,bmi,bmi2,popcnt,lzcnt,sse4.2,fma")
     #endif

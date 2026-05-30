@@ -49,6 +49,15 @@ function(cp_add_problem TARGET_NAME SOURCE_FILE)
       set(USE_PCH_FOR_TARGET TRUE)
       set(PCH_REASON "PCH enabled for ${CMAKE_BUILD_TYPE}")
 
+      if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+        # Keep contest pragmas out of GCC PCH builds: target/optimize pragmas
+        # embedded in the PCH can conflict with the consuming translation unit.
+        target_compile_definitions(${TARGET_NAME} PRIVATE
+          CP_ENABLE_GCC_OPTIMIZE_PRAGMAS=0
+          CP_ENABLE_ARCH_TARGET_PRAGMAS=0
+        )
+      endif()
+
       # Share one .gch per round: the first target compiles it, the rest reuse it.
       if(_CP_PCH_DONOR STREQUAL "")
         target_precompile_headers(${TARGET_NAME} PRIVATE "${PCH_HEADER_PATH}")
