@@ -15,17 +15,46 @@
 /* Main Solver Function */
 
 void solve() {
-  I32 n; IN(n);
-  VecI32 a(n);
-  for (auto& x : a) IN(x);
-  ranges::sort(a);
+  I32 n, x, s;
+  String p;
+  IN(n, x, s, p);
 
-  I64 ans = n;
-  FOR(i, n) {
-    I64 L = LB(a, a[i]);
-    I64 R = n - UB(a, a[i]);
-    ans = min(ans, max(L, R));
+  I32 Op  = 0;
+  I64 Cap = 0;
+  I32 A_joiners = 0;
+
+  I32 ans = 0;
+
+  for (char c : p) {
+    if (c == 'I') {
+      if (Op < x) {
+        Op++;
+        Cap += s - 1;
+        ans++;
+      }
+    } else if (c == 'E') {
+      if (Cap > 0) {
+        Cap--;
+        ans++;
+      } else if (A_joiners > 0 && Op < x) {
+        A_joiners--;
+        Op++;
+        Cap += s - 1;
+        ans++;
+      }
+    } else if (c == 'A') {
+      if (Cap > 0) {
+        Cap--;
+        A_joiners++;
+        ans++;
+      } else if (Op < x) {
+        Op++;
+        Cap += s - 1;
+        ans++;
+      }
+    }
   }
+
   OUT(ans);
 }
 

@@ -5,7 +5,7 @@
   #define CP_USE_GLOBAL_STD_NAMESPACE 1
 #endif
 
-#define NEED_CORE
+#define NEED_MACROS
 #define NEED_TIMER
 #define CP_IO_PROFILE_SIMPLE
 
@@ -15,18 +15,7 @@
 /* Main Solver Function */
 
 void solve() {
-  I32 n; IN(n);
-  VecI32 a(n);
-  for (auto& x : a) IN(x);
-  ranges::sort(a);
-
-  I64 ans = n;
-  FOR(i, n) {
-    I64 L = LB(a, a[i]);
-    I64 R = n - UB(a, a[i]);
-    ans = min(ans, max(L, R));
-  }
-  OUT(ans);
+  // Optimized solution here
 }
 
 //===----------------------------------------------------------------------===//
