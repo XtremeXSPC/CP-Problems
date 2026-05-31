@@ -1,25 +1,73 @@
 # CP-Problems
 
-## About This Repository
+A personal competitive programming repository focused on algorithmic study,
+problem solving, and the development of a reusable C++ library for contests.
 
-This repository is a collection of solutions to various competitive programming problems. The main goal of this project is to solve as many competitive programming problems as possible, serving as a personal record of progress and a resource for others who are learning and practicing.
+The repository contains solutions to programming problems together with a
+centralized collection of templates, algorithms, and data structures. Its purpose
+is not only to store accepted submissions, but also to document a long-term
+process of studying theoretical ideas, translating them into concise C++ code,
+and refining them through practical contest use.
 
-## Motivation
+## Overview
 
-The primary motivation behind this project is the desire to improve problem-solving and coding skills through consistent practice. Competitive programming is an excellent way to learn about algorithms, data structures, and mathematical concepts in a challenging and rewarding way.
+Competitive programming rewards both mathematical understanding and disciplined
+implementation. This repository is built around that intersection: problems are
+solved as exercises in reasoning, while recurring techniques are gradually
+extracted into reusable components.
 
-## Structure
+The central library lives under `CodeForces/Algorithms` and is organized around
+two main layers:
 
-The problems in this repository are organized by their source platform or contest. Each problem solution is contained in its own file, named according to the problem's title or code.
+- `templates/`: a compact template system for contest solutions;
+- `modules/`: reusable implementations of algorithms and data structures.
 
-## How to Use
+The templates provide the basic environment used by solutions: type aliases,
+constants, small utility functions, input/output helpers, modular arithmetic,
+bit operations, hashing support, and optional extensions such as PBDS. The
+design is intentionally modular, so that a solution can include only the
+features that are useful for a given problem.
 
-You can browse the repository to find solutions to specific problems or to see different approaches to problem-solving. If you are working on the same problems, you can use these solutions as a reference to compare your own solutions or to get unstuck.
+## Algorithms and Data Structures
 
-## Disclaimer
+The reusable library includes implementations from several classical areas of
+competitive programming:
 
-The solutions provided in this repository are for educational purposes only. It is highly recommended to attempt the problems on your own before looking at the solutions.
+- Graph algorithms: shortest paths, connectivity, flows, matchings, tree
+  queries, LCA, Euler tours, heavy-light decomposition;
+- Data structures: Fenwick trees, segment trees, lazy propagation structures,
+  sparse tables, disjoint-set union, and advanced sequence structures;
+- Number theory: sieves, primality testing, factorization, modular arithmetic,
+  CRT/Garner reconstruction, NTT, and arithmetic functions;
+- String algorithms: KMP, Z-algorithm, tries, suffix arrays, automata, rolling
+  hashes, and palindromic structures;
+- Geometry: two-dimensional and three-dimensional primitives, convex hulls,
+  intersections, circles, polygons, and related utilities;
+- Algebraic and bitwise tools: monoids, acted monoids, XOR interval
+  decompositions, and other specialized helpers.
 
-## Contributing
+The guiding principle is economy: an abstraction is added only when it makes
+future solutions shorter, safer, or easier to reason about. The code aims to
+remain close to competitive programming practice while preserving clear
+interfaces and predictable behavior.
 
-While this is primarily a personal project, any suggestions or contributions are welcome. If you have a different or more efficient solution to a problem, feel free to open an issue or a pull request.
+## Study Philosophy
+
+The repository reflects a gradual method:
+
+1. Understand the mathematical structure of a problem;
+2. Identify the algorithmic pattern behind it;
+3. Implement the solution with contest-level concision;
+4. Extract only genuinely reusable components;
+5. Validate the component through repeated practical use.
+
+This balance between theory and implementation is the core of the project. The
+library is therefore not meant to be a general-purpose framework; it is a
+carefully maintained toolkit shaped by the constraints of programming contests.
+
+## Educational Note
+
+Solutions are kept for personal study and reference. They are most useful after
+an independent attempt at the problem, when comparing approaches, checking edge
+cases, or studying how a known algorithm can be implemented under contest
+constraints.
