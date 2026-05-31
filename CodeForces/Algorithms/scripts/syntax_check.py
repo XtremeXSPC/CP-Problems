@@ -48,7 +48,7 @@ def _git_toplevel() -> Path:
 
 
 PROBE_TEMPLATE = """\
-#define CP_USE_ADVANCED
+#define CP_USE_ADVANCED 1
 #define NEED_CORE
 #define NEED_MATH
 #define NEED_HASHING

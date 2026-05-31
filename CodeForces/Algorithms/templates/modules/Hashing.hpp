@@ -1,7 +1,8 @@
 #pragma once
 #include "templates/core/TypeTraits.hpp"
-#ifdef CP_USE_ADVANCED
-  #include "templates/advanced/Concepts.hpp"
+
+#if CP_USE_ADVANCED
+  #include "templates/core/IdiomAliases.hpp"
 #endif
 
 //===----------------------------------------------------------------------===//
@@ -36,8 +37,8 @@ inline void reseed(U64 seed) noexcept { fixed_random_seed_storage() = seed; }
 template <class T>
 [[gnu::always_inline]] inline U64 raw_hash(const T& value) noexcept {
   using U = cp::remove_cvref_t<T>;
-#ifdef CP_USE_ADVANCED
-  if constexpr (Integral<U>)
+#if CP_USE_ADVANCED
+  if constexpr (Int<U>)
     return U64(value);
   else if constexpr (Enum<U>)
     return U64(std::underlying_type_t<U>(value));

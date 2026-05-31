@@ -9,6 +9,11 @@ CP_USE_GLOBAL_STD_NAMESPACE        = 1
 CP_USE_BITS_HEADER                 = 1
 CP_ENABLE_LEGACY_IO_VEC_MACROS     = 1
 CP_ENABLE_AGGRESSIVE_OPTIMIZATIONS = 0
+CP_ENABLE_GCC_OPTIMIZE_PRAGMAS     = 1
+# Off by default so workspace/PCH builds avoid the .gch target-option mismatch;
+# the flattener turns this on for standalone submissions (auto-guarded by the
+# __x86_64__/__aarch64__ checks in core/Compiler.hpp).
+CP_ENABLE_ARCH_TARGET_PRAGMAS      = 0
 CP_DEBUG_ENABLE_PERF               = 0
 CP_DEBUG_ENABLE_MEMORY             = 0
 CP_DEBUG_ENABLE_WATCH              = 0
@@ -88,6 +93,9 @@ headers = ["modules/Mod_Int.hpp"]
 
 [feature.NEED_CONTAINERS]
 headers = ["modules/Containers.hpp"]
+
+[feature.NEED_NDVEC]
+headers = ["modules/NdVec.hpp"]
 
 [scaffold.base]
 description = "Minimal: macros + timer + simple I/O."

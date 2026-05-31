@@ -83,11 +83,13 @@ def fold_simple_preprocessor_conditionals(content: str, macro_values: MacroValue
 
         depth = 0
         end_idx = -1
+        else_idx = -1
         simple_block = True
         j = i + 1
         while j < n:
             candidate = lines[j].strip()
             if IF_DIRECTIVE_RE.match(candidate):
+                # A nested conditional makes the block non-flat; keep verbatim.
                 depth += 1
                 simple_block = False
                 j += 1
@@ -99,8 +101,15 @@ def fold_simple_preprocessor_conditionals(content: str, macro_values: MacroValue
                 depth -= 1
                 j += 1
                 continue
-            if depth == 0 and ELSE_OR_ELIF_DIRECTIVE_RE.match(candidate):
-                simple_block = False
+            if depth == 0:
+                if ELIF_DIRECTIVE_RE.match(candidate):
+                    # ``#elif`` chains are not modeled; leave them intact.
+                    simple_block = False
+                elif ELSE_DIRECTIVE_RE.match(candidate):
+                    if else_idx == -1:
+                        else_idx = j
+                    else:
+                        simple_block = False
             j += 1
 
         if end_idx < 0:
@@ -126,11 +135,17 @@ def fold_simple_preprocessor_conditionals(content: str, macro_values: MacroValue
             i = end_idx + 1
             continue
 
-        if cond_result:
-            body = lines[i + 1 : end_idx]
-            output.extend(body)
-            for body_line in body:
-                update_macro_state_from_line(macro_state, body_line)
+        # Keep only the taken branch, dropping the guard directives. Handles a
+        # flat ``#if/#endif`` and a flat ``#if/#else/#endif`` (no nesting/elif).
+        if else_idx == -1:
+            taken = lines[i + 1 : end_idx] if cond_result else []
+        elif cond_result:
+            taken = lines[i + 1 : else_idx]
+        else:
+            taken = lines[else_idx + 1 : end_idx]
+        output.extend(taken)
+        for body_line in taken:
+            update_macro_state_from_line(macro_state, body_line)
 
         i = end_idx + 1
 

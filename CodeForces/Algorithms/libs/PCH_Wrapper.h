@@ -43,7 +43,11 @@
 // Namespace imports.
 
 using namespace std;
+// FeatureDetect.hpp now only probes availability; pull the pb_ds headers in
+// directly here since this PCH imports the __gnu_pbds namespace.
 #if defined(PBDS_AVAILABLE) && PBDS_AVAILABLE
+  #include <ext/pb_ds/assoc_container.hpp>
+  #include <ext/pb_ds/tree_policy.hpp>
   using namespace __gnu_pbds;
 #endif
 

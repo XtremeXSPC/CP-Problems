@@ -1,7 +1,7 @@
 #pragma once
 #include "Macros.hpp"
-#ifdef CP_USE_ADVANCED
-#include "templates/advanced/Concepts.hpp"
+#if CP_USE_ADVANCED
+#include "IdiomAliases.hpp"
 #endif
 
 //===----------------------------------------------------------------------===//
@@ -19,12 +19,12 @@ inline std::mt19937_64 rng(default_rng_seed());
 
 inline void reseed(U64 seed) { rng.seed(seed); }
 
-#ifdef CP_USE_ADVANCED
+#if CP_USE_ADVANCED
 
-template <cp::Integral T>
+template <cp::Int T>
 inline T rnd(T a, T b) { return std::uniform_int_distribution<T>(a, b)(rng); }
 
-template <cp::Floating T>
+template <cp::Float T>
 inline T rnd(T a, T b) { return std::uniform_real_distribution<T>(a, b)(rng); }
 
 #else

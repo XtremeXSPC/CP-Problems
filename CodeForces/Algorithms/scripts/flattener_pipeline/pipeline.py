@@ -36,6 +36,48 @@ from profile_registry import load_registry
 NEED_DEFINE_LINE_RE = re.compile(r"^\s*#\s*define\s+(NEED_\w+)\b")
 MAIN_SOLVER_SECTION_MARKER = "/* Main Solver Function */"
 
+_COND_DIRECTIVE_RE = re.compile(r"^\s*#\s*(?:if|elif|ifdef|ifndef)\b(.*)$")
+_IDENT_RE = re.compile(r"[A-Za-z_]\w*")
+SURVIVING_PROJECT_INCLUDE_RE = re.compile(r'^\s*#\s*include\s+"(?:templates|modules)/')
+
+
+def _referenced_condition_macros(blocks: list[str]) -> set[str]:
+    """Collect identifiers used inside ``#if``-family directives in ``blocks``."""
+
+    referenced: set[str] = set()
+    for block in blocks:
+        for line in block.splitlines():
+            match = _COND_DIRECTIVE_RE.match(line)
+            if match:
+                referenced.update(_IDENT_RE.findall(match.group(1)))
+    return referenced
+
+
+def _render_resolved_prelude(blocks: list[str], macro_values: MacroValueMap) -> str:
+    """Emit ``#ifndef``-guarded defines for every config switch the output tests.
+
+    The flattener resolves the whole ``CP_*``/``NEED_*`` configuration itself
+    (from ``profiles.toml`` + the source) but historically left those values
+    only inside the inlined ``Config_defaults.hpp`` cascade. Restating the
+    resolved value of each switch *actually referenced* by an emitted header
+    lets the submission drop that cascade entirely while guaranteeing the
+    compiler reaches the same feature decisions the flattener did. Compiler /
+    feature-detect macros (``__GNUC__``, ``HAS_INT128``, ``PBDS_AVAILABLE``)
+    are intentionally excluded — they must stay compiler-resolved.
+    """
+
+    lines: list[str] = []
+    for name in sorted(_referenced_condition_macros(blocks)):
+        if not (name.startswith("CP_") or name.startswith("NEED_")):
+            continue
+        if name not in macro_values:
+            continue
+        value = macro_values[name]
+        if value is None:
+            continue
+        lines += [f"#ifndef {name}", f"  #define {name} {value}", "#endif"]
+    return "\n".join(lines)
+
 
 def _collect_needed_template_headers(
     ctx: FlattenContext,
@@ -58,6 +100,17 @@ def _collect_needed_template_headers(
                 continue
             files_to_include.append(ctx.templates_dir / filename)
             included_names.add(filename)
+
+    # Mirror Base.hpp's ``#if CP_USE_ADVANCED`` block: the opt-in type-safety
+    # layer is included by the macro switch, not by a NEED_* feature, so without
+    # this its symbols (cp::StrongType, cp::cast::*) only reach a submission when
+    # pulled transitively (e.g. via the fast-I/O StrongType extension). Usage
+    # pruning drops whichever of these the source does not reference.
+    if macro_values.get("CP_USE_ADVANCED"):
+        for filename in ("advanced/Concepts.hpp", "advanced/Cast.hpp", "advanced/Strong_Type.hpp"):
+            if filename not in included_names:
+                files_to_include.append(ctx.templates_dir / filename)
+                included_names.add(filename)
 
     files_to_include = prune_template_headers_with_policy(
         files_to_include,
@@ -111,7 +164,17 @@ def _render_template_bundle(
         macro_values=effective_macro_values,
     )
 
-    preamble_inlined_headers: set[Path] = set()
+    # The resolved config prelude (emitted below) supersedes the generated
+    # Config_defaults cascade, so suppress those headers from the inlined
+    # preamble instead of shipping ~30 lines of now-redundant ``#ifndef``s.
+    preamble_inlined_headers: set[Path] = {
+        path.resolve()
+        for path in (
+            ctx.templates_dir / "core" / "Config.hpp",
+            ctx.templates_dir / "core" / "Config_defaults.hpp",
+        )
+        if path.is_file()
+    }
     preamble_content = inline_local_header(
         ctx.project_root,
         ctx.preamble_path,
@@ -141,11 +204,17 @@ def _render_template_bundle(
         if content:
             template_sections.append(content)
 
+    prelude_defines = _render_resolved_prelude(
+        [preamble_content, *template_sections],
+        effective_macro_values,
+    )
+
     return FlattenedTemplateBundle(
         preamble_content=preamble_content,
         template_sections=tuple(template_sections),
         effective_macro_values=effective_macro_values,
         inlined_headers=frozenset(inlined_headers),
+        prelude_defines=prelude_defines,
     )
 
 
@@ -200,6 +269,11 @@ def _render_flattened_source(
 
             if output_lines and output_lines[-1].strip():
                 output_lines.append("\n")
+
+            prelude_text = bundle.prelude_defines.rstrip("\n")
+            if prelude_text:
+                output_lines.append(prelude_text)
+                output_lines.append("\n\n")
 
             preamble_text = bundle.preamble_content.rstrip("\n")
             if preamble_text:
@@ -272,8 +346,29 @@ def build_flattened_output(
         enable_template_pruning=enable_template_pruning,
         enable_module_pruning=enable_module_pruning,
     )
-    return _render_flattened_source(
+    output = _render_flattened_source(
         ctx,
         bundle,
         enable_module_pruning=enable_module_pruning,
     )
+    _warn_on_surviving_project_includes(output)
+    return output
+
+
+def _warn_on_surviving_project_includes(output: str) -> None:
+    """Warn loudly if a project-local include leaked into the final output.
+
+    A surviving ``#include "templates/…"``/``"modules/…"`` means a header was
+    neither inlined nor folded away; it will not resolve on an online judge.
+    Emitted to stderr rather than raised so a contest run still produces
+    output, but tests treat any occurrence as a regression.
+    """
+
+    leaked = [
+        line.strip() for line in output.splitlines() if SURVIVING_PROJECT_INCLUDE_RE.match(line)
+    ]
+    if leaked:
+        sys.stderr.write(
+            "warning: project-local include survived flattening (will not "
+            "resolve on a judge): " + ", ".join(sorted(set(leaked))) + "\n"
+        )

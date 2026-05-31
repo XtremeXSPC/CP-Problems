@@ -1,8 +1,9 @@
 #pragma once
 #include "templates/core/ScalarTypes.hpp"
+
 #if CP_IO_ENABLE_COMPOSITE
-#include "templates/core/ContainerAliases.hpp"
-#include "templates/core/Macros.hpp"
+  #include "templates/core/ContainerAliases.hpp"
+  #include "templates/core/Macros.hpp"
 #endif
 
 //===----------------------------------------------------------------------===//

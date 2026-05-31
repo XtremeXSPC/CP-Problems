@@ -22,11 +22,9 @@
 
 #if defined(__has_include) && __has_include(<ext/pb_ds/assoc_container.hpp>) \
  && __has_include(<ext/pb_ds/tree_policy.hpp>)
-  #include <ext/pb_ds/assoc_container.hpp>
-  #include <ext/pb_ds/tree_policy.hpp>
-  #ifndef PBDS_AVAILABLE
-    #define PBDS_AVAILABLE 1
-  #endif
+ #ifndef PBDS_AVAILABLE
+  #define PBDS_AVAILABLE 1
+#endif
 #elif !defined(PBDS_AVAILABLE)
   #define PBDS_AVAILABLE 0
 #endif

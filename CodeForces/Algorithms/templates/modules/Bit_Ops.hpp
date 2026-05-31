@@ -23,7 +23,7 @@ template <cp::Int T>
 [[gnu::always_inline]] constexpr I32 leading_zeros(T x) {
   using Raw = std::remove_cv_t<T>;
   using U   = cp::make_unsigned_t<Raw>;
-  U ux      = U(x);
+  U ux = U(x);
   if (ux == 0)
     return sizeof(Raw) * 8;
   if constexpr (sizeof(Raw) <= 4) {
@@ -42,7 +42,7 @@ template <cp::Int T>
 [[gnu::always_inline]] constexpr I32 trailing_zeros(T x) {
   using Raw = std::remove_cv_t<T>;
   using U   = cp::make_unsigned_t<Raw>;
-  U ux      = U(x);
+  U ux = U(x);
   if (ux == 0)
     return sizeof(Raw) * 8;
   if constexpr (sizeof(Raw) <= 4)

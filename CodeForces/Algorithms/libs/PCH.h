@@ -103,7 +103,7 @@
 struct IOOptimizer {
     IOOptimizer() {
         FAST_IO_SETUP();
-#ifdef HAS_ASAN
+#if HAS_ASAN
         // Re-enable sync under ASan for accurate I/O ordering in debug builds.
         std::ios_base::sync_with_stdio(true);
 #endif

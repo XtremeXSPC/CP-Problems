@@ -293,7 +293,7 @@ inline void write(const char* x) { write_string(x); }
   #ifndef CP_FAST_IO_ENABLE_STRONG_TYPE
     #define CP_FAST_IO_ENABLE_STRONG_TYPE 0
   #endif
-  #if CP_FAST_IO_ENABLE_STRONG_TYPE && !defined(CP_USE_ADVANCED)
+  #if CP_FAST_IO_ENABLE_STRONG_TYPE && !CP_USE_ADVANCED
     #undef CP_FAST_IO_ENABLE_STRONG_TYPE
     #define CP_FAST_IO_ENABLE_STRONG_TYPE 0
   #endif

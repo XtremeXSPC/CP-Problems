@@ -5,6 +5,9 @@
 /* Policy-Based Data Structures (optional) */
 
 #if defined(PBDS_AVAILABLE) && PBDS_AVAILABLE
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+
 template <typename T>
 using ordered_set = __gnu_pbds::tree<
     T,

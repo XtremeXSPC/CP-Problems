@@ -16,7 +16,7 @@
 #endif
 
 #ifndef CP_USE_ADVANCED
-  #define CP_USE_ADVANCED
+  #define CP_USE_ADVANCED 1
 #endif
 
 #define NEED_BIT_OPS

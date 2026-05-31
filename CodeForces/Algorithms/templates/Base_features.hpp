@@ -82,3 +82,7 @@
 #ifdef NEED_CONTAINERS
   #include "modules/Containers.hpp"
 #endif
+
+#ifdef NEED_NDVEC
+  #include "modules/NdVec.hpp"
+#endif

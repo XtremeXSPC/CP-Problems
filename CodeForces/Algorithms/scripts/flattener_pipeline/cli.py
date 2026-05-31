@@ -121,6 +121,12 @@ def _build_flatten_context(args: argparse.Namespace) -> tuple[FlattenContext, Fl
     if used_identifiers & COMPOSITE_IO_TRIGGER_TOKENS:
         macro_values["CP_IO_ENABLE_COMPOSITE"] = 1
 
+    # Flattened output is always a standalone judge submission (never the
+    # PCH/workspace build), so enable architecture-target pragmas; they stay
+    # auto-guarded by the __x86_64__/__aarch64__ checks in core/Compiler.hpp.
+    # The profiles.toml default stays 0 to keep PCH/.gch builds mismatch-free.
+    macro_values.setdefault("CP_ENABLE_ARCH_TARGET_PRAGMAS", 1)
+
     strip_module_docs = env_flag_enabled("CP_FLATTENER_STRIP_MODULE_DOCS")
     strip_template_docs = args.strip_docs or env_flag_enabled("CP_FLATTENER_STRIP_TEMPLATE_DOCS")
 

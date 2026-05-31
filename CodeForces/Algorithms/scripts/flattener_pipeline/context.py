@@ -66,3 +66,4 @@ class FlattenedTemplateBundle:
     template_sections: tuple[str, ...]
     effective_macro_values: MacroValueMap
     inlined_headers: frozenset[Path]
+    prelude_defines: str = ""

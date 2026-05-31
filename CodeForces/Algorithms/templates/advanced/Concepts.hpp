@@ -1,8 +1,11 @@
 #pragma once
+#include "templates/core/IdiomAliases.hpp"
 #include "templates/core/TypeTraits.hpp"
 
 //===----------------------------------------------------------------------===//
 /* Core Concepts for Type-Safe CP Templates */
+// Enum / Predicate / Hashable live in core/IdiomAliases.hpp (always-on); this
+// advanced layer extends that vocabulary with the richer, rarely-used concepts.
 
 namespace cp {
 
@@ -31,12 +34,6 @@ concept Arithmetic = Integral<T> || Floating<T>;
 template <class T>
 concept IndexLike = NonBoolIntegral<T>;
 
-template <class T>
-concept Enum = std::is_enum_v<remove_cvref_t<T>>;
-
-template <class F, class... Args>
-concept Predicate = std::predicate<F, Args...>;
-
 template <class R>
 concept Range = std::ranges::range<remove_cvref_t<R>>;
 
@@ -51,11 +48,6 @@ concept StreamReadable = requires(std::istream& is, T& value) {
 template <class T>
 concept StreamWritable = requires(std::ostream& os, const T& value) {
   { os << value } -> std::same_as<std::ostream&>;
-};
-
-template <class T>
-concept Hashable = requires(const remove_cvref_t<T>& value) {
-  { std::hash<remove_cvref_t<T>>{}(value) } -> std::convertible_to<std::size_t>;
 };
 
 } // namespace cp

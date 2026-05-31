@@ -4,10 +4,6 @@
 //===----------------------------------------------------------------------===//
 /* Compiler Pragmas */
 
-#ifndef CP_ENABLE_GCC_OPTIMIZE_PRAGMAS
-  #define CP_ENABLE_GCC_OPTIMIZE_PRAGMAS 1
-#endif
-
 #if defined(__GNUC__) && !defined(__clang__)
   #if CP_ENABLE_GCC_OPTIMIZE_PRAGMAS
     #if CP_ENABLE_AGGRESSIVE_OPTIMIZATIONS

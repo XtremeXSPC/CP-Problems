@@ -368,6 +368,15 @@ def inline_local_header(
     masked_lines = strip_non_code(file_text).splitlines()
     macro_state: MacroValueMap = dict(macro_values or {})
     conditional_stack: list[bool] = [True]
+    # Mirrors ``conditional_stack``: a frame is "certain" only when its truth is
+    # statically known *and* every enclosing frame is certain. ``#define``/
+    # ``#undef`` inside an uncertain frame must not mutate the authoritative
+    # macro state — doing so desyncs the model from the real compiler (e.g. a
+    # ``#undef`` in a compiler-conditional branch wrongly disabling a feature).
+    certain_stack: list[bool] = [True]
+
+    def state_mutable() -> bool:
+        return all(conditional_stack) and all(certain_stack)
 
     for idx, line in enumerate(file_lines):
         masked_line = masked_lines[idx] if idx < len(masked_lines) else ""
@@ -381,23 +390,31 @@ def inline_local_header(
         match_ifexpr = IF_EXPR_DIRECTIVE_RE.match(directive)
         if match_ifdef:
             conditional_stack.append(match_ifdef.group(1) in macro_state)
+            certain_stack.append(certain_stack[-1])
             content_lines.append(line)
             continue
         if match_ifndef:
             conditional_stack.append(match_ifndef.group(1) not in macro_state)
+            certain_stack.append(certain_stack[-1])
             content_lines.append(line)
             continue
         if match_ifexpr:
             cond = evaluate_simple_if_expression(match_ifexpr.group(1), macro_state)
             conditional_stack.append(True if cond is None else cond)
+            certain_stack.append(certain_stack[-1] and cond is not None)
             content_lines.append(line)
             continue
         if ELIF_DIRECTIVE_RE.match(directive):
+            # Conservatively treat the ``#elif`` branch as not taken; its
+            # certainty is irrelevant because the branch is inactive.
             if len(conditional_stack) > 1:
                 conditional_stack[-1] = False
             content_lines.append(line)
             continue
         if ELSE_DIRECTIVE_RE.match(directive):
+            # The ``#else`` branch's truth is exactly the negation of the
+            # original guard, so the frame's certainty is unchanged — only the
+            # active flag flips. (A known-false ``#if`` has a known-true else.)
             if len(conditional_stack) > 1:
                 conditional_stack[-1] = not conditional_stack[-1]
             content_lines.append(line)
@@ -405,6 +422,7 @@ def inline_local_header(
         if ENDIF_DIRECTIVE_RE.match(directive):
             if len(conditional_stack) > 1:
                 conditional_stack.pop()
+                certain_stack.pop()
             content_lines.append(line)
             continue
 
@@ -453,12 +471,12 @@ def inline_local_header(
                     continue
 
             content_lines.append(line)
-            if all(conditional_stack):
+            if state_mutable():
                 update_macro_state_from_line(macro_state, masked_line)
             continue
 
         content_lines.append(line)
-        if all(conditional_stack):
+        if state_mutable():
             update_macro_state_from_line(macro_state, masked_line)
 
     while content_lines and not content_lines[0].strip():

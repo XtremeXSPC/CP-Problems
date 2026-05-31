@@ -60,7 +60,7 @@ def _render_scaffold(profile: ScaffoldProfile) -> str:
     if profile.advanced:
         if lines and lines[-1] != "":
             lines.append("")
-        _append_macro_guard(lines, "CP_USE_ADVANCED")
+        _append_macro_guard(lines, "CP_USE_ADVANCED", 1)
     if lines and lines[-1] != "":
         lines.append("")
 

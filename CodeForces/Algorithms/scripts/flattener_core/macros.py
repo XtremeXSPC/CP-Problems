@@ -29,6 +29,7 @@ SIMPLE_NOT_DEFINED_RE = re.compile(r"^!\s*defined\s*\(\s*([A-Za-z_]\w*)\s*\)$")
 SIMPLE_NOT_DEFINED_ALT_RE = re.compile(r"^!\s*defined\s+([A-Za-z_]\w*)$")
 SIMPLE_IDENT_RE = re.compile(r"^([A-Za-z_]\w*)$")
 SIMPLE_NOT_IDENT_RE = re.compile(r"^!\s*([A-Za-z_]\w*)$")
+EQUALITY_RE = re.compile(r"^(.+?)\s*(==|!=)\s*(.+)$")
 
 
 def parse_macro_numeric_token(token: str, macro_values: MacroValueMap) -> int | None:
@@ -139,5 +140,15 @@ def evaluate_simple_if_expression(expr: str, macro_values: MacroValueMap) -> boo
         if value is None:
             return None
         return value == 0
+
+    # ``<token> == <token>`` / ``<token> != <token>`` where both sides resolve
+    # to integers (literal or known macro). Anything unresolved stays ``None``.
+    equality = EQUALITY_RE.fullmatch(normalized)
+    if equality:
+        lhs = parse_macro_numeric_token(equality.group(1), macro_values)
+        rhs = parse_macro_numeric_token(equality.group(3), macro_values)
+        if lhs is None or rhs is None:
+            return None
+        return lhs == rhs if equality.group(2) == "==" else lhs != rhs
 
     return None
