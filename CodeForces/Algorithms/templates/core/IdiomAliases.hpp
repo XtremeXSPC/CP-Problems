@@ -15,6 +15,7 @@ using cvref_t = std::remove_cvref_t<T>;
 template <class T, class U>
 concept Same = std::same_as<cvref_t<T>, cvref_t<U>>;
 
+// clang-format off
 template <class T>
 concept Int = std::integral<cvref_t<T>>
 #if HAS_INT128
@@ -32,6 +33,7 @@ concept Signed = Int<T> && (std::is_signed_v<cvref_t<T>>
   || std::same_as<cvref_t<T>, I128>
 #endif
 );
+// clang-format on
 
 template <class T>
 concept Unsigned = Int<T> && !Signed<T>;

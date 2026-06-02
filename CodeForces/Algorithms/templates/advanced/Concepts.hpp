@@ -12,12 +12,16 @@ namespace cp {
 template <class T>
 concept Integral = std::integral<remove_cvref_t<T>> || detail::is_extended_integral_v<remove_cvref_t<T>>;
 
+// The #if HAS_INT128 arm splits this concept expression; clang-format would
+// otherwise reflow it into a less readable operand-aligned form.
+// clang-format off
 template <class T>
 concept SignedIntegral = Integral<T> && (std::is_signed_v<remove_cvref_t<T>>
 #if HAS_INT128
   || std::same_as<remove_cvref_t<T>, I128>
 #endif
 );
+// clang-format on
 
 template <class T>
 concept UnsignedIntegral = Integral<T> && !SignedIntegral<T>;

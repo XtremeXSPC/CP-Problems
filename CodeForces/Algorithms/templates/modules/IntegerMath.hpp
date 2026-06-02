@@ -193,8 +193,7 @@ template <cp::Int T>
 
   if constexpr (sizeof(U) > sizeof(U64)) {
     constexpr int bits = int(sizeof(U) * 8);
-    U lo = 1;
-    U hi = U{1} << ((bits + 1) / 2);
+    U lo = 1, hi = U{1} << ((bits + 1) / 2);
     while (lo + 1 < hi) {
       const U mid = lo + (hi - lo) / 2;
       if (mid <= ux / mid)

@@ -26,7 +26,8 @@ from _lib.process import ProcessRequest, run_capture
 # (``SortIncludes: false``); ``MaxEmptyLinesToKeep: 1`` collapses fold leftovers.
 _CLANG_FORMAT_STYLE = (
     "{BasedOnStyle: LLVM, IndentWidth: 2, ColumnLimit: 0, "
-    "IndentPPDirectives: BeforeHash, SortIncludes: false, MaxEmptyLinesToKeep: 1}"
+    "IndentPPDirectives: BeforeHash, SortIncludes: false, MaxEmptyLinesToKeep: 1, "
+    "AlignConsecutiveAssignments: true, PointerAlignment: Left }"
 )
 
 
