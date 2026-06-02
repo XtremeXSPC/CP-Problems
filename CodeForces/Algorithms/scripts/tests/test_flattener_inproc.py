@@ -150,8 +150,10 @@ def test_flattener_fast_extended_profile_does_not_set_minimal_variant(
     assert result.returncode == 0, result.stderr
     # The shim's variant override must not appear in extended flow.
     assert "#define CP_FAST_IO_VARIANT 0" not in result.stdout
-    # ModInt extension wiring is enabled by fast_extended.
-    assert "CP_FAST_IO_ENABLE_MODINT" in result.stdout
+    # The fast_extended profile resolves CP_FAST_IO_ENABLE_MODINT=1, so the
+    # ModInt section is folded in (the guard macro itself is now collapsed away,
+    # which is why we assert on the materialized type, not the macro name).
+    assert "ModInt" in result.stdout
 
 
 def test_flattener_collision_fast_io_wins_over_minimal(

@@ -90,7 +90,11 @@ def extract_macro_values_from_source(
     macro_values: MacroValueMap = {}
     skipped: list[str] = []
     code_only = strip_non_code(source_prefix_content)
-    folded_code = fold_simple_preprocessor_conditionals(code_only, {})
+    # The flattener is authoritative over the CP_*/NEED_* namespace even in the
+    # user prefix, so resolve the conventional ``#ifndef CP_X / #define CP_X``
+    # override idiom (absent ⇒ undefined) while leaving the user's own
+    # (non-CP_/NEED_) conditionals untouched.
+    folded_code = fold_simple_preprocessor_conditionals(code_only, {}, closed_namespace=True)
     depth = 0
 
     for raw_line in folded_code.splitlines():

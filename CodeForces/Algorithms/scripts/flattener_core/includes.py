@@ -27,9 +27,9 @@ from flattener_core.lexer import (
 )
 from flattener_core.macros import (
     MacroValueMap,
-    evaluate_simple_if_expression,
     update_macro_state_from_line,
 )
+from flattener_core.ppexpr import evaluate_condition
 from flattener_core.preprocessor import (
     ELIF_DIRECTIVE_RE,
     ELSE_DIRECTIVE_RE,
@@ -37,6 +37,7 @@ from flattener_core.preprocessor import (
     IF_EXPR_DIRECTIVE_RE,
     IFDEF_DIRECTIVE_RE,
     IFNDEF_DIRECTIVE_RE,
+    ConditionalScanner,
     fold_simple_preprocessor_conditionals,
     strip_outer_include_guard,
 )
@@ -49,6 +50,44 @@ INLINE_ROOT_PREFIXES = ("modules/", "templates/")
 _MODULE_SECTION_BANNER = (
     "//===----------------------------------------------------------------------===//"
 )
+
+
+def _apply_conditional_directive(
+    scanner: ConditionalScanner, directive: str, macro_state: MacroValueMap
+) -> bool:
+    """Feed one masked directive line to ``scanner``; return whether it was one.
+
+    Conditions are evaluated against ``macro_state`` under the closed-namespace
+    rule (the traversals always run on the resolved configuration), so the
+    discovery/inlining loops and the folder agree on which branches are live.
+    """
+
+    match = IFDEF_DIRECTIVE_RE.match(directive)
+    if match:
+        scanner.open(
+            evaluate_condition("ifdef", match.group(1), macro_state, closed_namespace=True)
+        )
+        return True
+    match = IFNDEF_DIRECTIVE_RE.match(directive)
+    if match:
+        scanner.open(
+            evaluate_condition("ifndef", match.group(1), macro_state, closed_namespace=True)
+        )
+        return True
+    match = IF_EXPR_DIRECTIVE_RE.match(directive)
+    if match:
+        scanner.open(evaluate_condition("if", match.group(1), macro_state, closed_namespace=True))
+        return True
+    if ELIF_DIRECTIVE_RE.match(directive):
+        scanner.open_elif()
+        return True
+    if ELSE_DIRECTIVE_RE.match(directive):
+        scanner.open_else()
+        return True
+    if ENDIF_DIRECTIVE_RE.match(directive):
+        scanner.close()
+        return True
+    return False
 
 
 def parse_project_include_line(line: str, *, masked_line: str | None = None) -> str | None:
@@ -131,38 +170,13 @@ def collect_transitive_template_deps(
             continue
 
         masked_lines = strip_non_code("".join(lines)).splitlines()
-        conditional_stack: list[bool] = [True]
+        scanner = ConditionalScanner()
 
         for idx, line in enumerate(lines):
             masked_line = masked_lines[idx] if idx < len(masked_lines) else ""
-            directive = masked_line.strip()
-            match_ifdef = IFDEF_DIRECTIVE_RE.match(directive)
-            match_ifndef = IFNDEF_DIRECTIVE_RE.match(directive)
-            match_ifexpr = IF_EXPR_DIRECTIVE_RE.match(directive)
-            if match_ifdef:
-                conditional_stack.append(match_ifdef.group(1) in macro_state)
+            if _apply_conditional_directive(scanner, masked_line.strip(), macro_state):
                 continue
-            if match_ifndef:
-                conditional_stack.append(match_ifndef.group(1) not in macro_state)
-                continue
-            if match_ifexpr:
-                cond = evaluate_simple_if_expression(match_ifexpr.group(1), macro_state)
-                conditional_stack.append(True if cond is None else cond)
-                continue
-            if ELIF_DIRECTIVE_RE.match(directive):
-                if len(conditional_stack) > 1:
-                    conditional_stack[-1] = False
-                continue
-            if ELSE_DIRECTIVE_RE.match(directive):
-                if len(conditional_stack) > 1:
-                    conditional_stack[-1] = not conditional_stack[-1]
-                continue
-            if ENDIF_DIRECTIVE_RE.match(directive):
-                if len(conditional_stack) > 1:
-                    conditional_stack.pop()
-                continue
-
-            if not all(conditional_stack):
+            if not scanner.active:
                 continue
 
             include_name = parse_project_include_line(line, masked_line=masked_line)
@@ -209,39 +223,14 @@ def _active_project_include_targets(
         return []
 
     masked_lines = strip_non_code("\n".join(lines)).splitlines()
-    conditional_stack: list[bool] = [True]
+    scanner = ConditionalScanner()
     targets: list[Path] = []
 
     for idx, line in enumerate(lines):
         masked_line = masked_lines[idx] if idx < len(masked_lines) else ""
-        directive = masked_line.strip()
-        match_ifdef = IFDEF_DIRECTIVE_RE.match(directive)
-        match_ifndef = IFNDEF_DIRECTIVE_RE.match(directive)
-        match_ifexpr = IF_EXPR_DIRECTIVE_RE.match(directive)
-        if match_ifdef:
-            conditional_stack.append(match_ifdef.group(1) in macro_state)
+        if _apply_conditional_directive(scanner, masked_line.strip(), macro_state):
             continue
-        if match_ifndef:
-            conditional_stack.append(match_ifndef.group(1) not in macro_state)
-            continue
-        if match_ifexpr:
-            cond = evaluate_simple_if_expression(match_ifexpr.group(1), macro_state)
-            conditional_stack.append(True if cond is None else cond)
-            continue
-        if ELIF_DIRECTIVE_RE.match(directive):
-            if len(conditional_stack) > 1:
-                conditional_stack[-1] = False
-            continue
-        if ELSE_DIRECTIVE_RE.match(directive):
-            if len(conditional_stack) > 1:
-                conditional_stack[-1] = not conditional_stack[-1]
-            continue
-        if ENDIF_DIRECTIVE_RE.match(directive):
-            if len(conditional_stack) > 1:
-                conditional_stack.pop()
-            continue
-
-        if not all(conditional_stack):
+        if not scanner.active:
             continue
 
         include_name = parse_project_include_line(line, masked_line=masked_line)
@@ -367,16 +356,14 @@ def inline_local_header(
     file_lines = file_text.splitlines(keepends=True)
     masked_lines = strip_non_code(file_text).splitlines()
     macro_state: MacroValueMap = dict(macro_values or {})
-    conditional_stack: list[bool] = [True]
-    # Mirrors ``conditional_stack``: a frame is "certain" only when its truth is
-    # statically known *and* every enclosing frame is certain. ``#define``/
-    # ``#undef`` inside an uncertain frame must not mutate the authoritative
-    # macro state — doing so desyncs the model from the real compiler (e.g. a
-    # ``#undef`` in a compiler-conditional branch wrongly disabling a feature).
-    certain_stack: list[bool] = [True]
-
-    def state_mutable() -> bool:
-        return all(conditional_stack) and all(certain_stack)
+    # ``ConditionalScanner`` tracks active/certain branch state under the closed
+    # namespace: the inliner inlines includes only in live branches and mutates
+    # the authoritative macro state only where every enclosing branch is
+    # statically decided (a ``#define``/``#undef`` in an uncertain
+    # compiler-conditional branch must not poison the model). The conditional
+    # directives themselves are kept; the post-pass folder collapses whatever is
+    # decidable.
+    scanner = ConditionalScanner()
 
     for idx, line in enumerate(file_lines):
         masked_line = masked_lines[idx] if idx < len(masked_lines) else ""
@@ -384,51 +371,13 @@ def inline_local_header(
         if stripped == "#pragma once":
             continue
 
-        directive = masked_line.strip()
-        match_ifdef = IFDEF_DIRECTIVE_RE.match(directive)
-        match_ifndef = IFNDEF_DIRECTIVE_RE.match(directive)
-        match_ifexpr = IF_EXPR_DIRECTIVE_RE.match(directive)
-        if match_ifdef:
-            conditional_stack.append(match_ifdef.group(1) in macro_state)
-            certain_stack.append(certain_stack[-1])
-            content_lines.append(line)
-            continue
-        if match_ifndef:
-            conditional_stack.append(match_ifndef.group(1) not in macro_state)
-            certain_stack.append(certain_stack[-1])
-            content_lines.append(line)
-            continue
-        if match_ifexpr:
-            cond = evaluate_simple_if_expression(match_ifexpr.group(1), macro_state)
-            conditional_stack.append(True if cond is None else cond)
-            certain_stack.append(certain_stack[-1] and cond is not None)
-            content_lines.append(line)
-            continue
-        if ELIF_DIRECTIVE_RE.match(directive):
-            # Conservatively treat the ``#elif`` branch as not taken; its
-            # certainty is irrelevant because the branch is inactive.
-            if len(conditional_stack) > 1:
-                conditional_stack[-1] = False
-            content_lines.append(line)
-            continue
-        if ELSE_DIRECTIVE_RE.match(directive):
-            # The ``#else`` branch's truth is exactly the negation of the
-            # original guard, so the frame's certainty is unchanged — only the
-            # active flag flips. (A known-false ``#if`` has a known-true else.)
-            if len(conditional_stack) > 1:
-                conditional_stack[-1] = not conditional_stack[-1]
-            content_lines.append(line)
-            continue
-        if ENDIF_DIRECTIVE_RE.match(directive):
-            if len(conditional_stack) > 1:
-                conditional_stack.pop()
-                certain_stack.pop()
+        if _apply_conditional_directive(scanner, masked_line.strip(), macro_state):
             content_lines.append(line)
             continue
 
         include_name = parse_project_include_line(line, masked_line=masked_line)
         if include_name:
-            if not all(conditional_stack):
+            if not scanner.active:
                 content_lines.append(line)
                 continue
 
@@ -471,12 +420,12 @@ def inline_local_header(
                     continue
 
             content_lines.append(line)
-            if state_mutable():
+            if scanner.mutable:
                 update_macro_state_from_line(macro_state, masked_line)
             continue
 
         content_lines.append(line)
-        if state_mutable():
+        if scanner.mutable:
             update_macro_state_from_line(macro_state, masked_line)
 
     while content_lines and not content_lines[0].strip():
@@ -487,13 +436,14 @@ def inline_local_header(
     output = "".join(content_lines)
     if rel_self.startswith("modules/"):
         output = strip_outer_include_guard(output)
+        output = fold_simple_preprocessor_conditionals(output, macro_values, closed_namespace=True)
         if strip_module_docs:
             output = strip_module_docs_and_blank_lines(output)
         output = collapse_redundant_blank_lines(output)
         output = trim_outer_blank_lines(output)
     elif rel_self.startswith("templates/"):
         output = strip_outer_include_guard(output)
-        output = fold_simple_preprocessor_conditionals(output, macro_values)
+        output = fold_simple_preprocessor_conditionals(output, macro_values, closed_namespace=True)
         if strip_template_docs:
             output = strip_module_docs_and_blank_lines(output)
         output = collapse_redundant_blank_lines(output)

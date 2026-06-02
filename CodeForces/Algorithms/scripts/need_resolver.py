@@ -142,7 +142,10 @@ def extract_need_macros_from_source(
     skipped_needs: list[str] = []
 
     code_only_prefix = strip_non_code(extract_prefix_before_base_include(source_content))
-    folded_code = fold_simple_preprocessor_conditionals(code_only_prefix, {})
+    # CP_*/NEED_* are flattener-resolved even here, so fold them under the
+    # closed-namespace rule (absent ⇒ undefined); the user's own conditionals
+    # stay UNKNOWN and are preserved for the depth check below.
+    folded_code = fold_simple_preprocessor_conditionals(code_only_prefix, {}, closed_namespace=True)
     depth = 0
 
     for raw_line in folded_code.splitlines():

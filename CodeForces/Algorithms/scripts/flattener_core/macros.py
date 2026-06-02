@@ -1,14 +1,20 @@
-"""Macro-state primitives consumed by the preprocessor folder.
+"""Macro-table primitives shared across the flattener's preprocessor model.
 
-Implements a conservative model of the C++ preprocessor's symbol table:
-``update_macro_state_from_line`` applies ``#define``/``#undef`` directives,
-``evaluate_simple_if_expression`` decides truth for the restricted
-``#if`` forms the flattener can prove (integer literals, ``defined(X)``,
-bare identifiers, and their negations). Complex expressions deliberately
-return ``None`` so the folder leaves them intact.
+Implements the conservative symbol table the partial evaluator runs against:
+``update_macro_state_from_line`` applies ``#define``/``#undef`` directives and
+``parse_macro_numeric_token`` interprets literals/known macros. The actual
+``#if`` decision logic lives in :mod:`flattener_core.ppexpr`, which imports the
+primitives defined here.
+
+``is_authoritative_macro`` encodes the closed-namespace rule: the flattener
+fully resolves the ``CP_*``/``NEED_*`` configuration namespace from
+``profiles.toml`` plus the user source, so an absent ``CP_*``/``NEED_*`` macro
+is *known* undefined. Every other macro (compiler/toolchain provided) is left
+to the compiler.
 
 The ``MacroValueMap`` alias is the canonical shape of the macro table that
-flows through every other ``flattener_core`` module.
+flows through every other ``flattener_core`` module: name → known integer, or
+name → ``None`` for a macro that is defined but whose value is opaque.
 """
 
 from __future__ import annotations
@@ -23,13 +29,17 @@ DEFINE_WITH_VALUE_RE = re.compile(
 )
 UNDEF_DIRECTIVE_RE = re.compile(r"^\s*#\s*undef\s+([A-Za-z_]\w*)\s*$")
 INTEGER_LITERAL_RE = re.compile(r"^[+-]?(?:0|[1-9]\d*|0[xX][0-9A-Fa-f]+)(?:[uUlL]{0,3})?$")
-SIMPLE_DEFINED_RE = re.compile(r"^defined\s*\(\s*([A-Za-z_]\w*)\s*\)$")
-SIMPLE_DEFINED_ALT_RE = re.compile(r"^defined\s+([A-Za-z_]\w*)$")
-SIMPLE_NOT_DEFINED_RE = re.compile(r"^!\s*defined\s*\(\s*([A-Za-z_]\w*)\s*\)$")
-SIMPLE_NOT_DEFINED_ALT_RE = re.compile(r"^!\s*defined\s+([A-Za-z_]\w*)$")
-SIMPLE_IDENT_RE = re.compile(r"^([A-Za-z_]\w*)$")
-SIMPLE_NOT_IDENT_RE = re.compile(r"^!\s*([A-Za-z_]\w*)$")
-EQUALITY_RE = re.compile(r"^(.+?)\s*(==|!=)\s*(.+)$")
+
+# The flattener is the single source of truth for these namespaces (resolved
+# from profiles.toml + the user source); anything outside them is toolchain
+# provided and must stay compiler-resolved.
+_AUTHORITATIVE_PREFIXES = ("CP_", "NEED_")
+
+
+def is_authoritative_macro(name: str) -> bool:
+    """Return whether ``name`` lives in a namespace the flattener fully resolves."""
+
+    return name.startswith(_AUTHORITATIVE_PREFIXES)
 
 
 def parse_macro_numeric_token(token: str, macro_values: MacroValueMap) -> int | None:
@@ -86,69 +96,3 @@ def update_macro_state_from_line(macro_values: MacroValueMap, line: str) -> None
 
     token = token.split()[0]
     macro_values[name] = parse_macro_numeric_token(token, macro_values)
-
-
-def evaluate_simple_if_expression(expr: str, macro_values: MacroValueMap) -> bool | None:
-    """Evaluate a restricted ``#if`` expression under a known macro state.
-
-    Supported forms (anything else returns ``None``):
-      - integer literal (including negated literal)
-      - ``defined(NAME)`` / ``defined NAME``
-      - ``!defined(NAME)`` / ``!defined NAME``
-      - bare identifier (truthy if non-zero)
-      - ``!identifier`` (truthy if zero)
-    """
-
-    normalized = expr.strip()
-    if not normalized:
-        return None
-
-    direct_value = parse_macro_numeric_token(normalized, macro_values)
-    if direct_value is not None:
-        return direct_value != 0
-
-    if normalized.startswith("!"):
-        negated_value = parse_macro_numeric_token(normalized[1:].strip(), macro_values)
-        if negated_value is not None:
-            return negated_value == 0
-
-    for pattern in (
-        SIMPLE_DEFINED_RE,
-        SIMPLE_DEFINED_ALT_RE,
-        SIMPLE_NOT_DEFINED_RE,
-        SIMPLE_NOT_DEFINED_ALT_RE,
-    ):
-        match = pattern.fullmatch(normalized)
-        if not match:
-            continue
-        name = match.group(1)
-        is_defined = name in macro_values
-        if pattern in {SIMPLE_DEFINED_RE, SIMPLE_DEFINED_ALT_RE}:
-            return is_defined
-        return not is_defined
-
-    match = SIMPLE_IDENT_RE.fullmatch(normalized)
-    if match:
-        value = macro_values.get(match.group(1))
-        if value is None:
-            return None
-        return value != 0
-
-    match = SIMPLE_NOT_IDENT_RE.fullmatch(normalized)
-    if match:
-        value = macro_values.get(match.group(1))
-        if value is None:
-            return None
-        return value == 0
-
-    # ``<token> == <token>`` / ``<token> != <token>`` where both sides resolve
-    # to integers (literal or known macro). Anything unresolved stays ``None``.
-    equality = EQUALITY_RE.fullmatch(normalized)
-    if equality:
-        lhs = parse_macro_numeric_token(equality.group(1), macro_values)
-        rhs = parse_macro_numeric_token(equality.group(3), macro_values)
-        if lhs is None or rhs is None:
-            return None
-        return lhs == rhs if equality.group(2) == "==" else lhs != rhs
-
-    return None

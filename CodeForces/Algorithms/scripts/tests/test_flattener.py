@@ -889,7 +889,10 @@ class FlattenerAuditTests(unittest.TestCase):
             output = inline_local_header(root, templates / "A.hpp", set())
             self.assertIn("int b = 1;", output)
             self.assertNotIn("int c = 1;", output)
-            self.assertIn('#include "C.hpp"', output)
+            # The taken ``#if`` arm wins, so the folder removes the dead ``#elif``
+            # arm entirely (including its dangling include) rather than leaking it.
+            self.assertNotIn('#include "C.hpp"', output)
+            self.assertNotIn("#elif", output)
 
     def test_inline_local_header_keeps_elif_inactive_for_includes_when_if_inactive(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
