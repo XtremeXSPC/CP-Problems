@@ -1,11 +1,11 @@
 //===----------------------------------------------------------------------===//
 /**
- * @file: problem_F_sub.cpp
- * @generated: 2026-06-02 11:59:52
- * @source: problem_F.cpp
+ * @file: problem_F2_sub.cpp
+ * @generated: 2026-06-02 11:57:32
+ * @source: problem_F2.cpp
  * @author: C.L.
  *
- * @brief: Codeforces Round 1101 (Div. 2) - Problem F
+ * @brief: Codeforces Round 1101 (Div. 2) - Problem F2
  */
 //===----------------------------------------------------------------------===//
 /* Included library and Compiler Optimizations */
@@ -175,7 +175,7 @@ using Byte = std::byte;
 #define SUM(x) std::accumulate(all(x), std::iter_value_t<decltype((x).begin())>{})
 #define MIN(x)                                       \
   ([&]() -> decltype(auto) {                         \
-    auto&& _cp_min_range = (x);                      \
+    auto &&_cp_min_range = (x);                      \
     if (std::ranges::empty(_cp_min_range)) {         \
       my_assert(false && "MIN(): empty range.");     \
       std::abort();                                  \
@@ -184,7 +184,7 @@ using Byte = std::byte;
   }())
 #define MAX(x)                                       \
   ([&]() -> decltype(auto) {                         \
-    auto&& _cp_max_range = (x);                      \
+    auto &&_cp_max_range = (x);                      \
     if (std::ranges::empty(_cp_max_range)) {         \
       my_assert(false && "MAX(): empty range.");     \
       std::abort();                                  \
@@ -198,7 +198,7 @@ struct YCombinator {
   F fn;
 
   template <class... Args>
-  decltype(auto) operator()(Args&&... args) const {
+  decltype(auto) operator()(Args &&...args) const {
     return fn(*this, std::forward<Args>(args)...);
   }
 };
@@ -207,13 +207,13 @@ template <class F>
 YCombinator(F) -> YCombinator<F>;
 
 template <class F>
-[[gnu::always_inline]] constexpr auto fix(F&& fn) {
+[[gnu::always_inline]] constexpr auto fix(F &&fn) {
   return YCombinator<std::decay_t<F>>{std::forward<F>(fn)};
 }
 
 // Type-safe cast alias:
 template <typename To>
-[[gnu::always_inline]] constexpr To as(auto&& x) noexcept {
+[[gnu::always_inline]] constexpr To as(auto &&x) noexcept {
   return static_cast<To>(std::forward<decltype(x)>(x));
 }
 
@@ -364,7 +364,7 @@ template <class F, class... Args>
 concept Predicate = std::predicate<F, Args...>;
 
 template <class T>
-concept Hashable = requires(const cvref_t<T>& value) {
+concept Hashable = requires(const cvref_t<T> &value) {
   { std::hash<cvref_t<T>>{}(value) } -> std::convertible_to<std::size_t>;
 };
 
@@ -490,7 +490,7 @@ template <cp::Signed T>
 }
 
 template <cp::Signed T>
-[[gnu::always_inline]] constexpr bool merge_congruences(T& r1, T& m1, T r2, T m2) {
+[[gnu::always_inline]] constexpr bool merge_congruences(T &r1, T &m1, T r2, T m2) {
   my_assert(m1 > 0 && m2 > 0);
   r1 = safe_mod(r1, m1);
   r2 = safe_mod(r2, m2);
@@ -671,38 +671,38 @@ struct IOSetup {
 inline IOSetup io_setup;
 
 template <class T>
-void read(T& x) { std::cin >> x; }
+void read(T &x) { std::cin >> x; }
 
 template <class T>
-void write(const T& x) { std::cout << x; }
+void write(const T &x) { std::cout << x; }
 
 #define CP_IO_COMPOSITE_CONTEXT 1
 template <class T, class U>
-inline void read(Pair<T, U>& p) {
+inline void read(Pair<T, U> &p) {
   read(p.first);
   read(p.second);
 }
 
 template <class T>
-inline void read(Vec<T>& v) {
-  for (auto& x : v)
+inline void read(Vec<T> &v) {
+  for (auto &x : v)
     read(x);
 }
 
 template <typename... Args>
-inline void read(std::tuple<Args...>& t) {
-  std::apply([](auto&... args) { (read(args), ...); }, t);
+inline void read(std::tuple<Args...> &t) {
+  std::apply([](auto &...args) { (read(args), ...); }, t);
 }
 
 template <class T, class U>
-inline void write(const Pair<T, U>& p) {
+inline void write(const Pair<T, U> &p) {
   write(p.first);
   write(' ');
   write(p.second);
 }
 
 template <class T>
-inline void write(const Vec<T>& v) {
+inline void write(const Vec<T> &v) {
   for (I64 i = 0; i < sz(v); ++i) {
     if (i)
       write(' ');
@@ -711,22 +711,22 @@ inline void write(const Vec<T>& v) {
 }
 
 template <typename... Args>
-inline void write(const std::tuple<Args...>& t) {
+inline void write(const std::tuple<Args...> &t) {
   I32 i = 0;
-  std::apply([&i](const auto&... args) { ((i++ > 0 ? (write(' '), 0) : 0, write(args)), ...); }, t);
+  std::apply([&i](const auto &...args) { ((i++ > 0 ? (write(' '), 0) : 0, write(args)), ...); }, t);
 }
 #undef CP_IO_COMPOSITE_CONTEXT
 
 template <class Head, class... Tail>
   requires(sizeof...(Tail) > 0)
-inline void read(Head& head, Tail&... tail) {
+inline void read(Head &head, Tail &...tail) {
   read(head);
   read(tail...);
 }
 
 template <class Head, class... Tail>
   requires(sizeof...(Tail) > 0)
-inline void write(const Head& head, const Tail&... tail) {
+inline void write(const Head &head, const Tail &...tail) {
   write(head);
   write(' ');
   write(tail...);
@@ -735,7 +735,7 @@ inline void write(const Head& head, const Tail&... tail) {
 inline void writeln() { write('\n'); }
 
 template <class... Args>
-inline void writeln(const Args&... args) {
+inline void writeln(const Args &...args) {
   if constexpr (sizeof...(args) > 0)
     write(args...);
   writeln();
@@ -747,14 +747,14 @@ namespace fast_io {
 #define CP_IO_COMPAT_FAST_IO_NAMESPACE_DEFINED 1
 
 template <class T>
-inline void read_integer(T& x) { cp_io::read(x); }
-inline void read_char(char& x) { cp_io::read(x); }
-inline void read_string(std::string& x) { cp_io::read(x); }
+inline void read_integer(T &x) { cp_io::read(x); }
+inline void read_char(char &x) { cp_io::read(x); }
+inline void read_string(std::string &x) { cp_io::read(x); }
 
 template <class T>
 inline void write_integer(T x) { cp_io::write(x); }
 inline void write_char(char c) { std::cout.put(c); }
-inline void write_string(const std::string& s) { cp_io::write(s); }
+inline void write_string(const std::string &s) { cp_io::write(s); }
 inline void flush_output() { std::cout.flush(); }
 
 using cp_io::read;
@@ -810,160 +810,161 @@ inline void Yes(bool condition = true) {
 inline void No(bool condition = true) { Yes(!condition); }
 
 //===----------------------------------------------------------------------===//
+/* Helpers for the problem */
+
+/*
+ * A perfectly cooked chain uses pan times T_0, T_1, ... tied by
+ *   b*T_{i-1} + a*T_i = k    =>    T_i = (k - b*T_{i-1}) / a.
+ * Unrolling the recurrence gives a closed form for every step:
+ *   a^i * T_i = (-b)^i * T_0 + off_i,   off_i = sum_{j<i} (-b)^{i-1-j} k a^j.
+ * Hence each step constrains the starting time T_0 in two ways:
+ *   - non-negativity:  (-b)^i * T_0 + off_i >= 0      (a window [lo, hi]),
+ *   - integrality:     (-b)^i * T_0 + off_i ≡ 0 (mod a^i)  (a congruence).
+ */
+
+// Steps of the "golden" chain that starts already cooked (T_0 = k/a), so no
+// pancake is sacrificed. Returns -1 when it does not exist (k % a != 0);
+// otherwise the count of extra steps (total cooked pancakes = result + 1).
+I64 golden_chain_steps(I64 a, I64 b, I64 k) {
+  if (k % a != 0)
+    return -1;
+  I64 steps = 0;
+  for (I64 t = k / a;;) {
+    I64 next = k - b * t;
+    if (next < 0 || next % a != 0)
+      break;
+    t = next / a;
+    ++steps;
+  }
+  return steps;
+}
+
+// Longest feasible chain length L in [1, 60] for the forest case (a != b),
+// or 0 when none exists.
+I64 longest_chain(I64 a, I64 b, I64 k) {
+  // Reduce by gcd(a, b): the T_i sequence is unchanged, but a smaller a keeps a^i
+  // (and k*a^i) inside __int128 long enough to reach the true maximum length.
+  // If gcd(a, b) does not divide k no pair is perfect, so the length is 0 anyway.
+  const I64 g_ab = std::gcd(a, b);
+  if (k % g_ab == 0) {
+    a /= g_ab;
+    b /= g_ab;
+    k /= g_ab;
+  }
+
+  // Roll out (-b)^i, a^i and off_i while they stay inside __int128 range.
+  Vec<I128> negb_pow{1}; // (-b)^i, also the coefficient of T_0 at step i
+  Vec<I128> a_pow{1};    // a^i, the modulus at step i
+  Vec<I128> off{0};      // off_i
+
+  I64 reach = 0;
+  while (reach < 60) {
+    I128 next_negb, next_a, scaled, k_term, next_off;
+    if (__builtin_mul_overflow(negb_pow[reach], -(I128)b, &next_negb))
+      break;
+    if (__builtin_mul_overflow(a_pow[reach], (I128)a, &next_a))
+      break;
+    if (__builtin_mul_overflow(off[reach], -(I128)b, &scaled))
+      break;
+    if (__builtin_mul_overflow((I128)k, a_pow[reach], &k_term))
+      break;
+    if (__builtin_add_overflow(scaled, k_term, &next_off))
+      break;
+    negb_pow.push_back(next_negb);
+    a_pow.push_back(next_a);
+    off.push_back(next_off);
+    ++reach;
+  }
+
+  for (I64 L = reach; L >= 1; --L) {
+    // 1) Non-negativity of every T_i pins T_0 to an integer window [lo, hi].
+    //    T_0 <= floor(k/b) keeps T_1 = (k - b*T_0)/a non-negative.
+    I128 lo = 0, hi = k / b;
+    FOR(i, 1, L + 1) {
+      const I128 coeff = negb_pow[i];
+      if (coeff > 0)
+        lo = std::max(lo, div_ceil(-off[i], coeff));
+      else if (coeff < 0)
+        hi = std::min(hi, div_floor(off[i], -coeff));
+    }
+    if (lo > hi)
+      continue;
+
+    // 2) Integrality intersects the congruences  coeff*T_0 ≡ -off_i (mod a^i).
+    I128 rem = 0, mod = 1;
+    bool feasible = true;
+    FOR(i, 1, L + 1) {
+      const I128 step_mod = a_pow[i];
+      const I128 coeff    = safe_mod(negb_pow[i], step_mod);
+      const I128 target   = safe_mod(-off[i], step_mod);
+
+      auto [g, coeff_inv] = inv_gcd(coeff, step_mod);
+      if (target % g != 0) {
+        feasible = false;
+        break;
+      }
+
+      const I128 class_mod = step_mod / g;
+      I128 residue         = safe_mod(target / g, class_mod);
+      residue              = safe_mod(residue * safe_mod(coeff_inv, class_mod), class_mod);
+
+      if (!merge_congruences(rem, mod, residue, class_mod)) {
+        feasible = false;
+        break;
+      }
+    }
+    if (!feasible)
+      continue;
+
+    // 3) Smallest T_0 >= lo in the congruence class; the length is usable iff <= hi.
+    I128 t0 = rem;
+    if (t0 < lo)
+      t0 += div_ceil(lo - rem, mod) * mod;
+    if (t0 <= hi)
+      return L;
+  }
+  return 0;
+}
+
+//===----------------------------------------------------------------------===//
 /* Main Solver Function */
 
 using namespace std;
-
-const I128 MAX_I128 = ~((I128)1 << 127);
 
 void solve() {
   I64 n, a, b, k;
   IN(n, a, b, k);
 
+  // a == b: the map is the involution x <-> k/a - x; cook everything or nothing.
   if (a == b) {
     OUT(k % a == 0 ? n : 0);
     return;
   }
 
-  I64 max_ans = (k % (a + b) == 0) ? n - 1 : 0;
+  // Self-loop at x* = k/(a+b): cook n-1 pancakes after sacrificing the first.
+  I64 best = (k % (a + b) == 0) ? n - 1 : 0;
 
-  // Golden path evaluation.
-  I64 l_gold = -1;
-  if (k % a == 0) {
-    I64 cur = k / a;
-    while (cur >= 0) {
-      l_gold++;
-      I64 nxt = k - b * cur;
-      if (nxt < 0 || nxt % a != 0)
-        break;
-      cur = nxt / a;
-    }
-  }
-
-  if (n <= l_gold + 1) {
+  // A prefix of the golden chain may already cook all n pancakes.
+  I64 golden = golden_chain_steps(a, b, k);
+  if (n <= golden + 1) {
     OUT(n);
     return;
   }
 
-  // Reduce by gab = gcd(a, b):
-  I64 gab = std::gcd(a, b);
-  if (k % gab == 0) {
-    a /= gab;
-    b /= gab;
-    k /= gab;
+  // Otherwise: one golden block (if any) plus repeated longest-chain blocks,
+  // each block cooking L of its L+1 pancakes.
+  I64 golden_pts = max<I64>(0, golden + 1);
+  I64 budget     = n - golden_pts;
+
+  I64 path      = longest_chain(a, b, k);
+  I64 block_pts = 0;
+  if (path > 0) {
+    I64 blocks   = budget / (path + 1);
+    I64 leftover = budget % (path + 1);
+    block_pts    = blocks * path + max<I64>(0, leftover - 1);
   }
 
-  // Precompute bounds to avoid overflow.
-  Vec<I128> A_arr(1, 1);
-  Vec<I128> B_arr(1, 0);
-  Vec<I128> PA_arr(1, 1);
-
-  I64 l_safe = 0;
-  while (l_safe < 60) {
-    I128 A = A_arr.back(), B = B_arr.back(), pa = PA_arr.back();
-
-    I128 abs_A = A < 0 ? -A : A;
-    if (abs_A > 0 && MAX_I128 / b < abs_A)
-      break;
-    if (pa > 0 && MAX_I128 / a < pa)
-      break;
-
-    I128 abs_B = B < 0 ? -B : B;
-    if (abs_B > 0 && MAX_I128 / b < abs_B)
-      break;
-    if (MAX_I128 / k < pa)
-      break;
-
-    I128 t1 = -(I128)b * B;
-    I128 t2 = (I128)k * pa;
-    if (t1 > 0 && t2 > 0 && MAX_I128 - t1 < t2)
-      break;
-    if (t1 < 0 && t2 < 0 && -t1 > MAX_I128 - (-t2))
-      break;
-
-    A_arr.push_back(-(I128)b * A);
-    B_arr.push_back(t1 + t2);
-    PA_arr.push_back(pa * a);
-    l_safe++;
-  }
-
-  // Max path length search.
-  I64 l_max = 0;
-  for (I64 L = l_safe; L >= 1; --L) {
-    I128 LB = 0, UB = k / b; // T0 <= floor(k/b) so that T1 = (k - b*T0)/a >= 0
-    bool VL = true;
-
-    FOR(i, 1, L + 1) {
-      I128 A = A_arr[i], B = B_arr[i];
-      if (A > 0)
-        LB = max(LB, div_ceil(-B, A));
-      else if (A < 0)
-        UB = min(UB, div_floor(B, -A));
-    }
-
-    if (LB > UB)
-      continue;
-
-    I128 R = 0, M = 1;
-    FOR(i, 1, L + 1) {
-      I128 MOD_i = PA_arr[i];
-      I128 X     = A_arr[i] % MOD_i;
-      if (X < 0)
-        X += MOD_i;
-      I128 Y = (-B_arr[i]) % MOD_i;
-      if (Y < 0)
-        Y += MOD_i;
-
-      auto [g, inv] = inv_gcd(X, MOD_i);
-      if (Y % g != 0) {
-        VL = false;
-        break;
-      }
-
-      I128 m_i = MOD_i / g;
-      I128 r_i = (Y / g) % m_i;
-      if (r_i < 0)
-        r_i += m_i;
-      inv %= m_i;
-      if (inv < 0)
-        inv += m_i;
-      r_i = (r_i * inv) % m_i;
-      if (r_i < 0)
-        r_i += m_i;
-
-      if (!merge_congruences(R, M, r_i, m_i)) {
-        VL = false;
-        break;
-      }
-    }
-
-    if (VL) {
-      I128 T0 = R;
-      if (T0 < LB) {
-        I128 q = (LB - R + M - 1) / M;
-        T0     = R + q * M;
-      }
-      if (T0 <= UB) {
-        l_max = L;
-        break;
-      }
-    }
-  }
-
-  // Score combination.
-  I64 v_gold = max((I64)0, l_gold + 1);
-  I64 n_rem  = n - v_gold;
-
-  I64 p_blk = 0;
-  if (l_max > 0) {
-    I64 blk = n_rem / (l_max + 1);
-    I64 rem = n_rem % (l_max + 1);
-    p_blk   = blk * l_max + max((I64)0, rem - 1);
-  }
-
-  I64 p_tot = v_gold + p_blk;
-
-  OUT(max(max_ans, p_tot));
+  OUT(max(best, golden_pts + block_pts));
 }
 
 //===----------------------------------------------------------------------===//
