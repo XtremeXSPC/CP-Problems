@@ -27,6 +27,7 @@ from flattener_core.includes import (
 from flattener_core.lexer import extract_identifiers, strip_non_code
 from flattener_core.symbols import collect_module_leaf_trigger_tokens
 from flattener_pipeline.context import FlattenContext, FlattenerMode, ValidationStatus
+from flattener_pipeline.formatting import reindent_with_clang_format
 from flattener_pipeline.macros import COMPOSITE_IO_TRIGGER_TOKENS, extract_macro_values_from_source
 from flattener_pipeline.pipeline import build_flattened_output
 from flattener_pipeline.submission import prepare_submission_output
@@ -226,11 +227,15 @@ def main() -> None:
                 end="",
             )
         case FlattenerMode.COMPACT:
+            # clang-format re-indents the directives the folder left dangling and
+            # collapses fold-leftover blank runs; comments are kept in this mode.
             print(
-                build_flattened_output(
-                    ctx,
-                    enable_template_pruning=True,
-                    enable_module_pruning=enable_module_pruning,
+                reindent_with_clang_format(
+                    build_flattened_output(
+                        ctx,
+                        enable_template_pruning=True,
+                        enable_module_pruning=enable_module_pruning,
+                    )
                 ),
                 end="",
             )
@@ -240,6 +245,8 @@ def main() -> None:
                 enable_template_pruning=True,
                 enable_module_pruning=enable_module_pruning,
             )
+            # Validation runs on the raw output; the emitted text is re-indented
+            # afterwards (clang-format is whitespace-only, so validity holds).
             compact_valid = _run_validation(compact_output)
             if compact_valid is ValidationStatus.FAILED:
                 sys.stderr.write(
@@ -252,12 +259,12 @@ def main() -> None:
                 )
                 safe_valid = _run_validation(safe_output)
                 if safe_valid is not ValidationStatus.FAILED:
-                    print(safe_output, end="")
+                    print(reindent_with_clang_format(safe_output), end="")
                     return
                 sys.stderr.write(
                     "warning: safe variant also failed syntax check; emitting compact output anyway\n"
                 )
-            print(compact_output, end="")
+            print(reindent_with_clang_format(compact_output), end="")
         case FlattenerMode.SUBMISSION:
             submission_output = build_flattened_output(
                 ctx,
