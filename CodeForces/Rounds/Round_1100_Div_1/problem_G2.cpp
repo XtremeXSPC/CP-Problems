@@ -12,8 +12,8 @@
 #define CP_IO_PROFILE_SIMPLE
 
 #include "templates/Base.hpp"
-#include "modules/data_structures/SegmentTree.hpp"
-#include "modules/data_structures/RangeLineHull.hpp"
+#include "modules/data_structures/segment_tree/SegmentTree.hpp"
+#include "modules/data_structures/line_structures/RangeLineHull.hpp"
 
 //===----------------------------------------------------------------------===//
 /* Solver Helpers */
