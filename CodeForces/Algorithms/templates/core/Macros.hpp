@@ -1,18 +1,30 @@
 #pragma once
 #include "Debug.hpp"
-#include "ScalarTypes.hpp"
+#include "TypeTraits.hpp"
 
 //===----------------------------------------------------------------------===//
 /* Advanced Macro System */
 
 // Advanced FOR loop system:
-#define FOR1(a) for (I64 _ = 0; _ < (a); ++_)
-#define FOR2(i, a) for (I64 i = 0; i < (a); ++i)
-#define FOR3(i, a, b) for (I64 i = (a); i < (b); ++i)
-#define FOR4(i, a, b, c) for (I64 i = (a); i < (b); i += (c))
-#define FOR1_R(a) for (I64 _ = (a) - 1; _ >= 0; --_)
-#define FOR2_R(i, a) for (I64 i = (a) - 1; i >= 0; --i)
-#define FOR3_R(i, a, b) for (I64 i = (b) - 1; i >= (a); --i)
+#define CP_LOOP(...) cp::loop<__VA_ARGS__>
+#define CP_VAL(x, ...) CP_LOOP(__VA_ARGS__)::val(x)
+
+#define FOR1(a) \
+  for (auto _ = CP_VAL(0, decltype(a)); _ < CP_VAL(a, decltype(a)); ++_)
+#define FOR2(i, a) \
+  for (auto i = CP_VAL(0, decltype(a)); i < CP_VAL(a, decltype(a)); ++i)
+#define FOR3(i, a, b) \
+  for (auto i = CP_VAL(a, decltype(a), decltype(b)); i < CP_VAL(b, decltype(a), decltype(b)); ++i)
+#define FOR4(i, a, b, c)                                          \
+  for (auto i = CP_VAL(a, decltype(a), decltype(b), decltype(c)); \
+       i < CP_VAL(b, decltype(a), decltype(b), decltype(c));      \
+       i += CP_VAL(c, decltype(a), decltype(b), decltype(c)))
+#define FOR1_R(a) \
+  for (auto _ = CP_VAL(a, decltype(a)); _-- > 0;)
+#define FOR2_R(i, a) \
+  for (auto i = CP_VAL(a, decltype(a)); i-- > 0;)
+#define FOR3_R(i, a, b) \
+  for (auto i = CP_VAL(b, decltype(a), decltype(b)); i-- > CP_VAL(a, decltype(a), decltype(b));)
 
 // Overload resolution for FOR macros:
 #define overload4(a, b, c, d, e, ...) e
@@ -20,8 +32,12 @@
 #define FOR(...) overload4(__VA_ARGS__, FOR4, FOR3, FOR2, FOR1)(__VA_ARGS__)
 #define FOR_R(...) overload3(__VA_ARGS__, FOR3_R, FOR2_R, FOR1_R)(__VA_ARGS__)
 #define ROF(...) FOR_R(__VA_ARGS__)
-#define FORD3(i, a, b) for (I64 i = (a); i >= (b); --i)
-#define FORD4(i, a, b, c) for (I64 i = (a); i >= (b); i -= (c))
+#define FORD3(i, a, b) \
+  for (auto i = CP_VAL(a, decltype(a), decltype(b)); i >= CP_VAL(b, decltype(a), decltype(b)); --i)
+#define FORD4(i, a, b, c)                                         \
+  for (auto i = CP_VAL(a, decltype(a), decltype(b), decltype(c)); \
+       i >= CP_VAL(b, decltype(a), decltype(b), decltype(c));     \
+       i -= CP_VAL(c, decltype(a), decltype(b), decltype(c)))
 #define FORD(...) overload4(__VA_ARGS__, FORD4, FORD3)(__VA_ARGS__)
 
 // Range-based iteration macros:
@@ -31,8 +47,8 @@
 // Container utility macros:
 #define all(x) (x).begin(), (x).end()
 #define rall(x) (x).rbegin(), (x).rend()
-#define sz(x) (I64)(x).size()
-#define isz(x) (I32)(x).size()
+#define sz(x) cp::sz64(x)
+#define isz(x) cp::sz32(x)
 #define len(x) sz(x)
 #define eb emplace_back
 #define elif else if
