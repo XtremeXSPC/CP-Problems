@@ -1,11 +1,11 @@
 //===----------------------------------------------------------------------===//
 /**
- * @file: problem_C_R1578D1_sub.cpp
- * @generated: 2026-06-11 20:46:48
- * @source: problem_C_R1578D1.cpp
+ * @file: problem_C_R8751D1_sub.cpp
+ * @generated: 2026-06-12 11:52:31
+ * @source: problem_C_R8751D1.cpp
  * @author: C.L.
  *
- * @brief: Codeforces Round XXX (Div. X) - Problem_C_R1578D1
+ * @brief: Codeforces Round XXX (Div. X) - Problem_C_R8751D1
  */
 //===----------------------------------------------------------------------===//
 /* Included library and Compiler Optimizations */
@@ -17,7 +17,7 @@
   #define CP_USE_GLOBAL_STD_NAMESPACE 1
 #endif
 
-#define CP_IO_PROFILE_SIMPLE
+#define CP_IO_PROFILE_FAST_MINIMAL
 
 //===----------------------------------------------------------------------===//
 /* Compiler Pragmas */
@@ -432,29 +432,319 @@ struct Stopwatch {
   [[gnu::always_inline]] bool within(F64 limit) const { return elapsed() < limit; }
 };
 
+// Minimal Fast_IO shim: selects the no-extension variant of Fast_IO.hpp.
+#define CP_FAST_IO_VARIANT 0
+
 //===----------------------------------------------------------------------===//
-/* Lightweight I/O Utilities */
+/* Library Function Aliases */
 
-namespace cp_io {
+namespace cp {
 
-inline void setup() {
-  std::ios_base::sync_with_stdio(false);
-  std::cin.tie(nullptr);
-  std::cout.tie(nullptr);
-  std::cout << std::fixed << std::setprecision(10);
-}
+template <bool B, class T, class F>
+using Conditional = std::conditional_t<B, T, F>;
 
-struct IOSetup {
-  IOSetup() { setup(); }
+template <class T>
+using cvref_t = std::remove_cvref_t<T>;
+
+template <class T, class U>
+concept Same = std::same_as<cvref_t<T>, cvref_t<U>>;
+
+// clang-format off
+template <class T>
+concept Int = std::integral<cvref_t<T>>
+#if HAS_INT128
+  || std::same_as<cvref_t<T>, I128>
+  || std::same_as<cvref_t<T>, U128>
+#endif
+    ;
+
+template <class T>
+concept Float = std::floating_point<cvref_t<T>>;
+
+template <class T>
+concept Signed = Int<T> && (std::is_signed_v<cvref_t<T>>
+#if HAS_INT128
+  || std::same_as<cvref_t<T>, I128>
+#endif
+);
+// clang-format on
+
+template <class T>
+concept Unsigned = Int<T> && !Signed<T>;
+
+template <class T>
+concept Enum = std::is_enum_v<cvref_t<T>>;
+
+template <class F, class... Args>
+concept Predicate = std::predicate<F, Args...>;
+
+template <class T>
+concept Hashable = requires(const cvref_t<T>& value) {
+  { std::hash<cvref_t<T>>{}(value) } -> std::convertible_to<std::size_t>;
 };
 
-inline IOSetup io_setup;
+} // namespace cp
+
+//===----------------------------------------------------------------------===//
+/* Buffered I/O (variant-driven) */
+
+template <I64 MOD>
+struct ModInt;
+
+namespace cp {
+template <class T, class Tag>
+class StrongType;
+} // namespace cp
+
+namespace fast_io {
 
 template <class T>
-void read(T& x) { std::cin >> x; }
+concept FastIntegral = cp::Int<T> && !cp::Same<T, bool> && !cp::Same<T, char>;
 
 template <class T>
-void write(const T& x) { std::cout << x; }
+concept FastFloating = cp::Float<T>;
+
+template <class T>
+inline void read_integer(T&);
+
+template <class T>
+inline void write_integer(T);
+
+} // namespace fast_io
+
+namespace fast_io {
+
+static constexpr U32 BUFFER_SIZE = 1U << 20; // 1 MB
+alignas(64) inline char input_buffer[BUFFER_SIZE];
+alignas(64) inline char output_buffer[BUFFER_SIZE];
+alignas(64) inline char number_buffer[160];
+
+struct FourDigitTable {
+  char digits[10'000][4];
+
+  constexpr FourDigitTable() : digits{} {
+    for (U32 value = 0; value < 10'000; ++value) {
+      U32 x = value;
+      for (I32 pos = 3; pos >= 0; --pos) {
+        digits[value][pos] = as<char>('0' + (x % 10));
+        x /= 10;
+      }
+    }
+  }
+};
+
+inline constexpr FourDigitTable four_digit_table{};
+
+inline U32 input_pos  = 0;
+inline U32 input_end  = 0;
+inline U32 output_pos = 0;
+
+/* ------------------------------- INPUT API -------------------------------- */
+
+inline void load_input() {
+  // Full reload: assumes any single token fits within BUFFER_SIZE.
+  input_end = as<U32>(std::fread(input_buffer, 1, BUFFER_SIZE, stdin));
+  input_pos = 0;
+}
+
+[[gnu::always_inline]] inline char next_input_char() {
+  if (input_pos >= input_end) {
+    load_input();
+    if (input_pos >= input_end)
+      return 0;
+  }
+  return input_buffer[input_pos++];
+}
+
+inline void flush_output() {
+  if (output_pos == 0)
+    return;
+  std::fwrite(output_buffer, 1, output_pos, stdout);
+  output_pos = 0;
+}
+
+inline void read_char(char& c) {
+  do {
+    c = next_input_char();
+  } while (c <= ' ' && c != 0);
+}
+
+template <typename T>
+inline void read_integer(T& x) {
+  char c;
+  do {
+    c = next_input_char();
+  } while (c <= ' ' && c != 0);
+
+  bool negative = false;
+  if constexpr (cp::Signed<T>) {
+    if (c == '-') {
+      negative = true;
+      c        = next_input_char();
+    }
+  }
+
+  x = 0;
+  while (c > ' ') {
+    x = x * 10 + (c - '0');
+    c = next_input_char();
+  }
+
+  if constexpr (cp::Signed<T>) {
+    if (negative)
+      x = -x;
+  }
+}
+
+inline void read_string(std::string& s) {
+  s.clear();
+  s.reserve(32);
+  char c;
+  do {
+    c = next_input_char();
+  } while (c <= ' ' && c != 0);
+
+  while (c > ' ') {
+    s.push_back(c);
+    c = next_input_char();
+  }
+}
+
+template <typename T>
+inline void read_floating(T& x) {
+  char token[64];
+  U32 len = 0;
+  char c;
+  do {
+    c = next_input_char();
+  } while (c <= ' ' && c != 0);
+  while (c > ' ' && len + 1 < sizeof(token)) {
+    token[len++] = c;
+    c            = next_input_char();
+  }
+  token[len] = '\0';
+
+  char* end = nullptr;
+  if constexpr (cp::Same<T, F32>)
+    x = std::strtof(token, &end);
+  else if constexpr (cp::Same<T, F64>)
+    x = std::strtod(token, &end);
+  else
+    x = std::strtold(token, &end);
+}
+
+template <FastIntegral T>
+inline void read(T& x) { read_integer(x); }
+
+template <FastFloating T>
+inline void read(T& x) { read_floating(x); }
+inline void read(char& x) { read_char(x); }
+inline void read(std::string& x) { read_string(x); }
+
+/* ------------------------------- OUTPUT API ------------------------------- */
+
+template <typename T>
+inline void write_integer(T x) {
+  using UnsignedT = cp::make_unsigned_t<T>;
+  UnsignedT ux;
+  if constexpr (cp::Signed<T>) {
+    ux = x < 0 ? as<UnsignedT>(-(x + 1)) + 1 : as<UnsignedT>(x);
+  } else {
+    ux = as<UnsignedT>(x);
+  }
+
+  I32 begin = I32(sizeof(number_buffer));
+  while (ux >= 10'000) {
+    const U32 chunk = as<U32>(ux % 10'000);
+    ux /= 10'000;
+    begin -= 4;
+    std::memcpy(number_buffer + begin, four_digit_table.digits[chunk], 4);
+  }
+
+  const U32 head = as<U32>(ux);
+  if (head >= 1'000) {
+    begin -= 4;
+    std::memcpy(number_buffer + begin, four_digit_table.digits[head], 4);
+  } else if (head >= 100) {
+    begin -= 3;
+    std::memcpy(number_buffer + begin, four_digit_table.digits[head] + 1, 3);
+  } else if (head >= 10) {
+    begin -= 2;
+    number_buffer[begin]     = as<char>('0' + head / 10);
+    number_buffer[begin + 1] = as<char>('0' + head % 10);
+  } else {
+    number_buffer[--begin] = as<char>('0' + head);
+  }
+
+  if constexpr (cp::Signed<T>) {
+    if (x < 0)
+      number_buffer[--begin] = '-';
+  }
+
+  [[assume(begin >= 0)]];
+  const U32 len = as<U32>(I32(sizeof(number_buffer)) - begin);
+  if (output_pos + len >= BUFFER_SIZE)
+    flush_output();
+  std::memcpy(output_buffer + output_pos, number_buffer + begin, len);
+  output_pos += len;
+}
+
+#define CP_FLOAT_PRECISION 10
+
+template <typename T>
+inline void write_floating(T x) {
+  char local_buffer[128];
+  const int n = std::snprintf(local_buffer, sizeof(local_buffer), "%.*Lf", CP_FLOAT_PRECISION, as<F80>(x));
+  if (n <= 0)
+    return;
+
+  U32 len = as<U32>(std::min(n, as<int>(sizeof(local_buffer) - 1)));
+  if (output_pos + len >= BUFFER_SIZE)
+    flush_output();
+  if (len >= BUFFER_SIZE) {
+    std::fwrite(local_buffer, 1, len, stdout);
+    return;
+  }
+  std::memcpy(output_buffer + output_pos, local_buffer, len);
+  output_pos += len;
+}
+
+inline void write_char(char c) {
+  if (output_pos >= BUFFER_SIZE)
+    flush_output();
+  output_buffer[output_pos++] = c;
+}
+
+inline void write_string(std::string_view s) {
+  const char* data = s.data();
+  U32 remaining    = as<U32>(s.size());
+  while (remaining > 0) {
+    if (output_pos >= BUFFER_SIZE)
+      flush_output();
+    U32 space = BUFFER_SIZE - output_pos;
+    U32 chunk = (remaining < space) ? remaining : space;
+    std::memcpy(output_buffer + output_pos, data, chunk);
+    output_pos += chunk;
+    data += chunk;
+    remaining -= chunk;
+  }
+}
+
+template <FastIntegral T>
+inline void write(T x) { write_integer(x); }
+
+template <FastFloating T>
+inline void write(T x) { write_floating(x); }
+
+inline void write(char x) { write_char(x); }
+inline void write(const std::string& x) { write_string(x); }
+inline void write(const char* x) { write_string(x); }
+
+} // namespace fast_io
+
+/* ------------------------------- EXTENSIONS ------------------------------- */
+
+namespace fast_io {
 
 #define CP_IO_COMPOSITE_CONTEXT 1
 template <class T, class U>
@@ -521,30 +811,26 @@ inline void writeln(const Args&... args) {
   writeln();
 }
 
-} // namespace cp_io
-
-namespace fast_io {
-#define CP_IO_COMPAT_FAST_IO_NAMESPACE_DEFINED 1
+// Single-arg fallbacks: error on types lacking a concrete overload.
+template <class T>
+  requires(!FastIntegral<T> && !FastFloating<T>)
+void read(T&) = delete;
 
 template <class T>
-inline void read_integer(T& x) { cp_io::read(x); }
-inline void read_char(char& x) { cp_io::read(x); }
-inline void read_string(std::string& x) { cp_io::read(x); }
+  requires(!FastIntegral<T> && !FastFloating<T>)
+void write(const T&) = delete;
 
-template <class T>
-inline void write_integer(T x) { cp_io::write(x); }
-inline void write_char(char c) { std::cout.put(c); }
-inline void write_string(const std::string& s) { cp_io::write(s); }
-inline void flush_output() { std::cout.flush(); }
+struct IOFlusher {
+  ~IOFlusher() { flush_output(); }
+};
 
-using cp_io::read;
-using cp_io::write;
-using cp_io::writeln;
+inline IOFlusher io_flusher;
+
 } // namespace fast_io
 
-#define CP_IO_IMPL_READ(...) cp_io::read(__VA_ARGS__)
-#define CP_IO_IMPL_WRITELN(...) cp_io::writeln(__VA_ARGS__)
-#define CP_IO_IMPL_FLUSH() std::cout.flush()
+#define CP_IO_IMPL_READ(...) fast_io::read(__VA_ARGS__)
+#define CP_IO_IMPL_WRITELN(...) fast_io::writeln(__VA_ARGS__)
+#define CP_IO_IMPL_FLUSH() fast_io::flush_output()
 
 //===----------------------------------------------------------------------===//
 /* Shared I/O Macro and Answer Helper Definitions */
@@ -596,16 +882,16 @@ using namespace std;
 
 constexpr I32 INF = 1 << 29;
 
-enum Tag : I32 { BAD,
-                 PATH,
-                 PINT,
-                 FD,
-                 FS,
-                 NIL };
+enum Tag : I32 { BAD, PATH, PINT, FD, FS, NIL };
 
 struct Prof {
   Tag t = BAD;
   I32 a = 0, b = 0;
+};
+
+struct Lat {
+  bool fit = false;
+  I32 lam = 0, s = 0;
 };
 
 Prof bad() { return {BAD, 0, 0}; }
@@ -614,6 +900,8 @@ Prof pint(I32 a, I32 b) { return {PINT, a, b}; }
 Prof fd(I32 d) { return {FD, min(d, INF), 0}; }
 Prof fs(I32 s) { return s == 0 ? fd(0) : Prof{FS, s, 0}; }
 Prof nil() { return {NIL, 0, 0}; }
+Lat no_lat() { return {}; }
+Lat lat(I32 lam, I32 s) { return {true, lam, s}; }
 
 Prof shift(const Prof& p) {
   switch (p.t) {
@@ -650,7 +938,65 @@ struct Dec {
   bool both_path = false;
 };
 
-Prof merge2(const Prof& A, const Prof& B, Dec& dec) {
+struct Pack {
+  I32 n = 0;
+  I32 v[3]{};
+  Prof p[3];
+  Lat l[3];
+
+  void add(I32 id, Prof prof, Lat lat = {}) {
+    v[n] = id;
+    p[n] = prof;
+    l[n] = lat;
+    ++n;
+  }
+};
+
+I32 lat_lam(const Prof& p) {
+  if (p.t == PINT)
+    return 1;
+  if (p.t == FD)
+    return min(p.a + 1, INF);
+  return -1;
+}
+
+Lat side_prof(const Pack& ps) {
+  I32 id[2], n = 0;
+  FOR(i, ps.n) {
+    if (ps.p[i].t != NIL) {
+      if (n == 2)
+        return no_lat();
+      id[n++] = i;
+    }
+  }
+
+  if (n == 0)
+    return lat(INF, 0);
+
+  if (n == 1) {
+    const Prof& p = ps.p[id[0]];
+    if (p.t == PATH)
+      return lat(INF, 0);
+    const I32 lam = lat_lam(p);
+    return lam < 0 ? no_lat() : lat(lam, 0);
+  }
+
+  const Prof& A = ps.p[id[0]];
+  const Prof& B = ps.p[id[1]];
+  const bool p0 = A.t == PATH;
+  const bool p1 = B.t == PATH;
+  if (p0 && p1)
+    return lat(INF, min(A.a, B.a));
+  if (p0 == p1)
+    return no_lat();
+
+  const Prof& P = p0 ? A : B;
+  const Prof& X = p0 ? B : A;
+  const I32 lam = lat_lam(X);
+  return lam < 0 ? no_lat() : lat(lam, P.a);
+}
+
+Prof merge2(const Prof& A, const Lat& LA, const Prof& B, const Lat& LB, Dec& dec) {
   if (A.t == BAD || B.t == BAD)
     return bad();
   if (A.t == PATH && B.t == PATH) {
@@ -688,6 +1034,12 @@ Prof merge2(const Prof& A, const Prof& B, Dec& dec) {
         take = {up, 2, S.b, false};
       }
     }
+
+    const Lat& L = (up == 0 ? LB : LA);
+    if (U.t == PATH && L.fit && U.a < L.lam && L.s < best) {
+      best = L.s;
+      take = {up, 3, 0, false};
+    }
   }
 
   if (take.up < 0)
@@ -696,20 +1048,21 @@ Prof merge2(const Prof& A, const Prof& B, Dec& dec) {
   return fs(best);
 }
 
-Prof merge_all(const Vec<Prof>& ps, Dec& dec) {
-  Vec<Prof> q;
-  for (const Prof& p : ps) {
-    if (p.t != NIL)
-      q.push_back(p);
+Prof merge_all(const Pack& ps, Dec& dec) {
+  I32 id[2], n = 0;
+  FOR(i, ps.n) {
+    if (ps.p[i].t != NIL) {
+      if (n == 2)
+        return bad();
+      id[n++] = i;
+    }
   }
 
-  if (q.empty())
+  if (n == 0)
     return path(1);
-  if (isz(q) == 1)
-    return shift(q[0]);
-  if (isz(q) == 2)
-    return merge2(q[0], q[1], dec);
-  return bad();
+  if (n == 1)
+    return shift(ps.p[id[0]]);
+  return merge2(ps.p[id[0]], ps.l[id[0]], ps.p[id[1]], ps.l[id[1]], dec);
 }
 
 bool top_one(const Prof& p) {
@@ -740,6 +1093,7 @@ struct Solver {
   VecI32 deg, par, dep, ord;
   VecI32 cid, pos, ext, entry;
   Vec<Prof> down, up;
+  Vec<Lat> ldown, lup;
   VecI32 X, Y;
   bool fail = false;
 
@@ -750,6 +1104,10 @@ struct Solver {
 
   Prof beyond(I32 u, I32 v) {
     return par[v] == u ? down[v] : up[u];
+  }
+
+  Lat side_beyond(I32 u, I32 v) {
+    return par[v] == u ? ldown[v] : lup[u];
   }
 
   void build() {
@@ -866,7 +1224,7 @@ struct Solver {
     I32 best = INF, take = 0;
     FOR(d, 2) {
       const I32 dir = (d == 0 ? 1 : -1);
-      I32 s         = 0;
+      I32 s = 0;
       if (phi_fit(c, root, dir, s) && s < best) {
         best = s;
         take = dir;
@@ -883,6 +1241,8 @@ struct Solver {
   void calc() {
     down.assign(n + 1, bad());
     up.assign(n + 1, nil());
+    ldown.assign(n + 1, no_lat());
+    lup.assign(n + 1, no_lat());
     Dec dec;
 
     for (I32 i = n - 1; i >= 0; --i) {
@@ -893,12 +1253,13 @@ struct Solver {
         continue;
       }
 
-      Vec<Prof> ps;
+      Pack ps;
       for (const I32 to : adj[v]) {
         if (to != par[v])
-          ps.push_back(down[to]);
+          ps.add(to, down[to], ldown[to]);
       }
-      down[v] = merge_all(ps, dec);
+      down[v]  = merge_all(ps, dec);
+      ldown[v] = side_prof(ps);
     }
 
     FOR(i, 1, n) {
@@ -910,29 +1271,37 @@ struct Solver {
         continue;
       }
       if (cid[p] >= 0) {
-        up[v] = best_phi(cid[p], p);
+        up[v]  = best_phi(cid[p], p);
+        lup[v] = no_lat();
         continue;
       }
 
-      Vec<Prof> ps;
+      Pack ps;
       for (const I32 to : adj[p]) {
         if (to != v && to != par[p])
-          ps.push_back(down[to]);
+          ps.add(to, down[to], ldown[to]);
       }
-      if (p != ord[0])
-        ps.push_back(up[p]);
-      up[v] = merge_all(ps, dec);
+      if (p != ord[0]) {
+        ps.add(par[p], up[p], lup[p]);
+      }
+      up[v]  = merge_all(ps, dec);
+      lup[v] = side_prof(ps);
     }
   }
 
   struct Job {
     I32 u, from, col, row, dir;
+    bool side = false;
   };
 
   Vec<Job> jobs;
 
   void push(I32 u, I32 from, I32 col, I32 row, I32 dir) {
-    jobs.push_back({u, from, col, row, dir});
+    jobs.push_back({u, from, col, row, dir, false});
+  }
+
+  void push_side(I32 u, I32 from, I32 col, I32 row, I32 dir) {
+    jobs.push_back({u, from, col, row, dir, true});
   }
 
   void place_cycle(I32 c, I32 p, I32 d, I32 col, I32 row, I32 dir) {
@@ -991,39 +1360,40 @@ struct Solver {
     X[u] = col;
     Y[u] = row;
 
-    VecI32 ch;
-    Vec<Prof> ps;
+    Pack ch;
     for (const I32 v : adj[u]) {
       if (v == from)
         continue;
-      ch.push_back(v);
-      ps.push_back(beyond(u, v));
+      ch.add(v, beyond(u, v), side_beyond(u, v));
     }
 
-    if (ch.empty())
+    if (ch.n == 0)
       return;
-    if (isz(ch) == 1) {
-      push(ch[0], u, col, row + dir, dir);
+    if (ch.n == 1) {
+      push(ch.v[0], u, col, row + dir, dir);
       return;
     }
 
     Dec dec;
-    merge2(ps[0], ps[1], dec);
+    if (merge2(ch.p[0], ch.l[0], ch.p[1], ch.l[1], dec).t == BAD)
+      return;
 
     if (dec.both_path) {
-      push(ch[0], u, col, row + dir, dir);
-      push(ch[1], u, 1 - col, row, dir);
+      push(ch.v[0], u, col, row + dir, dir);
+      push(ch.v[1], u, 1 - col, row, dir);
       return;
     }
 
-    const I32 U = ch[dec.up];
-    const I32 S = ch[1 - dec.up];
+    const I32 U = ch.v[dec.up];
+    const I32 S = ch.v[1 - dec.up];
     push(U, u, col, row + dir, dir);
 
     if (dec.side == 0) {
       push(S, u, 1 - col, row, dir);
     } else if (dec.side == 1) {
       push(S, u, 1 - col, row, -dir);
+    } else if (dec.side == 3) {
+      push_side(S, u, 1 - col, row, dir);
     } else {
       X[S] = 1 - col;
       Y[S] = row;
@@ -1043,12 +1413,47 @@ struct Solver {
     }
   }
 
+  void expand_side(I32 u, I32 from, I32 col, I32 row, I32 dir) {
+    X[u] = col;
+    Y[u] = row;
+
+    Pack ch;
+    for (const I32 v : adj[u]) {
+      if (v == from)
+        continue;
+      ch.add(v, beyond(u, v));
+    }
+
+    if (ch.n == 0)
+      return;
+    if (ch.n == 1) {
+      push(ch.v[0], u, col, row + dir, dir);
+      return;
+    }
+
+    const bool p0 = ch.p[0].t == PATH;
+    const bool p1 = ch.p[1].t == PATH;
+    if (p0 && p1) {
+      const I32 dn  = ch.p[0].a <= ch.p[1].a ? 0 : 1;
+      const I32 upi = 1 - dn;
+      push(ch.v[upi], u, col, row + dir, dir);
+      push(ch.v[dn], u, col, row - dir, -dir);
+    } else if (p0 != p1) {
+      const I32 dn  = p0 ? 0 : 1;
+      const I32 upi = 1 - dn;
+      push(ch.v[upi], u, col, row + dir, dir);
+      push(ch.v[dn], u, col, row - dir, -dir);
+    }
+  }
+
   void run() {
     while (!jobs.empty()) {
       const Job j = jobs.back();
       jobs.pop_back();
 
-      if (cid[j.u] >= 0)
+      if (j.side)
+        expand_side(j.u, j.from, j.col, j.row, j.dir);
+      else if (cid[j.u] >= 0)
         expand_cycle(j.u, j.col, j.row, j.dir);
       else
         expand_tree(j.u, j.from, j.col, j.row, j.dir);
@@ -1111,9 +1516,10 @@ struct Solver {
       if (cid[v] >= 0 || deg[v] > 2)
         continue;
 
-      Vec<Prof> ps;
-      for (const I32 to : adj[v])
-        ps.push_back(beyond(v, to));
+      Pack ps;
+      for (const I32 to : adj[v]) {
+        ps.add(to, beyond(v, to), side_beyond(v, to));
+      }
       if (merge_all(ps, dec).t == BAD)
         continue;
 
@@ -1125,8 +1531,8 @@ struct Solver {
 
     FOR(c, isz(cyc)) {
       const VecI32& vs = cyc[c];
-      const I32 L      = isz(vs);
-      const I32 k      = L / 2;
+      const I32 L = isz(vs);
+      const I32 k = L / 2;
       if (isz(att[c]) > 4)
         continue;
 
@@ -1210,7 +1616,7 @@ void solve() {
 
   OUT("Yes");
   FOR(i, 1, n + 1)
-      cout << S.X[i] << ' ' << S.Y[i] << '\n';
+  OUT(S.X[i], S.Y[i]);
 }
 
 //===----------------------------------------------------------------------===//

@@ -12,10 +12,12 @@
 
 #include "templates/Base.hpp"
 
+// This solution is flawed!
+
 //===----------------------------------------------------------------------===//
 /* Main Solver Function */
 
-// CF 1578C - Cactus Lady and her Cing
+// CF 8751C - Cactus Lady and her Cing
 // Profile DP on the cactus block structure, per the amended blueprint:
 //   profiles: BOT | P(len) | Pint(a,b) | F(D,0) | F(0,s)
 //   bottom-up pass (dn), rerooting pass (up), cycle evaluation Phi,
@@ -105,8 +107,8 @@ static Prof merge2(const Prof& A, const Prof& B, Dec& dec) {
     dec = Dec{0, 0, 0, true};
     return mkPint(A.a, B.a);
   }
-  int         bestS = INT_MAX;
-  Dec         bd;
+  int bestS = INT_MAX;
+  Dec bd;
   const Prof* pr[2] = {&A, &B};
   for (int u = 0; u < 2; u++) { // try both UP/SIDE assignments
     const Prof& U  = *pr[u];
@@ -199,15 +201,15 @@ static string obuf;
 
 // Per-test Solver
 struct Solver {
-  int          n, m;
+  int n, m;
   Vec2D<I32>  adj;
-  VecI32          par, dep, order, deg;
-  VecI32          cid, cpos, extNb;
-  Vec2D<I32>  cycVs, attL;
-  VecI32          cycEntry;
+  VecI32 par, dep, order, deg;
+  VecI32 cid, cpos, extNb;
+  Vec2D<I32> cycVs, attL;
+  VecI32 cycEntry;
   Vec<Prof> dn, up;
-  VecI32          X, Y;
-  bool         bad = false;
+  VecI32 X, Y;
+  bool bad = false;
 
   Prof pba(int x) { // piece beyond attachment x
     int h = extNb[x];

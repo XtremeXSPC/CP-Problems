@@ -12,6 +12,8 @@
 
 #include "templates/Base.hpp"
 
+// This solution is flawed!
+
 //===----------------------------------------------------------------------===//
 /* Main Solver Function */
 
@@ -30,7 +32,7 @@ struct Solver {
   struct Side {
     I32 at   = 0;
     I32 root = 0;
-    array<Arm, 2> arm;
+    Array<Arm, 2> arm;
     I32 arms = 0;
     I32 pick = -1;
 
@@ -73,8 +75,8 @@ struct Solver {
     used.assign(n + 1, 0);
 
     I32 cnt = 0;
-    array<I32, 2> cur{a, b};
-    array<I32, 2> prev{0, 0};
+    Array<I32, 2> cur{a, b};
+    Array<I32, 2> prev{0, 0};
     I32 y = -200000;
 
     if (a) {
@@ -94,7 +96,7 @@ struct Solver {
       if (++y > 200000)
         return false;
 
-      array<I32, 2> nxt{0, 0};
+      Array<I32, 2> nxt{0, 0};
       FOR(c, 2) {
         const I32 v = cur[c];
         if (!v)

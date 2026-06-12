@@ -8,8 +8,7 @@
 #define NEED_MACROS
 #define NEED_TIMER
 #define NEED_CORE
-#define NEED_IO
-#define CP_IO_PROFILE_SIMPLE
+#define CP_IO_PROFILE_FAST_MINIMAL
 
 #include "templates/Base.hpp"
 
@@ -25,12 +24,19 @@ struct Prof {
   I32 a = 0, b = 0;
 };
 
+struct Lat {
+  bool fit = false;
+  I32 lam = 0, s = 0;
+};
+
 Prof bad() { return {BAD, 0, 0}; }
 Prof path(I32 len) { return {PATH, len, 0}; }
 Prof pint(I32 a, I32 b) { return {PINT, a, b}; }
 Prof fd(I32 d) { return {FD, min(d, INF), 0}; }
 Prof fs(I32 s) { return s == 0 ? fd(0) : Prof{FS, s, 0}; }
 Prof nil() { return {NIL, 0, 0}; }
+Lat no_lat() { return {}; }
+Lat lat(I32 lam, I32 s) { return {true, lam, s}; }
 
 Prof shift(const Prof& p) {
   switch (p.t) {
@@ -58,7 +64,58 @@ struct Dec {
   bool both_path = false;
 };
 
-Prof merge2(const Prof& A, const Prof& B, Dec& dec) {
+struct Pack {
+  I32 n = 0;
+  I32 v[3]{};
+  Prof p[3];
+  Lat l[3];
+
+  void add(I32 id, Prof prof, Lat lat = {}) {
+    v[n] = id;
+    p[n] = prof;
+    l[n] = lat;
+    ++n;
+  }
+};
+
+I32 lat_lam(const Prof& p) {
+  if (p.t == PINT) return 1;
+  if (p.t == FD) return min(p.a + 1, INF);
+  return -1;
+}
+
+Lat side_prof(const Pack& ps) {
+  I32 id[2], n = 0;
+  FOR(i, ps.n) {
+    if (ps.p[i].t != NIL) {
+      if (n == 2) return no_lat();
+      id[n++] = i;
+    }
+  }
+
+  if (n == 0) return lat(INF, 0);
+
+  if (n == 1) {
+    const Prof& p = ps.p[id[0]];
+    if (p.t == PATH) return lat(INF, 0);
+    const I32 lam = lat_lam(p);
+    return lam < 0 ? no_lat() : lat(lam, 0);
+  }
+
+  const Prof& A = ps.p[id[0]];
+  const Prof& B = ps.p[id[1]];
+  const bool p0 = A.t == PATH;
+  const bool p1 = B.t == PATH;
+  if (p0 && p1) return lat(INF, min(A.a, B.a));
+  if (p0 == p1) return no_lat();
+
+  const Prof& P = p0 ? A : B;
+  const Prof& X = p0 ? B : A;
+  const I32 lam = lat_lam(X);
+  return lam < 0 ? no_lat() : lat(lam, P.a);
+}
+
+Prof merge2(const Prof& A, const Lat& LA, const Prof& B, const Lat& LB, Dec& dec) {
   if (A.t == BAD || B.t == BAD) return bad();
   if (A.t == PATH && B.t == PATH) {
     dec = {0, 0, 0, true};
@@ -94,6 +151,12 @@ Prof merge2(const Prof& A, const Prof& B, Dec& dec) {
         take = {up, 2, S.b, false};
       }
     }
+
+    const Lat& L = (up == 0 ? LB : LA);
+    if (U.t == PATH && L.fit && U.a < L.lam && L.s < best) {
+      best = L.s;
+      take = {up, 3, 0, false};
+    }
   }
 
   if (take.up < 0) return bad();
@@ -101,16 +164,18 @@ Prof merge2(const Prof& A, const Prof& B, Dec& dec) {
   return fs(best);
 }
 
-Prof merge_all(const Vec<Prof>& ps, Dec& dec) {
-  Vec<Prof> q;
-  for (const Prof& p : ps) {
-    if (p.t != NIL) q.push_back(p);
+Prof merge_all(const Pack& ps, Dec& dec) {
+  I32 id[2], n = 0;
+  FOR(i, ps.n) {
+    if (ps.p[i].t != NIL) {
+      if (n == 2) return bad();
+      id[n++] = i;
+    }
   }
 
-  if (q.empty()) return path(1);
-  if (isz(q) == 1) return shift(q[0]);
-  if (isz(q) == 2) return merge2(q[0], q[1], dec);
-  return bad();
+  if (n == 0) return path(1);
+  if (n == 1) return shift(ps.p[id[0]]);
+  return merge2(ps.p[id[0]], ps.l[id[0]], ps.p[id[1]], ps.l[id[1]], dec);
 }
 
 bool top_one(const Prof& p) {
@@ -135,6 +200,7 @@ struct Solver {
   VecI32 deg, par, dep, ord;
   VecI32 cid, pos, ext, entry;
   Vec<Prof> down, up;
+  Vec<Lat> ldown, lup;
   VecI32 X, Y;
   bool fail = false;
 
@@ -145,6 +211,10 @@ struct Solver {
 
   Prof beyond(I32 u, I32 v) {
     return par[v] == u ? down[v] : up[u];
+  }
+
+  Lat side_beyond(I32 u, I32 v) {
+    return par[v] == u ? ldown[v] : lup[u];
   }
 
   void build() {
@@ -264,6 +334,8 @@ struct Solver {
   void calc() {
     down.assign(n + 1, bad());
     up.assign(n + 1, nil());
+    ldown.assign(n + 1, no_lat());
+    lup.assign(n + 1, no_lat());
     Dec dec;
 
     for (I32 i = n - 1; i >= 0; --i) {
@@ -273,11 +345,12 @@ struct Solver {
         continue;
       }
 
-      Vec<Prof> ps;
+      Pack ps;
       for (const I32 to : adj[v]) {
-        if (to != par[v]) ps.push_back(down[to]);
+        if (to != par[v]) ps.add(to, down[to], ldown[to]);
       }
-      down[v] = merge_all(ps, dec);
+      down[v]  = merge_all(ps, dec);
+      ldown[v] = side_prof(ps);
     }
 
     FOR(i, 1, n) {
@@ -290,26 +363,35 @@ struct Solver {
       }
       if (cid[p] >= 0) {
         up[v] = best_phi(cid[p], p);
+        lup[v] = no_lat();
         continue;
       }
 
-      Vec<Prof> ps;
+      Pack ps;
       for (const I32 to : adj[p]) {
-        if (to != v && to != par[p]) ps.push_back(down[to]);
+        if (to != v && to != par[p]) ps.add(to, down[to], ldown[to]);
       }
-      if (p != ord[0]) ps.push_back(up[p]);
+      if (p != ord[0]) {
+        ps.add(par[p], up[p], lup[p]);
+      }
       up[v] = merge_all(ps, dec);
+      lup[v] = side_prof(ps);
     }
   }
 
   struct Job {
     I32 u, from, col, row, dir;
+    bool side = false;
   };
 
   Vec<Job> jobs;
 
   void push(I32 u, I32 from, I32 col, I32 row, I32 dir) {
-    jobs.push_back({u, from, col, row, dir});
+    jobs.push_back({u, from, col, row, dir, false});
+  }
+
+  void push_side(I32 u, I32 from, I32 col, I32 row, I32 dir) {
+    jobs.push_back({u, from, col, row, dir, true});
   }
 
   void place_cycle(I32 c, I32 p, I32 d, I32 col, I32 row, I32 dir) {
@@ -365,37 +447,37 @@ struct Solver {
     X[u] = col;
     Y[u] = row;
 
-    VecI32 ch;
-    Vec<Prof> ps;
+    Pack ch;
     for (const I32 v : adj[u]) {
       if (v == from) continue;
-      ch.push_back(v);
-      ps.push_back(beyond(u, v));
+      ch.add(v, beyond(u, v), side_beyond(u, v));
     }
 
-    if (ch.empty()) return;
-    if (isz(ch) == 1) {
-      push(ch[0], u, col, row + dir, dir);
+    if (ch.n == 0) return;
+    if (ch.n == 1) {
+      push(ch.v[0], u, col, row + dir, dir);
       return;
     }
 
     Dec dec;
-    merge2(ps[0], ps[1], dec);
+    if (merge2(ch.p[0], ch.l[0], ch.p[1], ch.l[1], dec).t == BAD) return;
 
     if (dec.both_path) {
-      push(ch[0], u, col, row + dir, dir);
-      push(ch[1], u, 1 - col, row, dir);
+      push(ch.v[0], u, col, row + dir, dir);
+      push(ch.v[1], u, 1 - col, row, dir);
       return;
     }
 
-    const I32 U = ch[dec.up];
-    const I32 S = ch[1 - dec.up];
+    const I32 U = ch.v[dec.up];
+    const I32 S = ch.v[1 - dec.up];
     push(U, u, col, row + dir, dir);
 
     if (dec.side == 0) {
       push(S, u, 1 - col, row, dir);
     } else if (dec.side == 1) {
       push(S, u, 1 - col, row, -dir);
+    } else if (dec.side == 3) {
+      push_side(S, u, 1 - col, row, dir);
     } else {
       X[S] = 1 - col;
       Y[S] = row;
@@ -414,12 +496,44 @@ struct Solver {
     }
   }
 
+  void expand_side(I32 u, I32 from, I32 col, I32 row, I32 dir) {
+    X[u] = col;
+    Y[u] = row;
+
+    Pack ch;
+    for (const I32 v : adj[u]) {
+      if (v == from) continue;
+      ch.add(v, beyond(u, v));
+    }
+
+    if (ch.n == 0) return;
+    if (ch.n == 1) {
+      push(ch.v[0], u, col, row + dir, dir);
+      return;
+    }
+
+    const bool p0 = ch.p[0].t == PATH;
+    const bool p1 = ch.p[1].t == PATH;
+    if (p0 && p1) {
+      const I32 dn  = ch.p[0].a <= ch.p[1].a ? 0 : 1;
+      const I32 upi = 1 - dn;
+      push(ch.v[upi], u, col, row + dir, dir);
+      push(ch.v[dn], u, col, row - dir, -dir);
+    } else if (p0 != p1) {
+      const I32 dn  = p0 ? 0 : 1;
+      const I32 upi = 1 - dn;
+      push(ch.v[upi], u, col, row + dir, dir);
+      push(ch.v[dn], u, col, row - dir, -dir);
+    }
+  }
+
   void run() {
     while (!jobs.empty()) {
       const Job j = jobs.back();
       jobs.pop_back();
 
-      if (cid[j.u] >= 0) expand_cycle(j.u, j.col, j.row, j.dir);
+      if (j.side) expand_side(j.u, j.from, j.col, j.row, j.dir);
+      else if (cid[j.u] >= 0) expand_cycle(j.u, j.col, j.row, j.dir);
       else expand_tree(j.u, j.from, j.col, j.row, j.dir);
     }
   }
@@ -471,8 +585,10 @@ struct Solver {
     FOR(v, 1, n + 1) {
       if (cid[v] >= 0 || deg[v] > 2) continue;
 
-      Vec<Prof> ps;
-      for (const I32 to : adj[v]) ps.push_back(beyond(v, to));
+      Pack ps;
+      for (const I32 to : adj[v]) {
+        ps.add(to, beyond(v, to), side_beyond(v, to));
+      }
       if (merge_all(ps, dec).t == BAD) continue;
 
       reset();
@@ -559,7 +675,7 @@ void solve() {
   }
 
   OUT("Yes");
-  FOR(i, 1, n + 1) cout << S.X[i] << ' ' << S.Y[i] << '\n';
+  FOR(i, 1, n + 1) OUT(S.X[i], S.Y[i]);
 }
 
 //===----------------------------------------------------------------------===//
